@@ -6,7 +6,10 @@ use crate::{
     taproot::{TapLeaf, TapRoot, P2TR},
     well_known::operator,
 };
-use musig2::{secp256k1::{self, XOnlyPublicKey}, KeyAggContext};
+use musig2::{
+    secp256k1::{self, XOnlyPublicKey},
+    KeyAggContext,
+};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
