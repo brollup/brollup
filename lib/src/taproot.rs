@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use crate::hash::{tagged_hash, HashTag};
 use crate::encoding::prefix::Prefix;
+use crate::hash::{tagged_hash, HashTag};
 use lazy_static::lazy_static;
 use musig2::secp256k1::{self, Parity, PublicKey, Scalar, Secp256k1, XOnlyPublicKey};
 use std::cmp::Ordering;
@@ -99,17 +99,17 @@ impl TapBranch {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        let left_branch_vec: Bytes = match &self.left_branch {
-            Branch::Branch(branch) => branch.hash_as_vec(),
-            Branch::Leaf(leaf) => leaf.hash_as_vec(),
+        let left_branch = match &self.left_branch {
+            Branch::Branch(branch) => branch.hash(),
+            Branch::Leaf(leaf) => leaf.hash(),
         };
 
-        let right_branch_vec: Bytes = match &self.right_branch {
-            Branch::Branch(branch) => branch.hash_as_vec(),
-            Branch::Leaf(leaf) => leaf.hash_as_vec(),
+        let right_branch = match &self.right_branch {
+            Branch::Branch(branch) => branch.hash(),
+            Branch::Leaf(leaf) => leaf.hash(),
         };
 
-        hash_tap_branch(&left_branch_vec, &right_branch_vec)
+        hash_tap_branch(left_branch, right_branch)
     }
 
     pub fn hash_as_vec(&self) -> Bytes {
@@ -173,18 +173,23 @@ impl TapRoot {
         self.inner_key.public_key(Parity::Even)
     }
 
-    pub fn tap_tweak(&self) -> [u8; 32] {
-        let inner_key_bytes = self.inner_key.serialize().to_vec();
-
-        let tweak_bytes = match &self.tree {
+    pub fn uppermost_branch(&self) -> [u8; 32] {
+        let uppermost_branch = match &self.tree {
             Some(tree) => match &tree.root {
-                Branch::Leaf(leaf) => leaf.hash_as_vec(),
-                Branch::Branch(branch) => branch.hash_as_vec(),
+                Branch::Leaf(leaf) => leaf.hash(),
+                Branch::Branch(branch) => branch.hash(),
             },
-            None => vec![],
+            None => [0u8; 32],
         };
+        uppermost_branch
+    }
 
-        hash_tap_tweak(&inner_key_bytes, &tweak_bytes)
+    pub fn tap_tweak(&self) -> [u8; 32] {
+        let inner_key_bytes = self.inner_key.serialize();
+
+        let uppermost_branch = self.uppermost_branch();
+
+        hash_tap_tweak(inner_key_bytes, uppermost_branch)
     }
 
     pub fn tweaked_key(&self) -> Result<PublicKey, secp256k1::Error> {
@@ -246,10 +251,10 @@ impl TapTree {
         }
     }
 
-    pub fn root(&self) -> Bytes {
+    pub fn root(&self) -> [u8; 32] {
         match &self.root {
-            Branch::Leaf(leaf) => leaf.hash_as_vec(),
-            Branch::Branch(branch) => branch.hash_as_vec(),
+            Branch::Leaf(leaf) => leaf.hash(),
+            Branch::Branch(branch) => branch.hash(),
         }
     }
 
@@ -419,29 +424,29 @@ impl ControlBlock {
     }
 }
 
-pub fn hash_tap_leaf(raw_script_vec: &Bytes, version: u8) -> [u8; 32] {
+pub fn hash_tap_leaf(raw_script_bytes: &Bytes, version: u8) -> [u8; 32] {
     let mut data: Bytes = Vec::new();
 
     data.extend(&[version]);
-    data.extend(raw_script_vec.prefix_compact_size());
+    data.extend(raw_script_bytes.prefix_compact_size());
 
     tagged_hash(data, HashTag::TapLeaf)
 }
 
-pub fn hash_tap_branch(left_branch_vec: &Bytes, right_branch_vec: &Bytes) -> [u8; 32] {
+pub fn hash_tap_branch(left_branch_bytes: [u8; 32], right_branch_bytes: [u8; 32]) -> [u8; 32] {
     let mut data: Bytes = Vec::new();
 
-    data.extend(left_branch_vec);
-    data.extend(right_branch_vec);
+    data.extend(left_branch_bytes);
+    data.extend(right_branch_bytes);
 
     tagged_hash(data, HashTag::TapBranch)
 }
 
-pub fn hash_tap_tweak(inner_key_vec: &Bytes, tweak_vec: &Bytes) -> [u8; 32] {
+pub fn hash_tap_tweak(inner_key_bytes: [u8; 32], tweak_bytes: [u8; 32]) -> [u8; 32] {
     let mut data: Bytes = Vec::new();
 
-    data.extend(inner_key_vec);
-    data.extend(tweak_vec);
+    data.extend(inner_key_bytes);
+    data.extend(tweak_bytes);
 
     tagged_hash(data, HashTag::TapTweak)
 }

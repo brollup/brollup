@@ -42,21 +42,28 @@ impl Connector {
         self.operator_key_well_known
     }
 
-    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
-        let keys = vec![self.self_key(), self.operator_key()];
+    pub fn keys(&self) -> Vec<Key> {
+        vec![self.self_key(), self.operator_key()]
+    }
 
-        keys.agg_key()
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)
+    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
+        let keys = self.keys();
+
+        let agg_inner_key = keys
+            .agg_key(None)
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(agg_inner_key)
     }
 
     pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
-        let keys = vec![self.self_key(), self.operator_key()];
+        let keys = self.keys();
 
-        let ctx = keys
-            .key_agg_ctx()
+        let key_agg_ctx = keys
+            .key_agg_ctx(None)
             .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
 
-        Ok(ctx)
+        Ok(key_agg_ctx)
     }
 }
 

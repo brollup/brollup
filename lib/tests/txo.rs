@@ -44,6 +44,30 @@ mod txo_tests {
 
         assert_eq!(spk, spk_expected);
 
+        let xxx_1 = lift_txo.taproot().unwrap().tweaked_key().unwrap().serialize().to_vec();
+        let xxx_2_key: XOnlyPublicKey = lift_txo.key_agg_ctx().unwrap().aggregated_pubkey();
+        let xxx_2 = xxx_2_key.serialize().to_vec();
+
+        let inneris_1 = lift_txo.taproot().unwrap().inner_key().serialize().to_vec();
+        let inneris_2_key: XOnlyPublicKey = lift_txo.key_agg_ctx().unwrap().aggregated_pubkey_untweaked();
+        let inneris_2 = inneris_2_key.serialize().to_vec();
+
+        let inneris_3_key = lift_txo.agg_inner_key().unwrap();
+        let inneris_3 = inneris_3_key.serialize().to_vec();
+
+
+
+        println!("ye1 {}", hex::encode(xxx_1));
+        println!("ye2 {}", hex::encode(xxx_2));
+
+
+        println!("inneris_1 {}", hex::encode(inneris_1));
+        println!("inneris_2 {}", hex::encode(inneris_2));
+        println!("inneris_3 {}", hex::encode(inneris_3));
+
+        let tweakis = lift_txo.taproot().unwrap().tap_tweak().to_vec();
+        println!("tweakis {}", hex::encode(tweakis));
+
         Ok(())
     }
 

@@ -46,24 +46,33 @@ impl Projector {
         self.msg_sender_keys.clone()
     }
 
-    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
+    pub fn keys(&self) -> Vec<Key> {
         let mut keys = self.msg_sender_keys();
         keys.push(self.operator_key());
-        keys.agg_key()
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)
+
+        keys
+    }
+
+    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
+        let keys = self.keys();
+
+        let agg_inner_key = keys
+            .agg_key(None)
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(agg_inner_key)
     }
 
     pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
-        let mut keys = self.msg_sender_keys();
-        keys.push(self.operator_key());
+        let keys = self.keys();
 
-        let ctx = keys
-            .key_agg_ctx()
+        let key_agg_ctx = keys
+            .key_agg_ctx(Some(self.taproot()?.uppermost_branch()))
             .map_err(|_| secp256k1::Error::InvalidPublicKey)?
             .with_taproot_tweak(&self.taproot()?.tap_tweak())
             .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
 
-        Ok(ctx)
+        Ok(key_agg_ctx)
     }
 
     pub fn tag(&self) -> ProjectorTag {
