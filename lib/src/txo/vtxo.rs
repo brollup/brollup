@@ -50,7 +50,9 @@ impl VTXO {
     pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
         let keys = self.keys();
 
-        let agg_inner_key = keys.agg_key(None)?;
+        let agg_inner_key = keys
+            .agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
 
         Ok(agg_inner_key)
     }
@@ -58,7 +60,11 @@ impl VTXO {
     pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
         let keys = self.keys();
 
-        let key_agg_ctx = keys.key_agg_ctx(Some(self.taproot()?.uppermost_branch()))?;
+        let key_agg_ctx = keys
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?
+            .with_taproot_tweak(&self.taproot()?.uppermost_branch())
+            .map_err(|_| secp256k1::Error::InvalidTweak)?;
 
         Ok(key_agg_ctx)
     }

@@ -49,7 +49,9 @@ impl Connector {
     pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
         let keys = self.keys();
 
-        let agg_inner_key = keys.agg_key(None)?;
+        let agg_inner_key = keys
+            .agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
 
         Ok(agg_inner_key)
     }
@@ -57,7 +59,9 @@ impl Connector {
     pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
         let keys = self.keys();
 
-        let key_agg_ctx = keys.key_agg_ctx(None)?;
+        let key_agg_ctx = keys
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
 
         Ok(key_agg_ctx)
     }
