@@ -1,7 +1,11 @@
 #![allow(dead_code)]
 
-use crate::{signature::musig2::keys_to_key_agg_ctx, taproot::{TapRoot, P2TR}, well_known::operator};
-use musig2::{secp256k1::{self, PublicKey, XOnlyPublicKey}, KeyAggContext};
+use crate::{
+    signature::keyagg::KeyAgg,
+    taproot::{TapRoot, P2TR},
+    well_known::operator,
+};
+use musig2::secp256k1::{self, XOnlyPublicKey};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -35,17 +39,17 @@ impl Connector {
         self.operator_key_well_known
     }
 
-    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
-        let keys = vec![self.self_key(), self.operator_key()];
-        keys_to_key_agg_ctx(&keys).map_err(|_| secp256k1::Error::InvalidPublicKey)
+    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
+        vec![self.self_key(), self.operator_key()]
+            .agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)
     }
 }
 
 impl P2TR for Connector {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         //// Inner Key: (Self + Operator)
-        let key_agg_ctx = self.key_agg_ctx()?;
-        let inner_key: PublicKey = key_agg_ctx.aggregated_pubkey();
+        let inner_key = self.agg_key()?;
 
         Ok(TapRoot::key_path_only(inner_key))
     }

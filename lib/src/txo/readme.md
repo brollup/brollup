@@ -19,7 +19,7 @@ Some output types are bare, meaning they are literal, on-chain transaction outpu
                                                                               ⋰
                                                                             ⋰  ┌────────────────┐   ┌────────────────┐
                                                                           ⋰    │     VTXO #0    │-->│   Channel #0   │ 
-                 Prevouts                       Outs                    ⋰      └────────────────┘   └────────────────┘
+                 Prevouts                      Outs                     ⋰      └────────────────┘   └────────────────┘
            ┌───────────────────┐      ┌─────────────────────┐         ⋰                 ┊                   
         #0 │      Payload      │   #0 │       Payload       │       ⋰          ┌────────────────┐   ┌────────────────┐
            └───────────────────┘      └─────────────────────┘     ⋰            │     VTXO #y    │-->│   Channel #y   │ 

@@ -128,23 +128,23 @@ pub struct TapRoot {
 }
 
 impl TapRoot {
-    pub fn key_and_script_path_single(key: PublicKey, leaf: TapLeaf) -> TapRoot {
+    pub fn key_and_script_path_single(inner_key: XOnlyPublicKey, leaf: TapLeaf) -> TapRoot {
         TapRoot {
-            inner_key: key.x_only_public_key().0,
+            inner_key,
             tree: Some(TapTree::new(vec![leaf])),
         }
     }
 
-    pub fn key_and_script_path_multi(key: PublicKey, leaves: Vec<TapLeaf>) -> TapRoot {
+    pub fn key_and_script_path_multi(inner_key: XOnlyPublicKey, leaves: Vec<TapLeaf>) -> TapRoot {
         TapRoot {
-            inner_key: key.x_only_public_key().0,
+            inner_key,
             tree: Some(TapTree::new(leaves)),
         }
     }
 
-    pub fn key_path_only(key: PublicKey) -> TapRoot {
+    pub fn key_path_only(inner_key: XOnlyPublicKey) -> TapRoot {
         TapRoot {
-            inner_key: key.x_only_public_key().0,
+            inner_key,
             tree: None,
         }
     }
@@ -165,7 +165,7 @@ impl TapRoot {
         }
     }
 
-    pub fn inner_key_x_only(&self) -> XOnlyPublicKey {
+    pub fn inner_key(&self) -> XOnlyPublicKey {
         self.inner_key
     }
 
@@ -174,9 +174,9 @@ impl TapRoot {
     }
 
     pub fn tap_tweak(&self) -> [u8; 32] {
-        let inner_vec: Bytes = self.inner_key.serialize().to_vec();
+        let inner_key_bytes = self.inner_key.serialize().to_vec();
 
-        let tweak_vec: Bytes = match &self.tree {
+        let tweak_bytes = match &self.tree {
             Some(tree) => match &tree.root {
                 Branch::Leaf(leaf) => leaf.hash_as_vec(),
                 Branch::Branch(branch) => branch.hash_as_vec(),
@@ -184,7 +184,7 @@ impl TapRoot {
             None => panic!(),
         };
 
-        hash_tap_tweak(&inner_vec, &tweak_vec)
+        hash_tap_tweak(&inner_key_bytes, &tweak_bytes)
     }
 
     pub fn tweaked_key(&self) -> Result<PublicKey, secp256k1::Error> {
@@ -222,7 +222,7 @@ impl TapRoot {
             None => return Err(secp256k1::Error::InvalidTweak),
         };
 
-        let inner_key = self.inner_key_x_only();
+        let inner_key = self.inner_key();
         let parity = self.tweaked_key_parity()?;
 
         Ok(ControlBlock::new(inner_key, parity, path))

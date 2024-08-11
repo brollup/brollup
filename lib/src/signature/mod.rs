@@ -1,4 +1,4 @@
 pub mod into;
-pub mod musig2;
+pub mod keyagg;
 pub mod schnorr;
 pub mod sum;

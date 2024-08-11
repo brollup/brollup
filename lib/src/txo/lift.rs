@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use crate::{
-    encoding::csv::{CSVEncode, CSVFlag}, signature::musig2::keys_to_key_agg_ctx, taproot::{TapLeaf, TapRoot, P2TR}, well_known::operator
+    encoding::csv::{CSVEncode, CSVFlag},
+    signature::keyagg::KeyAgg,
+    taproot::{TapLeaf, TapRoot, P2TR},
+    well_known::operator,
 };
-use musig2::{
-    secp256k1::{self, PublicKey, XOnlyPublicKey},
-    KeyAggContext,
-};
+use musig2::secp256k1::{self, XOnlyPublicKey};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -40,24 +40,25 @@ impl Lift {
         self.operator_key_well_known
     }
 
-    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
-        let keys = vec![self.self_key(), self.operator_key()];
-        keys_to_key_agg_ctx(&keys).map_err(|_| secp256k1::Error::InvalidPublicKey)
+    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
+        vec![self.self_key(), self.operator_key()]
+            .agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)
     }
 }
 
 impl P2TR for Lift {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
-        //// Inner Key: (Self + Operator)
-        let key_agg_ctx = self.key_agg_ctx()?;
-        let inner_key: PublicKey = key_agg_ctx.aggregated_pubkey();
+        // Inner Key: (Self + Operator)
+        let inner_key = self.agg_key()?;
 
-        //// Exit Path: (Self after 3 months)
+        // Exit Path: (Self after 3 months)
         let mut exit_path_script = Vec::<u8>::new();
         exit_path_script.extend(Bytes::csv_script(CSVFlag::CSVYear)); // Relative Timelock
         exit_path_script.push(0x20); // OP_PUSHDATA_32
         exit_path_script.extend(self.self_key().serialize()); // Self Key 32-bytes
         exit_path_script.push(0xac); // OP_CHECKSIG
+
         let exit_path = TapLeaf::new(exit_path_script);
 
         Ok(TapRoot::key_and_script_path_single(inner_key, exit_path))

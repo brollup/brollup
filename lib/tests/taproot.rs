@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod taproot_tests {
     use brollup::taproot::{ControlBlock, TapBranch, TapLeaf, TapRoot, TapTree};
-    use musig2::secp256k1::{Parity, PublicKey};
+    use musig2::secp256k1::{Parity, PublicKey, XOnlyPublicKey};
     use std::error::Error;
 
     #[test]
@@ -51,8 +51,8 @@ mod taproot_tests {
 
         // Test - with even inner key
 
-        let inner_key_even: PublicKey =
-            "028c17db0c798574086299e5041ffbcfa06bd501eb0e50914731bfbd2f3c9f980e".parse()?;
+        let inner_key_even: XOnlyPublicKey =
+            "8c17db0c798574086299e5041ffbcfa06bd501eb0e50914731bfbd2f3c9f980e".parse()?;
 
         let taproot = TapRoot::key_and_script_path_single(inner_key_even, tap_leaf.clone());
 
@@ -63,8 +63,8 @@ mod taproot_tests {
 
         // Test - with odd inner key
 
-        let inner_key_odd: PublicKey =
-            "037b55a1c853b28c398141c8fdf4eb69469430f019983af4be4b5aa7512936f295".parse()?;
+        let inner_key_odd: XOnlyPublicKey =
+            "7b55a1c853b28c398141c8fdf4eb69469430f019983af4be4b5aa7512936f295".parse()?;
 
         let taproot = TapRoot::key_and_script_path_single(inner_key_odd, tap_leaf.clone());
 
@@ -80,8 +80,8 @@ mod taproot_tests {
     fn test_taproot_key_path_only() -> Result<(), Box<dyn Error>> {
         // Test with even inner key
 
-        let inner_key_even: PublicKey =
-            "02d14c281713f15b608cc75d94717bbb1c2a4ff11e169c757f87a149daf61d54f0".parse()?;
+        let inner_key_even: XOnlyPublicKey =
+            "d14c281713f15b608cc75d94717bbb1c2a4ff11e169c757f87a149daf61d54f0".parse()?;
 
         let taproot_with_even_inner = TapRoot::key_path_only(inner_key_even);
 
@@ -92,8 +92,8 @@ mod taproot_tests {
 
         // Test with odd inner key
 
-        let inner_key_odd: PublicKey =
-            "03a2314467943d47cf102477b985d21c5ffa6512961b08906724f13e779cfed299".parse()?;
+        let inner_key_odd: XOnlyPublicKey =
+            "a2314467943d47cf102477b985d21c5ffa6512961b08906724f13e779cfed299".parse()?;
 
         let taproot_with_odd_inner = TapRoot::key_path_only(inner_key_odd);
 

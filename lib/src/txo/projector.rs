@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use crate::{
-    encoding::csv::{CSVEncode, CSVFlag}, signature::musig2::keys_to_key_agg_ctx, taproot::{TapLeaf, TapRoot, P2TR}, well_known::operator
+    encoding::csv::{CSVEncode, CSVFlag},
+    signature::keyagg::KeyAgg,
+    taproot::{TapLeaf, TapRoot, P2TR},
+    well_known::operator,
 };
-use musig2::{
-    secp256k1::{self, PublicKey, XOnlyPublicKey},
-    KeyAggContext,
-};
+use musig2::secp256k1::{self, XOnlyPublicKey};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -43,10 +43,11 @@ impl Projector {
         self.msg_sender_keys.clone()
     }
 
-    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
+    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
         let mut keys = self.msg_sender_keys();
         keys.push(self.operator_key());
-        keys_to_key_agg_ctx(&keys).map_err(|_| secp256k1::Error::InvalidPublicKey)
+        keys.agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)
     }
 
     pub fn tag(&self) -> ProjectorTag {
@@ -57,8 +58,7 @@ impl Projector {
 impl P2TR for Projector {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         //// Inner Key: (Self + Operator)
-        let key_agg_ctx = self.key_agg_ctx()?;
-        let inner_key: PublicKey = key_agg_ctx.aggregated_pubkey();
+        let inner_key = self.agg_key()?;
 
         //// Sweep Path: (Operator after 3 months)
         let mut sweep_path_script = Vec::<u8>::new();

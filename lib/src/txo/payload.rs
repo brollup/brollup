@@ -3,11 +3,11 @@
 use bit_vec::BitVec;
 use musig2::secp256k1::{self, XOnlyPublicKey};
 
-use crate::entry::entry::Entry;
-use crate::signature::musig2::keys_to_key_agg_ctx;
 use crate::encoding::cpe::CompactPayloadEncoding;
 use crate::encoding::csv::{CSVEncode, CSVFlag};
 use crate::encoding::push::Push;
+use crate::entry::entry::Entry;
+use crate::signature::keyagg::KeyAgg;
 use crate::taproot::{TapLeaf, P2TR};
 use crate::{hash::hash_160, taproot::TapRoot};
 
@@ -129,16 +129,15 @@ impl Payload {
         data
     }
 
-    fn msg_senders_aggregate_key(&self) -> XOnlyPublicKey {
-        let key_agg_ctx = keys_to_key_agg_ctx(&self.msg_senders);
-
-        // consider removing unwrap here
-        key_agg_ctx.unwrap().aggregated_pubkey()
+    fn msg_senders_agg_key(&self) -> Result<Key, secp256k1::Error> {
+        self.msg_senders
+            .agg_key()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)
     }
 }
 
 impl P2TR for Payload {
-    fn taproot(&self) -> Result<TapRoot, secp256k1::Error>  {
+    fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         let mut tap_script = Vec::<u8>::new();
 
         // OP_IF
@@ -172,7 +171,7 @@ impl P2TR for Payload {
 
         // Push msg.senders aggregate key into stack
         tap_script.push(0x20);
-        tap_script.extend(self.msg_senders_aggregate_key().serialize());
+        tap_script.extend(self.msg_senders_agg_key()?.serialize());
 
         // OP_CHECKSIG
         tap_script.push(0xac);
