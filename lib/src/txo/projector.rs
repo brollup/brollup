@@ -56,9 +56,7 @@ impl Projector {
     pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
         let keys = self.keys();
 
-        let agg_inner_key = keys
-            .agg_key(None)
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+        let agg_inner_key = keys.agg_key(None)?;
 
         Ok(agg_inner_key)
     }
@@ -66,11 +64,7 @@ impl Projector {
     pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
         let keys = self.keys();
 
-        let key_agg_ctx = keys
-            .key_agg_ctx(Some(self.taproot()?.uppermost_branch()))
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)?
-            .with_taproot_tweak(&self.taproot()?.tap_tweak())
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+        let key_agg_ctx = keys.key_agg_ctx(Some(self.taproot()?.uppermost_branch()))?;
 
         Ok(key_agg_ctx)
     }

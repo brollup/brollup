@@ -131,19 +131,13 @@ impl Payload {
     }
 
     fn msg_senders_agg_key(&self) -> Result<Key, secp256k1::Error> {
-        let msg_senders_agg_key = self
-            .msg_senders
-            .agg_key(None)
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+        let msg_senders_agg_key = self.msg_senders.agg_key(None)?;
 
         Ok(msg_senders_agg_key)
     }
 
     pub fn msg_senders_key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
-        let msg_senders_key_agg_ctx = self
-            .msg_senders
-            .key_agg_ctx(None)
-            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+        let msg_senders_key_agg_ctx = self.msg_senders.key_agg_ctx(None)?;
 
         Ok(msg_senders_key_agg_ctx)
     }
