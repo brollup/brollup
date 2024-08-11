@@ -181,7 +181,7 @@ impl TapRoot {
                 Branch::Leaf(leaf) => leaf.hash_as_vec(),
                 Branch::Branch(branch) => branch.hash_as_vec(),
             },
-            None => panic!(),
+            None => vec![],
         };
 
         hash_tap_tweak(&inner_key_bytes, &tweak_bytes)

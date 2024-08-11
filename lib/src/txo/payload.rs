@@ -2,6 +2,7 @@
 
 use bit_vec::BitVec;
 use musig2::secp256k1::{self, XOnlyPublicKey};
+use musig2::KeyAggContext;
 
 use crate::encoding::cpe::CompactPayloadEncoding;
 use crate::encoding::csv::{CSVEncode, CSVFlag};
@@ -133,6 +134,15 @@ impl Payload {
         self.msg_senders
             .agg_key()
             .map_err(|_| secp256k1::Error::InvalidPublicKey)
+    }
+
+    pub fn msg_senders_key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
+        let ctx = self
+            .msg_senders
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(ctx)
     }
 }
 

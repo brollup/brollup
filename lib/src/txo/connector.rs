@@ -5,7 +5,10 @@ use crate::{
     taproot::{TapRoot, P2TR},
     well_known::operator,
 };
-use musig2::secp256k1::{self, XOnlyPublicKey};
+use musig2::{
+    secp256k1::{self, XOnlyPublicKey},
+    KeyAggContext,
+};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -39,17 +42,28 @@ impl Connector {
         self.operator_key_well_known
     }
 
-    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
-        vec![self.self_key(), self.operator_key()]
-            .agg_key()
+    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
+        let keys = vec![self.self_key(), self.operator_key()];
+
+        keys.agg_key()
             .map_err(|_| secp256k1::Error::InvalidPublicKey)
+    }
+
+    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
+        let keys = vec![self.self_key(), self.operator_key()];
+
+        let ctx = keys
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(ctx)
     }
 }
 
 impl P2TR for Connector {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         //// Inner Key: (Self + Operator)
-        let inner_key = self.agg_key()?;
+        let inner_key = self.agg_inner_key()?;
 
         Ok(TapRoot::key_path_only(inner_key))
     }

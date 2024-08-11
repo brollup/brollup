@@ -6,7 +6,7 @@ use crate::{
     taproot::{TapLeaf, TapRoot, P2TR},
     well_known::operator,
 };
-use musig2::secp256k1::{self, XOnlyPublicKey};
+use musig2::{secp256k1::{self, XOnlyPublicKey}, KeyAggContext};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -40,17 +40,27 @@ impl VTXO {
         self.operator_key_well_known
     }
 
-    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
+    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
         vec![self.self_key(), self.operator_key()]
             .agg_key()
             .map_err(|_| secp256k1::Error::InvalidPublicKey)
+    }
+
+    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
+        let keys = vec![self.self_key(), self.operator_key()];
+
+        let ctx = keys
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(ctx)
     }
 }
 
 impl P2TR for VTXO {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         //// Inner Key: (Self + Operator)
-        let inner_key = self.agg_key()?;
+        let inner_key = self.agg_inner_key()?;
         //// Exit Path: (Self after 3 months)
         let mut exit_path_script = Vec::<u8>::new();
         exit_path_script.extend(Bytes::csv_script(CSVFlag::CSVThreeMonths)); // Relative Timelock

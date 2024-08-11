@@ -6,7 +6,7 @@ use crate::{
     taproot::{TapLeaf, TapRoot, P2TR},
     well_known::operator,
 };
-use musig2::secp256k1::{self, XOnlyPublicKey};
+use musig2::{secp256k1::{self, XOnlyPublicKey}, KeyAggContext};
 
 type Bytes = Vec<u8>;
 type Key = XOnlyPublicKey;
@@ -43,11 +43,24 @@ impl Projector {
         self.msg_sender_keys.clone()
     }
 
-    pub fn agg_key(&self) -> Result<Key, secp256k1::Error> {
+    pub fn agg_inner_key(&self) -> Result<Key, secp256k1::Error> {
         let mut keys = self.msg_sender_keys();
         keys.push(self.operator_key());
         keys.agg_key()
             .map_err(|_| secp256k1::Error::InvalidPublicKey)
+    }
+
+    pub fn key_agg_ctx(&self) -> Result<KeyAggContext, secp256k1::Error> {
+        let mut keys = self.msg_sender_keys();
+        keys.push(self.operator_key());
+
+        let ctx = keys
+            .key_agg_ctx()
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?
+            .with_taproot_tweak(&self.taproot()?.tap_tweak())
+            .map_err(|_| secp256k1::Error::InvalidPublicKey)?;
+
+        Ok(ctx)
     }
 
     pub fn tag(&self) -> ProjectorTag {
@@ -58,7 +71,7 @@ impl Projector {
 impl P2TR for Projector {
     fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
         //// Inner Key: (Self + Operator)
-        let inner_key = self.agg_key()?;
+        let inner_key = self.agg_inner_key()?;
 
         //// Sweep Path: (Operator after 3 months)
         let mut sweep_path_script = Vec::<u8>::new();

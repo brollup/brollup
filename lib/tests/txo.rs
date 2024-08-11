@@ -125,7 +125,7 @@ mod txo_tests {
 
         let projector = Projector::new(pubkeys, ProjectorTag::VTXOProjector);
 
-        let agg_key: XOnlyPublicKey = projector.agg_key().unwrap();
+        let agg_key: XOnlyPublicKey = projector.agg_inner_key().unwrap();
 
         println!("agg_key {}", agg_key);
 
