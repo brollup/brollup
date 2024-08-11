@@ -34,37 +34,37 @@ impl Channel {
 }
 
 impl P2TR for Channel {
-fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
-    let mut leaves = Vec::<TapLeaf>::new();
+    fn taproot(&self) -> Result<TapRoot, secp256k1::Error> {
+        let mut leaves = Vec::<TapLeaf>::new();
 
-    for i in 0..128 {
-        let mut tap_script = Vec::<u8>::new();
+        for i in 0..128 {
+            let mut tap_script = Vec::<u8>::new();
 
-        // Add degrading timelock
-        let days: u8 = DEGRADING_PERIOD_START_AT - i;
-        tap_script.extend(Bytes::csv_script(CSVFlag::Days(days)));
+            // Add degrading timelock
+            let days: u8 = DEGRADING_PERIOD_START_AT - i;
+            tap_script.extend(Bytes::csv_script(CSVFlag::Days(days)));
 
-        // Push to_self key
-        tap_script.push(0x20);
-        tap_script.extend(self.to_self_key().serialize());
+            // Push to_self key
+            tap_script.push(0x20);
+            tap_script.extend(self.to_self_key().serialize());
 
-        // OP_CHECKSIGVERIFY
-        tap_script.push(0xad);
+            // OP_CHECKSIGVERIFY
+            tap_script.push(0xad);
 
-        // Push to_operator key
-        tap_script.push(0x20);
-        tap_script.extend(self.to_operator_key().serialize());
+            // Push to_operator key
+            tap_script.push(0x20);
+            tap_script.extend(self.to_operator_key().serialize());
 
-        // OP_CHECKSIG
-        tap_script.push(0xac);
+            // OP_CHECKSIG
+            tap_script.push(0xac);
 
-        leaves.push(TapLeaf::new(tap_script));
+            leaves.push(TapLeaf::new(tap_script));
+        }
+
+        Ok(TapRoot::script_path_only_multi(leaves))
     }
 
-    Ok(TapRoot::script_path_only_multi(leaves))
-}
-
-fn spk(&self) -> Result<Bytes, secp256k1::Error> {
-    self.taproot()?.spk()
-}
+    fn spk(&self) -> Result<Bytes, secp256k1::Error> {
+        self.taproot()?.spk()
+    }
 }
