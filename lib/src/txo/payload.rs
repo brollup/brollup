@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use bit_vec::BitVec;
 use musig2::secp256k1::{self, XOnlyPublicKey};
 use musig2::KeyAggContext;

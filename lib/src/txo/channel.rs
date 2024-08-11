@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::{
     encoding::csv::{CSVEncode, CSVFlag},
     taproot::{TapLeaf, TapRoot, P2TR},

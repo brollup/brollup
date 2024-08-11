@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::{
     signature::keyagg::KeyAgg,
     taproot::{TapRoot, P2TR},
