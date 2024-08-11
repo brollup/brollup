@@ -55,10 +55,6 @@ impl TapLeaf {
         hash_tap_leaf(&self.tap_script, self.leaf_version)
     }
 
-    pub fn hash_as_vec(&self) -> Bytes {
-        self.hash().to_vec()
-    }
-
     pub fn into_branch(&self) -> Branch {
         Branch::Leaf(self.clone())
     }
@@ -76,17 +72,17 @@ pub struct TapBranch {
 
 impl TapBranch {
     pub fn new(first: Branch, second: Branch) -> TapBranch {
-        let first_branch_vec: Bytes = match &first {
-            Branch::Leaf(leaf) => leaf.hash_as_vec(),
-            Branch::Branch(branch) => branch.hash_as_vec(),
+        let first_branch = match &first {
+            Branch::Leaf(leaf) => leaf.hash(),
+            Branch::Branch(branch) => branch.hash(),
         };
 
-        let second_branch_vec: Bytes = match &second {
-            Branch::Leaf(leaf) => leaf.hash_as_vec(),
-            Branch::Branch(branch) => branch.hash_as_vec(),
+        let second_branch = match &second {
+            Branch::Leaf(leaf) => leaf.hash(),
+            Branch::Branch(branch) => branch.hash(),
         };
 
-        match &first_branch_vec.cmp(&second_branch_vec) {
+        match &first_branch.cmp(&second_branch) {
             Ordering::Less => TapBranch {
                 left_branch: first,
                 right_branch: second,
@@ -110,10 +106,6 @@ impl TapBranch {
         };
 
         hash_tap_branch(left_branch, right_branch)
-    }
-
-    pub fn hash_as_vec(&self) -> Bytes {
-        self.hash().to_vec()
     }
 
     pub fn into_branch(&self) -> Branch {
@@ -336,31 +328,31 @@ pub fn tree_builder(leaves: &Vec<TapLeaf>, index: Option<usize>) -> (Branch, Opt
                             let first: Branch = current_level[iterator].clone();
                             let second: Branch = current_level[iterator + 1].clone();
 
-                            let first_vec: Bytes = match &first {
-                                Branch::Leaf(leaf) => leaf.hash_as_vec(),
-                                Branch::Branch(branch) => branch.hash_as_vec(),
+                            let first_bytes = match &first {
+                                Branch::Leaf(leaf) => leaf.hash(),
+                                Branch::Branch(branch) => branch.hash(),
                             };
 
-                            let second_vec: Bytes = match &second {
-                                Branch::Leaf(leaf) => leaf.hash_as_vec(),
-                                Branch::Branch(branch) => branch.hash_as_vec(),
+                            let second_bytes = match &second {
+                                Branch::Leaf(leaf) => leaf.hash(),
+                                Branch::Branch(branch) => branch.hash(),
                             };
 
-                            let lookup_vec: Bytes = match &lookup {
+                            let lookup_bytes = match &lookup {
                                 Some(branch) => match branch {
-                                    Branch::Leaf(leaf) => leaf.hash_as_vec(),
-                                    Branch::Branch(branch) => branch.hash_as_vec(),
+                                    Branch::Leaf(leaf) => leaf.hash(),
+                                    Branch::Branch(branch) => branch.hash(),
                                 },
-                                None => Vec::<u8>::new(),
+                                None => [0u8; 32],
                             };
 
                             // Lookup match?
                             let mut match_bool: bool = false;
-                            if &first_vec == &lookup_vec {
-                                path.extend(&second_vec);
+                            if &first_bytes == &lookup_bytes {
+                                path.extend(&second_bytes);
                                 match_bool = true;
-                            } else if &second_vec == &lookup_vec {
-                                path.extend(&first_vec);
+                            } else if &second_bytes == &lookup_bytes {
+                                path.extend(&first_bytes);
                                 match_bool = true;
                             }
 
