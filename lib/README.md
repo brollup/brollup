@@ -11,7 +11,7 @@ Work in progress.
     - Prefix Compact Size
     - Prefix Pushdata
     - CSV
-- TXO Types ⏳
+- TXO Types ✅
     - Lift 
     - VTXO 
     - VTXO Projector 
@@ -22,5 +22,18 @@ Work in progress.
     - Channel 
     - Self 
     - Remote 
+- Secp ✅
+    - Summing
+    - Key aggregation
+    - Schnorr
+    - Entry sign/verify
+    - Entry batch verify 
+- Entries ⏳
+    - Transfer 
+    - Call
+    - Liftup
+    - Liftdown
+    - Recharge 
+    - Reserved    
 - Covenant 🔜
 - Pool Template 🔜
