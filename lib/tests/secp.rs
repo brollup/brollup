@@ -142,7 +142,7 @@ mod secp_tests {
 
         let points = vec![public_key_1, public_key_2];
 
-        let sum = points.sum_as_points()?;
+        let sum = points.sum_as_cpoints()?;
 
         let expected_sum_vec =
             hex::decode("03336ac1ea270659d5783b57f24338ae3a24d904e036083d3bdce1b27b97b434d1")

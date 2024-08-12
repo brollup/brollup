@@ -20,7 +20,8 @@ pub trait SumScalars {
 }
 
 pub trait SumPoints {
-    fn sum_as_points(&self) -> Result<[u8; 33], SecpError>;
+    fn sum_as_cpoints(&self) -> Result<[u8; 33], SecpError>;
+    fn sum_as_upoints(&self) -> Result<[u8; 65], SecpError>;
 }
 
 pub trait SumSignatures {
@@ -81,7 +82,7 @@ impl SumScalars for Vec<[u8; 32]> {
 }
 
 impl SumPoints for Vec<[u8; 32]> {
-    fn sum_as_points(&self) -> Result<[u8; 33], SecpError> {
+    fn sum_as_cpoints(&self) -> Result<[u8; 33], SecpError> {
         let mut points = Vec::<Point>::with_capacity(self.len());
 
         for point_bytes in self {
@@ -92,6 +93,19 @@ impl SumPoints for Vec<[u8; 32]> {
         let sum = points.sum()?;
 
         Ok(sum.serialize())
+    }
+
+    fn sum_as_upoints(&self) -> Result<[u8; 65], SecpError> {
+        let mut points = Vec::<Point>::with_capacity(self.len());
+
+        for point_bytes in self {
+            let point = point_bytes.into_point()?;
+            points.push(point);
+        }
+
+        let sum = points.sum()?;
+
+        Ok(sum.serialize_uncompressed())
     }
 }
 
@@ -112,7 +126,7 @@ impl SumSignatures for Vec<[u8; 64]> {
             commitments.push(commitment);
         }
 
-        let public_nonces_sum = public_nonces.sum_as_points()?;
+        let public_nonces_sum = public_nonces.sum_as_cpoints()?;
         let commitments_sum = commitments.sum_as_scalars()?;
 
         let mut signature = [0u8; 65];
