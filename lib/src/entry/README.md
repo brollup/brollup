@@ -1,5 +1,5 @@
 # Entries
-`Bitcoin Virtual Machine` employs of 6 types of entries:
+`Brollup` employs of 6 types of entries:
 
 | Entry Type       |  Description                                                                                  |
 |:-----------------|:----------------------------------------------------------------------------------------------|
