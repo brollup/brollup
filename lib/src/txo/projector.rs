@@ -1,6 +1,6 @@
 use crate::{
     encoding::csv::{CSVEncode, CSVFlag},
-    signature::keyagg::KeyAgg,
+    secp::agg::KeyAgg,
     taproot::{TapLeaf, TapRoot, P2TR},
     well_known::operator,
 };

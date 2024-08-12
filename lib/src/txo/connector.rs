@@ -1,5 +1,5 @@
 use crate::{
-    signature::keyagg::KeyAgg,
+    secp::agg::KeyAgg,
     taproot::{TapRoot, P2TR},
     well_known::operator,
 };

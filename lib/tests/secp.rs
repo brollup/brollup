@@ -2,12 +2,12 @@
 mod secp_tests {
     use brollup::{
         encoding::conversion::IntoByteArray,
-        signature::{
+        secp::{
             into::{IntoPoint, IntoScalar},
             schnorr::{
-                sign_schnorr, verify_schnorr_batch, verify_schnorr, SecpError, SignFlag,
+                sign_schnorr, verify_schnorr, verify_schnorr_batch, SecpError, SignFlag
             },
-            sum::{sum_points, sum_public_keys, sum_scalars, sum_signatures},
+            sum::{Sum, SumPoints, SumSignatures},
         },
     };
 
@@ -82,7 +82,7 @@ mod secp_tests {
 
         let scalars = vec![scalar_1, scalar_2];
 
-        let sum = sum_scalars(scalars)?;
+        let sum = scalars.sum()?;
 
         let expected_sum_bytes =
             hex::decode("d1bbb1dca14d5f658233a071d40ec59b394948e5c9487a1b04aca919a3eb800e")
@@ -110,7 +110,7 @@ mod secp_tests {
 
         let points = vec![point_1, point_2];
 
-        let sum = sum_points(points)?;
+        let sum = points.sum()?;
 
         let expected_sum_vec =
             hex::decode("60dadabf8a850d6f4d6ffa8ec4777bdb085e3dbb49fe6122bed3d2c3c7e0e1e3")
@@ -142,7 +142,7 @@ mod secp_tests {
 
         let points = vec![public_key_1, public_key_2];
 
-        let sum = sum_public_keys(points)?;
+        let sum = points.sum_as_points()?;
 
         let expected_sum_vec =
             hex::decode("03336ac1ea270659d5783b57f24338ae3a24d904e036083d3bdce1b27b97b434d1")
@@ -204,7 +204,7 @@ mod secp_tests {
 
         let signatures = vec![signature_1, signature_2];
 
-        let signature_sum = sum_signatures(signatures)?;
+        let signature_sum = signatures.sum()?;
 
         let pubkeys = vec![
             public_key_1

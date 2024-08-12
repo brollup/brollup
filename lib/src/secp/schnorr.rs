@@ -1,6 +1,5 @@
 use crate::hash::{tagged_hash, HashTag};
-use ::secp256k1::Secp256k1;
-use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use secp_dep::{MaybePoint, MaybeScalar, Point, Scalar};
 
 use super::into::{IntoPoint, IntoScalar};
 
@@ -196,7 +195,7 @@ pub fn verify_schnorr(
 }
 
 pub fn verify_schnorr_batch(
-    signature_sum: [u8; 64],
+    signatures_sum: [u8; 65],
     public_keys: Vec<[u8; 32]>,
     messages: Vec<[u8; 32]>,
     flag: SignFlag,
@@ -222,13 +221,13 @@ pub fn verify_schnorr_batch(
     }
 
     // Parse public nonce (R).
-    let public_nonce_bytes: [u8; 32] = (&signature_sum)[0..32]
+    let public_nonce_bytes: [u8; 33] = (&signatures_sum)[0..33]
         .try_into()
         .map_err(|_| SecpError::InvalidPoint)?;
     let public_nonce = public_nonce_bytes.into_point()?;
 
     // Parse commitment (s).
-    let commitment_bytes: [u8; 32] = (&signature_sum)[32..64]
+    let commitment_bytes: [u8; 32] = (&signatures_sum)[33..65]
         .try_into()
         .map_err(|_| SecpError::InvalidScalar)?;
     let commitment = commitment_bytes.into_scalar()?;
@@ -245,34 +244,17 @@ pub fn verify_schnorr_batch(
             }
     }
 
-    // The aggregate signature sum can have a public nonce that is either even or odd.
-    // To avoid dealing with the parity bit, we check the signature against both possible equations.
-
-    // Check if the equation (R + eP) is a valid point where the y-coordinate of R is even.
-    let equation_even = match public_nonce + challenge_times_pubkey_sum {
+    // Check if the equation (R + eP) is a valid point.
+    let equation = match public_nonce + challenge_times_pubkey_sum {
         MaybePoint::Infinity => {
             return Err(SecpError::InvalidPoint);
         }
         MaybePoint::Valid(point) => point,
     };
-
-    // Check if the equation (R + eP) is a valid point where the y-coordinate of R is odd.
-    let equation_odd = match public_nonce.negate(&Secp256k1::new()) + challenge_times_pubkey_sum {
-        MaybePoint::Infinity => {
-            return Err(SecpError::InvalidPoint);
-        }
-        MaybePoint::Valid(point) => point,
-    };
-
-    // sG
-    let commitment_times_generator = commitment.base_point_mul();
 
     // Check if either one of the equations (R + eP) equal to sG.
-    match commitment_times_generator == equation_even {
-        false => match commitment_times_generator == equation_odd {
-            false => return Err(SecpError::InvalidSignature),
-            true => return Ok(()),
-        },
+    match commitment.base_point_mul() == equation {
+        false => return Err(SecpError::InvalidSignature),
         true => return Ok(()),
     }
 }

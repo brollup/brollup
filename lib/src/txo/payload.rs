@@ -6,7 +6,7 @@ use crate::encoding::cpe::CompactPayloadEncoding;
 use crate::encoding::csv::{CSVEncode, CSVFlag};
 use crate::encoding::push::Push;
 use crate::entry::entry::Entry;
-use crate::signature::keyagg::KeyAgg;
+use crate::secp::agg::KeyAgg;
 use crate::taproot::{TapLeaf, P2TR};
 use crate::{hash::hash_160, taproot::TapRoot};
 

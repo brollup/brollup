@@ -1,7 +1,7 @@
 use crate::encoding::conversion::IntoByteArray;
 
 use super::schnorr::SecpError;
-use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use secp_dep::{MaybePoint, MaybeScalar, Point, Scalar};
 
 pub trait IntoPoint {
     fn into_point(&self) -> Result<Point, SecpError>;
