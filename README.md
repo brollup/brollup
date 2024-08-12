@@ -1,4 +1,4 @@
-![Brollup](https://i.ibb.co/vkzZyJb/brollup-banner-github.png)
+![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
 Brollup is a Bitcoin rollup that works with a native peg and does not require any changes to the Bitcoin protocol. Unlike other rollup constructions, Brollup operates in a layer-two setting with unilateral exit and does not rely on any trust assumptions.
 
 |Competitive Landscape  |  Trust Model | Protocol Changes Needed?
