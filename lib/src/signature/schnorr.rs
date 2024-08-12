@@ -257,8 +257,7 @@ pub fn verify_schnorr_batch(
     };
 
     // Check if the equation (R + eP) is a valid point where the y-coordinate of R is odd.
-    let ctx = Secp256k1::new();
-    let equation_odd = match public_nonce.negate(&ctx) + challenge_times_pubkey_sum {
+    let equation_odd = match public_nonce.negate(&Secp256k1::new()) + challenge_times_pubkey_sum {
         MaybePoint::Infinity => {
             return Err(SecpError::InvalidPoint);
         }
