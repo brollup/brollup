@@ -6,7 +6,7 @@ Brollup is a Bitcoin rollup that works with a native peg and does not require an
 | BitVM       | Permissioned Bitcoin peg with 1-of-n trust assumption. | -       |
 | CatVM       | Permissioned Bitcoin peg with 1-of-n trust assumption. | BIP0420 |
 | Sovereign   | No Bitcoin peg.                                        | -       |
-| Brollup     | Trustless Bitcoin peg.                                 | -       |
+| Brollup     | Trustless Bitcoin peg with unilateral exit.            | -       |
 
 > [!NOTE]
 > Work in progress.
