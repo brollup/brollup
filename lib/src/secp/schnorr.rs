@@ -5,7 +5,7 @@ use super::into::{IntoPoint, IntoScalar};
 
 #[derive(Clone, Copy)]
 pub enum SignFlag {
-    BIP340Sign,
+    BIP0340Sign,
     EntrySign,
     ProtocolMessageSign,
     CustomMessageSign,
@@ -26,7 +26,7 @@ pub fn compute_challenge(
     flag: SignFlag,
 ) -> Result<[u8; 32], SecpError> {
     match flag {
-        SignFlag::BIP340Sign => {
+        SignFlag::BIP0340Sign => {
             // Follow BIP-340. Challenge e bytes is = H(R||P||m).
 
             let public_nonce = match public_nonce {
