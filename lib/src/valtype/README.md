@@ -1,5 +1,5 @@
 # Value Types
-`Bitcoin Virtual Machine` employs of 8+ value types:
+`Brollup` employs of 8+ value types:
 
 | Value Type             |  Description                                                            |
 |:-----------------------|:------------------------------------------------------------------------|
