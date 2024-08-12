@@ -1,5 +1,5 @@
 ![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
-Brollup is a Bitcoin rollup design tailored for payments and smart contracts. Brollup works with a native peg and does not require any changes to the Bitcoin protocol. Unlike other rollup constructions, Brollup operates in a layer-two setting with unilateral exit and does not rely on any trust assumptions.
+Brollup is a Bitcoin rollup design tailored for payments and smart contracts that works with a native peg and does not require any changes to the Bitcoin protocol. Unlike other rollup constructions, Brollup operates in a layer-two setting with unilateral exit and does not rely on any trust assumptions.
 
 |Competitive Landscape |  Trust Model | Protocol Changes?
 |:------------|:-------------------------------------------------------|:--------|
