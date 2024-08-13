@@ -1,7 +1,10 @@
 use crate::hash::{tagged_hash, HashTag};
 use secp_dep::{MaybePoint, MaybeScalar, Point, Scalar};
 
-use super::into::{IntoPoint, IntoScalar};
+use super::{
+    into::{IntoPoint, IntoScalar},
+    sum::Sum,
+};
 
 #[derive(Clone, Copy)]
 pub enum SignFlag {
@@ -194,6 +197,38 @@ pub fn verify_schnorr(
     }
 }
 
+// X-only public keys already mitigate rogue key attacks by preventing
+// the creation of a rogue key that is the negated sum of the others.
+// However, we still check for rogue keys as an additional layer of security.
+pub trait RogueKeyCheck {
+    fn check_rogue_key(&self) -> Result<Option<usize>, SecpError>;
+}
+
+impl RogueKeyCheck for Vec<[u8; 32]> {
+    // Return the index of a possibly rogue point.
+    fn check_rogue_key(&self) -> Result<Option<usize>, SecpError> {
+        let public_keys = self.clone();
+        let mut points = Vec::<Point>::with_capacity(public_keys.len());
+
+        for public_key in public_keys {
+            points.push(public_key.into_point()?);
+        }
+
+        // Sum all the keys in the signer set.
+        let points_sum = points.sum()?;
+
+        // Ensure that the sum is not equal to any individual signer key.
+        for (index, point) in points.iter().enumerate() {
+            match *point == points_sum {
+                true => return Ok(Some(index)),
+                false => (),
+            }
+        }
+
+        Ok(None)
+    }
+}
+
 pub fn verify_schnorr_batch(
     signatures_sum: [u8; 65],
     public_keys: Vec<[u8; 32]>,
@@ -204,6 +239,12 @@ pub fn verify_schnorr_batch(
 
     if len == 0 {
         return Err(SecpError::InvalidPoint);
+    }
+
+    // Check for a possibly rogue key attack.
+    match public_keys.check_rogue_key()? {
+        Some(_) => return Err(SecpError::InvalidPoint),
+        None => (),
     }
 
     let mut challenges = Vec::<Scalar>::with_capacity(len);
