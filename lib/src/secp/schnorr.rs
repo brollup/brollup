@@ -204,22 +204,15 @@ pub trait RogueKeyCheck {
     fn check_rogue_key(&self) -> Result<Option<usize>, SecpError>;
 }
 
-impl RogueKeyCheck for Vec<[u8; 32]> {
+impl RogueKeyCheck for Vec<Point> {
     // Return the index of a possibly rogue point.
     fn check_rogue_key(&self) -> Result<Option<usize>, SecpError> {
-        let public_keys = self.clone();
-        let mut points = Vec::<Point>::with_capacity(public_keys.len());
-
-        for public_key in public_keys {
-            points.push(public_key.into_point()?);
-        }
-
         // Sum all the keys in the signer set.
-        let points_sum = points.sum()?;
+        let points_sum = self.sum()?;
 
         // Ensure that the sum is not equal to any individual signer key.
-        for (index, point) in points.iter().enumerate() {
-            match *point == points_sum {
+        for (index, point) in self.iter().enumerate() {
+            match point == &points_sum {
                 true => return Ok(Some(index)),
                 false => (),
             }
@@ -241,12 +234,6 @@ pub fn verify_schnorr_batch(
         return Err(SecpError::InvalidPoint);
     }
 
-    // Check for a possibly rogue key attack.
-    match public_keys.check_rogue_key()? {
-        Some(_) => return Err(SecpError::InvalidPoint),
-        None => (),
-    }
-
     let mut challenges = Vec::<Scalar>::with_capacity(len);
     let mut public_key_points = Vec::<Point>::with_capacity(len);
 
@@ -259,6 +246,12 @@ pub fn verify_schnorr_batch(
 
         challenges.push(challenge);
         public_key_points.push(public_key);
+    }
+
+    // Check for a possibly rogue key attack.
+    match public_key_points.check_rogue_key()? {
+        Some(_) => return Err(SecpError::InvalidPoint),
+        None => (),
     }
 
     // Parse public nonce (R).
