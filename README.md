@@ -1,5 +1,5 @@
 ![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
-Brollup is a Bitcoin-native rollup design, tailored for payments and smart contracts. It uses the Bitcoin block space for DA and integrates a state channel design with global state, operating in a layer-two setting with unilateral exit and does not rely on any trust assumptions.
+Brollup is a Bitcoin-native rollup designed for payments and smart contracts. It utilizes Bitcoin block space for data availability and integrates a state channel model with global state. Operating in a layer-two setting, Brollup supports unilateral exits and requires no trust assumptions.
 
 |Competitive Landscape |  Trust Model | Protocol Changes?
 |:------------|:-------------------------------------------------------|:--------|
