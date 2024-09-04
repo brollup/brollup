@@ -1,0 +1,9 @@
+/target/
+Cargo.lock
+.env
+.vscode/
+.idea/
+*.rs.bk
+/build/
+.DS_Store
+Thumbs.db
