@@ -1,0 +1,27 @@
+[package]
+name = "brollup"
+version = "0.1.0"
+authors = ["Brock <brock@brollup.org>"]
+edition = "2021"
+
+[dependencies]
+bech32 = "0.11.0"
+chrono = "0.4.39"
+colored = "2.2.0"
+easy-upnp = "0.2.0"
+hex = "0.4.3"
+nostr-sdk = "0.37.0"
+rand = "0.8.5"
+reqwest = "0.12.9"
+secp = "0.4.1"
+sha2 = "0.10.8"
+sled = "0.34.7"
+tokio = { version = "1.40.0", features = ["full"] }
+
+[lib]
+name = "brollup"
+path = "src/lib.rs"
+
+[[bin]]
+name = "brollupd"
+path = "src/executive/main.rs"
