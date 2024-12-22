@@ -10,7 +10,7 @@ use colored::Colorize;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    // Ensure at least 3 arguments: program name, mode, and <nsec>
+    // Ensure at least 3 arguments: program name, mode.
     if args.len() < 2 {
         eprintln!("{}", format!("Usage: {} <mode>", args[0]).red());
         return;

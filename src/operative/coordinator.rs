@@ -1,10 +1,13 @@
+use crate::tcp;
+use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
 use colored::Colorize;
+use std::collections::HashMap;
 use std::io::{self, BufRead};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::tcp;
-use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
+type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
+type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder) {
@@ -47,9 +50,15 @@ pub async fn run(keys: KeyHolder) {
         let _ = nns_server::run(&nostr_client).await;
     });
 
+    let client_list: ClientList = {
+        let client_list: HashMap<String, TcpSocket> = HashMap::new();
+
+        Arc::new(Mutex::new(client_list))
+    };
+
     // 4. Run TCP server.
     let _ = tokio::spawn(async move {
-        let _ = tcp_server::run().await;
+        let _ = tcp_server::run(&Arc::clone(&client_list)).await;
     });
 
     println!("{}", "Running coordinator.".green());
