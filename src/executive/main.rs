@@ -1,9 +1,9 @@
 use std::env;
 
 use brollup::{
-    client, coordinator,
+    coordinator,
     key::{FromNostrKeyStr, KeyHolder},
-    operator,
+    node, operator,
 };
 use colored::Colorize;
 
@@ -36,12 +36,12 @@ fn main() {
     };
 
     match mode.as_str() {
-        "client" => client::run(keys),
+        "node" => node::run(keys),
         "operator" => operator::run(keys),
         "coordinator" => coordinator::run(keys),
         _ => {
             eprintln!("Error: Unknown mode '{}'", mode);
-            eprintln!("Valid modes are: client, operator, coordinator");
+            eprintln!("Valid modes are: node, operator, coordinator");
         }
     }
 }
