@@ -1,16 +1,19 @@
-use crate::NostrClient;
 use colored::Colorize;
 use nostr_sdk::EventBuilder;
 use std::{
     fs::{self, OpenOptions},
     io::{self, Read, Write},
     path::Path,
+    sync::Arc,
     time::Duration,
 };
-use tokio::time::timeout;
+use tokio::{sync::Mutex, time::timeout};
+
+use crate::baked;
+
+type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 
 const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
-const RESPONSE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Executes a persistent task that monitors changes
 /// in the dynamic IP address of the running machine.
@@ -25,7 +28,7 @@ pub async fn run(nostr_client: &NostrClient) {
 
     // Enter the periodic check loop.
     loop {
-        match timeout(RESPONSE_TIMEOUT, check_ip()).await {
+        match timeout(Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT), check_ip()).await {
             Ok(response) => {
                 match response {
                     Ok(option) => match option {

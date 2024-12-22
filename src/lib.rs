@@ -1,10 +1,4 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
 pub mod baked;
-
-type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
-type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
 
 // Crypto modules.
 #[path = "transmutive/hash.rs"]
@@ -17,8 +11,8 @@ pub mod key;
 pub mod schnorr;
 
 // Operating modes.
-#[path = "operative/client.rs"]
-pub mod client;
+#[path = "operative/node.rs"]
+pub mod node;
 
 #[path = "operative/operator.rs"]
 pub mod operator;
@@ -35,6 +29,12 @@ pub mod nns_client;
 
 #[path = "communicative/nns/relay.rs"]
 pub mod nns_relay;
+
+#[path = "communicative/client.rs"]
+pub mod client;
+
+#[path = "communicative/server.rs"]
+pub mod server;
 
 #[path = "communicative/tcp.rs"]
 pub mod tcp;

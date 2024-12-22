@@ -1,15 +1,39 @@
 #![allow(dead_code)]
 
 use crate::key::ToNostrKeyStr;
-use crate::{baked, nns_client, NostrClient, TCPStream};
-
+use crate::{baked, nns_client};
 use std::sync::Arc;
 use std::time::Duration;
+use std::vec;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 
+type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
+type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
+
 const TIMEOUT: Duration = Duration::from_secs(3);
+
+#[derive(Copy, Clone)]
+pub enum RequestKind {
+    Ping,
+}
+
+impl RequestKind {
+    pub fn bytecode(&self) -> u8 {
+        match self {
+            RequestKind::Ping => 0x00,
+        }
+    }
+    pub fn from_bytecode(bytecode: u8) -> Option<Self> {
+        let request_kind = match bytecode {
+            0x00 => RequestKind::Ping,
+            _ => return None,
+        };
+
+        Some(request_kind)
+    }
+}
 
 pub async fn check_connectivity() -> bool {
     match tokio::time::timeout(TIMEOUT, TcpStream::connect("8.8.8.8:53")).await {
@@ -55,14 +79,14 @@ pub async fn connect(ip_address: &str) -> Option<TCPStream> {
 }
 
 pub async fn request(
-    stream: TCPStream,
-    requestcode: [u8; 4],
+    stream: &TCPStream,
+    request_bytecode: u8,
     payload: &Vec<u8>,
 ) -> Result<Vec<u8>, TCPError> {
     let mut stream_ = stream.lock().await;
 
-    // Write requestcode.
-    match stream_.write_all(&requestcode).await {
+    // Write request bytecode.
+    match stream_.write_all(&[request_bytecode]).await {
         Ok(_stream) => (),
         Err(_) => return Err(TCPError::WriteErr),
     }
