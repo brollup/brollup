@@ -1,9 +1,10 @@
-use std::sync::Arc;
-
 use colored::Colorize;
+use std::io::{self, BufRead};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, upnp};
+use crate::tcp;
+use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder) {
@@ -24,7 +25,7 @@ pub async fn run(keys: KeyHolder) {
     };
 
     // 2. Open port `6272` for incoming connections.
-    match upnp::open_port().await {
+    match tcp::open_port().await {
         true => {
             println!("{}", format!("Opened port '{}'.", baked::PORT).green());
         }
@@ -41,11 +42,38 @@ pub async fn run(keys: KeyHolder) {
         }
     }
 
-    println!("{}", "Running coordinator.".green());
-
-    // 1. Background task.
+    // 3. Run NNS server.
     let _ = tokio::spawn(async move {
         let _ = nns_server::run(&nostr_client).await;
-    })
-    .await;
+    });
+
+    // 4. Run TCP server.
+    let _ = tokio::spawn(async move {
+        let _ = tcp_server::run().await;
+    });
+
+    println!("{}", "Running coordinator.".green());
+
+    // CLI
+    cli().await;
+}
+
+pub async fn cli() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.trim().split_whitespace().collect();
+
+        if parts.is_empty() {
+            continue;
+        }
+
+        match parts[0] {
+            // Main commands:
+            "exit" => break,
+            _ => break,
+        }
+    }
 }

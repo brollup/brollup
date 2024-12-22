@@ -2,6 +2,7 @@
 
 use crate::key::ToNostrKeyStr;
 use crate::{baked, nns_client};
+use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::sync::Arc;
 use std::time::Duration;
 use std::vec;
@@ -31,6 +32,24 @@ impl RequestKind {
 
         Some(request_kind)
     }
+}
+
+pub async fn open_port() -> bool {
+    let upnp_config = UpnpConfig {
+        address: None,
+        port: baked::PORT,
+        protocol: PortMappingProtocol::TCP,
+        duration: 100_000_000,
+        comment: baked::PROJECT_TAG.to_string() + " " + "P2P Protocol",
+    };
+
+    for result in add_ports([upnp_config]) {
+        if let Ok(_) = result {
+            return true;
+        }
+    }
+
+    false
 }
 
 pub async fn check_connectivity() -> bool {

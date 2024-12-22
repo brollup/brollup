@@ -30,14 +30,11 @@ pub mod nns_client;
 #[path = "communicative/nns/relay.rs"]
 pub mod nns_relay;
 
-#[path = "communicative/client.rs"]
-pub mod client;
-
-#[path = "communicative/server.rs"]
-pub mod server;
-
-#[path = "communicative/tcp.rs"]
+#[path = "communicative/tcp/tcp.rs"]
 pub mod tcp;
 
-#[path = "communicative/upnp.rs"]
-pub mod upnp;
+#[path = "communicative/tcp/client.rs"]
+pub mod tcp_client;
+
+#[path = "communicative/tcp/server.rs"]
+pub mod tcp_server;
