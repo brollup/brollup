@@ -3,7 +3,7 @@ use std::sync::Arc;
 use colored::Colorize;
 use tokio::sync::Mutex;
 
-use crate::{baked, key::KeyHolder, nns_client, nns_relay::Relay, nns_server, upnp};
+use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, upnp};
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder) {

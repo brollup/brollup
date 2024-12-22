@@ -3,13 +3,7 @@ use std::{sync::Arc, time::Duration};
 use colored::Colorize;
 use tokio::sync::Mutex;
 
-use crate::{
-    baked,
-    key::{KeyHolder, ToNostrKeyStr},
-    nns_client,
-    nns_relay::Relay,
-    tcp,
-};
+use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp};
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder) {
@@ -25,7 +19,7 @@ pub async fn run(keys: KeyHolder) {
     };
 
     // 2. Connect coordinator
-    let coordinator_connection = {
+    let _coordinator_connection = {
         loop {
             match tcp::connect_nns(baked::COORDINATOR_WELL_KNOWN, &nostr_client).await {
                 Some(connection) => break connection,
