@@ -12,8 +12,6 @@ use tokio::sync::Mutex;
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
 
-const TIMEOUT: Duration = Duration::from_secs(3);
-
 #[derive(Copy, Clone)]
 pub enum RequestKind {
     Ping,
@@ -36,7 +34,12 @@ impl RequestKind {
 }
 
 pub async fn check_connectivity() -> bool {
-    match tokio::time::timeout(TIMEOUT, TcpStream::connect("8.8.8.8:53")).await {
+    match tokio::time::timeout(
+        Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT),
+        TcpStream::connect("8.8.8.8:53"),
+    )
+    .await
+    {
         Ok(Ok(_stream)) => true,
         Ok(Err(_)) => false,
         Err(_) => false,
@@ -63,7 +66,7 @@ pub async fn connect_nns(public_key: [u8; 32], nostr_client: &NostrClient) -> Op
 
 pub async fn connect(ip_address: &str) -> Option<TCPStream> {
     let conn = tokio::time::timeout(
-        TIMEOUT,
+        Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT),
         TcpStream::connect(ip_address.to_string() + ":" + &baked::PORT.to_string()),
     )
     .await;
