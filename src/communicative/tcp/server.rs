@@ -1,12 +1,14 @@
 use crate::baked;
 use crate::tcp::RequestKind;
 use colored::Colorize;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
     sync::Mutex,
 };
+
+const IDLE_CLIENT_PERIOD: Duration = Duration::from_secs(3600);
 
 type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
@@ -53,25 +55,49 @@ async fn handle_socket(socket: &TcpSocket, client_list: &ClientList, client_id: 
         let mut request_kind_buffer = [0; 1];
         let mut payload_length_buffer = [0; 4];
 
-        // Read the request kind
-        if let Err(err) = _socket.read_exact(&mut request_kind_buffer).await {
-            match err.kind() {
-                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection.
-                _ => continue,
-            }
+        // Read the request kind with a timeout
+        match tokio::time::timeout(
+            IDLE_CLIENT_PERIOD,
+            _socket.read_exact(&mut request_kind_buffer),
+        )
+        .await
+        {
+            Ok(Ok(_)) => (),
+            Ok(Err(inner_err)) => match inner_err.kind() {
+                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
+                _ => continue,                              // Handle recoverable errors
+            },
+            Err(_) => break, // Exit the loop on inactivity.
         }
 
-        // Read the payload length
-        if let Err(_) = _socket.read_exact(&mut payload_length_buffer).await {
-            continue;
+        // Read the payload length with a timeout
+        match tokio::time::timeout(
+            IDLE_CLIENT_PERIOD,
+            _socket.read_exact(&mut payload_length_buffer),
+        )
+        .await
+        {
+            Ok(Ok(_)) => (),
+            Ok(Err(inner_err)) => match inner_err.kind() {
+                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
+                _ => continue,                              // Handle recoverable errors
+            },
+            Err(_) => break, // Exit the loop on inactivity.
         }
 
         let payload_length = u32::from_be_bytes(payload_length_buffer) as usize;
-
-        // Read the payload
         let mut payload_buffer = vec![0; payload_length];
-        if let Err(_) = _socket.read_exact(&mut payload_buffer).await {
-            continue;
+
+        // Read the payload with a timeout
+        match tokio::time::timeout(IDLE_CLIENT_PERIOD, _socket.read_exact(&mut payload_buffer))
+            .await
+        {
+            Ok(Ok(_)) => (),
+            Ok(Err(inner_err)) => match inner_err.kind() {
+                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
+                _ => continue,                              // Handle recoverable errors
+            },
+            Err(_) => break, // Exit the loop on inactivity.
         }
 
         // Process the request kind
