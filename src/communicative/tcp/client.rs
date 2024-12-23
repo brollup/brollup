@@ -29,7 +29,9 @@ pub async fn ping(socket: &TCPStream) -> Result<(), ClientError> {
     match response {
         Ok(response) => match response {
             Ok(response) => {
-                if &response == &[tcp::RequestKind::Ping.bytecode()] {
+                let expected_response = tcp::RequestKind::Ping.to_requestcode();
+
+                if &response == &expected_response {
                     return Ok(());
                 } else {
                     return Err(ClientError::InvalidResponse);

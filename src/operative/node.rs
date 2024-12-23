@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use colored::Colorize;
 use tokio::sync::Mutex;
 
-use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp, OperatingMode};
+use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp, tcp_client, OperatingMode};
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, mode: OperatingMode) {
@@ -19,11 +19,11 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     };
 
     // 2. Connect coordinator
-    let _coordinator_connection = {
+    let coordinator_connection = {
         loop {
             match tcp::connect_nns(baked::COORDINATOR_WELL_KNOWN, &nostr_client).await {
-                Some(connection) => break connection,
-                None => {
+                Ok(connection) => break connection,
+                Err(_) => {
                     println!("{}", "Failed to connect. Retrying in 5..".red());
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     continue;
@@ -33,4 +33,15 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     };
 
     println!("{}", "Running client.".green());
+
+    // Test ping coordinator.
+
+    match tcp_client::ping(&coordinator_connection).await {
+        Ok(_) => {
+            println!("Ponged.")
+        }
+        Err(_) => {
+            println!("Err pinging.")
+        }
+    }
 }

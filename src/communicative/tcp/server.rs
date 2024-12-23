@@ -72,9 +72,9 @@ async fn handle_socket(
             .await
             {
                 Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                         // Disregard by continuing.
-                Err(_) => break,                                // Exit on idle timeout.
+                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                   // Disregard by continuing.
+                Err(_) => break,                          // Exit on idle timeout.
             }
 
             // Read payload length.
@@ -87,9 +87,9 @@ async fn handle_socket(
             .await
             {
                 Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                         // Disregard by continuing.
-                Err(_) => break,                                // Exit on idle timeout.
+                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                   // Disregard by continuing.
+                Err(_) => break,                          // Exit on idle timeout.
             }
 
             let payload_length = u32::from_be_bytes(payload_length_buffer) as usize;
@@ -101,9 +101,9 @@ async fn handle_socket(
                 .await
             {
                 Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                         // Disregard by continuing.
-                Err(_) => break,                                // Exit on idle timeout.
+                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                   // Disregard by continuing.
+                Err(_) => break,                          // Exit on idle timeout.
             }
 
             // Process the request kind.
@@ -133,18 +133,18 @@ async fn handle_request(
     match mode {
         OperatingMode::Coordinator => match kind {
             RequestKind::Ping => handle_ping(socket, _payload).await,
-            _ => return,
+            //_ => return,
         },
         OperatingMode::Operator => match kind {
             RequestKind::Ping => handle_ping(socket, _payload).await,
-            _ => return,
+            //_ => return,
         },
         OperatingMode::Node => return,
     }
 }
 
 async fn handle_ping(socket: &mut tokio::net::TcpStream, _payload: &[u8]) {
-    let response = vec![RequestKind::Ping.bytecode()];
+    let response = RequestKind::Ping.to_requestcode();
     let response_len = (response.len() as u32).to_be_bytes();
 
     if let Err(_) = socket.write_all(&response_len).await {

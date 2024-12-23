@@ -23,5 +23,5 @@ name = "brollup"
 path = "src/lib.rs"
 
 [[bin]]
-name = "brollupd"
+name = "brollup"
 path = "src/executive/main.rs"

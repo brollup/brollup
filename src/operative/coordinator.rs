@@ -57,8 +57,9 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     };
 
     // 4. Run TCP server.
+    let client_list_ = Arc::clone(&client_list);
     let _ = tokio::spawn(async move {
-        let _ = tcp_server::run(&Arc::clone(&client_list), mode).await;
+        let _ = tcp_server::run(&client_list_, mode).await;
     });
 
     println!("{}", "Running coordinator.".green());
@@ -69,10 +70,10 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli().await;
+    cli(&client_list).await;
 }
 
-pub async fn cli() {
+pub async fn cli(client_list: &ClientList) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -87,7 +88,16 @@ pub async fn cli() {
         match parts[0] {
             // Main commands:
             "exit" => break,
+            "clients" => handle_clients_command(client_list).await,
             _ => break,
         }
+    }
+}
+
+async fn handle_clients_command(client_list: &ClientList) {
+    let _client_list = client_list.lock().await;
+
+    for (index, (client_id, _)) in _client_list.iter().enumerate() {
+        println!("Client #{}: {}", index, client_id);
     }
 }
