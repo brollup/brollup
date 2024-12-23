@@ -24,13 +24,21 @@ impl RequestKind {
             RequestKind::Ping => 0x00,
         }
     }
-    pub fn from_bytecode(bytecode: u8) -> Option<Self> {
-        let request_kind = match bytecode {
-            0x00 => RequestKind::Ping,
-            _ => return None,
-        };
+    pub fn to_requestcode(&self) -> [u8; 4] {
+        // A request code stars with 'b' 'r' 'l'.
+        [0x62, 0x72, 0x6c, self.bytecode()]
+    }
+    pub fn from_requestcode(requestcode: [u8; 4]) -> Option<Self> {
+        let brl = &requestcode[..3];
 
-        Some(request_kind)
+        if brl != vec![0x62, 0x72, 0x6c] {
+            return None;
+        } else {
+            match &requestcode[3] {
+                0x00 => return Some(RequestKind::Ping),
+                _ => return None,
+            }
+        }
     }
 }
 
@@ -64,10 +72,13 @@ pub async fn check_connectivity() -> bool {
         Err(_) => false,
     }
 }
+
+#[derive(Debug, Copy, Clone)]
 pub enum TCPError {
-    ConnectErr,
-    WriteErr,
-    ReadErr,
+    ConnectFailure,
+    ReadFailure,
+    WriteFailure,
+    Disconnection,
 }
 
 pub async fn connect_nns(public_key: [u8; 32], nostr_client: &NostrClient) -> Option<TCPStream> {
@@ -100,45 +111,51 @@ pub async fn connect(ip_address: &str) -> Option<TCPStream> {
     }
 }
 
+pub async fn read(socket: &mut tokio::net::TcpStream, buffer: &mut [u8]) -> Result<(), TCPError> {
+    match socket.read_exact(buffer).await {
+        Ok(_) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Err(TCPError::Disconnection),
+        Err(_) => Err(TCPError::ReadFailure),
+    }
+}
+
 pub async fn request(
-    stream: &TCPStream,
-    request_bytecode: u8,
+    socket: &mut tokio::net::TcpStream,
+    requestcode: [u8; 4],
     payload: &Vec<u8>,
 ) -> Result<Vec<u8>, TCPError> {
-    let mut stream_ = stream.lock().await;
-
     // Write request bytecode.
-    match stream_.write_all(&[request_bytecode]).await {
+    match socket.write_all(&requestcode).await {
         Ok(_stream) => (),
-        Err(_) => return Err(TCPError::WriteErr),
+        Err(_) => return Err(TCPError::WriteFailure),
     }
 
     // Write payload len.
     let payload_len = payload.len() as u32;
-    match stream_.write_all(&payload_len.to_be_bytes()).await {
+    match socket.write_all(&payload_len.to_be_bytes()).await {
         Ok(_stream) => (),
-        Err(_) => return Err(TCPError::WriteErr),
+        Err(_) => return Err(TCPError::WriteFailure),
     }
 
     // Write payload.
-    match stream_.write_all(payload).await {
+    match socket.write_all(payload).await {
         Ok(_stream) => (),
-        Err(_) => return Err(TCPError::WriteErr),
+        Err(_) => return Err(TCPError::WriteFailure),
     }
 
     // Read response length.
     let mut length_buffer = [0; 4];
-    match stream_.read_exact(&mut length_buffer).await {
+    match socket.read_exact(&mut length_buffer).await {
         Ok(_stream) => (),
-        Err(_) => return Err(TCPError::ReadErr),
+        Err(_) => return Err(TCPError::ReadFailure),
     }
 
     // Read response.
     let response_length = u32::from_be_bytes(length_buffer) as usize;
     let mut response_payload = vec![0; response_length];
-    match stream_.read_exact(&mut response_payload).await {
+    match socket.read_exact(&mut response_payload).await {
         Ok(_stream) => (),
-        Err(_) => return Err(TCPError::ReadErr),
+        Err(_) => return Err(TCPError::ReadFailure),
     }
 
     return Ok(response_payload);

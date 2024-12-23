@@ -3,10 +3,10 @@ use std::{sync::Arc, time::Duration};
 use colored::Colorize;
 use tokio::sync::Mutex;
 
-use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp};
+use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp, OperatingMode};
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder) {
+pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     println!("{}", "Initiating client ..");
 
     // 1. Inititate Nostr client.

@@ -9,7 +9,7 @@ use std::{
 };
 use tokio::{sync::Mutex, time::timeout};
 
-use crate::baked;
+use crate::{baked, OperatingMode};
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 
@@ -20,7 +20,13 @@ const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
 /// If a change is detected, it posts the update to Nostr,
 /// allowing NNS clients to retrieve it via the well-known npub.
 ///
-pub async fn run(nostr_client: &NostrClient) {
+pub async fn run(nostr_client: &NostrClient, mode: OperatingMode) {
+    match mode {
+        OperatingMode::Coordinator => (),
+        OperatingMode::Operator => (),
+        OperatingMode::Node => return, // Refular nodes do not run the server.
+    }
+
     // Check if ip.txt exists. Create it otherwise.
     if !Path::new(IP_ADDR_FILE_PATH).exists() {
         fs::File::create(IP_ADDR_FILE_PATH).unwrap();

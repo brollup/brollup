@@ -14,13 +14,15 @@ pub enum ClientError {
 
 /// Pings a peer.
 ///
-pub async fn ping(stream: &TCPStream) -> Result<(), ClientError> {
-    let request_bytecode = tcp::RequestKind::Ping.bytecode();
+pub async fn ping(socket: &TCPStream) -> Result<(), ClientError> {
+    let requestcode = tcp::RequestKind::Ping.to_requestcode();
     let request_payload = Vec::<u8>::with_capacity(0);
+
+    let mut _socket = socket.lock().await;
 
     let response = tokio::time::timeout(
         Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT),
-        tcp::request(stream, request_bytecode, &request_payload),
+        tcp::request(&mut *_socket, requestcode, &request_payload),
     )
     .await;
 

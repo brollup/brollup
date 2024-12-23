@@ -1,24 +1,28 @@
-use crate::baked;
 use crate::tcp::RequestKind;
+use crate::{baked, tcp, OperatingMode};
 use colored::Colorize;
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-    sync::Mutex,
-};
-
-const IDLE_CLIENT_PERIOD: Duration = Duration::from_secs(3600);
+use tokio::{io::AsyncWriteExt, net::TcpListener, sync::Mutex};
 
 type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
 
-pub async fn run(client_list: &ClientList) {
-    let listener = match TcpListener::bind("0.0.0.0:".to_string() + &baked::PORT.to_string()).await
-    {
+const IDLE_TIMEOUT: Duration = Duration::from_secs(3600);
+
+pub async fn run(client_list: &ClientList, mode: OperatingMode) {
+    match mode {
+        OperatingMode::Coordinator => (),
+        OperatingMode::Operator => (),
+        OperatingMode::Node => return, // Regular nodes do not run the server.
+    }
+
+    let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
+
+    let listener = match TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_) => {
-            eprintln!("{}", "Failed to bind.".red());
+            eprintln!("{}", format!("Failed to bind {}.", addr).red());
+
             return;
         }
     };
@@ -42,91 +46,112 @@ pub async fn run(client_list: &ClientList) {
             let client_list = Arc::clone(client_list);
             let client_id = client_id.clone();
             async move {
-                handle_socket(&socket, &client_list, &client_id).await;
+                handle_socket(&socket, &client_list, &client_id, mode).await;
             }
         });
     }
 }
 
-async fn handle_socket(socket: &TcpSocket, client_list: &ClientList, client_id: &str) {
+async fn handle_socket(
+    socket: &TcpSocket,
+    client_list: &ClientList,
+    client_id: &str,
+    mode: OperatingMode,
+) {
     loop {
-        let mut _socket = socket.lock().await;
-
-        let mut request_kind_buffer = [0; 1];
-        let mut payload_length_buffer = [0; 4];
-
-        // Read the request kind with a timeout
-        match tokio::time::timeout(
-            IDLE_CLIENT_PERIOD,
-            _socket.read_exact(&mut request_kind_buffer),
-        )
-        .await
         {
-            Ok(Ok(_)) => (),
-            Ok(Err(inner_err)) => match inner_err.kind() {
-                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
-                _ => continue,                              // Handle recoverable errors
-            },
-            Err(_) => break, // Exit the loop on inactivity.
-        }
+            let mut _socket = socket.lock().await;
 
-        // Read the payload length with a timeout
-        match tokio::time::timeout(
-            IDLE_CLIENT_PERIOD,
-            _socket.read_exact(&mut payload_length_buffer),
-        )
-        .await
-        {
-            Ok(Ok(_)) => (),
-            Ok(Err(inner_err)) => match inner_err.kind() {
-                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
-                _ => continue,                              // Handle recoverable errors
-            },
-            Err(_) => break, // Exit the loop on inactivity.
-        }
+            // Read requestcode.
+            let mut requestcode_buffer = [0; 4];
 
-        let payload_length = u32::from_be_bytes(payload_length_buffer) as usize;
-        let mut payload_buffer = vec![0; payload_length];
-
-        // Read the payload with a timeout
-        match tokio::time::timeout(IDLE_CLIENT_PERIOD, _socket.read_exact(&mut payload_buffer))
+            match tokio::time::timeout(
+                IDLE_TIMEOUT,
+                tcp::read(&mut *_socket, &mut requestcode_buffer),
+            )
             .await
-        {
-            Ok(Ok(_)) => (),
-            Ok(Err(inner_err)) => match inner_err.kind() {
-                std::io::ErrorKind::UnexpectedEof => break, // Exit the loop on disconnection
-                _ => continue,                              // Handle recoverable errors
-            },
-            Err(_) => break, // Exit the loop on inactivity.
+            {
+                Ok(Ok(_)) => (),
+                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                         // Disregard by continuing.
+                Err(_) => break,                                // Exit on idle timeout.
+            }
+
+            // Read payload length.
+            let mut payload_length_buffer = [0; 4];
+
+            match tokio::time::timeout(
+                IDLE_TIMEOUT,
+                tcp::read(&mut *_socket, &mut payload_length_buffer),
+            )
+            .await
+            {
+                Ok(Ok(_)) => (),
+                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                         // Disregard by continuing.
+                Err(_) => break,                                // Exit on idle timeout.
+            }
+
+            let payload_length = u32::from_be_bytes(payload_length_buffer) as usize;
+
+            // Read payload.
+            let mut payload_buffer = vec![0; payload_length];
+
+            match tokio::time::timeout(IDLE_TIMEOUT, tcp::read(&mut *_socket, &mut payload_buffer))
+                .await
+            {
+                Ok(Ok(_)) => (),
+                Ok(Err(tcp::TCPError::Disconnection)) => break, // Exit on disconnection.
+                Ok(Err(_)) => continue,                         // Disregard by continuing.
+                Err(_) => break,                                // Exit on idle timeout.
+            }
+
+            // Process the request kind.
+            match RequestKind::from_requestcode(requestcode_buffer) {
+                None => continue, // Skip invalid request kinds
+                Some(kind) => handle_request(kind, &mut *_socket, &payload_buffer, mode).await,
+            }
         }
 
-        // Process the request kind
-        match RequestKind::from_bytecode(request_kind_buffer[0]) {
-            None => {
-                continue; // Skip invalid request kinds
-            }
-            Some(kind) => handle_request(kind, &mut _socket, &payload_buffer).await,
-        }
+        // For each iteration add a small delay after handling the socket.
+        tokio::time::sleep(Duration::from_millis(50)).await;
     }
 
-    // Remove the client from the client list
-    let mut _client_list = client_list.lock().await;
-    _client_list.remove(client_id);
+    // Remove the client from the list upon disconnection.
+    {
+        let mut _client_list = client_list.lock().await;
+        _client_list.remove(client_id);
+    }
 }
 
-async fn handle_request(kind: RequestKind, socket: &mut tokio::net::TcpStream, _payload: &[u8]) {
-    match kind {
-        RequestKind::Ping => {
-            let response = vec![RequestKind::Ping.bytecode()];
-            let response_len = (response.len() as u32).to_be_bytes();
+async fn handle_request(
+    kind: RequestKind,
+    socket: &mut tokio::net::TcpStream,
+    _payload: &[u8],
+    mode: OperatingMode,
+) {
+    match mode {
+        OperatingMode::Coordinator => match kind {
+            RequestKind::Ping => handle_ping(socket, _payload).await,
+            _ => return,
+        },
+        OperatingMode::Operator => match kind {
+            RequestKind::Ping => handle_ping(socket, _payload).await,
+            _ => return,
+        },
+        OperatingMode::Node => return,
+    }
+}
 
-            if let Err(_) = socket.write_all(&response_len).await {
-                return;
-            }
+async fn handle_ping(socket: &mut tokio::net::TcpStream, _payload: &[u8]) {
+    let response = vec![RequestKind::Ping.bytecode()];
+    let response_len = (response.len() as u32).to_be_bytes();
 
-            if let Err(_) = socket.write_all(&response).await {
-                return;
-            }
-        }
+    if let Err(_) = socket.write_all(&response_len).await {
+        return;
+    }
+
+    if let Err(_) = socket.write_all(&response).await {
+        return;
     }
 }

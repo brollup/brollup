@@ -38,3 +38,10 @@ pub mod tcp_client;
 
 #[path = "communicative/tcp/server.rs"]
 pub mod tcp_server;
+
+#[derive(Copy, Clone)]
+pub enum OperatingMode {
+    Coordinator,
+    Operator,
+    Node,
+}

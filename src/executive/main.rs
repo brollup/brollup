@@ -3,7 +3,7 @@ use std::{env, io::BufRead};
 use brollup::{
     coordinator,
     key::{FromNostrKeyStr, KeyHolder},
-    node, operator,
+    node, operator, OperatingMode,
 };
 use colored::Colorize;
 
@@ -55,9 +55,9 @@ fn main() {
     };
 
     match mode.as_str() {
-        "node" => node::run(keys),
-        "operator" => operator::run(keys),
-        "coordinator" => coordinator::run(keys),
+        "node" => node::run(keys, OperatingMode::Node),
+        "operator" => operator::run(keys, OperatingMode::Operator),
+        "coordinator" => coordinator::run(keys, OperatingMode::Coordinator),
         _ => {
             eprintln!("Error: Unknown mode '{}'", mode);
             eprintln!("Valid modes are: node, operator, coordinator");

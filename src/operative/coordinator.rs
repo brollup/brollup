@@ -1,5 +1,5 @@
-use crate::tcp;
 use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
+use crate::{tcp, OperatingMode};
 use colored::Colorize;
 use std::collections::HashMap;
 use std::io::{self, BufRead};
@@ -10,7 +10,7 @@ type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder) {
+pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     if keys.public_key() != baked::COORDINATOR_WELL_KNOWN {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
@@ -47,7 +47,7 @@ pub async fn run(keys: KeyHolder) {
 
     // 3. Run NNS server.
     let _ = tokio::spawn(async move {
-        let _ = nns_server::run(&nostr_client).await;
+        let _ = nns_server::run(&nostr_client, mode).await;
     });
 
     let client_list: ClientList = {
@@ -58,12 +58,17 @@ pub async fn run(keys: KeyHolder) {
 
     // 4. Run TCP server.
     let _ = tokio::spawn(async move {
-        let _ = tcp_server::run(&Arc::clone(&client_list)).await;
+        let _ = tcp_server::run(&Arc::clone(&client_list), mode).await;
     });
 
     println!("{}", "Running coordinator.".green());
 
     // CLI
+    println!(
+        "{}",
+        "Enter command (type help for options, type exit to quit):".cyan()
+    );
+
     cli().await;
 }
 
