@@ -11,10 +11,11 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
-type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
+type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
 
-pub const IDLE_TIMEOUT: Duration = Duration::from_secs(3600);
-pub const REQUEST_TIMEOUT: Duration = Duration::from_millis(1500);
+pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+pub const REQUEST_TIMEOUT: Duration = Duration::from_millis(2000);
+pub const HANDLE_SOCKET_TIMEOUT: Duration = Duration::from_millis(1500);
 
 #[derive(Copy, Clone)]
 pub enum RequestKind {
@@ -71,7 +72,7 @@ pub async fn open_port() -> bool {
     false
 }
 
-pub async fn connect(ip_address: &str) -> Result<TCPStream, TCPError> {
+pub async fn connect(ip_address: &str) -> Result<TCPSocket, TCPError> {
     let addr = format!("{}:{}", ip_address, baked::PORT);
 
     let conn = tokio::time::timeout(
@@ -93,7 +94,7 @@ pub async fn connect(ip_address: &str) -> Result<TCPStream, TCPError> {
 pub async fn connect_nns(
     public_key: [u8; 32],
     nostr_client: &NostrClient,
-) -> Result<TCPStream, TCPError> {
+) -> Result<TCPSocket, TCPError> {
     let npub = match public_key.to_npub() {
         Some(npub) => npub,
         None => return Err(TCPError::ConnErr),
@@ -150,9 +151,6 @@ pub async fn request(
     payload: &[u8],
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, TCPError> {
-    // Determine the timeout duration.
-    let timeout = timeout.unwrap_or(REQUEST_TIMEOUT); // Default timeout: 1500 ms.
-
     // Build the request buffer.
     let mut request_buffer = Vec::with_capacity(4 + 4 + payload.len());
     request_buffer.extend_from_slice(&requestcode); // Add requestcode; 4 bytes.
@@ -161,29 +159,27 @@ pub async fn request(
 
     // Start tracking elapsed time.
     let start = Instant::now();
+    let timeout_duration = timeout.unwrap_or(REQUEST_TIMEOUT); // Default timeout: 2000 ms
 
     // Write the request buffer with timeout.
-    let remaining_time = timeout
+    write(socket, &request_buffer, Some(timeout_duration)).await?;
+
+    let mut length_buffer = [0; 4];
+
+    let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
-
-    write(socket, &request_buffer, Some(remaining_time)).await?;
 
     // Read the response length; 4 bytes.
-    let mut length_buffer = [0; 4];
-    let remaining_time = timeout
-        .checked_sub(start.elapsed())
-        .ok_or(TCPError::Timeout)?;
-
     read(socket, &mut length_buffer, Some(remaining_time)).await?;
 
-    // Read the response; variable-length bytes.
-    let response_length = u32::from_be_bytes(length_buffer) as usize;
-    let mut response_buffer = vec![0; response_length];
-    let remaining_time = timeout
+    let mut response_buffer = vec![0; u32::from_be_bytes(length_buffer) as usize];
+
+    let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
 
+    // Read the response; variable-length bytes.
     read(socket, &mut response_buffer, Some(remaining_time)).await?;
 
     Ok(response_buffer)

@@ -2,12 +2,12 @@ use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
 use crate::{tcp, OperatingMode};
 use colored::Colorize;
 use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
+type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
+type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, mode: OperatingMode) {
@@ -50,8 +50,8 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
         let _ = nns_server::run(&nostr_client, mode).await;
     });
 
-    let client_list: ClientList = {
-        let client_list: HashMap<String, TcpSocket> = HashMap::new();
+    let client_list: SocketList = {
+        let client_list: HashMap<String, TCPSocket> = HashMap::new();
 
         Arc::new(Mutex::new(client_list))
     };
@@ -73,7 +73,7 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     cli(&client_list).await;
 }
 
-pub async fn cli(client_list: &ClientList) {
+pub async fn cli(client_list: &SocketList) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -88,16 +88,22 @@ pub async fn cli(client_list: &ClientList) {
         match parts[0] {
             // Main commands:
             "exit" => break,
+            "clear" => handle_clear_command(),
             "clients" => handle_clients_command(client_list).await,
             _ => break,
         }
     }
 }
 
-async fn handle_clients_command(client_list: &ClientList) {
+async fn handle_clients_command(client_list: &SocketList) {
     let _client_list = client_list.lock().await;
 
     for (index, (client_id, _)) in _client_list.iter().enumerate() {
         println!("Client #{}: {}", index, client_id);
     }
+}
+
+fn handle_clear_command() {
+    print!("\x1B[2J\x1B[1;1H");
+    std::io::stdout().flush().unwrap();
 }

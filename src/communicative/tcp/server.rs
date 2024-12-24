@@ -1,11 +1,12 @@
 use crate::tcp::RequestKind;
 use crate::{baked, tcp, OperatingMode};
 use colored::Colorize;
+use std::time::Instant;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{io::AsyncWriteExt, net::TcpListener, sync::Mutex};
 
-type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
+type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
+type ClientList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 pub async fn run(client_list: &ClientList, mode: OperatingMode) {
     match mode {
@@ -51,7 +52,7 @@ pub async fn run(client_list: &ClientList, mode: OperatingMode) {
 }
 
 async fn handle_socket(
-    socket: &TcpSocket,
+    socket: &TCPSocket,
     client_id: &str,
     client_list: &ClientList,
     mode: OperatingMode,
@@ -62,29 +63,44 @@ async fn handle_socket(
 
             // Read requestcode.
             let mut requestcode = [0; 4];
-            match tcp::read(&mut *_socket, &mut requestcode, Some(tcp::IDLE_TIMEOUT)).await {
+            match tcp::read(
+                &mut *_socket,
+                &mut requestcode,
+                Some(tcp::IDLE_CLIENT_TIMEOUT),
+            )
+            .await
+            {
                 Ok(_) => (),
                 Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
                 Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
                 Err(_) => continue,                   // Iterate on read errors.
             }
 
+            // Start tracking elapsed time.
+            let start = Instant::now();
+            let timeout_duration = tcp::HANDLE_SOCKET_TIMEOUT; // Default timeout: 1500 ms.
+
             // Read payload length.
             let mut payload_len = [0; 4];
-            match tcp::read(&mut *_socket, &mut payload_len, Some(tcp::REQUEST_TIMEOUT)).await {
+            match tcp::read(&mut *_socket, &mut payload_len, Some(timeout_duration)).await {
                 Ok(_) => (),
-                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::ConnErr) => break,    // Exit on disconnection.
                 Err(tcp::TCPError::Timeout) => continue, // Iterate on REQUEST_TIMEOUT.
-                Err(_) => continue,                   // Iterate on read errors.
+                Err(_) => continue,                      // Iterate on read errors.
             }
+
+            let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
+                Some(duration) => duration,
+                None => continue,
+            };
 
             // Read payload.
             let mut payload = vec![0; u32::from_be_bytes(payload_len) as usize];
-            match tcp::read(&mut *_socket, &mut payload, Some(tcp::REQUEST_TIMEOUT)).await {
+            match tcp::read(&mut *_socket, &mut payload, Some(remaining_time)).await {
                 Ok(_) => (),
-                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::ConnErr) => break,    // Exit on disconnection.
                 Err(tcp::TCPError::Timeout) => continue, // Iterate on REQUEST_TIMEOUT.
-                Err(_) => continue,                   // Iterate on read errors.
+                Err(_) => continue,                      // Iterate on read errors.
             }
 
             // Process the request kind.
@@ -125,7 +141,7 @@ async fn handle_request(
 }
 
 async fn handle_ping(socket: &mut tokio::net::TcpStream, payload: &[u8]) {
-    let response = RequestKind::Ping.to_requestcode();
+    let response = RequestKind::Ping.to_requestcode(); // Pong.
     let response_len = (response.len() as u32).to_be_bytes();
 
     if payload == &[0x00] {
