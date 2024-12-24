@@ -45,3 +45,11 @@ pub enum OperatingMode {
     Operator,
     Node,
 }
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum PeerKind {
+    Coordinator,
+    Operator,
+    Indexer,
+    Node,
+}

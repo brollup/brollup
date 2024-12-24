@@ -1,3 +1,4 @@
+use crate::PeerKind;
 use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp, tcp_client, OperatingMode};
 use colored::Colorize;
 use std::collections::HashMap;
@@ -7,14 +8,6 @@ use tokio::sync::Mutex;
 
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type SocketList = Arc<Mutex<HashMap<String, (TCPSocket, PeerKind)>>>;
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum PeerKind {
-    Coordinator,
-    Operator,
-    Indexer,
-    Node,
-}
 
 impl PeerKind {
     pub fn as_str(&self) -> &str {
@@ -73,6 +66,12 @@ pub async fn run(keys: KeyHolder, mode: OperatingMode) {
     };
 
     println!("{}", "Running client.".green());
+
+    // Background task #1; peer list uptime.
+    let peer_list_ = Arc::clone(&peer_list);
+    tokio::spawn(async move {
+        let _ = tcp_client::uptime_peer_list(&peer_list_).await;
+    });
 
     cli(&peer_list).await;
 }

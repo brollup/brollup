@@ -5,7 +5,7 @@ use crate::{baked, nns_client};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::vec;
+use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
@@ -100,48 +100,74 @@ pub async fn connect_nns(
         None => return Err(TCPError::ConnErr),
     };
 
-    let ip_address = nns_client::retrieve_ip_address(&npub, nostr_client)
-        .await
-        .unwrap();
+    let ip_address = match nns_client::retrieve_ip_address(&npub, nostr_client).await {
+        Some(ip_address) => ip_address,
+        None => {
+            println!("nns err.");
+            return Err(TCPError::ConnErr);
+        }
+    };
 
     connect(&ip_address).await
 }
 
 pub async fn read(
-    socket: &mut tokio::net::TcpStream,
+    socket: &mut TcpStream,
     buffer: &mut [u8],
     timeout: Option<Duration>,
 ) -> Result<(), TCPError> {
-    let result = match timeout {
-        Some(duration) => tokio::time::timeout(duration, socket.read_exact(buffer))
-            .await
-            .map_err(|_| TCPError::Timeout)?,
-        None => socket.read_exact(buffer).await,
-    };
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
-        Err(_) => Err(TCPError::ReadErr),
+    if let Some(duration) = timeout {
+        tokio::select! {
+            result = socket.read_exact(buffer) => {
+                // Handle the result of read_exact
+                match result {
+                    Ok(_) => Ok(()),
+                    Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
+                    Err(_) => Err(TCPError::ReadErr),
+                }
+            }
+            _ = tokio::time::sleep(duration) => {
+                // Timeout occurred
+                Err(TCPError::Timeout)
+            }
+        }
+    } else {
+        // No timeout specified, perform the read_exact operation
+        match socket.read_exact(buffer).await {
+            Ok(_) => Ok(()),
+            Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
+            Err(_) => Err(TCPError::ReadErr),
+        }
     }
 }
 
 pub async fn write(
-    socket: &mut tokio::net::TcpStream,
+    socket: &mut TcpStream,
     payload: &[u8],
     timeout: Option<Duration>,
 ) -> Result<(), TCPError> {
-    let result = match timeout {
-        Some(duration) => tokio::time::timeout(duration, socket.write_all(payload))
-            .await
-            .map_err(|_| TCPError::Timeout)?,
-        None => socket.write_all(payload).await,
-    };
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
-        Err(_) => Err(TCPError::WriteErr),
+    if let Some(duration) = timeout {
+        tokio::select! {
+            result = socket.write_all(payload) => {
+                // Handle the result of write_all
+                match result {
+                    Ok(_) => Ok(()),
+                    Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
+                    Err(_) => Err(TCPError::WriteErr),
+                }
+            }
+            _ = tokio::time::sleep(duration) => {
+                // Timeout occurred
+                Err(TCPError::Timeout)
+            }
+        }
+    } else {
+        // No timeout specified, perform the write_all operation
+        match socket.write_all(payload).await {
+            Ok(_) => Ok(()),
+            Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
+            Err(_) => Err(TCPError::WriteErr),
+        }
     }
 }
 
