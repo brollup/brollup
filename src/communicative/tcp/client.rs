@@ -1,48 +1,37 @@
-use crate::{baked, tcp};
-use std::{sync::Arc, time::Duration};
+use crate::tcp::{self, TCPError};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
 
 #[derive(Copy, Clone)]
 pub enum ClientError {
-    Timeout,
+    TCPErr(TCPError),
     InvalidResponse,
-    EmptyResponse,
-    NoResponse,
 }
 
 /// Pings a peer.
 ///
 pub async fn ping(socket: &TCPStream) -> Result<(), ClientError> {
     let requestcode = tcp::RequestKind::Ping.to_requestcode();
-    let request_payload = Vec::<u8>::with_capacity(0);
+    let request_payload = [0x00];
 
     let mut _socket = socket.lock().await;
 
-    let response = tokio::time::timeout(
-        Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT),
-        tcp::request(&mut *_socket, requestcode, &request_payload),
+    let response = tcp::request(
+        &mut *_socket,
+        requestcode,
+        &request_payload,
+        Some(tcp::REQUEST_TIMEOUT),
     )
-    .await;
+    .await
+    .map_err(|err| ClientError::TCPErr(err))?;
 
-    match response {
-        Ok(response) => match response {
-            Ok(response) => {
-                let expected_response = tcp::RequestKind::Ping.to_requestcode();
+    let pong = tcp::RequestKind::Ping.to_requestcode();
 
-                if &response == &expected_response {
-                    return Ok(());
-                } else {
-                    return Err(ClientError::InvalidResponse);
-                }
-            }
-            Err(_) => {
-                return Err(ClientError::NoResponse);
-            }
-        },
-        Err(_) => {
-            return Err(ClientError::Timeout);
-        }
+    if &response == &pong {
+        return Ok(());
+    } else {
+        return Err(ClientError::InvalidResponse);
     }
 }

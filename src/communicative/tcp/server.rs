@@ -7,8 +7,6 @@ use tokio::{io::AsyncWriteExt, net::TcpListener, sync::Mutex};
 type TcpSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type ClientList = Arc<Mutex<HashMap<String, TcpSocket>>>;
 
-const IDLE_TIMEOUT: Duration = Duration::from_secs(3600);
-
 pub async fn run(client_list: &ClientList, mode: OperatingMode) {
     match mode {
         OperatingMode::Coordinator => (),
@@ -46,7 +44,7 @@ pub async fn run(client_list: &ClientList, mode: OperatingMode) {
             let client_list = Arc::clone(client_list);
             let client_id = client_id.clone();
             async move {
-                handle_socket(&socket, &client_list, &client_id, mode).await;
+                handle_socket(&socket, &client_id, &client_list, mode).await;
             }
         });
     }
@@ -54,8 +52,8 @@ pub async fn run(client_list: &ClientList, mode: OperatingMode) {
 
 async fn handle_socket(
     socket: &TcpSocket,
-    client_list: &ClientList,
     client_id: &str,
+    client_list: &ClientList,
     mode: OperatingMode,
 ) {
     loop {
@@ -63,53 +61,36 @@ async fn handle_socket(
             let mut _socket = socket.lock().await;
 
             // Read requestcode.
-            let mut requestcode_buffer = [0; 4];
-
-            match tokio::time::timeout(
-                IDLE_TIMEOUT,
-                tcp::read(&mut *_socket, &mut requestcode_buffer),
-            )
-            .await
-            {
-                Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                   // Disregard by continuing.
-                Err(_) => break,                          // Exit on idle timeout.
+            let mut requestcode = [0; 4];
+            match tcp::read(&mut *_socket, &mut requestcode, Some(tcp::IDLE_TIMEOUT)).await {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
             }
 
             // Read payload length.
-            let mut payload_length_buffer = [0; 4];
-
-            match tokio::time::timeout(
-                IDLE_TIMEOUT,
-                tcp::read(&mut *_socket, &mut payload_length_buffer),
-            )
-            .await
-            {
-                Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                   // Disregard by continuing.
-                Err(_) => break,                          // Exit on idle timeout.
+            let mut payload_len = [0; 4];
+            match tcp::read(&mut *_socket, &mut payload_len, Some(tcp::REQUEST_TIMEOUT)).await {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => continue, // Iterate on REQUEST_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
             }
 
-            let payload_length = u32::from_be_bytes(payload_length_buffer) as usize;
-
             // Read payload.
-            let mut payload_buffer = vec![0; payload_length];
-
-            match tokio::time::timeout(IDLE_TIMEOUT, tcp::read(&mut *_socket, &mut payload_buffer))
-                .await
-            {
-                Ok(Ok(_)) => (),
-                Ok(Err(tcp::TCPError::ConnErr)) => break, // Exit on disconnection.
-                Ok(Err(_)) => continue,                   // Disregard by continuing.
-                Err(_) => break,                          // Exit on idle timeout.
+            let mut payload = vec![0; u32::from_be_bytes(payload_len) as usize];
+            match tcp::read(&mut *_socket, &mut payload, Some(tcp::REQUEST_TIMEOUT)).await {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => continue, // Iterate on REQUEST_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
             }
 
             // Process the request kind.
-            match RequestKind::from_requestcode(requestcode_buffer) {
+            match RequestKind::from_requestcode(requestcode) {
                 None => continue, // Skip invalid request kinds
-                Some(kind) => handle_request(kind, &mut *_socket, &payload_buffer, mode).await,
+                Some(kind) => handle_request(kind, &mut *_socket, &payload, mode).await,
             }
         }
 
@@ -143,15 +124,19 @@ async fn handle_request(
     }
 }
 
-async fn handle_ping(socket: &mut tokio::net::TcpStream, _payload: &[u8]) {
+async fn handle_ping(socket: &mut tokio::net::TcpStream, payload: &[u8]) {
     let response = RequestKind::Ping.to_requestcode();
     let response_len = (response.len() as u32).to_be_bytes();
 
-    if let Err(_) = socket.write_all(&response_len).await {
-        return;
-    }
+    if payload == &[0x00] {
+        if let Err(_) = socket.write_all(&response_len).await {
+            return;
+        }
 
-    if let Err(_) = socket.write_all(&response).await {
+        if let Err(_) = socket.write_all(&response).await {
+            return;
+        }
+    } else {
         return;
     }
 }

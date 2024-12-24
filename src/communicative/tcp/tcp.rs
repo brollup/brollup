@@ -4,7 +4,7 @@ use crate::key::ToNostrKeyStr;
 use crate::{baked, nns_client};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::vec;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -12,6 +12,9 @@ use tokio::sync::Mutex;
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 type TCPStream = Arc<Mutex<tokio::net::TcpStream>>;
+
+pub const IDLE_TIMEOUT: Duration = Duration::from_secs(3600);
+pub const REQUEST_TIMEOUT: Duration = Duration::from_millis(1500);
 
 #[derive(Copy, Clone)]
 pub enum RequestKind {
@@ -47,6 +50,7 @@ pub enum TCPError {
     ConnErr,
     ReadErr,
     WriteErr,
+    Timeout,
 }
 
 pub async fn open_port() -> bool {
@@ -102,16 +106,38 @@ pub async fn connect_nns(
     connect(&ip_address).await
 }
 
-pub async fn read(socket: &mut tokio::net::TcpStream, buffer: &mut [u8]) -> Result<(), TCPError> {
-    match socket.read_exact(buffer).await {
+pub async fn read(
+    socket: &mut tokio::net::TcpStream,
+    buffer: &mut [u8],
+    timeout: Option<Duration>,
+) -> Result<(), TCPError> {
+    let result = match timeout {
+        Some(duration) => tokio::time::timeout(duration, socket.read_exact(buffer))
+            .await
+            .map_err(|_| TCPError::Timeout)?,
+        None => socket.read_exact(buffer).await,
+    };
+
+    match result {
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
         Err(_) => Err(TCPError::ReadErr),
     }
 }
 
-pub async fn write(socket: &mut tokio::net::TcpStream, payload: &[u8]) -> Result<(), TCPError> {
-    match socket.write_all(payload).await {
+pub async fn write(
+    socket: &mut tokio::net::TcpStream,
+    payload: &[u8],
+    timeout: Option<Duration>,
+) -> Result<(), TCPError> {
+    let result = match timeout {
+        Some(duration) => tokio::time::timeout(duration, socket.write_all(payload))
+            .await
+            .map_err(|_| TCPError::Timeout)?,
+        None => socket.write_all(payload).await,
+    };
+
+    match result {
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof => Err(TCPError::ConnErr),
         Err(_) => Err(TCPError::WriteErr),
@@ -121,28 +147,46 @@ pub async fn write(socket: &mut tokio::net::TcpStream, payload: &[u8]) -> Result
 pub async fn request(
     socket: &mut tokio::net::TcpStream,
     requestcode: [u8; 4],
-    payload: &Vec<u8>,
+    payload: &[u8],
+    timeout: Option<Duration>,
 ) -> Result<Vec<u8>, TCPError> {
-    // Write requestcode.
-    write(socket, &requestcode).await?;
+    // Determine the timeout duration.
+    let timeout = timeout.unwrap_or(REQUEST_TIMEOUT); // Default timeout: 1500 ms.
 
-    // Write payload len.
-    let payload_length = (payload.len() as u32).to_be_bytes();
-    write(socket, &payload_length).await?;
+    // Build the request buffer.
+    let mut request_buffer = Vec::with_capacity(4 + 4 + payload.len());
+    request_buffer.extend_from_slice(&requestcode); // Add requestcode; 4 bytes.
+    request_buffer.extend_from_slice(&(payload.len() as u32).to_be_bytes()); // Add payload length; 4 bytes.
+    request_buffer.extend_from_slice(payload); // Add payload; variable-length size bytes.
 
-    // Write payload.
-    write(socket, &payload).await?;
+    // Start tracking elapsed time.
+    let start = Instant::now();
 
-    // Read response length.
+    // Write the request buffer with timeout.
+    let remaining_time = timeout
+        .checked_sub(start.elapsed())
+        .ok_or(TCPError::Timeout)?;
+
+    write(socket, &request_buffer, Some(remaining_time)).await?;
+
+    // Read the response length; 4 bytes.
     let mut length_buffer = [0; 4];
-    read(socket, &mut length_buffer).await?;
+    let remaining_time = timeout
+        .checked_sub(start.elapsed())
+        .ok_or(TCPError::Timeout)?;
 
-    // Read response.
+    read(socket, &mut length_buffer, Some(remaining_time)).await?;
+
+    // Read the response; variable-length bytes.
     let response_length = u32::from_be_bytes(length_buffer) as usize;
-    let mut response_payload = vec![0; response_length];
-    read(socket, &mut response_payload).await?;
+    let mut response_buffer = vec![0; response_length];
+    let remaining_time = timeout
+        .checked_sub(start.elapsed())
+        .ok_or(TCPError::Timeout)?;
 
-    return Ok(response_payload);
+    read(socket, &mut response_buffer, Some(remaining_time)).await?;
+
+    Ok(response_buffer)
 }
 
 pub async fn connectivity() -> bool {
