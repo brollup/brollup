@@ -1,13 +1,102 @@
 use crate::{
+    baked,
     tcp::{self, TCPError},
     PeerKind,
 };
+use colored::Colorize;
 use futures::future::join_all;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type SocketList = Arc<Mutex<HashMap<String, (TCPSocket, PeerKind)>>>;
+type Connection = Arc<Mutex<Option<TCPSocket>>>;
+type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
+
+#[derive(Clone)]
+pub struct Peer {
+    nns_key: [u8; 32],
+    nostr_client: NostrClient,
+    connection: Option<(TCPSocket, SocketAddr)>,
+}
+
+impl Peer {
+    pub async fn connect(
+        nns_key: [u8; 32],
+        nostr_client: &NostrClient,
+    ) -> Result<Arc<Mutex<Self>>, TCPError> {
+        let (socket_, addr) = {
+            match tcp::connect_nns(nns_key, &nostr_client).await {
+                Ok(socket) => {
+                    let addr = match socket.peer_addr() {
+                        Ok(addr) => addr,
+                        Err(_) => return Err(TCPError::ConnErr),
+                    };
+
+                    (socket, addr)
+                }
+                Err(_) => return Err(TCPError::ConnErr),
+            }
+        };
+
+        let socket: TCPSocket = Arc::new(Mutex::new(socket_));
+
+        let connection = Some((socket, addr));
+
+        let peer_ = Peer {
+            nns_key,
+            connection,
+            nostr_client: Arc::clone(nostr_client),
+        };
+
+        let peer = Arc::new(Mutex::new(peer_));
+
+        Ok(peer)
+    }
+
+    pub fn nns_key(&self) -> [u8; 32] {
+        self.nns_key
+    }
+
+    pub fn nostr_client(&self) -> NostrClient {
+        Arc::clone(&self.nostr_client)
+    }
+
+    pub fn connection(&self) -> Option<(TCPSocket, SocketAddr)> {
+        self.connection.clone()
+    }
+
+    pub fn socket(&self) -> Option<TCPSocket> {
+        let socket = Arc::clone(&self.connection()?.0);
+        Some(socket)
+    }
+
+    pub async fn conn(&self) {
+        match self.connection() {
+            Some(_) => {
+                let addr: String = self.addr();
+                println!("Alive: {}", addr);
+            }
+            None => {
+                println!("Dead.")
+            }
+        }
+    }
+
+    pub fn set_connection(&mut self, connection: Option<(TCPSocket, SocketAddr)>) {
+        self.connection = connection;
+    }
+
+    pub fn addr(&self) -> String {
+        match self.connection() {
+            Some(connection) => {
+                return format!("{}:{}", connection.1.ip(), connection.1.port());
+            }
+            None => {
+                return "".to_string();
+            }
+        };
+    }
+}
 
 #[derive(Copy, Clone)]
 pub enum ClientError {
@@ -15,64 +104,98 @@ pub enum ClientError {
     InvalidResponse,
 }
 
-pub async fn uptime_peer_list(peer_list: &SocketList) {
-    loop {
-        let peers = {
-            let _peer_list = peer_list.lock().await;
-            _peer_list.clone()
-        };
+async fn try_reconnect(peer: &Arc<Mutex<Peer>>) -> () {
+    let (socket_, addr) = {
+        loop {
+            let (nns_key, nostr_client) = {
+                let _peer = peer.lock().await;
+                (_peer.nns_key(), _peer.nostr_client())
+            };
 
-        let mut removal_list = Vec::<String>::new();
-
-        // Collect async tasks to wait on
-        let mut tasks = Vec::new();
-
-        for peer in peers.iter() {
-            let peer_id = peer.0.clone();
-            let peer_socket = peer.1 .0.clone();
-
-            let task = async move {
-                let mut failure_iter: u8 = 0;
-
-                loop {
-                    match ping(&peer_socket).await {
-                        Ok(_) => break,
+            match tcp::connect_nns(nns_key, &nostr_client).await {
+                Ok(socket) => {
+                    let addr = match socket.peer_addr() {
+                        Ok(addr) => addr,
                         Err(_) => {
-                            if failure_iter < 3 {
-                                failure_iter += 1;
-                                tokio::time::sleep(Duration::from_secs(5)).await;
-                                continue;
-                            } else {
-                                return Some(peer_id);
-                            }
+                            tokio::time::sleep(Duration::from_secs(5)).await;
+                            continue;
+                        }
+                    };
+
+                    break (socket, addr);
+                }
+                Err(_) => {
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
+            }
+        }
+    };
+
+    let socket: TCPSocket = Arc::new(Mutex::new(socket_));
+
+    {
+        let mut _peer = peer.lock().await;
+        _peer.set_connection(Some((socket, addr)));
+    }
+
+    println!("reconnected.");
+
+    ()
+}
+
+async fn disconnection(peer: &Arc<Mutex<Peer>>) -> () {
+    let socket = {
+        let _peer = peer.lock().await;
+
+        match _peer.socket() {
+            Some(socket) => socket,
+            None => return (),
+        }
+    };
+
+    loop {
+        loop {
+            match ping(&socket).await {
+                Ok(_) => break,
+                Err(_) => {
+                    let mut failure_iter: u8 = 0;
+                    loop {
+                        if failure_iter < 3 {
+                            failure_iter += 1;
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                            continue;
+                        } else {
+                            let mut _peer = peer.lock().await;
+                            _peer.set_connection(None);
+
+                            return ();
                         }
                     }
                 }
-                None
-            };
-
-            tasks.push(tokio::spawn(task));
-        }
-
-        // Wait until all async tasks complete
-        let results = join_all(tasks).await;
-
-        // Collect removal IDs from results
-        for result in results {
-            if let Ok(Some(peer_id)) = result {
-                removal_list.push(peer_id);
             }
         }
+        tokio::time::sleep(Duration::from_secs(10)).await;
+    }
+}
 
-        // Remove peers that failed
-        {
-            let mut _peer_list = peer_list.lock().await;
-            for peer_id in removal_list.iter() {
-                _peer_list.remove(peer_id);
-            }
-        }
+pub async fn uptime(peer: &Arc<Mutex<Peer>>) {
+    loop {
+        // Wait until disconnection.
+        let peer_addr = {
+            let _peer = peer.lock().await;
+            _peer.addr()
+        };
+        let _ = disconnection(&peer).await;
+        println!("{}", format!("Disconnected: {}", peer_addr).red());
 
-        tokio::time::sleep(Duration::from_secs(15)).await;
+        // Re-connect upon disconnection
+        let _ = try_reconnect(&peer).await;
+        let peer_addr = {
+            let _peer = peer.lock().await;
+            _peer.addr()
+        };
+        println!("{}", format!("Re-connected: {}", peer_addr).green());
     }
 }
 

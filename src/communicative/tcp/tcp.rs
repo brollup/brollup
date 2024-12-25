@@ -72,7 +72,7 @@ pub async fn open_port() -> bool {
     false
 }
 
-pub async fn connect(ip_address: &str) -> Result<TCPSocket, TCPError> {
+pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
     let addr = format!("{}:{}", ip_address, baked::PORT);
 
     let conn = tokio::time::timeout(
@@ -82,20 +82,16 @@ pub async fn connect(ip_address: &str) -> Result<TCPSocket, TCPError> {
     .await;
 
     match conn {
-        Ok(Ok(stream)) => {
-            let stream = Arc::new(Mutex::new(stream));
-
-            Ok(stream)
-        }
+        Ok(Ok(stream)) => Ok(stream),
         _ => Err(TCPError::ConnErr),
     }
 }
 
 pub async fn connect_nns(
-    public_key: [u8; 32],
+    nns_key: [u8; 32],
     nostr_client: &NostrClient,
-) -> Result<TCPSocket, TCPError> {
-    let npub = match public_key.to_npub() {
+) -> Result<TcpStream, TCPError> {
+    let npub = match nns_key.to_npub() {
         Some(npub) => npub,
         None => return Err(TCPError::ConnErr),
     };
