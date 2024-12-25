@@ -24,20 +24,23 @@ pub mod coordinator;
 #[path = "communicative/nns/server.rs"]
 pub mod nns_server;
 
-#[path = "communicative/nns/client.rs"]
-pub mod nns_client;
+#[path = "communicative/nns/query.rs"]
+pub mod nns_query;
 
 #[path = "communicative/nns/relay.rs"]
 pub mod nns_relay;
 
-#[path = "communicative/tcp/tcp.rs"]
+#[path = "communicative/tcp.rs"]
 pub mod tcp;
 
-#[path = "communicative/tcp/client.rs"]
-pub mod tcp_client;
+#[path = "communicative/request.rs"]
+pub mod tcp_request;
 
-#[path = "communicative/tcp/server.rs"]
+#[path = "communicative/server.rs"]
 pub mod tcp_server;
+
+#[path = "communicative/peer.rs"]
+pub mod peer;
 
 #[derive(Copy, Clone)]
 pub enum OperatingMode {

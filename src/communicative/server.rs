@@ -1,4 +1,4 @@
-use crate::tcp::RequestKind;
+use crate::tcp_request::RequestKind;
 use crate::{baked, tcp, OperatingMode};
 use colored::Colorize;
 use std::time::Instant;
@@ -7,6 +7,9 @@ use tokio::{io::AsyncWriteExt, net::TcpListener, sync::Mutex};
 
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
 type ClientList = Arc<Mutex<HashMap<String, TCPSocket>>>;
+
+pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+pub const SOCKET_HANDLE_TIMEOUT: Duration = Duration::from_millis(1500);
 
 pub async fn run(client_list: &ClientList, mode: OperatingMode) {
     match mode {
@@ -63,13 +66,7 @@ async fn handle_socket(
 
             // Read requestcode.
             let mut requestcode = [0; 4];
-            match tcp::read(
-                &mut *_socket,
-                &mut requestcode,
-                Some(tcp::IDLE_CLIENT_TIMEOUT),
-            )
-            .await
-            {
+            match tcp::read(&mut *_socket, &mut requestcode, Some(IDLE_CLIENT_TIMEOUT)).await {
                 Ok(_) => (),
                 Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
                 Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
@@ -78,7 +75,7 @@ async fn handle_socket(
 
             // Start tracking elapsed time.
             let start = Instant::now();
-            let timeout_duration = tcp::HANDLE_SOCKET_TIMEOUT; // Default timeout: 1500 ms.
+            let timeout_duration = SOCKET_HANDLE_TIMEOUT; // Default timeout: 1500 ms.
 
             // Read payload length.
             let mut payload_len = [0; 4];

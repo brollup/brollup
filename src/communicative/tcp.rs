@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::key::ToNostrKeyStr;
-use crate::{baked, nns_client};
+use crate::{baked, nns_query};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -12,39 +12,6 @@ use tokio::sync::Mutex;
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-
-pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
-pub const REQUEST_TIMEOUT: Duration = Duration::from_millis(2000);
-pub const HANDLE_SOCKET_TIMEOUT: Duration = Duration::from_millis(1500);
-
-#[derive(Copy, Clone)]
-pub enum RequestKind {
-    Ping,
-}
-
-impl RequestKind {
-    pub fn bytecode(&self) -> u8 {
-        match self {
-            RequestKind::Ping => 0x00,
-        }
-    }
-    pub fn to_requestcode(&self) -> [u8; 4] {
-        // Requestcode stars with 'b' 'r' 'l'.
-        [0x62, 0x72, 0x6c, self.bytecode()]
-    }
-    pub fn from_requestcode(requestcode: [u8; 4]) -> Option<Self> {
-        let brl = &requestcode[..3];
-
-        if brl != vec![0x62, 0x72, 0x6c] {
-            return None;
-        } else {
-            match &requestcode[3] {
-                0x00 => return Some(RequestKind::Ping),
-                _ => return None,
-            }
-        }
-    }
-}
 
 #[derive(Debug, Copy, Clone)]
 pub enum TCPError {
@@ -96,12 +63,9 @@ pub async fn connect_nns(
         None => return Err(TCPError::ConnErr),
     };
 
-    let ip_address = match nns_client::retrieve_ip_address(&npub, nostr_client).await {
+    let ip_address = match nns_query::address(&npub, nostr_client).await {
         Some(ip_address) => ip_address,
-        None => {
-            println!("nns err.");
-            return Err(TCPError::ConnErr);
-        }
+        None => return Err(TCPError::ConnErr),
     };
 
     connect(&ip_address).await
@@ -181,7 +145,7 @@ pub async fn request(
 
     // Start tracking elapsed time.
     let start = Instant::now();
-    let timeout_duration = timeout.unwrap_or(REQUEST_TIMEOUT); // Default timeout: 2000 ms
+    let timeout_duration = timeout.unwrap_or(Duration::from_millis(2000)); // Default timeout: 2000 ms
 
     // Write the request buffer with timeout.
     write(socket, &request_buffer, Some(timeout_duration)).await?;

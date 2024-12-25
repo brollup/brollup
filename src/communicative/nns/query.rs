@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 
-pub async fn retrieve_ip_address(npub: &str, nostr_client: &NostrClient) -> Option<String> {
+pub async fn address(npub: &str, nostr_client: &NostrClient) -> Option<String> {
     let public_key = PublicKey::from_bech32(npub).ok()?;
 
     let filter = Filter::new()

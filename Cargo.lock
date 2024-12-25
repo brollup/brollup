@@ -302,6 +302,7 @@ dependencies = [
 name = "brollup"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "bech32",
  "chrono",
  "colored",
