@@ -5,35 +5,6 @@ use tokio::sync::Mutex;
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
 
 #[derive(Copy, Clone)]
-pub enum RequestKind {
-    Ping,
-}
-
-impl RequestKind {
-    pub fn bytecode(&self) -> u8 {
-        match self {
-            RequestKind::Ping => 0x00,
-        }
-    }
-    pub fn to_requestcode(&self) -> [u8; 4] {
-        // Requestcode stars with 'b' 'r' 'l'.
-        [0x62, 0x72, 0x6c, self.bytecode()]
-    }
-    pub fn from_requestcode(requestcode: [u8; 4]) -> Option<Self> {
-        let brl = &requestcode[..3];
-
-        if brl != vec![0x62, 0x72, 0x6c] {
-            return None;
-        } else {
-            match &requestcode[3] {
-                0x00 => return Some(RequestKind::Ping),
-                _ => return None,
-            }
-        }
-    }
-}
-
-#[derive(Copy, Clone)]
 pub enum RequestError {
     TCPErr(TCPError),
     InvalidResponse,
@@ -42,21 +13,25 @@ pub enum RequestError {
 /// Pings a peer.
 ///
 pub async fn ping(socket: &TCPSocket) -> Result<Duration, RequestError> {
-    let requestcode = RequestKind::Ping.to_requestcode();
+    let request_kind = tcp::Kind::Ping;
+
+    // Ping payload: 0x00. Pong payload: 0x01.
     let request_payload = [0x00];
+
+    let request_package = tcp::Package::new(request_kind, &request_payload);
 
     let mut _socket = socket.lock().await;
 
     let timeout = Duration::from_millis(10_000);
 
-    let (response, duration) =
-        tcp::request(&mut *_socket, requestcode, &request_payload, Some(timeout))
-            .await
-            .map_err(|err| RequestError::TCPErr(err))?;
+    let (response_package, duration) = tcp::request(&mut *_socket, request_package, Some(timeout))
+        .await
+        .map_err(|err| RequestError::TCPErr(err))?;
 
-    let pong = RequestKind::Ping.to_requestcode();
+    // Ping payload: 0x00. Pong payload: 0x01.
+    let pong = [0x01];
 
-    if &response == &pong {
+    if &response_package.payload_bytes() == &pong {
         return Ok(duration);
     } else {
         return Err(RequestError::InvalidResponse);

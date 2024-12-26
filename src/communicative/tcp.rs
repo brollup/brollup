@@ -9,6 +9,7 @@ use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 
 type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
@@ -19,6 +20,62 @@ pub enum TCPError {
     ReadErr,
     WriteErr,
     Timeout,
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum Kind {
+    Ping,
+}
+
+impl Kind {
+    pub fn bytecode(&self) -> u8 {
+        match self {
+            Kind::Ping => 0x00,
+        }
+    }
+    pub fn from_bytecode(bytecode: u8) -> Option<Self> {
+        match bytecode {
+            0x00 => Some(Kind::Ping),
+
+            _ => None,
+        }
+    }
+}
+
+pub struct Package {
+    kind: Kind,
+    payload: Vec<u8>,
+}
+
+impl Package {
+    pub fn new(kind: Kind, payload: &[u8]) -> Package {
+        Package {
+            kind,
+            payload: payload.to_vec(),
+        }
+    }
+
+    pub fn kind(&self) -> Kind {
+        self.kind
+    }
+
+    pub fn payload_len(&self) -> u32 {
+        self.payload.len() as u32
+    }
+
+    pub fn payload_bytes(&self) -> Vec<u8> {
+        self.payload.clone()
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes = Vec::<u8>::new();
+
+        bytes.extend([self.kind().bytecode()]);
+        bytes.extend(self.payload_len().to_be_bytes());
+        bytes.extend(self.payload_bytes());
+
+        bytes
+    }
 }
 
 pub async fn open_port() -> bool {
@@ -69,6 +126,34 @@ pub async fn connect_nns(
     };
 
     connect(&ip_address).await
+}
+pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Package> {
+    let start = Instant::now();
+
+    // Read package kind.
+    let mut package_kind_buffer = [0x00u8; 1];
+    let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+    read(socket, &mut package_kind_buffer, remaining_time)
+        .await
+        .ok()?;
+    let package_kind = Kind::from_bytecode(package_kind_buffer[0])?;
+
+    // Read payload length.
+    let mut payload_length_buffer = [0x00u8; 4];
+    let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+    read(socket, &mut payload_length_buffer, remaining_time)
+        .await
+        .ok()?;
+    let payload_length = u32::from_be_bytes(payload_length_buffer);
+
+    // Read payload.
+    let mut payload_buffer = vec![0; payload_length as usize];
+    let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+    read(socket, &mut payload_buffer, remaining_time)
+        .await
+        .ok()?;
+
+    Some(Package::new(package_kind, &payload_buffer))
 }
 
 pub async fn read(
@@ -131,61 +216,45 @@ pub async fn write(
     }
 }
 
-fn clear_buffer(stream: &mut TcpStream) {
-    let mut buffer = [0x00; 1];
-
-    loop {
-        match stream.try_read(&mut buffer) {
-            Ok(len) => match len {
-                0 => break,
-                _ => continue,
-            },
-            _ => break,
-        }
-    }
-}
-
 pub async fn request(
     socket: &mut tokio::net::TcpStream,
-    requestcode: [u8; 4],
-    payload: &[u8],
+    package: Package,
     timeout: Option<Duration>,
-) -> Result<(Vec<u8>, Duration), TCPError> {
-    // Clear the tcp read buffer.
-    clear_buffer(socket);
-
-    // Build the request buffer.
-    let mut request_buffer = Vec::with_capacity(4 + 4 + payload.len());
-    request_buffer.extend_from_slice(&requestcode); // Add requestcode; 4 bytes.
-    request_buffer.extend_from_slice(&(payload.len() as u32).to_be_bytes()); // Add payload length; 4 bytes.
-    request_buffer.extend_from_slice(payload); // Add payload; variable-length size bytes.
-
+) -> Result<(Package, Duration), TCPError> {
     // Start tracking elapsed time.
     let start = Instant::now();
-    let timeout_duration = timeout.unwrap_or(Duration::from_millis(2000)); // Default timeout: 2000 ms
+    let timeout_duration = timeout.unwrap_or(Duration::from_millis(3000)); // Default timeout: 3000 ms
 
     // Write the request buffer with timeout.
-    write(socket, &request_buffer, Some(timeout_duration)).await?;
-
-    let mut length_buffer = [0; 4];
+    write(socket, &package.serialize(), Some(timeout_duration)).await?;
 
     let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
 
-    // Read the response length; 4 bytes.
-    read(socket, &mut length_buffer, Some(remaining_time)).await?;
-
-    let mut response_buffer = vec![0; u32::from_be_bytes(length_buffer) as usize];
-
-    let remaining_time = timeout_duration
+    // Read response package.
+    tokio::select! {
+        result = async {
+            loop {
+                let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
 
-    // Read the response; variable-length bytes.
-    read(socket, &mut response_buffer, Some(remaining_time)).await?;
+                let response_package = match pop(socket, Some(remaining_time)).await {
+                    Some(package) => package,
+                    None => return Err(TCPError::Timeout),
+                };
 
-    Ok((response_buffer, start.elapsed()))
+                if response_package.kind() == package.kind() {
+                    return Ok((response_package, start.elapsed()));
+                }
+            }
+        } => result, // Pass the loop's result directly
+        _ = sleep(remaining_time) => {
+            // Timeout branch must return the same type
+            Err(TCPError::Timeout)
+        }
+    }
 }
 
 pub async fn connectivity() -> bool {
