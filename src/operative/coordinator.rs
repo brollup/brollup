@@ -99,8 +99,6 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         });
     }
 
-    println!("{}", "Running coordinator.".green());
-
     // CLI
     println!(
         "{}",
@@ -138,7 +136,12 @@ async fn handle_operators_command(operator_list: &PeerList) {
 
     for (index, peer) in _operator_list.iter().enumerate() {
         let _peer = peer.lock().await;
-        println!("Operator #{}: {}", index, _peer.addr());
+        println!(
+            "Operator #{} ({}): {}",
+            index,
+            hex::encode(_peer.nns_key()),
+            _peer.addr()
+        );
     }
 }
 

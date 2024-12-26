@@ -94,14 +94,16 @@ async fn handle_conn_command(coordinator: &Peer) {
 }
 
 async fn handle_ping_command(coordinator_conn: &Peer) {
-    let _coordinator_conn = coordinator_conn.lock().await;
-    match _coordinator_conn.socket() {
-        Some(socket) => match tcp_request::ping(&socket).await {
-            Ok(_) => println!("Ponged."),
-            Err(_) => println!("Error pinging."),
-        },
-        None => {
-            println!("Connection dead.");
+    let coordinator_socket = {
+        let _coordinator_conn = coordinator_conn.lock().await;
+        match _coordinator_conn.socket() {
+            Some(socket) => socket,
+            None => return println!("Connection dead."),
         }
-    }
+    };
+
+    match tcp_request::ping(&coordinator_socket).await {
+        Ok(duration) => println!("{} ms", duration.as_millis()),
+        Err(_) => println!("Error pinging."),
+    };
 }

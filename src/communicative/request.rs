@@ -41,22 +41,23 @@ pub enum RequestError {
 
 /// Pings a peer.
 ///
-pub async fn ping(socket: &TCPSocket) -> Result<(), RequestError> {
+pub async fn ping(socket: &TCPSocket) -> Result<Duration, RequestError> {
     let requestcode = RequestKind::Ping.to_requestcode();
     let request_payload = [0x00];
 
     let mut _socket = socket.lock().await;
 
-    let timeout = Duration::from_millis(3000);
+    let timeout = Duration::from_millis(10_000);
 
-    let response = tcp::request(&mut *_socket, requestcode, &request_payload, Some(timeout))
-        .await
-        .map_err(|err| RequestError::TCPErr(err))?;
+    let (response, duration) =
+        tcp::request(&mut *_socket, requestcode, &request_payload, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
 
     let pong = RequestKind::Ping.to_requestcode();
 
     if &response == &pong {
-        return Ok(());
+        return Ok(duration);
     } else {
         return Err(RequestError::InvalidResponse);
     }

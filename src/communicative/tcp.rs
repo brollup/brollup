@@ -131,12 +131,29 @@ pub async fn write(
     }
 }
 
+fn clear_buffer(stream: &mut TcpStream) {
+    let mut buffer = [0x00; 1];
+
+    loop {
+        match stream.try_read(&mut buffer) {
+            Ok(len) => match len {
+                0 => break,
+                _ => continue,
+            },
+            _ => break,
+        }
+    }
+}
+
 pub async fn request(
     socket: &mut tokio::net::TcpStream,
     requestcode: [u8; 4],
     payload: &[u8],
     timeout: Option<Duration>,
-) -> Result<Vec<u8>, TCPError> {
+) -> Result<(Vec<u8>, Duration), TCPError> {
+    // Clear the tcp read buffer.
+    clear_buffer(socket);
+
     // Build the request buffer.
     let mut request_buffer = Vec::with_capacity(4 + 4 + payload.len());
     request_buffer.extend_from_slice(&requestcode); // Add requestcode; 4 bytes.
@@ -168,7 +185,7 @@ pub async fn request(
     // Read the response; variable-length bytes.
     read(socket, &mut response_buffer, Some(remaining_time)).await?;
 
-    Ok(response_buffer)
+    Ok((response_buffer, start.elapsed()))
 }
 
 pub async fn connectivity() -> bool {

@@ -2,8 +2,8 @@ use crate::key::ToNostrKeyStr;
 use crate::tcp_request::RequestKind;
 use crate::{baked, nns_query, tcp, OperatingMode};
 use colored::Colorize;
-use std::time::Instant;
 use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::time::Instant;
 use tokio::{io::AsyncWriteExt, net::TcpListener, sync::Mutex};
 
 type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
@@ -150,7 +150,7 @@ async fn handle_socket(
         }
 
         // For each iteration add a small delay after handling the socket.
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
     // Remove the client from the list upon disconnection.
