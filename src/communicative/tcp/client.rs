@@ -108,54 +108,6 @@ impl Peer {
 }
 
 #[async_trait]
-pub trait Request {
-    async fn ping(&self) -> Result<Duration, RequestError>;
-}
-
-#[derive(Copy, Clone)]
-pub enum RequestError {
-    TCPErr(TCPError),
-    InvalidResponse,
-}
-
-#[async_trait]
-impl Request for Arc<Mutex<Peer>> {
-    async fn ping(&self) -> Result<Duration, RequestError> {
-        let request_kind = tcp::Kind::Ping;
-
-        // Ping payload: 0x00. Pong payload: 0x01.
-        let request_payload = [0x00];
-
-        let request_package = tcp::Package::new(request_kind, &request_payload);
-
-        let socket_ = {
-            let _peer = self.lock().await;
-            match _peer.socket() {
-                Some(socket) => socket,
-                None => return Err(RequestError::TCPErr(TCPError::ConnErr)),
-            }
-        };
-        let mut socket = socket_.lock().await;
-
-        let timeout = Duration::from_millis(10_000);
-
-        let (response_package, duration) =
-            tcp::request(&mut *socket, request_package, Some(timeout))
-                .await
-                .map_err(|err| RequestError::TCPErr(err))?;
-
-        // Ping payload: 0x00. Pong payload: 0x01.
-        let pong = [0x01];
-
-        if &response_package.payload_bytes() == &pong {
-            return Ok(duration);
-        } else {
-            return Err(RequestError::InvalidResponse);
-        }
-    }
-}
-
-#[async_trait]
 pub trait Connection {
     async fn disconnection(&self);
     async fn reconnect(&self);
@@ -258,5 +210,53 @@ impl Connection for Arc<Mutex<Peer>> {
                 );
             }
         });
+    }
+}
+
+#[async_trait]
+pub trait Request {
+    async fn ping(&self) -> Result<Duration, RequestError>;
+}
+
+#[derive(Copy, Clone)]
+pub enum RequestError {
+    TCPErr(TCPError),
+    InvalidResponse,
+}
+
+#[async_trait]
+impl Request for Arc<Mutex<Peer>> {
+    async fn ping(&self) -> Result<Duration, RequestError> {
+        let request_kind = tcp::Kind::Ping;
+
+        // Ping payload: 0x00. Pong payload: 0x01.
+        let request_payload = [0x00];
+
+        let request_package = tcp::Package::new(request_kind, &request_payload);
+
+        let socket_ = {
+            let _peer = self.lock().await;
+            match _peer.socket() {
+                Some(socket) => socket,
+                None => return Err(RequestError::TCPErr(TCPError::ConnErr)),
+            }
+        };
+        let mut socket = socket_.lock().await;
+
+        let timeout = Duration::from_millis(10_000);
+
+        let (response_package, duration) =
+            tcp::request(&mut *socket, request_package, Some(timeout))
+                .await
+                .map_err(|err| RequestError::TCPErr(err))?;
+
+        // Ping payload: 0x00. Pong payload: 0x01.
+        let pong = [0x01];
+
+        if &response_package.payload_bytes() == &pong {
+            return Ok(duration);
+        } else {
+            return Err(RequestError::InvalidResponse);
+        }
     }
 }
