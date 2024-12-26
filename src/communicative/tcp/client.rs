@@ -237,19 +237,19 @@ impl Request for Arc<Mutex<Peer>> {
 
         let request_package = tcp::Package::new(request_kind, timestamp, &request_payload);
 
-        let socket_ = {
+        let socket = {
             let _peer = self.lock().await;
             match _peer.socket() {
                 Some(socket) => socket,
                 None => return Err(RequestError::TCPErr(TCPError::ConnErr)),
             }
         };
-        let mut socket = socket_.lock().await;
+        let mut _socket = socket.lock().await;
 
         let timeout = Duration::from_millis(10_000);
 
         let (response_package, duration) =
-            tcp::request(&mut *socket, request_package, Some(timeout))
+            tcp::request(&mut *_socket, request_package, Some(timeout))
                 .await
                 .map_err(|err| RequestError::TCPErr(err))?;
 
