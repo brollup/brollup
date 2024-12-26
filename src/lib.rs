@@ -30,16 +30,13 @@ pub mod nns_query;
 #[path = "communicative/nns/relay.rs"]
 pub mod nns_relay;
 
-#[path = "communicative/tcp.rs"]
+#[path = "communicative/tcp/tcp.rs"]
 pub mod tcp;
 
-#[path = "communicative/request.rs"]
-pub mod tcp_request;
-
-#[path = "communicative/server.rs"]
+#[path = "communicative/tcp/server.rs"]
 pub mod tcp_server;
 
-#[path = "communicative/client.rs"]
+#[path = "communicative/tcp/client.rs"]
 pub mod tcp_client;
 
 #[derive(Debug, Copy, Clone, PartialEq)]

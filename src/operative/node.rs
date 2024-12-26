@@ -1,6 +1,7 @@
 use crate::tcp_client;
+use crate::tcp_client::Request;
 use crate::Network;
-use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp_request, OperatingMode};
+use crate::{baked, key::KeyHolder, nns_relay::Relay, OperatingMode};
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
 use std::{sync::Arc, time::Duration};
@@ -93,17 +94,9 @@ async fn handle_conn_command(coordinator: &Peer) {
     }
 }
 
-async fn handle_ping_command(coordinator_conn: &Peer) {
-    let coordinator_socket = {
-        let _coordinator_conn = coordinator_conn.lock().await;
-        match _coordinator_conn.socket() {
-            Some(socket) => socket,
-            None => return println!("Connection dead."),
-        }
-    };
-
-    match tcp_request::ping(&coordinator_socket).await {
+async fn handle_ping_command(coordinator: &Peer) {
+    match coordinator.ping().await {
         Ok(duration) => println!("{} ms", duration.as_millis()),
         Err(_) => println!("Error pinging."),
-    };
+    }
 }
