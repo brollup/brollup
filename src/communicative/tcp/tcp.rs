@@ -260,7 +260,7 @@ pub async fn request(
                     None => return Err(TCPError::Timeout),
                 };
 
-                if response_package.kind() == package.kind() {
+                if response_package.kind() == package.kind() && response_package.timestamp == package.timestamp() {
                     return Ok((response_package, start.elapsed()));
                 }
             }

@@ -256,8 +256,7 @@ impl Request for Arc<Mutex<Peer>> {
         // Ping payload: 0x00. Pong payload: 0x01.
         let pong = [0x01];
 
-        if (&response_package.payload_bytes() == &pong) && response_package.timestamp() == timestamp
-        {
+        if &response_package.payload_bytes() == &pong {
             return Ok(duration);
         } else {
             return Err(RequestError::InvalidResponse);
