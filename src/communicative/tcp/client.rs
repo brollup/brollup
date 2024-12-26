@@ -1,5 +1,6 @@
 use crate::tcp::{self, TCPError};
 use async_trait::async_trait;
+use chrono::Utc;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
@@ -232,7 +233,9 @@ impl Request for Arc<Mutex<Peer>> {
         // Ping payload: 0x00. Pong payload: 0x01.
         let request_payload = [0x00];
 
-        let request_package = tcp::Package::new(request_kind, &request_payload);
+        let timestamp = Utc::now().timestamp();
+
+        let request_package = tcp::Package::new(request_kind, timestamp, &request_payload);
 
         let socket_ = {
             let _peer = self.lock().await;
@@ -253,7 +256,8 @@ impl Request for Arc<Mutex<Peer>> {
         // Ping payload: 0x00. Pong payload: 0x01.
         let pong = [0x01];
 
-        if &response_package.payload_bytes() == &pong {
+        if (&response_package.payload_bytes() == &pong) && response_package.timestamp() == timestamp
+        {
             return Ok(duration);
         } else {
             return Err(RequestError::InvalidResponse);

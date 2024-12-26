@@ -44,19 +44,25 @@ impl Kind {
 
 pub struct Package {
     kind: Kind,
+    timestamp: i64,
     payload: Vec<u8>,
 }
 
 impl Package {
-    pub fn new(kind: Kind, payload: &[u8]) -> Package {
+    pub fn new(kind: Kind, timestamp: i64, payload: &[u8]) -> Package {
         Package {
             kind,
+            timestamp,
             payload: payload.to_vec(),
         }
     }
 
     pub fn kind(&self) -> Kind {
         self.kind
+    }
+
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
     }
 
     pub fn payload_len(&self) -> u32 {
@@ -71,6 +77,7 @@ impl Package {
         let mut bytes = Vec::<u8>::new();
 
         bytes.extend([self.kind().bytecode()]);
+        bytes.extend(self.timestamp().to_be_bytes());
         bytes.extend(self.payload_len().to_be_bytes());
         bytes.extend(self.payload_bytes());
 
@@ -138,6 +145,14 @@ pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Pa
         .ok()?;
     let package_kind = Kind::from_bytecode(package_kind_buffer[0])?;
 
+    // Read timestamp.
+    let mut timestamp_buffer = [0x00u8; 8];
+    let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+    read(socket, &mut timestamp_buffer, remaining_time)
+        .await
+        .ok()?;
+    let timestamp = i64::from_be_bytes(timestamp_buffer);
+
     // Read payload length.
     let mut payload_length_buffer = [0x00u8; 4];
     let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
@@ -153,7 +168,7 @@ pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Pa
         .await
         .ok()?;
 
-    Some(Package::new(package_kind, &payload_buffer))
+    Some(Package::new(package_kind, timestamp, &payload_buffer))
 }
 
 pub async fn read(

@@ -107,22 +107,47 @@ async fn handle_socket(
     loop {
         let mut _socket = socket.lock().await;
 
-        // Read requestcode.
-        let mut requestcode = [0; 1];
-        match tcp::read(&mut *_socket, &mut requestcode, Some(IDLE_CLIENT_TIMEOUT)).await {
+        // Read package kind.
+        let mut package_kind_buffer = [0; 1];
+        match tcp::read(
+            &mut *_socket,
+            &mut package_kind_buffer,
+            Some(IDLE_CLIENT_TIMEOUT),
+        )
+        .await
+        {
             Ok(_) => (),
             Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
             Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
             Err(_) => continue,                   // Iterate on read errors.
         }
+        let package_kind = match tcp::Kind::from_bytecode(package_kind_buffer[0]) {
+            Some(kind) => kind,
+            None => continue,
+        };
 
         // Start tracking elapsed time.
         let start = Instant::now();
         let timeout_duration = PAYLOAD_READ_TIMEOUT; // Default timeout: 1500 ms.
 
+        // Read timestamp.
+        let mut timestamp_buffer = [0; 8];
+        match tcp::read(&mut *_socket, &mut timestamp_buffer, Some(timeout_duration)).await {
+            Ok(_) => (),
+            Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+            Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
+            Err(_) => continue,                   // Iterate on read errors.
+        }
+        let timestamp = i64::from_be_bytes(timestamp_buffer);
+
+        let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
+            Some(duration) => duration,
+            None => continue,
+        };
+
         // Read payload length.
-        let mut payload_len = [0; 4];
-        match tcp::read(&mut *_socket, &mut payload_len, Some(timeout_duration)).await {
+        let mut payload_len_buffer = [0; 4];
+        match tcp::read(&mut *_socket, &mut payload_len_buffer, Some(remaining_time)).await {
             Ok(_) => (),
             Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
             Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
@@ -135,19 +160,18 @@ async fn handle_socket(
         };
 
         // Read payload.
-        let mut payload = vec![0; u32::from_be_bytes(payload_len) as usize];
-        match tcp::read(&mut *_socket, &mut payload, Some(remaining_time)).await {
+        let mut payload_bufer = vec![0; u32::from_be_bytes(payload_len_buffer) as usize];
+        match tcp::read(&mut *_socket, &mut payload_bufer, Some(remaining_time)).await {
             Ok(_) => (),
             Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
             Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
             Err(_) => continue,                   // Iterate on read errors.
         }
 
+        let package = tcp::Package::new(package_kind, timestamp, &payload_bufer);
+
         // Process the request kind.
-        match tcp::Kind::from_bytecode(requestcode[0]) {
-            None => continue, // Skip invalid request kinds
-            Some(kind) => handle_request(kind, &mut *_socket, &payload, mode).await,
-        }
+        handle_package(package, &mut *_socket, mode).await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -157,30 +181,27 @@ async fn handle_socket(
     }
 }
 
-async fn handle_request(
-    kind: tcp::Kind,
-    socket: &mut tokio::net::TcpStream,
-    _payload: &[u8],
-    mode: OperatingMode,
-) {
+async fn handle_package(package: Package, socket: &mut tokio::net::TcpStream, mode: OperatingMode) {
     match mode {
-        OperatingMode::Coordinator => match kind {
-            tcp::Kind::Ping => handle_ping(socket, _payload).await,
-            //_ => return,
+        OperatingMode::Coordinator => match package.kind() {
+            tcp::Kind::Ping => {
+                handle_ping(socket, package.timestamp(), &package.payload_bytes()).await
+            } //_ => return,
         },
-        OperatingMode::Operator => match kind {
-            tcp::Kind::Ping => handle_ping(socket, _payload).await,
-            //_ => return,
+        OperatingMode::Operator => match package.kind() {
+            tcp::Kind::Ping => {
+                handle_ping(socket, package.timestamp(), &package.payload_bytes()).await
+            } //_ => return,
         },
         OperatingMode::Node => return,
     }
 }
 
-async fn handle_ping(socket: &mut tokio::net::TcpStream, payload: &[u8]) {
+async fn handle_ping(socket: &mut tokio::net::TcpStream, timestamp: i64, payload: &[u8]) {
     // Ping payload: 0x00. Pong payload: 0x01.
     let pong_payload = [0x01];
 
-    let response_payload = Package::new(tcp::Kind::Ping, &pong_payload).serialize();
+    let response_payload = Package::new(tcp::Kind::Ping, timestamp, &pong_payload).serialize();
 
     // Ping payload: 0x00. Pong payload: 0x01.
     if payload == &[0x00] {
