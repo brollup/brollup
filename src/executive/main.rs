@@ -3,20 +3,31 @@ use std::{env, io::BufRead};
 use brollup::{
     coordinator,
     key::{FromNostrKeyStr, KeyHolder},
-    node, operator, OperatingMode,
+    node, operator, Network,
 };
 use colored::Colorize;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    // Ensure at least 3 arguments: program name, mode.
-    if args.len() < 2 {
-        eprintln!("{}", format!("Usage: {} <mode>", args[0]).red());
+    // Ensure at least 3 arguments: program name, network, mode.
+    if args.len() < 3 {
+        eprintln!("{}", format!("Usage: {} <network> <mode>", args[0]).red());
         return;
     }
 
-    let mode = &args[1];
+    let network = &args[1];
+
+    let network = match network.to_lowercase().as_str() {
+        "signet" => Network::Signet,
+        "mainnet" => Network::Mainnet,
+        _ => {
+            println!("{}", "Invalid <network>.".red());
+            return;
+        }
+    };
+
+    let mode = &args[2];
 
     let mut secret_key = [0xffu8; 32];
 
@@ -38,7 +49,7 @@ fn main() {
         secret_key = match nsec.from_nsec() {
             Some(secret_key) => secret_key,
             None => {
-                eprintln!("{}", "Invalid <nsec>.".red());
+                eprintln!("{}", "Invalid nsec.".red());
                 return;
             }
         };
@@ -49,18 +60,18 @@ fn main() {
     let keys = match KeyHolder::new(secret_key) {
         Some(key_holder) => key_holder,
         None => {
-            eprintln!("{}", "Invalid <nsec>.".red());
+            eprintln!("{}", "Invalid nsec.".red());
             return;
         }
     };
 
-    match mode.as_str() {
-        "node" => node::run(keys, OperatingMode::Node),
-        "operator" => operator::run(keys, OperatingMode::Operator),
-        "coordinator" => coordinator::run(keys, OperatingMode::Coordinator),
+    match mode.to_lowercase().as_str() {
+        "node" => node::run(keys, network),
+        "operator" => operator::run(keys, network),
+        "coordinator" => coordinator::run(keys, network),
         _ => {
-            eprintln!("Error: Unknown mode '{}'", mode);
-            eprintln!("Valid modes are: node, operator, coordinator");
+            println!("{}", "Invalid <mode>.".red());
+            return;
         }
     }
 }

@@ -104,7 +104,7 @@ impl Peer {
                 return format!("{}:{}", connection.1.ip(), connection.1.port());
             }
             None => {
-                return "".to_string();
+                return "Dead.".to_string();
             }
         };
     }
@@ -113,7 +113,7 @@ impl Peer {
 #[async_trait]
 pub trait PeerConnection {
     async fn disconnection(&self);
-    async fn try_reconnect(&self);
+    async fn reconnect(&self);
     async fn set_uptimer(&self);
 }
 
@@ -154,7 +154,7 @@ impl PeerConnection for Arc<Mutex<Peer>> {
         }
     }
 
-    async fn try_reconnect(&self) {
+    async fn reconnect(&self) {
         let (socket_, addr) = {
             loop {
                 let (nns_key, nostr_client) = {
@@ -211,7 +211,7 @@ impl PeerConnection for Arc<Mutex<Peer>> {
                 );
 
                 // Re-connect upon disconnection
-                let _ = peer.try_reconnect().await;
+                let _ = peer.reconnect().await;
                 let (peer_kind_str, peer_addr) = {
                     let _peer = peer.lock().await;
                     (_peer.kind().as_str(), _peer.addr())

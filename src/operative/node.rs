@@ -1,15 +1,18 @@
-use crate::peer::{Peer, PeerKind};
+use crate::tcp_client;
+use crate::Network;
 use crate::{baked, key::KeyHolder, nns_relay::Relay, tcp_request, OperatingMode};
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-type Connection = Arc<Mutex<Peer>>;
+type Peer = Arc<Mutex<tcp_client::Peer>>;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _mode: OperatingMode) {
-    println!("{}", "Initiating client ..");
+pub async fn run(keys: KeyHolder, _network: Network) {
+    let _mode = OperatingMode::Coordinator;
+
+    println!("{}", "Initializing node..");
 
     // 1. Inititate Nostr client.
     let nostr_client = {
@@ -21,10 +24,10 @@ pub async fn run(keys: KeyHolder, _mode: OperatingMode) {
     };
 
     // 2. Connect to the coordinator.
-    let coordinator: Connection = {
+    let coordinator: Peer = {
         loop {
-            match Peer::connect(
-                PeerKind::Coordinator,
+            match tcp_client::Peer::connect(
+                tcp_client::PeerKind::Coordinator,
                 baked::COORDINATOR_WELL_KNOWN,
                 &nostr_client,
             )
@@ -48,7 +51,7 @@ pub async fn run(keys: KeyHolder, _mode: OperatingMode) {
     cli(&coordinator).await;
 }
 
-pub async fn cli(coordinator_conn: &Connection) {
+pub async fn cli(coordinator_conn: &Peer) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -66,7 +69,7 @@ pub async fn cli(coordinator_conn: &Connection) {
             "clear" => handle_clear_command(),
             "conn" => handle_conn_command(coordinator_conn).await,
             "ping" => handle_ping_command(coordinator_conn).await,
-            _ => break,
+            _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
 }
@@ -76,7 +79,7 @@ fn handle_clear_command() {
     std::io::stdout().flush().unwrap();
 }
 
-async fn handle_conn_command(coordinator: &Connection) {
+async fn handle_conn_command(coordinator: &Peer) {
     let _coordinator = coordinator.lock().await;
 
     match _coordinator.connection() {
@@ -90,7 +93,7 @@ async fn handle_conn_command(coordinator: &Connection) {
     }
 }
 
-async fn handle_ping_command(coordinator_conn: &Connection) {
+async fn handle_ping_command(coordinator_conn: &Peer) {
     let _coordinator_conn = coordinator_conn.lock().await;
     match _coordinator_conn.socket() {
         Some(socket) => match tcp_request::ping(&socket).await {

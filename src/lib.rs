@@ -39,20 +39,18 @@ pub mod tcp_request;
 #[path = "communicative/server.rs"]
 pub mod tcp_server;
 
-#[path = "communicative/peer.rs"]
-pub mod peer;
+#[path = "communicative/client.rs"]
+pub mod tcp_client;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Network {
+    Signet,
+    Mainnet,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum OperatingMode {
     Coordinator,
     Operator,
-    Node,
-}
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum PeerKind {
-    Coordinator,
-    Operator,
-    Indexer,
     Node,
 }
