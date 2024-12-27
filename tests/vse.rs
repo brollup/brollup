@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod vse_tests {
-
     use brollup::noist_vse::{Directory, KeyMap};
 
     #[test]
@@ -85,7 +84,33 @@ mod vse_tests {
             return Err("Directory is not yet complete.".to_string());
         }
 
-        assert!(directory.validate());
+        if !directory.validate() {
+            return Err("Directory is not valid.".to_string());
+        }
+
+        let signer_1_2_vse_key_ = directory
+            .vse_key(signer_1, signer_2)
+            .ok_or("No signer_1_2_vse_key_ returned.".to_string())?;
+
+        if signer_1_2_vse_key_ != signer_1_2_vse_key {
+            return Err("Invalid signer_1_2_vse_key_.".to_string());
+        }
+
+        let signer_1_3_vse_key_ = directory
+            .vse_key(signer_1, signer_3)
+            .ok_or("No signer_1_3_vse_key_ returned.".to_string())?;
+
+        if signer_1_3_vse_key_ != signer_1_3_vse_key {
+            return Err("Invalid signer_1_3_vse_key_.".to_string());
+        }
+
+        let signer_2_3_vse_key_ = directory
+            .vse_key(signer_2, signer_3)
+            .ok_or("No signer_2_3_vse_key_ returned.".to_string())?;
+
+        if signer_2_3_vse_key_ != signer_2_3_vse_key {
+            return Err("Invalid signer_2_3_vse_key_.".to_string());
+        }
 
         Ok(())
     }
