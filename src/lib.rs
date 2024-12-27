@@ -1,6 +1,7 @@
 pub mod baked;
 
 // Crypto modules.
+
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 
