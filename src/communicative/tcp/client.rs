@@ -228,22 +228,23 @@ pub enum RequestError {
 #[async_trait]
 impl Request for Arc<Mutex<Peer>> {
     async fn ping(&self) -> Result<Duration, RequestError> {
-        let request_kind = tcp::Kind::Ping;
-
-        // Ping payload: 0x00. Pong payload: 0x01.
-        let request_payload = [0x00];
-
+        // Current timestamp.
         let timestamp = Utc::now().timestamp();
 
-        let request_package = tcp::Package::new(request_kind, timestamp, &request_payload);
-
-        let socket = {
-            let _peer = self.lock().await;
-            match _peer.socket() {
-                Some(socket) => socket,
-                None => return Err(RequestError::TCPErr(TCPError::ConnErr)),
-            }
+        // Build request package.
+        let request_package = {
+            let request_kind = tcp::Kind::Ping;
+            let ping_payload = [0x00]; // 0x00 for ping.
+            tcp::Package::new(request_kind, timestamp, &ping_payload)
         };
+
+        let socket: TCPSocket = {
+            let _peer = self.lock().await;
+            _peer
+                .socket()
+                .ok_or(RequestError::TCPErr(TCPError::ConnErr))?
+        };
+
         let mut _socket = socket.lock().await;
 
         let timeout = Duration::from_millis(10_000);
