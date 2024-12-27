@@ -41,8 +41,8 @@ impl KeyMap {
         full_list
     }
 
-    pub fn is_complete(&self, expected_signer_list_: Vec<SignerKey>) -> bool {
-        let mut expected_signer_list = expected_signer_list_;
+    pub fn is_complete(&self, expected_signer_list_: &Vec<SignerKey>) -> bool {
+        let mut expected_signer_list = expected_signer_list_.clone();
         expected_signer_list.sort();
 
         let self_signer_list = self.full_signer_list();
@@ -70,9 +70,9 @@ pub struct Directory {
 }
 
 impl Directory {
-    pub fn new(signers: Vec<SignerKey>) -> Directory {
+    pub fn new(signers: &Vec<SignerKey>) -> Directory {
         Directory {
-            signers,
+            signers: signers.clone(),
             vse_keys: Vec::<KeyMap>::new(),
         }
     }
@@ -83,7 +83,7 @@ impl Directory {
 
     pub fn insert(&mut self, map: KeyMap) -> bool {
         if self.signers.contains(&map.signer_key()) {
-            if map.is_complete(self.signers()) {
+            if map.is_complete(&self.signers()) {
                 if !self.vse_keys.contains(&map) {
                     self.vse_keys.push(map);
                     return true;
@@ -109,7 +109,7 @@ impl Directory {
         }
 
         for map in self.vse_keys.iter() {
-            if !map.is_complete(self.signers()) {
+            if !map.is_complete(&self.signers()) {
                 return false;
             }
         }

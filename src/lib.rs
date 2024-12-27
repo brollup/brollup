@@ -11,7 +11,7 @@ pub mod key;
 pub mod schnorr;
 
 #[path = "transmutive/noist/vse.rs"]
-pub mod vse;
+pub mod noist_vse;
 
 // Operating modes.
 #[path = "operative/node.rs"]
