@@ -3,10 +3,13 @@ use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
 
 pub fn encrypting_key_secret(self_secret: Scalar, to_public: Point) -> Scalar {
-    let secret_point = self_secret * to_public;
-    let secret_point_xbytes = secret_point.serialize_uncompressed();
-    let secret_point_hash = (&secret_point_xbytes).hash();
-    let shared_secret = Scalar::reduce_from(&secret_point_hash);
+    let shared_secret_point = self_secret * to_public;
+    let shared_secret_point_xbytes = shared_secret_point.serialize_uncompressed();
+    let shared_secret_point_hash = (&shared_secret_point_xbytes).hash();
+    let shared_secret = match MaybeScalar::reduce_from(&shared_secret_point_hash) {
+        MaybeScalar::Valid(scalar) => scalar,
+        MaybeScalar::Zero => Scalar::reduce_from(&shared_secret_point_hash),
+    };
     shared_secret
 }
 
