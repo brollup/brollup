@@ -25,18 +25,20 @@ pub enum TCPError {
 #[derive(Copy, Clone, PartialEq)]
 pub enum Kind {
     Ping,
+    RetrieveVSEKeymap,
 }
 
 impl Kind {
     pub fn bytecode(&self) -> u8 {
         match self {
             Kind::Ping => 0x00,
+            Kind::RetrieveVSEKeymap => 0x01,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
         match bytecode {
             0x00 => Some(Kind::Ping),
-
+            0x01 => Some(Kind::RetrieveVSEKeymap),
             _ => None,
         }
     }

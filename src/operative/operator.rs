@@ -66,7 +66,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     let client_list_ = Arc::clone(&client_list);
     let nostr_client_ = Arc::clone(&nostr_client);
     let _ = tokio::spawn(async move {
-        let _ = tcp_server::run(&client_list_, mode, &nostr_client_).await;
+        let _ = tcp_server::run(&client_list_, mode, &nostr_client_, &keys).await;
     });
 
     // CLI

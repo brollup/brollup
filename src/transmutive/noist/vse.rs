@@ -1,5 +1,6 @@
 use crate::hash::Hash;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub fn encrypting_key_secret(self_secret: Scalar, to_public: Point) -> Scalar {
@@ -45,7 +46,7 @@ pub fn verify(
         }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct KeyMap {
     signer: [u8; 32],
     map: HashMap<[u8; 32], [u8; 32]>,

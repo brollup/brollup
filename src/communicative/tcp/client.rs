@@ -1,4 +1,8 @@
-use crate::tcp::{self, TCPError};
+use crate::list::ListCodec;
+use crate::{
+    noist_vse,
+    tcp::{self, TCPError},
+};
 use async_trait::async_trait;
 use chrono::Utc;
 use colored::Colorize;
@@ -217,6 +221,10 @@ impl Connection for Arc<Mutex<Peer>> {
 #[async_trait]
 pub trait Request {
     async fn ping(&self) -> Result<Duration, RequestError>;
+    async fn retrieve_vse_keymap(
+        &self,
+        signer_list: Vec<[u8; 32]>,
+    ) -> Result<noist_vse::KeyMap, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -262,5 +270,43 @@ impl Request for Arc<Mutex<Peer>> {
         } else {
             return Err(RequestError::InvalidResponse);
         }
+    }
+
+    async fn retrieve_vse_keymap(
+        &self,
+        signer_list: Vec<[u8; 32]>,
+    ) -> Result<noist_vse::KeyMap, RequestError> {
+        // Current timestamp.
+        let timestamp = Utc::now().timestamp();
+
+        // Build request package.
+        let request_package = {
+            let request_kind = tcp::Kind::Ping;
+            let request_payload = signer_list.encode_list();
+            tcp::Package::new(request_kind, timestamp, &request_payload)
+        };
+
+        let socket: TCPSocket = {
+            let _peer = self.lock().await;
+            _peer
+                .socket()
+                .ok_or(RequestError::TCPErr(TCPError::ConnErr))?
+        };
+
+        let mut _socket = socket.lock().await;
+
+        let timeout = Duration::from_millis(10_000);
+
+        let (response_package, _) = tcp::request(&mut *_socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let keymap: noist_vse::KeyMap =
+            match bincode::deserialize(&response_package.payload_bytes()) {
+                Ok(keymap) => keymap,
+                Err(_) => return Err(RequestError::InvalidResponse),
+            };
+
+        Ok(keymap)
     }
 }

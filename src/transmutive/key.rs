@@ -3,6 +3,7 @@
 use crate::schnorr::Bytes32;
 use bech32::{Bech32, Hrp};
 
+#[derive(Clone, PartialEq)]
 pub struct KeyHolder {
     secret_key: [u8; 32],
     nsec: String,

@@ -1,5 +1,8 @@
 pub mod baked;
 
+#[path = "constructive/list.rs"]
+pub mod list;
+
 // Crypto modules.
 
 #[path = "transmutive/hash.rs"]
