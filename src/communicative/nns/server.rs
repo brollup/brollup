@@ -77,7 +77,7 @@ pub async fn run(nostr_client: &NostrClient, mode: OperatingMode) {
                         }
                         None => {
                             // No IP address change detected.
-                            tokio::time::sleep(Duration::from_secs(60)).await;
+                            tokio::time::sleep(Duration::from_secs(30)).await;
                         }
                     },
                     Err(_) => {

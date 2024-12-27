@@ -10,6 +10,9 @@ pub mod key;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
 
+#[path = "transmutive/noist/vse.rs"]
+pub mod vse;
+
 // Operating modes.
 #[path = "operative/node.rs"]
 pub mod node;
