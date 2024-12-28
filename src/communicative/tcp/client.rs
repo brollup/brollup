@@ -114,6 +114,7 @@ impl Peer {
 
 #[async_trait]
 pub trait Connection {
+    async fn socket(&self) -> Option<TCPSocket>;
     async fn disconnection(&self);
     async fn reconnect(&self);
     async fn set_uptimer(&self);
@@ -121,6 +122,11 @@ pub trait Connection {
 
 #[async_trait]
 impl Connection for Arc<Mutex<Peer>> {
+    async fn socket(&self) -> Option<TCPSocket> {
+        let _self = self.lock().await;
+        _self.socket()
+    }
+
     async fn disconnection(&self) {
         loop {
             loop {
@@ -223,7 +229,7 @@ pub trait Request {
     async fn ping(&self) -> Result<Duration, RequestError>;
     async fn retrieve_vse_keymap(
         &self,
-        signer_list: Vec<[u8; 32]>,
+        signer_list: &Vec<[u8; 32]>,
     ) -> Result<noist_vse::KeyMap, RequestError>;
 }
 
@@ -231,81 +237,76 @@ pub trait Request {
 pub enum RequestError {
     TCPErr(TCPError),
     InvalidResponse,
+    EmptyResponse, // Empty reponses are error.
 }
 
 #[async_trait]
 impl Request for Arc<Mutex<Peer>> {
     async fn ping(&self) -> Result<Duration, RequestError> {
-        // Current timestamp.
-        let timestamp = Utc::now().timestamp();
-
         // Build request package.
         let request_package = {
-            let request_kind = tcp::Kind::Ping;
-            let ping_payload = [0x00]; // 0x00 for ping.
-            tcp::Package::new(request_kind, timestamp, &ping_payload)
+            let kind = tcp::Kind::Ping;
+            let timestamp = Utc::now().timestamp();
+            let payload = [0x00u8];
+            tcp::Package::new(kind, timestamp, &payload)
         };
 
-        let socket: TCPSocket = {
-            let _peer = self.lock().await;
-            _peer
-                .socket()
-                .ok_or(RequestError::TCPErr(TCPError::ConnErr))?
-        };
+        // Return the TCP socket.
+        let socket: TCPSocket = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        let mut _socket = socket.lock().await;
-
+        // Wait for the 'pong' for 10 seconds.
         let timeout = Duration::from_millis(10_000);
 
-        let (response_package, duration) =
-            tcp::request(&mut *_socket, request_package, Some(timeout))
-                .await
-                .map_err(|err| RequestError::TCPErr(err))?;
+        let (response_package, duration) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
 
-        // Ping payload: 0x00. Pong payload: 0x01.
-        let pong = [0x01];
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
 
-        if &response_package.payload_bytes() == &pong {
-            return Ok(duration);
-        } else {
+        // Expected response: 0x01 for pong.
+        if response_payload != [0x01u8] {
             return Err(RequestError::InvalidResponse);
         }
+
+        Ok(duration)
     }
 
     async fn retrieve_vse_keymap(
         &self,
-        signer_list: Vec<[u8; 32]>,
+        signer_list: &Vec<[u8; 32]>,
     ) -> Result<noist_vse::KeyMap, RequestError> {
-        // Current timestamp.
-        let timestamp = Utc::now().timestamp();
-
         // Build request package.
         let request_package = {
-            let request_kind = tcp::Kind::Ping;
-            let request_payload = signer_list.encode_list();
-            tcp::Package::new(request_kind, timestamp, &request_payload)
+            let kind = tcp::Kind::RetrieveVSEKeymap;
+            let timestamp = Utc::now().timestamp();
+            let payload = signer_list.encode_list();
+            tcp::Package::new(kind, timestamp, &payload)
         };
 
-        let socket: TCPSocket = {
-            let _peer = self.lock().await;
-            _peer
-                .socket()
-                .ok_or(RequestError::TCPErr(TCPError::ConnErr))?
-        };
+        let socket: TCPSocket = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        let mut _socket = socket.lock().await;
-
-        let timeout = Duration::from_millis(10_000);
-
-        let (response_package, _) = tcp::request(&mut *_socket, request_package, Some(timeout))
+        let (response_package, _) = tcp::request(&socket, request_package, None)
             .await
             .map_err(|err| RequestError::TCPErr(err))?;
 
-        let keymap: noist_vse::KeyMap =
-            match bincode::deserialize(&response_package.payload_bytes()) {
-                Ok(keymap) => keymap,
-                Err(_) => return Err(RequestError::InvalidResponse),
-            };
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let keymap = match noist_vse::KeyMap::from_slice(&response_payload) {
+            Some(keymap) => keymap,
+            None => return Err(RequestError::InvalidResponse),
+        };
 
         Ok(keymap)
     }

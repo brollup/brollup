@@ -71,7 +71,7 @@ impl Package {
         self.payload.len() as u32
     }
 
-    pub fn payload_bytes(&self) -> Vec<u8> {
+    pub fn payload(&self) -> Vec<u8> {
         self.payload.clone()
     }
 
@@ -81,9 +81,17 @@ impl Package {
         bytes.extend([self.kind().bytecode()]);
         bytes.extend(self.timestamp().to_be_bytes());
         bytes.extend(self.payload_len().to_be_bytes());
-        bytes.extend(self.payload_bytes());
+        bytes.extend(self.payload());
 
         bytes
+    }
+
+    pub async fn deliver(
+        &self,
+        socket: &mut TcpStream,
+        timeout: Option<Duration>,
+    ) -> Result<(), TCPError> {
+        write(socket, &self.serialize(), timeout).await
     }
 }
 
@@ -234,16 +242,19 @@ pub async fn write(
 }
 
 pub async fn request(
-    socket: &mut tokio::net::TcpStream,
+    socket: &TCPSocket,
     package: Package,
     timeout: Option<Duration>,
 ) -> Result<(Package, Duration), TCPError> {
+    // Lock the socket.
+    let mut _socket = socket.lock().await;
+
     // Start tracking elapsed time.
     let start = Instant::now();
-    let timeout_duration = timeout.unwrap_or(Duration::from_millis(3000)); // Default timeout: 3000 ms
+    let timeout_duration = timeout.unwrap_or(Duration::from_millis(3_000)); // Default timeout: 3000 ms
 
     // Write the request buffer with timeout.
-    write(socket, &package.serialize(), Some(timeout_duration)).await?;
+    write(&mut *_socket, &package.serialize(), Some(timeout_duration)).await?;
 
     let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
@@ -257,7 +268,7 @@ pub async fn request(
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
 
-                let response_package = match pop(socket, Some(remaining_time)).await {
+                let response_package = match pop(&mut *_socket, Some(remaining_time)).await {
                     Some(package) => package,
                     None => return Err(TCPError::Timeout),
                 };
