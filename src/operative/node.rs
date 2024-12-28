@@ -11,7 +11,7 @@ type Peer = Arc<Mutex<tcp_client::Peer>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
-    let _mode = OperatingMode::Coordinator;
+    let _mode = OperatingMode::Node;
 
     println!("{}", "Initializing node..");
 

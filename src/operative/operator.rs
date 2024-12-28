@@ -14,7 +14,7 @@ type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
-    let mode = OperatingMode::Coordinator;
+    let mode = OperatingMode::Operator;
 
     if !baked::OPERATOR_SET.contains(&keys.public_key()) {
         eprintln!("{}", "Operator <nsec> does not match.".red());

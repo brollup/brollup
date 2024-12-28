@@ -5,6 +5,9 @@ pub mod list;
 
 // Crypto modules.
 
+#[path = "transmutive/into.rs"]
+pub mod into;
+
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 

@@ -1,6 +1,6 @@
-use crate::tcp_client;
+use crate::tcp_client::{self, Request};
 use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
-use crate::{tcp, Network, OperatingMode};
+use crate::{noist_vse, tcp, Network, OperatingMode};
 use colored::Colorize;
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
@@ -125,9 +125,71 @@ pub async fn cli(client_list: &SocketList, operator_list: &PeerList) {
             "exit" => break,
             "clear" => handle_clear_command(),
             "clients" => handle_clients_command(client_list).await,
+            "vse" => vse_test(operator_list).await,
             "operators" => handle_operators_command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
+    }
+}
+
+async fn vse_test(operator_list: &PeerList) {
+    println!("vse_test");
+
+    let mut connected_operator_key_list = Vec::<[u8; 32]>::new();
+    let connected_operator_list: Vec<Peer> = {
+        let mut list: Vec<Arc<Mutex<tcp_client::Peer>>> = Vec::<Peer>::new();
+        let _operator_list = operator_list.lock().await;
+
+        for (_, peer) in _operator_list.iter().enumerate() {
+            let conn = {
+                let _peer = peer.lock().await;
+                _peer.connection()
+            };
+
+            if let Some(_) = conn {
+                {
+                    let _peer = peer.lock().await;
+                    connected_operator_key_list.push(_peer.nns_key());
+                }
+
+                list.push(Arc::clone(&peer));
+            }
+        }
+        list
+    };
+
+    println!(
+        "connected_operator_key_list len: {}",
+        connected_operator_key_list.len()
+    );
+
+    let mut directory = noist_vse::Directory::new(&connected_operator_key_list);
+
+    for connector_operator in connected_operator_list {
+        let map = match connector_operator
+            .retrieve_vse_keymap(&connected_operator_key_list)
+            .await
+        {
+            Ok(map) => map,
+            Err(_) => continue,
+        };
+
+        if !directory.insert(map.clone()) {
+            println!("directory insertion failed.");
+            return;
+        }
+
+        println!("vse retrieved from: {}", hex::encode(map.signer_key()));
+
+        for xxx in map.map().iter() {
+            println!("signer {} -> {}", hex::encode(xxx.0), hex::encode(xxx.1));
+        }
+    }
+
+    if !directory.validate() {
+        println!("directory validation failed.");
+    } else {
+        println!("directory validation passed.");
     }
 }
 
