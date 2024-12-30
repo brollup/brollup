@@ -1,4 +1,8 @@
-use crate::vse;
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
+use crate::{vse, VSEDirectory};
 
 const VSE_DIRECTORY_PATH: &str = "db/signatory/vse_directory";
 
@@ -15,18 +19,21 @@ impl Database {
         Some(database)
     }
 
-    pub fn vse_directory(&self) -> Option<vse::Directory> {
+    pub fn vse_directory(&self) -> Option<VSEDirectory> {
         match self.vse_directory_conn.get(VSE_DIRECTORY_PATH).ok()? {
             Some(directory) => {
                 let vse_directory: vse::Directory = bincode::deserialize(&directory).ok()?;
-                return Some(vse_directory);
+                return Some(Arc::new(Mutex::new(vse_directory)));
             }
             None => return None,
         }
     }
 
-    pub fn save_vse_directory(&self, vse_directory: &vse::Directory) -> bool {
-        let serialized = vse_directory.serialize();
+    pub async fn save_vse_directory(&self, vse_directory: &VSEDirectory) -> bool {
+        let serialized = {
+            let _vse_directory = vse_directory.lock().await;
+            _vse_directory.serialize()
+        };
         match self
             .vse_directory_conn
             .insert(VSE_DIRECTORY_PATH, serialized)

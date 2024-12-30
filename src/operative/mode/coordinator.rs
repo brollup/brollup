@@ -45,7 +45,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         let _signatory_db = signatory_db.lock().await;
 
         match _signatory_db.vse_directory() {
-            Some(directory) => Some(Arc::new(Mutex::new(directory))),
+            Some(directory) => Some(directory),
             None => None,
         }
     };
@@ -178,15 +178,18 @@ async fn vse(
 
             {
                 let _signatory_db = signatory_db.lock().await;
-                let _directory = directory.lock().await;
-                match _signatory_db.save_vse_directory(&_directory) {
+                match _signatory_db.save_vse_directory(&directory).await {
                     true => println!("Directory saved."),
                     false => return eprintln!("Directory saving failed."),
                 }
-                _directory.print();
             }
 
             *vse_directory = Some(Arc::clone(&directory));
+
+            {
+                let _directory = directory.lock().await;
+                _directory.print();
+            }
         }
     }
 }
