@@ -10,8 +10,6 @@ type Socket = Arc<Mutex<tokio::net::TcpStream>>;
 type Peer = Arc<Mutex<tcp_client::Peer>>;
 type PeerList = Arc<Mutex<Vec<Peer>>>;
 
-pub mod baked;
-
 #[path = "constructive/list.rs"]
 pub mod list;
 
@@ -22,6 +20,9 @@ pub mod vse_setup_protocol;
 // Inscriptive
 #[path = "inscriptive/db.rs"]
 pub mod db;
+
+#[path = "inscriptive/baked.rs"]
+pub mod baked;
 
 // Crypto modules.
 
