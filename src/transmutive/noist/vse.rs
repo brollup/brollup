@@ -1,7 +1,9 @@
 use crate::{
+    db,
     hash::Hash,
     into::{IntoPoint, IntoScalar},
     schnorr::{Bytes32, LiftScalar},
+    SignatoryDB,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -177,14 +179,14 @@ impl KeyMap {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub struct Directory {
+pub struct Setup {
     signers: Vec<[u8; 32]>,
     vse_keys: Vec<KeyMap>,
 }
 
-impl Directory {
-    pub fn new(signers: &Vec<[u8; 32]>) -> Directory {
-        Directory {
+impl Setup {
+    pub fn new(signers: &Vec<[u8; 32]>) -> Setup {
+        Setup {
             signers: signers.clone(),
             vse_keys: Vec::<KeyMap>::new(),
         }
@@ -308,5 +310,62 @@ impl Directory {
                 );
             }
         }
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+pub struct Directory {
+    setups: HashMap<u64, Setup>,
+}
+
+impl Directory {
+    pub async fn new(db: &SignatoryDB) -> Option<Self> {
+        let _db = db.lock().await;
+
+        let directory = match _db.vse_directory_conn().get(db::VSE_DIRECTORY_PATH).ok()? {
+            Some(data) => bincode::deserialize(&data).ok()?,
+            None => Directory {
+                setups: HashMap::<u64, Setup>::new(),
+            },
+        };
+
+        Some(directory)
+    }
+
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        match bincode::deserialize(&bytes) {
+            Ok(directory) => Some(directory),
+            Err(_) => None,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match bincode::serialize(&self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
+    pub async fn insert(&mut self, no: u64, setup: Setup, db: &SignatoryDB) -> bool {
+        match self.setups.insert(no, setup) {
+            Some(_) => return false,
+            None => self.save(db).await,
+        }
+    }
+
+    async fn save(&self, db: &SignatoryDB) -> bool {
+        let _db = db.lock().await;
+
+        match _db
+            .vse_directory_conn()
+            .insert(db::VSE_DIRECTORY_PATH, self.serialize())
+        {
+            Ok(_) => return true,
+            Err(_) => return false,
+        }
+    }
+
+    pub fn setup(&self, no: u64) -> Option<Setup> {
+        Some(self.setups.get(&no)?.clone())
     }
 }

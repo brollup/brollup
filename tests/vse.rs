@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod vse_tests {
-    use brollup::noist_vse::{Directory, KeyMap};
+    use brollup::vse::{KeyMap, Setup};
 
     #[test]
     fn vse_directory() -> Result<(), String> {
@@ -66,7 +66,7 @@ mod vse_tests {
             return Err("signer_3_keymap is not complete.".to_string());
         }
 
-        let mut directory = Directory::new(&signer_list);
+        let mut directory = Setup::new(&signer_list);
 
         if !directory.insert(signer_1_keymap) {
             return Err("Failed to insert signer_1_keymap".to_string());

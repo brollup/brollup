@@ -1,6 +1,6 @@
 use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
 use crate::{
-    signatory_db, tcp, tcp_client, vse_setup_protocol, Network, OperatingMode, Peer, PeerList,
+    db, tcp, tcp_client, vse, vse_setup_protocol, Network, OperatingMode, Peer, PeerList,
     SignatoryDB, SocketList, TCPSocket, VSEDirectory,
 };
 use colored::Colorize;
@@ -24,30 +24,23 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 1. Inititate Nostr client.
     let nostr_client = {
         let nostr_client = nostr_sdk::Client::new(keys.nostr_key_pair());
-        nostr_client.add_default_relay_list().await;
-        nostr_client.connect().await;
-
+        {
+            nostr_client.add_default_relay_list().await;
+            nostr_client.connect().await;
+        }
         Arc::new(Mutex::new(nostr_client))
     };
 
     // 2. Inititate signatory database.
-    let signatory_db: SignatoryDB = {
-        let database = match signatory_db::Database::new() {
-            Some(database) => database,
-            None => return eprintln!("{}", "Error initializing database.".red()),
-        };
-
-        Arc::new(Mutex::new(database))
+    let signatory_db: SignatoryDB = match db::Signatory::new() {
+        Some(database) => Arc::new(Mutex::new(database)),
+        None => return eprintln!("{}", "Error initializing database.".red()),
     };
 
     // 3. VSE Directory.
-    let mut vse_directory: Option<VSEDirectory> = {
-        let _signatory_db = signatory_db.lock().await;
-
-        match _signatory_db.vse_directory() {
-            Some(directory) => Some(directory),
-            None => None,
-        }
+    let vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+        Some(directory) => Arc::new(Mutex::new(directory)),
+        None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
 
     // 3. Open port `6272` for incoming connections.
@@ -121,20 +114,14 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(
-        &client_list,
-        &operator_list,
-        &signatory_db,
-        &mut vse_directory,
-    )
-    .await;
+    cli(&client_list, &operator_list, &signatory_db, &vse_directory).await;
 }
 
 pub async fn cli(
     client_list: &SocketList,
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &mut Option<VSEDirectory>,
+    vse_directory: &VSEDirectory,
 ) {
     let stdin = io::stdin();
     let handle = stdin.lock();
@@ -152,7 +139,7 @@ pub async fn cli(
             "exit" => break,
             "clear" => handle_clear_command(),
             "clients" => handle_clients_command(client_list).await,
-            "vse" => vse(operator_list, signatory_db, vse_directory).await,
+            "vse" => vse(operator_list, signatory_db, vse_directory, parts).await,
             "operators" => handle_operators_command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
@@ -162,34 +149,37 @@ pub async fn cli(
 async fn vse(
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &mut Option<VSEDirectory>,
+    vse_directory: &VSEDirectory,
+    parts: Vec<&str>,
 ) {
-    match vse_directory {
-        Some(directory) => {
-            let _directory = directory.lock().await;
-            _directory.print();
-        }
-        None => {
-            println!("Running VSE protocol..");
-            let directory: VSEDirectory = match vse_setup_protocol::run(operator_list).await {
-                Some(directory) => directory,
-                None => return eprintln!("VSE protocol failed."),
-            };
+    match parts.len() {
+        2 => match parts[1].parse::<u64>() {
+            Ok(no) => {
+                let mut _vse_directory = vse_directory.lock().await;
 
-            {
-                let _signatory_db = signatory_db.lock().await;
-                match _signatory_db.save_vse_directory(&directory).await {
-                    true => println!("Directory saved."),
-                    false => return eprintln!("Directory saving failed."),
+                match _vse_directory.setup(no) {
+                    Some(setup) => {
+                        setup.print();
+                    }
+                    None => {
+                        match vse_setup_protocol::run(operator_list).await {
+                            Some(setup) => {
+                                eprintln!("VSE protocol run with success.");
+                                match _vse_directory.insert(no, setup.clone(), signatory_db).await {
+                                    true => eprintln!("VSE setup saved."),
+                                    false => return eprintln!("Failed to save VSE setup."),
+                                };
+                                setup.print();
+                            }
+                            None => return eprintln!("VSE protocol failed."),
+                        };
+                    }
                 }
             }
-
-            *vse_directory = Some(Arc::clone(&directory));
-
-            {
-                let _directory = directory.lock().await;
-                _directory.print();
-            }
+            Err(_) => eprintln!("Invalid <no>."),
+        },
+        _ => {
+            eprintln!("Invalid command.")
         }
     }
 }

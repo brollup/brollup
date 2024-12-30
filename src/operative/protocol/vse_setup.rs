@@ -1,12 +1,12 @@
 use crate::{
     tcp_client::{self, Request},
-    vse, Peer, PeerList, VSEDirectory,
+    vse, Peer, PeerList,
 };
 use futures::future::join_all;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-pub async fn run(operator_list: &PeerList) -> Option<VSEDirectory> {
+pub async fn run(operator_list: &PeerList) -> Option<vse::Setup> {
     let mut connected_operator_key_list = Vec::<[u8; 32]>::new();
     let connected_operator_list: Vec<Peer> = {
         let mut list: Vec<Arc<Mutex<tcp_client::Peer>>> = Vec::<Peer>::new();
@@ -30,16 +30,16 @@ pub async fn run(operator_list: &PeerList) -> Option<VSEDirectory> {
         list
     };
 
-    let directory: VSEDirectory = {
-        let directory = vse::Directory::new(&connected_operator_key_list);
-        Arc::new(Mutex::new(directory))
+    let setup = {
+        let setup = vse::Setup::new(&connected_operator_key_list);
+        Arc::new(Mutex::new(setup))
     };
 
     let mut tasks = vec![];
 
     for connected_operator in connected_operator_list {
         let connected_operator_key_list = connected_operator_key_list.clone();
-        let directory = Arc::clone(&directory);
+        let setup = Arc::clone(&setup);
 
         tasks.push(tokio::spawn(async move {
             let map = match connected_operator
@@ -50,9 +50,9 @@ pub async fn run(operator_list: &PeerList) -> Option<VSEDirectory> {
                 Err(_) => return,
             };
 
-            let mut _directory = directory.lock().await;
+            let mut _setup = setup.lock().await;
 
-            if !_directory.insert(map.clone()) {
+            if !_setup.insert(map.clone()) {
                 return;
             }
         }));
@@ -60,13 +60,9 @@ pub async fn run(operator_list: &PeerList) -> Option<VSEDirectory> {
 
     join_all(tasks).await;
 
-    let valid = {
-        let _directory = directory.lock().await;
-        _directory.validate()
-    };
-
-    match valid {
-        true => return Some(directory),
-        false => return None,
+    let _setup = setup.lock().await;
+    match _setup.validate() {
+        true => Some((*_setup).clone()),
+        false => None,
     }
 }

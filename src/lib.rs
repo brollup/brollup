@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::Mutex;
 
-type SignatoryDB = Arc<Mutex<signatory_db::Database>>;
+type SignatoryDB = Arc<Mutex<db::Signatory>>;
 
 type VSEDirectory = Arc<Mutex<vse::Directory>>;
 
@@ -22,8 +22,8 @@ pub mod list;
 pub mod vse_setup_protocol;
 
 // Inscriptive
-#[path = "inscriptive/signatory.rs"]
-pub mod signatory_db;
+#[path = "inscriptive/db.rs"]
+pub mod db;
 
 // Crypto modules.
 
