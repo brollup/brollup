@@ -2,26 +2,17 @@ use crate::key::{KeyHolder, ToNostrKeyStr};
 
 use crate::list::ListCodec;
 use crate::tcp::Package;
-use crate::{baked, nns_query, tcp, vse, OperatingMode};
+use crate::{baked, nns_client, tcp, vse, OperatingMode, Socket};
 use colored::Colorize;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 use tokio::{net::TcpListener, sync::Mutex};
-
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type ClientList = Arc<Mutex<HashMap<String, TCPSocket>>>;
-type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 
 pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
 pub const PAYLOAD_READ_TIMEOUT: Duration = Duration::from_millis(3000);
 pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
-pub async fn run(
-    client_list: &ClientList,
-    mode: OperatingMode,
-    nostr_client: &NostrClient,
-    keys: &KeyHolder,
-) {
+pub async fn run(mode: OperatingMode, nns_client: &nns_client::Client, keys: &KeyHolder) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
     let listener = match TcpListener::bind(&addr).await {
@@ -35,27 +26,20 @@ pub async fn run(
 
     match mode {
         OperatingMode::Coordinator => loop {
-            let (socket_, socket_addr) = match listener.accept().await {
+            let (socket_, _) = match listener.accept().await {
                 Ok(conn) => (conn.0, conn.1),
                 Err(_) => continue,
             };
 
             let socket = Arc::new(Mutex::new(socket_));
-            let client_id = format!("{}:{}", socket_addr.ip(), socket_addr.port());
-
-            {
-                let mut _client_list = client_list.lock().await;
-                _client_list.insert(client_id.clone(), Arc::clone(&socket));
-            }
 
             tokio::spawn({
                 let socket = Arc::clone(&socket);
-                let client_list = Arc::clone(client_list);
-                let client_id = client_id.clone();
+
                 let keys = keys.clone();
 
                 async move {
-                    handle_socket(&socket, None, &client_id, &client_list, mode, &keys).await;
+                    handle_socket(&socket, None, mode, &keys).await;
                 }
             });
         },
@@ -66,7 +50,7 @@ pub async fn run(
             };
 
             loop {
-                match nns_query::address(&coordinator_npub, nostr_client).await {
+                match nns_client.query_address(&coordinator_npub).await {
                     Some(ip_address) => 'post_nns: loop {
                         let (socket_, socket_addr) = match listener.accept().await {
                             Ok(conn) => (conn.0, conn.1),
@@ -79,32 +63,17 @@ pub async fn run(
                         }
 
                         let socket = Arc::new(Mutex::new(socket_));
-                        let client_id = format!("{}:{}", socket_addr.ip(), socket_addr.port());
-
-                        {
-                            let mut _client_list = client_list.lock().await;
-                            _client_list.insert(client_id.clone(), Arc::clone(&socket));
-                        }
 
                         let socket_alive = Arc::new(Mutex::new(true));
 
                         tokio::spawn({
                             let socket = Arc::clone(&socket);
                             let socket_alive = Arc::clone(&socket_alive);
-                            let client_list = Arc::clone(client_list);
-                            let client_id = client_id.clone();
+
                             let keys = keys.clone();
 
                             async move {
-                                handle_socket(
-                                    &socket,
-                                    Some(&socket_alive),
-                                    &client_id,
-                                    &client_list,
-                                    mode,
-                                    &keys,
-                                )
-                                .await;
+                                handle_socket(&socket, Some(&socket_alive), mode, &keys).await;
                             }
                         });
 
@@ -132,10 +101,8 @@ pub async fn run(
 }
 
 async fn handle_socket(
-    socket: &TCPSocket,
+    socket: &Socket,
     alive: Option<&Arc<Mutex<bool>>>,
-    client_id: &str,
-    client_list: &ClientList,
     mode: OperatingMode,
     keys: &KeyHolder,
 ) {
@@ -217,9 +184,6 @@ async fn handle_socket(
 
     // Remove the client from the list upon disconnection.
     {
-        let mut _client_list = client_list.lock().await;
-        _client_list.remove(client_id);
-
         if let Some(alive) = alive {
             let mut _alive = alive.lock().await;
             *_alive = false;

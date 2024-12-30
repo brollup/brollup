@@ -1,12 +1,14 @@
+use crate::db;
+use crate::nns_client;
 use crate::tcp;
 use crate::tcp_server;
+use crate::vse;
 use crate::Network;
 use crate::OperatingMode;
-use crate::SocketList;
-use crate::TCPSocket;
-use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server};
+use crate::SignatoryDB;
+use crate::VSEDirectory;
+use crate::{baked, key::KeyHolder, nns_server};
 use colored::Colorize;
-use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -22,62 +24,54 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 
     println!("{}", "Initializing operator..");
 
-    // 1. Inititate Nostr client.
-    let nostr_client = {
-        let nostr_client = nostr_sdk::Client::new(keys.nostr_key_pair());
-        nostr_client.add_default_relay_list().await;
-        nostr_client.connect().await;
+    // 1. Initialize NNS client.
+    let nns_client = nns_client::Client::new(&keys).await;
 
-        Arc::new(Mutex::new(nostr_client))
+    // 2. Initialize signatory database.
+    let signatory_db: SignatoryDB = match db::Signatory::new() {
+        Some(database) => Arc::new(Mutex::new(database)),
+        None => return eprintln!("{}", "Error initializing database.".red()),
     };
 
-    // 2. Open port `6272` for incoming connections.
+    // 3. Initialize VSE Directory.
+    let vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+        Some(directory) => Arc::new(Mutex::new(directory)),
+        None => return eprintln!("{}", "Error initializing VSE directory.".red()),
+    };
+
+    // 4. Open port 6272 for incoming connections.
     match tcp::open_port().await {
-        true => {
-            println!("{}", format!("Opened port '{}'.", baked::PORT).green());
-        }
-        false => {
-            println!(
-                "{}",
-                format!(
-                    "Failed to open port '{}'. Ignore this warning if the port is already open.",
-                    baked::PORT
-                )
-                .yellow()
-            );
-            //return;
-        }
+        true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
+        false => (),
     }
 
-    // 3. Run NNS server.
-    let nostr_client_ = Arc::clone(&nostr_client);
-    let _ = tokio::spawn(async move {
-        let _ = nns_server::run(&nostr_client_, mode).await;
-    });
+    // 5. Run NNS server.
+    {
+        let nns_client = nns_client.clone();
+        let _ = tokio::spawn(async move {
+            let _ = nns_server::run(&nns_client, mode).await;
+        });
+    }
 
-    let client_list: SocketList = {
-        let client_list: HashMap<String, TCPSocket> = HashMap::new();
+    // 6. Run TCP server.
+    {
+        let nns_client = nns_client.clone();
 
-        Arc::new(Mutex::new(client_list))
-    };
+        let _ = tokio::spawn(async move {
+            let _ = tcp_server::run(mode, &nns_client, &keys).await;
+        });
+    }
 
-    // 4. Run TCP server.
-    let client_list_ = Arc::clone(&client_list);
-    let nostr_client_ = Arc::clone(&nostr_client);
-    let _ = tokio::spawn(async move {
-        let _ = tcp_server::run(&client_list_, mode, &nostr_client_, &keys).await;
-    });
+    // 8. CLI
+    cli(&vse_directory).await;
+}
 
-    // CLI
+pub async fn cli(vse_directory: &VSEDirectory) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(&client_list).await;
-}
-
-pub async fn cli(client_list: &SocketList) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -93,17 +87,30 @@ pub async fn cli(client_list: &SocketList) {
             // Main commands:
             "exit" => break,
             "clear" => handle_clear_command(),
-            "clients" => handle_clients_command(client_list).await,
+            "vse" => handle_vse_command(vse_directory, parts).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
 }
 
-async fn handle_clients_command(client_list: &SocketList) {
-    let _client_list = client_list.lock().await;
+async fn handle_vse_command(vse_directory: &VSEDirectory, parts: Vec<&str>) {
+    match parts.len() {
+        2 => match parts[1].parse::<u64>() {
+            Ok(no) => {
+                let mut _vse_directory = vse_directory.lock().await;
 
-    for (index, (client_id, _)) in _client_list.iter().enumerate() {
-        println!("Client #{}: {}", index, client_id);
+                match _vse_directory.setup(no) {
+                    Some(setup) => {
+                        setup.print();
+                    }
+                    None => eprintln!("VSE directory not available."),
+                }
+            }
+            Err(_) => eprintln!("Invalid <no>."),
+        },
+        _ => {
+            eprintln!("Invalid command.")
+        }
     }
 }
 

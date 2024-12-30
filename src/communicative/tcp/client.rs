@@ -1,4 +1,5 @@
 use crate::list::ListCodec;
+use crate::{nns_client, Socket};
 use crate::{
     tcp::{self, TCPError},
     vse,
@@ -8,9 +9,6 @@ use chrono::Utc;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
-
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum PeerKind {
@@ -33,18 +31,18 @@ impl PeerKind {
 pub struct Peer {
     kind: PeerKind,
     nns_key: [u8; 32],
-    nostr_client: NostrClient,
-    connection: Option<(TCPSocket, SocketAddr)>,
+    nns_client: nns_client::Client,
+    connection: Option<(Socket, SocketAddr)>,
 }
 
 impl Peer {
     pub async fn connect(
         kind: PeerKind,
         nns_key: [u8; 32],
-        nostr_client: &NostrClient,
+        nns_client: &nns_client::Client,
     ) -> Result<Arc<Mutex<Self>>, TCPError> {
         let (socket_, addr) = {
-            match tcp::connect_nns(nns_key, &nostr_client).await {
+            match tcp::connect_nns(nns_key, &nns_client).await {
                 Ok(socket) => {
                     let addr = match socket.peer_addr() {
                         Ok(addr) => addr,
@@ -57,7 +55,7 @@ impl Peer {
             }
         };
 
-        let socket: TCPSocket = Arc::new(Mutex::new(socket_));
+        let socket: Socket = Arc::new(Mutex::new(socket_));
 
         let connection = Some((socket, addr));
 
@@ -65,7 +63,7 @@ impl Peer {
             kind,
             nns_key,
             connection,
-            nostr_client: Arc::clone(nostr_client),
+            nns_client: nns_client.clone(),
         };
 
         let peer = Arc::new(Mutex::new(peer_));
@@ -83,20 +81,20 @@ impl Peer {
         self.nns_key
     }
 
-    pub fn nostr_client(&self) -> NostrClient {
-        Arc::clone(&self.nostr_client)
+    pub fn nns_client(&self) -> nns_client::Client {
+        self.nns_client.clone()
     }
 
-    pub fn connection(&self) -> Option<(TCPSocket, SocketAddr)> {
+    pub fn connection(&self) -> Option<(Socket, SocketAddr)> {
         self.connection.clone()
     }
 
-    pub fn socket(&self) -> Option<TCPSocket> {
+    pub fn socket(&self) -> Option<Socket> {
         let socket = Arc::clone(&self.connection()?.0);
         Some(socket)
     }
 
-    pub fn set_connection(&mut self, connection: Option<(TCPSocket, SocketAddr)>) {
+    pub fn set_connection(&mut self, connection: Option<(Socket, SocketAddr)>) {
         self.connection = connection;
     }
 
@@ -114,7 +112,7 @@ impl Peer {
 
 #[async_trait]
 pub trait Connection {
-    async fn socket(&self) -> Option<TCPSocket>;
+    async fn socket(&self) -> Option<Socket>;
     async fn disconnection(&self);
     async fn reconnect(&self);
     async fn set_uptimer(&self);
@@ -122,7 +120,7 @@ pub trait Connection {
 
 #[async_trait]
 impl Connection for Arc<Mutex<Peer>> {
-    async fn socket(&self) -> Option<TCPSocket> {
+    async fn socket(&self) -> Option<Socket> {
         let _self = self.lock().await;
         _self.socket()
     }
@@ -156,12 +154,12 @@ impl Connection for Arc<Mutex<Peer>> {
     async fn reconnect(&self) {
         let (socket_, addr) = {
             loop {
-                let (nns_key, nostr_client) = {
+                let (nns_key, nns_client) = {
                     let _peer = self.lock().await;
-                    (_peer.nns_key(), _peer.nostr_client())
+                    (_peer.nns_key(), _peer.nns_client())
                 };
 
-                match tcp::connect_nns(nns_key, &nostr_client).await {
+                match tcp::connect_nns(nns_key, &nns_client).await {
                     Ok(socket) => {
                         let addr = match socket.peer_addr() {
                             Ok(addr) => addr,
@@ -181,7 +179,7 @@ impl Connection for Arc<Mutex<Peer>> {
             }
         };
 
-        let socket: TCPSocket = Arc::new(Mutex::new(socket_));
+        let socket: Socket = Arc::new(Mutex::new(socket_));
 
         {
             let mut _peer = self.lock().await;
@@ -252,7 +250,7 @@ impl Request for Arc<Mutex<Peer>> {
         };
 
         // Return the TCP socket.
-        let socket: TCPSocket = self
+        let socket: Socket = self
             .socket()
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
@@ -289,7 +287,7 @@ impl Request for Arc<Mutex<Peer>> {
             tcp::Package::new(kind, timestamp, &payload)
         };
 
-        let socket: TCPSocket = self
+        let socket: Socket = self
             .socket()
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;

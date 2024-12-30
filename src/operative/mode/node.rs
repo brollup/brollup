@@ -1,11 +1,10 @@
 use crate::tcp_client::Request;
-use crate::Network;
-use crate::{baked, key::KeyHolder, nns_relay::Relay, OperatingMode};
+use crate::{baked, key::KeyHolder, OperatingMode};
+use crate::{nns_client, Network};
 use crate::{tcp_client, Peer};
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
-use std::{sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use std::time::Duration;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
@@ -13,14 +12,8 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 
     println!("{}", "Initializing node..");
 
-    // 1. Inititate Nostr client.
-    let nostr_client = {
-        let nostr_client = nostr_sdk::Client::new(keys.nostr_key_pair());
-        nostr_client.add_default_relay_list().await;
-        nostr_client.connect().await;
-
-        Arc::new(Mutex::new(nostr_client))
-    };
+    // 1. Initialize NNS client.
+    let nns_client = nns_client::Client::new(&keys).await;
 
     // 2. Connect to the coordinator.
     let coordinator: Peer = {
@@ -28,7 +21,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
             match tcp_client::Peer::connect(
                 tcp_client::PeerKind::Coordinator,
                 baked::COORDINATOR_WELL_KNOWN,
-                &nostr_client,
+                &nns_client,
             )
             .await
             {
@@ -42,15 +35,16 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         }
     };
 
+    // 3. CLI
+    cli(&coordinator).await;
+}
+
+pub async fn cli(coordinator_conn: &Peer) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(&coordinator).await;
-}
-
-pub async fn cli(coordinator_conn: &Peer) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 

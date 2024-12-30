@@ -1,18 +1,13 @@
 #![allow(dead_code)]
 
 use crate::key::ToNostrKeyStr;
-use crate::{baked, nns_query};
+use crate::{baked, nns_client, Socket};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::sync::Mutex;
 use tokio::time::sleep;
-
-type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
 
 #[derive(Debug, Copy, Clone)]
 pub enum TCPError {
@@ -130,14 +125,14 @@ pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
 
 pub async fn connect_nns(
     nns_key: [u8; 32],
-    nostr_client: &NostrClient,
+    nns_client: &nns_client::Client,
 ) -> Result<TcpStream, TCPError> {
     let npub = match nns_key.to_npub() {
         Some(npub) => npub,
         None => return Err(TCPError::ConnErr),
     };
 
-    let ip_address = match nns_query::address(&npub, nostr_client).await {
+    let ip_address = match nns_client.query_address(&npub).await {
         Some(ip_address) => ip_address,
         None => return Err(TCPError::ConnErr),
     };
@@ -242,7 +237,7 @@ pub async fn write(
 }
 
 pub async fn request(
-    socket: &TCPSocket,
+    socket: &Socket,
     package: Package,
     timeout: Option<Duration>,
 ) -> Result<(Package, Duration), TCPError> {

@@ -1,10 +1,9 @@
-use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
+use crate::{baked, key::KeyHolder, tcp_server};
 use crate::{
-    db, tcp, tcp_client, vse, vse_setup_protocol, Network, OperatingMode, Peer, PeerList,
-    SignatoryDB, SocketList, TCPSocket, VSEDirectory,
+    db, nns_client, tcp, tcp_client, vse, vse_setup_protocol, Network, OperatingMode, Peer,
+    PeerList, SignatoryDB, VSEDirectory,
 };
 use colored::Colorize;
-use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,69 +20,42 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 
     println!("{}", "Initializing coordinator..");
 
-    // 1. Inititate Nostr client.
-    let nostr_client = {
-        let nostr_client = nostr_sdk::Client::new(keys.nostr_key_pair());
-        {
-            nostr_client.add_default_relay_list().await;
-            nostr_client.connect().await;
-        }
-        Arc::new(Mutex::new(nostr_client))
-    };
+    // 1. Initialize NNS client.
+    let nns_client = nns_client::Client::new(&keys).await;
 
-    // 2. Inititate signatory database.
+    // 2. Initialize signatory database.
     let signatory_db: SignatoryDB = match db::Signatory::new() {
         Some(database) => Arc::new(Mutex::new(database)),
         None => return eprintln!("{}", "Error initializing database.".red()),
     };
 
-    // 3. VSE Directory.
+    // 3. Initialize VSE Directory.
     let vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
 
-    // 3. Open port `6272` for incoming connections.
+    // 4. Open port 6272 for incoming connections.
     match tcp::open_port().await {
-        true => {
-            println!("{}", format!("Opened port '{}'.", baked::PORT).green());
-        }
-        false => {
-            println!(
-                "{}",
-                format!(
-                    "Failed to open port '{}'. Ignore this warning if the port is already open.",
-                    baked::PORT
-                )
-                .yellow()
-            );
-            //return;
-        }
+        true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
+        false => (),
     }
 
-    // 4. Run NNS server.
-    let nostr_client_ = Arc::clone(&nostr_client);
-    let _ = tokio::spawn(async move {
-        let _ = nns_server::run(&nostr_client_, mode).await;
-    });
+    // 6. Run TCP server.
+    {
+        let nns_client = nns_client.clone();
 
-    let client_list: SocketList = {
-        let client_list: HashMap<String, TCPSocket> = HashMap::new();
+        let _ = tokio::spawn(async move {
+            let _ = tcp_server::run(mode, &nns_client, &keys).await;
+        });
+    }
 
-        Arc::new(Mutex::new(client_list))
-    };
-
-    // 5. Run TCP server.
-    let client_list_ = Arc::clone(&client_list);
-    let nostr_client_ = Arc::clone(&nostr_client);
-    let _ = tokio::spawn(async move {
-        let _ = tcp_server::run(&client_list_, mode, &nostr_client_, &keys).await;
-    });
-
-    // 6. Connect to operators.
+    // 7. Initialize operator list.
     let operator_list: PeerList = Arc::new(Mutex::new(Vec::<Peer>::new()));
+
+    // 8. Connect to operators.
     for nns_key in baked::OPERATOR_SET.iter() {
-        let nostr_client = Arc::clone(&nostr_client);
+        let nns_client = nns_client.clone();
         let operator_list = Arc::clone(&operator_list);
 
         tokio::spawn(async move {
@@ -91,7 +63,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
                 match tcp_client::Peer::connect(
                     tcp_client::PeerKind::Operator,
                     nns_key.to_owned(),
-                    &nostr_client,
+                    &nns_client,
                 )
                 .await
                 {
@@ -108,21 +80,20 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         });
     }
 
-    // CLI
+    // 9. CLI
+    cli(&operator_list, &signatory_db, &vse_directory).await;
+}
+
+pub async fn cli(
+    operator_list: &PeerList,
+    signatory_db: &SignatoryDB,
+    vse_directory: &VSEDirectory,
+) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(&client_list, &operator_list, &signatory_db, &vse_directory).await;
-}
-
-pub async fn cli(
-    client_list: &SocketList,
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
-) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -138,15 +109,14 @@ pub async fn cli(
             // Main commands:
             "exit" => break,
             "clear" => handle_clear_command(),
-            "clients" => handle_clients_command(client_list).await,
-            "vse" => vse(operator_list, signatory_db, vse_directory, parts).await,
+            "vse" => handle_vse_command(operator_list, signatory_db, vse_directory, parts).await,
             "operators" => handle_operators_command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
 }
 
-async fn vse(
+async fn handle_vse_command(
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
     vse_directory: &VSEDirectory,
@@ -195,14 +165,6 @@ async fn handle_operators_command(operator_list: &PeerList) {
             hex::encode(_peer.nns_key()),
             _peer.addr()
         );
-    }
-}
-
-async fn handle_clients_command(client_list: &SocketList) {
-    let _client_list = client_list.lock().await;
-
-    for (index, (client_id, _)) in _client_list.iter().enumerate() {
-        println!("Client #{}: {}", index, client_id);
     }
 }
 

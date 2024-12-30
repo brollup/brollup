@@ -1,16 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
-
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
+// Signatory.
 type SignatoryDB = Arc<Mutex<db::Signatory>>;
-
 type VSEDirectory = Arc<Mutex<vse::Directory>>;
 
+// Networking.
+type Socket = Arc<Mutex<tokio::net::TcpStream>>;
 type Peer = Arc<Mutex<tcp_client::Peer>>;
 type PeerList = Arc<Mutex<Vec<Peer>>>;
-
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 pub mod baked;
 
@@ -56,11 +54,11 @@ pub mod coordinator;
 #[path = "communicative/nns/server.rs"]
 pub mod nns_server;
 
-#[path = "communicative/nns/query.rs"]
-pub mod nns_query;
-
 #[path = "communicative/nns/relay.rs"]
 pub mod nns_relay;
+
+#[path = "communicative/nns/client.rs"]
+pub mod nns_client;
 
 #[path = "communicative/tcp/tcp.rs"]
 pub mod tcp;

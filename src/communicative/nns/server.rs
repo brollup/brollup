@@ -1,17 +1,12 @@
+use crate::{baked, nns_client, OperatingMode};
 use colored::Colorize;
-use nostr_sdk::EventBuilder;
 use std::{
     fs::{self, OpenOptions},
     io::{self, Read, Write},
     path::Path,
-    sync::Arc,
     time::Duration,
 };
-use tokio::{sync::Mutex, time::timeout};
-
-use crate::{baked, OperatingMode};
-
-type NostrClient = Arc<Mutex<nostr_sdk::Client>>;
+use tokio::time::timeout;
 
 const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
 
@@ -20,7 +15,7 @@ const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
 /// If a change is detected, it posts the update to Nostr,
 /// allowing NNS clients to retrieve it via the well-known npub.
 ///
-pub async fn run(nostr_client: &NostrClient, mode: OperatingMode) {
+pub async fn run(nns_client: &nns_client::Client, mode: OperatingMode) {
     match mode {
         OperatingMode::Coordinator => (),
         OperatingMode::Operator => (),
@@ -44,34 +39,29 @@ pub async fn run(nostr_client: &NostrClient, mode: OperatingMode) {
 
                             loop {
                                 // Publish the new IP address.
-                                {
-                                    let _nostr_client = nostr_client.lock().await;
+                                match nns_client.publish_address(&ip_address).await {
+                                    Some(event_id) => {
+                                        println!(
+                                            "{}",
+                                            format!(
+                                                "Published new address: {}",
+                                                hex::encode(event_id)
+                                            )
+                                            .green()
+                                        );
+                                        break;
+                                    }
+                                    None => {
+                                        // Failed to publish IP address.
+                                        eprintln!(
+                                            "{}",
+                                            "Failed to publish IP address. Re-trying in 5.."
+                                                .yellow()
+                                        );
 
-                                    // Publish a text note
-                                    let note_publish_event = EventBuilder::text_note(&ip_address);
-
-                                    match _nostr_client.send_event_builder(note_publish_event).await
-                                    {
-                                        Ok(ok) => {
-                                            println!(
-                                                "{}",
-                                                format!(
-                                                    "Published new IP address. Event ID: {}",
-                                                    ok.to_hex()
-                                                )
-                                                .green()
-                                            );
-                                            break;
-                                        }
-                                        Err(_) => {
-                                            println!(
-                                                "{}",
-                                                "Failed to publish new IP address. Retrying in 5.."
-                                                    .red()
-                                            );
-                                            tokio::time::sleep(Duration::from_secs(5)).await;
-                                        }
-                                    };
+                                        tokio::time::sleep(Duration::from_secs(5)).await;
+                                        continue;
+                                    }
                                 }
                             }
                         }
