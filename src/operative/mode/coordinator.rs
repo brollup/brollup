@@ -164,20 +164,16 @@ async fn vse(
             _directory.print();
         }
         None => {
+            println!("Running VSE protocol..");
             let directory = match vse_setup_protocol::run(operator_list).await {
                 Some(directory) => directory,
                 None => return eprintln!("VSE protocol failed."),
             };
 
-            match directory.validate() {
-                true => {
-                    let _signatory_db = signatory_db.lock().await;
-                    match _signatory_db.save_vse_directory(&directory) {
-                        true => println!("Directory saved."),
-                        false => return eprintln!("Directory saving failed."),
-                    }
-                }
-                false => return eprintln!("Directory validation failed."),
+            let _signatory_db = signatory_db.lock().await;
+            match _signatory_db.save_vse_directory(&directory) {
+                true => println!("Directory saved."),
+                false => return eprintln!("Directory saving failed."),
             }
 
             directory.print();
