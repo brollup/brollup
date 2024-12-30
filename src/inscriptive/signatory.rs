@@ -1,6 +1,6 @@
 use crate::vse;
 
-const VSE_DIRECTORY_PATH: &str = "vse_directory";
+const VSE_DIRECTORY_PATH: &str = "db/signatory/vse_directory";
 
 pub struct Database {
     vse_directory_conn: sled::Db,

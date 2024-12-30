@@ -292,7 +292,7 @@ impl Directory {
 
     pub fn print(&self) {
         for vse_keys in self.vse_keys().iter() {
-            println!("{}", hex::encode(vse_keys.signer_key()));
+            println!("\n{}", hex::encode(vse_keys.signer_key()));
             for map in vse_keys.map().iter() {
                 let proof = {
                     match map.1 .1.clone() {
@@ -301,7 +301,7 @@ impl Directory {
                     }
                 };
                 println!(
-                    "    {} -> vse_key: {} vse_proof: {}",
+                    "    {} -> vse_key: {} proof: {}",
                     hex::encode(map.0),
                     hex::encode(map.1 .0),
                     proof

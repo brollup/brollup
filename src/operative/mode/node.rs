@@ -1,7 +1,7 @@
-use crate::{tcp_client, Peer};
 use crate::tcp_client::Request;
 use crate::Network;
 use crate::{baked, key::KeyHolder, nns_relay::Relay, OperatingMode};
+use crate::{tcp_client, Peer};
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
 use std::{sync::Arc, time::Duration};

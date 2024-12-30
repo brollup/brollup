@@ -55,7 +55,7 @@ pub async fn run(
                 let keys = keys.clone();
 
                 async move {
-                    handle_socket(&socket, &client_id, &client_list, mode, &keys).await;
+                    handle_socket(&socket, None, &client_id, &client_list, mode, &keys).await;
                 }
             });
         },
@@ -67,7 +67,7 @@ pub async fn run(
 
             loop {
                 match nns_query::address(&coordinator_npub, nostr_client).await {
-                    Some(ip_address) => loop {
+                    Some(ip_address) => 'post_nns: loop {
                         let (socket_, socket_addr) = match listener.accept().await {
                             Ok(conn) => (conn.0, conn.1),
                             Err(_) => continue,
@@ -86,16 +86,39 @@ pub async fn run(
                             _client_list.insert(client_id.clone(), Arc::clone(&socket));
                         }
 
+                        let socket_alive = Arc::new(Mutex::new(true));
+
                         tokio::spawn({
                             let socket = Arc::clone(&socket);
+                            let socket_alive = Arc::clone(&socket_alive);
                             let client_list = Arc::clone(client_list);
                             let client_id = client_id.clone();
                             let keys = keys.clone();
 
                             async move {
-                                handle_socket(&socket, &client_id, &client_list, mode, &keys).await;
+                                handle_socket(
+                                    &socket,
+                                    Some(&socket_alive),
+                                    &client_id,
+                                    &client_list,
+                                    mode,
+                                    &keys,
+                                )
+                                .await;
                             }
                         });
+
+                        loop {
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                            let alive = {
+                                let mut _alive = socket_alive.lock().await;
+                                *_alive
+                            };
+
+                            if !alive {
+                                break 'post_nns;
+                            }
+                        }
                     },
                     None => {
                         tokio::time::sleep(Duration::from_secs(5)).await;
@@ -110,6 +133,7 @@ pub async fn run(
 
 async fn handle_socket(
     socket: &TCPSocket,
+    alive: Option<&Arc<Mutex<bool>>>,
     client_id: &str,
     client_list: &ClientList,
     mode: OperatingMode,
@@ -195,6 +219,11 @@ async fn handle_socket(
     {
         let mut _client_list = client_list.lock().await;
         _client_list.remove(client_id);
+
+        if let Some(alive) = alive {
+            let mut _alive = alive.lock().await;
+            *_alive = false;
+        }
     }
 }
 

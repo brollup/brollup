@@ -41,7 +41,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. VSE Directory.
-    let vse_directory: Option<VSEDirectory> = {
+    let mut vse_directory: Option<VSEDirectory> = {
         let _signatory_db = signatory_db.lock().await;
 
         match _signatory_db.vse_directory() {
@@ -121,14 +121,20 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(&client_list, &operator_list, &signatory_db, &vse_directory).await;
+    cli(
+        &client_list,
+        &operator_list,
+        &signatory_db,
+        &mut vse_directory,
+    )
+    .await;
 }
 
 pub async fn cli(
     client_list: &SocketList,
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &Option<VSEDirectory>,
+    vse_directory: &mut Option<VSEDirectory>,
 ) {
     let stdin = io::stdin();
     let handle = stdin.lock();
@@ -156,7 +162,7 @@ pub async fn cli(
 async fn vse(
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &Option<VSEDirectory>,
+    vse_directory: &mut Option<VSEDirectory>,
 ) {
     match vse_directory {
         Some(directory) => {
@@ -165,18 +171,22 @@ async fn vse(
         }
         None => {
             println!("Running VSE protocol..");
-            let directory = match vse_setup_protocol::run(operator_list).await {
+            let directory: VSEDirectory = match vse_setup_protocol::run(operator_list).await {
                 Some(directory) => directory,
                 None => return eprintln!("VSE protocol failed."),
             };
 
-            let _signatory_db = signatory_db.lock().await;
-            match _signatory_db.save_vse_directory(&directory) {
-                true => println!("Directory saved."),
-                false => return eprintln!("Directory saving failed."),
+            {
+                let _signatory_db = signatory_db.lock().await;
+                let _directory = directory.lock().await;
+                match _signatory_db.save_vse_directory(&_directory) {
+                    true => println!("Directory saved."),
+                    false => return eprintln!("Directory saving failed."),
+                }
+                _directory.print();
             }
 
-            directory.print();
+            *vse_directory = Some(Arc::clone(&directory));
         }
     }
 }
