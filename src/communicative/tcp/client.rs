@@ -1,7 +1,7 @@
 use crate::list::ListCodec;
 use crate::{
-    noist_vse,
     tcp::{self, TCPError},
+    vse,
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -230,7 +230,7 @@ pub trait Request {
     async fn retrieve_vse_keymap(
         &self,
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<noist_vse::KeyMap, RequestError>;
+    ) -> Result<vse::KeyMap, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -280,7 +280,7 @@ impl Request for Arc<Mutex<Peer>> {
     async fn retrieve_vse_keymap(
         &self,
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<noist_vse::KeyMap, RequestError> {
+    ) -> Result<vse::KeyMap, RequestError> {
         // Build request package.
         let request_package = {
             let kind = tcp::Kind::RetrieveVSEKeymap;
@@ -303,7 +303,7 @@ impl Request for Arc<Mutex<Peer>> {
             _ => response_package.payload(),
         };
 
-        let keymap = match noist_vse::KeyMap::from_slice(&response_payload) {
+        let keymap = match vse::KeyMap::from_slice(&response_payload) {
             Some(keymap) => keymap,
             None => return Err(RequestError::InvalidResponse),
         };

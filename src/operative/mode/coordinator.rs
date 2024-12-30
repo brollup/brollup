@@ -1,18 +1,14 @@
-use crate::tcp_client::{self, Request};
 use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server, tcp_server};
-use crate::{noist_vse, tcp, Network, OperatingMode};
+use crate::{
+    signatory_db, tcp, tcp_client, vse_setup_protocol, Network, OperatingMode, Peer, PeerList,
+    SignatoryDB, SocketList, TCPSocket, VSEDirectory,
+};
 use colored::Colorize;
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-
-type Peer = Arc<Mutex<tcp_client::Peer>>;
-type PeerList = Arc<Mutex<Vec<Peer>>>;
-
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
@@ -34,7 +30,27 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         Arc::new(Mutex::new(nostr_client))
     };
 
-    // 2. Open port `6272` for incoming connections.
+    // 2. Inititate signatory database.
+    let signatory_db: SignatoryDB = {
+        let database = match signatory_db::Database::new() {
+            Some(database) => database,
+            None => return eprintln!("{}", "Error initializing database.".red()),
+        };
+
+        Arc::new(Mutex::new(database))
+    };
+
+    // 3. VSE Directory.
+    let vse_directory: Option<VSEDirectory> = {
+        let _signatory_db = signatory_db.lock().await;
+
+        match _signatory_db.vse_directory() {
+            Some(directory) => Some(Arc::new(Mutex::new(directory))),
+            None => None,
+        }
+    };
+
+    // 3. Open port `6272` for incoming connections.
     match tcp::open_port().await {
         true => {
             println!("{}", format!("Opened port '{}'.", baked::PORT).green());
@@ -52,7 +68,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         }
     }
 
-    // 3. Run NNS server.
+    // 4. Run NNS server.
     let nostr_client_ = Arc::clone(&nostr_client);
     let _ = tokio::spawn(async move {
         let _ = nns_server::run(&nostr_client_, mode).await;
@@ -64,14 +80,14 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         Arc::new(Mutex::new(client_list))
     };
 
-    // 4. Run TCP server.
+    // 5. Run TCP server.
     let client_list_ = Arc::clone(&client_list);
     let nostr_client_ = Arc::clone(&nostr_client);
     let _ = tokio::spawn(async move {
         let _ = tcp_server::run(&client_list_, mode, &nostr_client_, &keys).await;
     });
 
-    // 5. Connect to operators.
+    // 6. Connect to operators.
     let operator_list: PeerList = Arc::new(Mutex::new(Vec::<Peer>::new()));
     for nns_key in baked::OPERATOR_SET.iter() {
         let nostr_client = Arc::clone(&nostr_client);
@@ -105,10 +121,15 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         "Enter command (type help for options, type exit to quit):".cyan()
     );
 
-    cli(&client_list, &operator_list).await;
+    cli(&client_list, &operator_list, &signatory_db, &vse_directory).await;
 }
 
-pub async fn cli(client_list: &SocketList, operator_list: &PeerList) {
+pub async fn cli(
+    client_list: &SocketList,
+    operator_list: &PeerList,
+    signatory_db: &SignatoryDB,
+    vse_directory: &Option<VSEDirectory>,
+) {
     let stdin = io::stdin();
     let handle = stdin.lock();
 
@@ -125,71 +146,42 @@ pub async fn cli(client_list: &SocketList, operator_list: &PeerList) {
             "exit" => break,
             "clear" => handle_clear_command(),
             "clients" => handle_clients_command(client_list).await,
-            "vse" => vse_test(operator_list).await,
+            "vse" => vse(operator_list, signatory_db, vse_directory).await,
             "operators" => handle_operators_command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
 }
 
-async fn vse_test(operator_list: &PeerList) {
-    println!("vse_test");
-
-    let mut connected_operator_key_list = Vec::<[u8; 32]>::new();
-    let connected_operator_list: Vec<Peer> = {
-        let mut list: Vec<Arc<Mutex<tcp_client::Peer>>> = Vec::<Peer>::new();
-        let _operator_list = operator_list.lock().await;
-
-        for (_, peer) in _operator_list.iter().enumerate() {
-            let conn = {
-                let _peer = peer.lock().await;
-                _peer.connection()
+async fn vse(
+    operator_list: &PeerList,
+    signatory_db: &SignatoryDB,
+    vse_directory: &Option<VSEDirectory>,
+) {
+    match vse_directory {
+        Some(directory) => {
+            let _directory = directory.lock().await;
+            _directory.print();
+        }
+        None => {
+            let directory = match vse_setup_protocol::run(operator_list).await {
+                Some(directory) => directory,
+                None => return eprintln!("VSE protocol failed."),
             };
 
-            if let Some(_) = conn {
-                {
-                    let _peer = peer.lock().await;
-                    connected_operator_key_list.push(_peer.nns_key());
+            match directory.validate() {
+                true => {
+                    let _signatory_db = signatory_db.lock().await;
+                    match _signatory_db.save_vse_directory(&directory) {
+                        true => println!("Directory saved."),
+                        false => return eprintln!("Directory saving failed."),
+                    }
                 }
-
-                list.push(Arc::clone(&peer));
+                false => return eprintln!("Directory validation failed."),
             }
+
+            directory.print();
         }
-        list
-    };
-
-    println!(
-        "connected_operator_key_list len: {}",
-        connected_operator_key_list.len()
-    );
-
-    let mut directory = noist_vse::Directory::new(&connected_operator_key_list);
-
-    for connector_operator in connected_operator_list {
-        let map = match connector_operator
-            .retrieve_vse_keymap(&connected_operator_key_list)
-            .await
-        {
-            Ok(map) => map,
-            Err(_) => continue,
-        };
-
-        if !directory.insert(map.clone()) {
-            println!("directory insertion failed.");
-            return;
-        }
-
-        println!("vse retrieved from: {}", hex::encode(map.signer_key()));
-
-        for xxx in map.map().iter() {
-            println!("signer {} -> {}", hex::encode(xxx.0), hex::encode(xxx.1));
-        }
-    }
-
-    if !directory.validate() {
-        println!("directory validation failed.");
-    } else {
-        println!("directory validation passed.");
     }
 }
 

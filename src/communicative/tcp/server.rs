@@ -2,7 +2,7 @@ use crate::key::{KeyHolder, ToNostrKeyStr};
 
 use crate::list::ListCodec;
 use crate::tcp::Package;
-use crate::{baked, nns_query, noist_vse, tcp, OperatingMode};
+use crate::{baked, nns_query, tcp, vse, OperatingMode};
 use colored::Colorize;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -252,7 +252,7 @@ async fn handle_retrieve_vse_keymap(
         // TODO: Add majority check.
     }
 
-    let mut keymap = noist_vse::KeyMap::new(keys.public_key());
+    let mut keymap = vse::KeyMap::new(keys.public_key());
 
     if !keymap.fill(keys.secret_key(), &signer_list) {
         return None;

@@ -2,15 +2,14 @@ use crate::tcp;
 use crate::tcp_server;
 use crate::Network;
 use crate::OperatingMode;
+use crate::SocketList;
+use crate::TCPSocket;
 use crate::{baked, key::KeyHolder, nns_relay::Relay, nns_server};
 use colored::Colorize;
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
-type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {

@@ -75,17 +75,21 @@ pub fn verify(
         }
 }
 
+type SignerKey = [u8; 32];
+type VSEKey = [u8; 32];
+type VSEProof = Option<Vec<u8>>;
+
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct KeyMap {
     signer: [u8; 32],
-    map: HashMap<[u8; 32], [u8; 32]>,
+    map: HashMap<SignerKey, (VSEKey, VSEProof)>,
 }
 
 impl KeyMap {
     pub fn new(signer: [u8; 32]) -> KeyMap {
         KeyMap {
             signer,
-            map: HashMap::<[u8; 32], [u8; 32]>::new(),
+            map: HashMap::<SignerKey, (VSEKey, VSEProof)>::new(),
         }
     }
 
@@ -103,7 +107,7 @@ impl KeyMap {
         }
     }
 
-    pub fn map(&self) -> HashMap<[u8; 32], [u8; 32]> {
+    pub fn map(&self) -> HashMap<SignerKey, (VSEKey, VSEProof)> {
         self.map.clone()
     }
 
@@ -113,7 +117,7 @@ impl KeyMap {
 
     pub fn insert(&mut self, signer_key: [u8; 32], vse_key: [u8; 32]) {
         if signer_key != self.signer {
-            self.map.insert(signer_key, vse_key);
+            self.map.insert(signer_key, (vse_key, None));
         }
     }
 
@@ -168,10 +172,11 @@ impl KeyMap {
     }
 
     pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
-        Some(self.map.get(&correspondant)?.to_owned())
+        Some(self.map.get(&correspondant)?.0.to_owned())
     }
 }
 
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct Directory {
     signers: Vec<[u8; 32]>,
     vse_keys: Vec<KeyMap>,
@@ -187,6 +192,24 @@ impl Directory {
 
     pub fn signers(&self) -> Vec<[u8; 32]> {
         self.signers.clone()
+    }
+
+    pub fn vse_keys(&self) -> Vec<KeyMap> {
+        self.vse_keys.clone()
+    }
+
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        match bincode::deserialize(&bytes) {
+            Ok(directory) => Some(directory),
+            Err(_) => None,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match bincode::serialize(&self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
     }
 
     pub fn insert(&mut self, map: KeyMap) -> bool {
@@ -265,5 +288,25 @@ impl Directory {
         }
 
         None
+    }
+
+    pub fn print(&self) {
+        for vse_keys in self.vse_keys().iter() {
+            println!("{}", hex::encode(vse_keys.signer_key()));
+            for map in vse_keys.map().iter() {
+                let proof = {
+                    match map.1 .1.clone() {
+                        Some(proof) => hex::encode(proof),
+                        None => "None".to_owned(),
+                    }
+                };
+                println!(
+                    "    {} -> vse_key: {} vse_proof: {}",
+                    hex::encode(map.0),
+                    hex::encode(map.1 .0),
+                    proof
+                );
+            }
+        }
     }
 }

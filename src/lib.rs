@@ -1,7 +1,29 @@
+use std::{collections::HashMap, sync::Arc};
+
+use tokio::sync::Mutex;
+
+type SignatoryDB = Arc<Mutex<signatory_db::Database>>;
+
+type VSEDirectory = Arc<Mutex<vse::Directory>>;
+
+type Peer = Arc<Mutex<tcp_client::Peer>>;
+type PeerList = Arc<Mutex<Vec<Peer>>>;
+
+type TCPSocket = Arc<Mutex<tokio::net::TcpStream>>;
+type SocketList = Arc<Mutex<HashMap<String, TCPSocket>>>;
+
 pub mod baked;
 
 #[path = "constructive/list.rs"]
 pub mod list;
+
+// Protocol
+#[path = "operative/protocol/vse_setup.rs"]
+pub mod vse_setup_protocol;
+
+// Inscriptive
+#[path = "inscriptive/signatory.rs"]
+pub mod signatory_db;
 
 // Crypto modules.
 
@@ -18,16 +40,16 @@ pub mod key;
 pub mod schnorr;
 
 #[path = "transmutive/noist/vse.rs"]
-pub mod noist_vse;
+pub mod vse;
 
 // Operating modes.
-#[path = "operative/node.rs"]
+#[path = "operative/mode/node.rs"]
 pub mod node;
 
-#[path = "operative/operator.rs"]
+#[path = "operative/mode/operator.rs"]
 pub mod operator;
 
-#[path = "operative/coordinator.rs"]
+#[path = "operative/mode/coordinator.rs"]
 pub mod coordinator;
 
 // Networking.
