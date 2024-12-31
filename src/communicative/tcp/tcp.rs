@@ -22,6 +22,7 @@ pub enum Kind {
     Ping,
     RetrieveVSEKeymap,
     DeliverVSEDirectory,
+    RetrieveVSEDirectory,
 }
 
 impl Kind {
@@ -30,6 +31,7 @@ impl Kind {
             Kind::Ping => 0x00,
             Kind::RetrieveVSEKeymap => 0x01,
             Kind::DeliverVSEDirectory => 0x02,
+            Kind::RetrieveVSEDirectory => 0x03,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -37,6 +39,7 @@ impl Kind {
             0x00 => Some(Kind::Ping),
             0x01 => Some(Kind::RetrieveVSEKeymap),
             0x02 => Some(Kind::DeliverVSEDirectory),
+            0x03 => Some(Kind::RetrieveVSEDirectory),
             _ => None,
         }
     }

@@ -1,5 +1,5 @@
 use crate::list::ListCodec;
-use crate::{nns_client, Socket, VSEDirectory};
+use crate::{nns_client, Socket};
 use crate::{
     tcp::{self, TCPError},
     vse,
@@ -231,8 +231,9 @@ pub trait Request {
     ) -> Result<vse::KeyMap, RequestError>;
     async fn deliver_vse_directory(
         &self,
-        vse_directory: &VSEDirectory,
-    ) -> Result<Duration, RequestError>;
+        vse_directory: &vse::Directory,
+    ) -> Result<(), RequestError>;
+    async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -315,16 +316,13 @@ impl Request for Arc<Mutex<Peer>> {
 
     async fn deliver_vse_directory(
         &self,
-        vse_directory: &VSEDirectory,
-    ) -> Result<Duration, RequestError> {
+        vse_directory: &vse::Directory,
+    ) -> Result<(), RequestError> {
         // Build request package.
         let request_package = {
             let kind = tcp::Kind::DeliverVSEDirectory;
             let timestamp = Utc::now().timestamp();
-            let payload = {
-                let _vse_directory = vse_directory.lock().await;
-                _vse_directory.serialize()
-            };
+            let payload = vse_directory.serialize();
             tcp::Package::new(kind, timestamp, &payload)
         };
 
@@ -334,10 +332,10 @@ impl Request for Arc<Mutex<Peer>> {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Wait for the 'pong' for 10 seconds.
-        let timeout = Duration::from_millis(10_000);
+        // Timeout 3 seconds.
+        let timeout = Duration::from_millis(3_000);
 
-        let (response_package, duration) = tcp::request(&socket, request_package, Some(timeout))
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
             .map_err(|err| RequestError::TCPErr(err))?;
 
@@ -351,6 +349,40 @@ impl Request for Arc<Mutex<Peer>> {
             return Err(RequestError::InvalidResponse);
         }
 
-        Ok(duration)
+        Ok(())
+    }
+    async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError> {
+        // Build request package.
+        let request_package = {
+            let kind = tcp::Kind::RetrieveVSEDirectory;
+            let timestamp = Utc::now().timestamp();
+            let payload = [0x00u8];
+            tcp::Package::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: Socket = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // Timeout 3 seconds.
+        let timeout = Duration::from_millis(3_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let vse_directory: vse::Directory = match bincode::deserialize(&response_payload) {
+            Ok(directory) => directory,
+            Err(_) => return Err(RequestError::EmptyResponse),
+        };
+
+        Ok(vse_directory)
     }
 }

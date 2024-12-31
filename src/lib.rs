@@ -42,14 +42,25 @@ pub mod schnorr;
 pub mod vse;
 
 // Operating modes.
-#[path = "operative/mode/node.rs"]
+#[path = "operative/mode/node/node.rs"]
 pub mod node;
 
-#[path = "operative/mode/operator.rs"]
+#[path = "operative/mode/operator/operator.rs"]
 pub mod operator;
 
-#[path = "operative/mode/coordinator.rs"]
+#[path = "operative/mode/coordinator/coordinator.rs"]
 pub mod coordinator;
+
+// CLI
+// Operating modes.
+#[path = "operative/mode/node/cli/mod.rs"]
+pub mod ncli;
+
+#[path = "operative/mode/operator/cli/mod.rs"]
+pub mod ocli;
+
+#[path = "operative/mode/coordinator/cli/mod.rs"]
+pub mod ccli;
 
 // Networking.
 #[path = "communicative/nns/server.rs"]

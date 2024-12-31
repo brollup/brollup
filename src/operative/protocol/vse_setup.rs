@@ -73,27 +73,24 @@ pub async fn run(
         return None;
     }
 
-    let insertion = {
+    let mut directory_ = {
         let mut _vse_directory = vse_directory.lock().await;
-
-        _vse_directory.insert(no, &setup_, signatory_db).await
+        (*_vse_directory).clone()
     };
 
-    if !insertion {
+    if !directory_.insert(no, &setup_, signatory_db).await {
         return None;
     }
 
-    // Phase #2: Directory delivery.
+    // Phase #2: Deliver directory.
 
     let mut tasks = vec![];
 
     for connected_operator in connected_operator_list {
-        let vse_directory = Arc::clone(&vse_directory);
+        let directory_ = directory_.clone();
 
         tasks.push(tokio::spawn(async move {
-            connected_operator
-                .deliver_vse_directory(&vse_directory)
-                .await
+            connected_operator.deliver_vse_directory(&directory_).await
         }));
     }
 

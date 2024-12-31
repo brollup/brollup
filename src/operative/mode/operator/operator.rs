@@ -1,16 +1,20 @@
 use crate::db;
 use crate::nns_client;
+use crate::ocli;
 use crate::tcp;
+use crate::tcp_client;
 use crate::tcp_server;
 use crate::vse;
 use crate::Network;
 use crate::OperatingMode;
+use crate::Peer;
 use crate::SignatoryDB;
 use crate::VSEDirectory;
 use crate::{baked, key::KeyHolder, nns_server};
 use colored::Colorize;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
 
 #[tokio::main]
@@ -64,11 +68,34 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         });
     }
 
+    // 7. Connect to the coordinator.
+    let coordinator: Peer = {
+        loop {
+            match tcp_client::Peer::connect(
+                tcp_client::PeerKind::Coordinator,
+                baked::COORDINATOR_WELL_KNOWN,
+                &nns_client,
+            )
+            .await
+            {
+                Ok(connection) => break connection,
+                Err(_) => {
+                    println!(
+                        "{}",
+                        "Failed to connect coordinator. Re-trying in 5..".red()
+                    );
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
+            };
+        }
+    };
+
     // 8. CLI
-    cli(&vse_directory).await;
+    cli(&signatory_db, &vse_directory, &coordinator).await;
 }
 
-pub async fn cli(vse_directory: &VSEDirectory) {
+pub async fn cli(signatory_db: &SignatoryDB, vse_directory: &VSEDirectory, coordinator: &Peer) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -88,38 +115,9 @@ pub async fn cli(vse_directory: &VSEDirectory) {
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => handle_clear_command(),
-            "vse" => handle_vse_command(vse_directory, parts).await,
+            "clear" => ocli::clear::command(),
+            "vse" => ocli::vse::command(parts, signatory_db, vse_directory, coordinator).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
-}
-
-async fn handle_vse_command(vse_directory: &VSEDirectory, parts: Vec<&str>) {
-    match parts.len() {
-        2 => match parts[1].parse::<u64>() {
-            Ok(no) => {
-                let directory_ = {
-                    let mut _vse_directory = vse_directory.lock().await;
-                    (*_vse_directory).clone()
-                };
-
-                match directory_.setup(no) {
-                    Some(setup) => {
-                        setup.print();
-                    }
-                    None => eprintln!("VSE directory not available."),
-                }
-            }
-            Err(_) => eprintln!("Invalid <no>."),
-        },
-        _ => {
-            eprintln!("Invalid command.")
-        }
-    }
-}
-
-fn handle_clear_command() {
-    print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap();
 }

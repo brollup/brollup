@@ -1,10 +1,11 @@
 use crate::{baked, key::KeyHolder, tcp_server};
 use crate::{
-    db, nns_client, tcp, tcp_client, vse, vse_setup, Network, OperatingMode, Peer, PeerList,
+    ccli, db, nns_client, tcp, tcp_client, vse, Network, OperatingMode, Peer, PeerList,
     SignatoryDB, VSEDirectory,
 };
 use colored::Colorize;
-use std::io::{self, BufRead, Write};
+
+use std::io::{self, BufRead};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -110,66 +111,10 @@ pub async fn cli(
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => handle_clear_command(),
-            "vse" => handle_vse_command(operator_list, signatory_db, vse_directory, parts).await,
-            "operators" => handle_operators_command(operator_list).await,
+            "clear" => ccli::clear::command(),
+            "vse" => ccli::vse::command(operator_list, signatory_db, vse_directory, parts).await,
+            "operator" => ccli::operator::command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
-}
-
-async fn handle_vse_command(
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
-    parts: Vec<&str>,
-) {
-    match parts.len() {
-        2 => match parts[1].parse::<u64>() {
-            Ok(no) => {
-                let directory_ = {
-                    let mut _vse_directory = vse_directory.lock().await;
-                    (*_vse_directory).clone()
-                };
-
-                match directory_.setup(no) {
-                    Some(setup) => {
-                        setup.print();
-                    }
-                    None => {
-                        match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
-                            Some(setup) => {
-                                eprintln!("VSE protocol run with success.");
-                                setup.print();
-                            }
-                            None => return eprintln!("VSE protocol failed."),
-                        };
-                    }
-                }
-            }
-            Err(_) => eprintln!("Invalid <no>."),
-        },
-        _ => {
-            eprintln!("Invalid command.")
-        }
-    }
-}
-
-async fn handle_operators_command(operator_list: &PeerList) {
-    let _operator_list = operator_list.lock().await;
-
-    for (index, peer) in _operator_list.iter().enumerate() {
-        let _peer = peer.lock().await;
-        println!(
-            "Operator #{} ({}): {}",
-            index,
-            hex::encode(_peer.nns_key()),
-            _peer.addr()
-        );
-    }
-}
-
-fn handle_clear_command() {
-    print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap();
 }

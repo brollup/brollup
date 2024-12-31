@@ -239,6 +239,14 @@ async fn handle_package(
         match mode {
             OperatingMode::Coordinator => match package.kind() {
                 tcp::Kind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
+                tcp::Kind::RetrieveVSEDirectory => {
+                    handle_retrieve_vse_directory(
+                        package.timestamp(),
+                        &package.payload(),
+                        vse_directory,
+                    )
+                    .await
+                }
                 _ => return,
             },
             OperatingMode::Operator => match package.kind() {
@@ -252,6 +260,15 @@ async fn handle_package(
                         package.timestamp(),
                         &package.payload(),
                         signatory_db,
+                        vse_directory,
+                    )
+                    .await
+                }
+
+                tcp::Kind::RetrieveVSEDirectory => {
+                    handle_retrieve_vse_directory(
+                        package.timestamp(),
+                        &package.payload(),
                         vse_directory,
                     )
                     .await
@@ -349,6 +366,29 @@ async fn handle_deliver_vse_directory(
     let response_package = {
         let kind = tcp::Kind::DeliverVSEDirectory;
         let payload = [0x01u8]; // 0x01 for success.
+
+        tcp::Package::new(kind, timestamp, &payload)
+    };
+
+    Some(response_package)
+}
+
+async fn handle_retrieve_vse_directory(
+    timestamp: i64,
+    payload: &[u8],
+    vse_directory: &VSEDirectory,
+) -> Option<tcp::Package> {
+    // Expected payload: 0x00.
+    if payload != &[0x00] {
+        return None;
+    }
+
+    let response_package = {
+        let kind = tcp::Kind::RetrieveVSEDirectory;
+        let payload = {
+            let _vse_directory = vse_directory.lock().await;
+            _vse_directory.serialize()
+        };
 
         tcp::Package::new(kind, timestamp, &payload)
     };

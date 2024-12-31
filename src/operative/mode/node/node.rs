@@ -1,6 +1,6 @@
 use crate::tcp_client::Request;
 use crate::{baked, key::KeyHolder, OperatingMode};
-use crate::{nns_client, Network};
+use crate::{ncli, nns_client, Network};
 use crate::{tcp_client, Peer};
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
@@ -59,36 +59,10 @@ pub async fn cli(coordinator_conn: &Peer) {
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => handle_clear_command(),
-            "conn" => handle_conn_command(coordinator_conn).await,
-            "ping" => handle_ping_command(coordinator_conn).await,
+            "clear" => ncli::clear::command(),
+            "conn" => ncli::conn::command(coordinator_conn).await,
+            "ping" => ncli::ping::command(coordinator_conn).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
-    }
-}
-
-fn handle_clear_command() {
-    print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap();
-}
-
-async fn handle_conn_command(coordinator: &Peer) {
-    let _coordinator = coordinator.lock().await;
-
-    match _coordinator.connection() {
-        Some(_) => {
-            let addr: String = _coordinator.addr();
-            println!("Alive: {}", addr);
-        }
-        None => {
-            println!("Dead.")
-        }
-    }
-}
-
-async fn handle_ping_command(coordinator: &Peer) {
-    match coordinator.ping().await {
-        Ok(duration) => println!("{} ms", duration.as_millis()),
-        Err(_) => println!("Error pinging."),
     }
 }
