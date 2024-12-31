@@ -82,6 +82,11 @@ pub async fn run(
         return None;
     }
 
+    {
+        let mut _vse_directory = vse_directory.lock().await;
+        *_vse_directory = directory_.clone();
+    }
+
     // Phase #2: Deliver directory.
 
     let mut tasks = vec![];

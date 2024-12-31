@@ -38,7 +38,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. Initialize VSE Directory.
-    let vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
@@ -92,10 +92,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 8. CLI
-    cli(&signatory_db, &vse_directory, &coordinator).await;
+    cli(&signatory_db, &mut vse_directory, &coordinator).await;
 }
 
-pub async fn cli(signatory_db: &SignatoryDB, vse_directory: &VSEDirectory, coordinator: &Peer) {
+pub async fn cli(signatory_db: &SignatoryDB, vse_directory: &mut VSEDirectory, coordinator: &Peer) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -116,7 +116,7 @@ pub async fn cli(signatory_db: &SignatoryDB, vse_directory: &VSEDirectory, coord
             // Main commands:
             "exit" => break,
             "clear" => ocli::clear::command(),
-            "vse" => ocli::vse::command(parts, signatory_db, vse_directory, coordinator).await,
+            "vse" => ocli::vse::command(parts, coordinator, signatory_db, vse_directory).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

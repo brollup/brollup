@@ -112,7 +112,7 @@ pub async fn cli(
             // Main commands:
             "exit" => break,
             "clear" => ccli::clear::command(),
-            "vse" => ccli::vse::command(operator_list, signatory_db, vse_directory, parts).await,
+            "vse" => ccli::vse::command(parts, operator_list, signatory_db, vse_directory).await,
             "operator" => ccli::operator::command(operator_list).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }

@@ -6,10 +6,10 @@ use crate::{tcp_client::Request, vse_setup, PeerList, SignatoryDB, VSEDirectory}
 // vse dir fetch <peer> print
 // vse dir fetch <peer> save
 pub async fn command(
+    parts: Vec<&str>,
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
     vse_directory: &mut VSEDirectory,
-    parts: Vec<&str>,
 ) {
     if parts.len() < 3 {
         return eprintln!("Incorrect usage.");
@@ -116,6 +116,8 @@ async fn dir_fetch_print(operator_list: &PeerList, peer: [u8; 32]) {
             directory_.print().await;
         }
     }
+
+    eprintln!("Peer not found.")
 }
 
 async fn dir_fetch_save(
@@ -150,4 +152,6 @@ async fn dir_fetch_save(
             }
         }
     }
+
+    eprintln!("Peer not found.")
 }
