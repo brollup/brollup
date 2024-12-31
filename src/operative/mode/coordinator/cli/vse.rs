@@ -1,4 +1,4 @@
-use crate::{vse_setup, PeerList, SignatoryDB, VSEDirectory};
+use crate::{tcp_client::Request, vse_setup, PeerList, SignatoryDB, VSEDirectory};
 
 // vse setup <no> print
 // vse setup <no> run
@@ -8,7 +8,7 @@ use crate::{vse_setup, PeerList, SignatoryDB, VSEDirectory};
 pub async fn command(
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
+    vse_directory: &mut VSEDirectory,
     parts: Vec<&str>,
 ) {
     if parts.len() < 3 {
@@ -58,7 +58,9 @@ pub async fn command(
 
                 match parts[4] {
                     "print" => dir_fetch_print(operator_list, peer_key).await,
-                    "save" => dir_fetch_save(operator_list, peer_key, vse_directory).await,
+                    "save" => {
+                        dir_fetch_save(operator_list, peer_key, signatory_db, vse_directory).await
+                    }
                     _ => return eprintln!("Incorrect usage."),
                 }
             }
@@ -66,39 +68,15 @@ pub async fn command(
         },
         _ => return eprintln!("Incorrect usage."),
     }
-
-    match parts.len() {
-        2 => match parts[1].parse::<u64>() {
-            Ok(no) => {
-                let directory_ = {
-                    let mut _vse_directory = vse_directory.lock().await;
-                    (*_vse_directory).clone()
-                };
-
-                match directory_.setup(no) {
-                    Some(setup) => {
-                        setup.print();
-                    }
-                    None => {
-                        match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
-                            Some(setup) => {
-                                eprintln!("VSE protocol run with success.");
-                                setup.print();
-                            }
-                            None => return eprintln!("VSE protocol failed."),
-                        };
-                    }
-                }
-            }
-            Err(_) => eprintln!("Invalid <no>."),
-        },
-        _ => {
-            eprintln!("Invalid command.")
-        }
-    }
 }
 
-async fn setup_print(vse_directory: &VSEDirectory, no: u64) {}
+async fn setup_print(vse_directory: &VSEDirectory, no: u64) {
+    let _vse_directory = vse_directory.lock().await;
+    match _vse_directory.setup(no) {
+        Some(setup) => setup.print(),
+        None => eprintln!("Not found."),
+    }
+}
 
 async fn setup_run(
     operator_list: &PeerList,
@@ -106,10 +84,70 @@ async fn setup_run(
     vse_directory: &VSEDirectory,
     no: u64,
 ) {
+    match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
+        Some(setup) => {
+            eprintln!("VSE protocol #{} run with success and saved.", no);
+            setup.print();
+        }
+        None => return eprintln!("VSE protocol #{} failed.", no),
+    };
 }
 
-async fn dir_print(vse_directory: &VSEDirectory) {}
+async fn dir_print(vse_directory: &VSEDirectory) {
+    let vse_directory_ = vse_directory.lock().await;
+    vse_directory_.print().await;
+}
 
-async fn dir_fetch_print(operator_list: &PeerList, peer: [u8; 32]) {}
+async fn dir_fetch_print(operator_list: &PeerList, peer: [u8; 32]) {
+    // Retrieve peer from list:
+    let _operator_list = operator_list.lock().await;
 
-async fn dir_fetch_save(operator_list: &PeerList, peer: [u8; 32], vse_directory: &VSEDirectory) {}
+    for operator in _operator_list.iter() {
+        let lookup = {
+            let _operator = operator.lock().await;
+            _operator.nns_key() == peer
+        };
+
+        if lookup {
+            let directory_ = match operator.retrieve_vse_directory().await {
+                Ok(directory) => directory,
+                Err(_) => return eprintln!("Error fetching directory."),
+            };
+            directory_.print().await;
+        }
+    }
+}
+
+async fn dir_fetch_save(
+    operator_list: &PeerList,
+    peer: [u8; 32],
+    db: &SignatoryDB,
+    vse_directory: &mut VSEDirectory,
+) {
+    // Retrieve peer from list:
+    let _operator_list = operator_list.lock().await;
+
+    for operator in _operator_list.iter() {
+        let lookup = {
+            let _operator = operator.lock().await;
+            _operator.nns_key() == peer
+        };
+
+        if lookup {
+            let new_directory = match operator.retrieve_vse_directory().await {
+                Ok(directory) => directory,
+                Err(_) => return eprintln!("Error fetching directory."),
+            };
+
+            match new_directory.save(&db).await {
+                true => {
+                    let mut _vse_directory = vse_directory.lock().await;
+                    *_vse_directory = new_directory;
+
+                    return eprintln!("Directory retrieved and saved.");
+                }
+                false => return eprintln!("Error saving directory."),
+            }
+        }
+    }
+}

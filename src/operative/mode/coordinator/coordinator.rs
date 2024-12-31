@@ -31,7 +31,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. Initialize VSE Directory.
-    let vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
@@ -84,13 +84,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     }
 
     // 9. CLI
-    cli(&operator_list, &signatory_db, &vse_directory).await;
+    cli(&operator_list, &signatory_db, &mut vse_directory).await;
 }
 
 pub async fn cli(
     operator_list: &PeerList,
     signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
+    vse_directory: &mut VSEDirectory,
 ) {
     println!(
         "{}",

@@ -294,7 +294,7 @@ impl Setup {
 
     pub fn print(&self) {
         for vse_keys in self.vse_keys().iter() {
-            println!("\n{}", hex::encode(vse_keys.signer_key()));
+            println!("{}", hex::encode(vse_keys.signer_key()));
             for map in vse_keys.map().iter() {
                 let proof = {
                     match map.1 .1.clone() {
@@ -309,6 +309,7 @@ impl Setup {
                     proof
                 );
             }
+            println!("");
         }
     }
 }
@@ -382,5 +383,13 @@ impl Directory {
 
     pub fn setup(&self, no: u64) -> Option<Setup> {
         Some(self.setups.get(&no)?.clone())
+    }
+
+    pub async fn print(&self) {
+        for (batch_no, setup) in self.setups().await.iter() {
+            println!("Setup #{} :", batch_no);
+            setup.print();
+            println!("");
+        }
     }
 }
