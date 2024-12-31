@@ -1,9 +1,8 @@
-use crate::tcp_client::Request;
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, nns_client, Network};
 use crate::{tcp_client, Peer};
 use colored::Colorize;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead};
 use std::time::Duration;
 
 #[tokio::main]
