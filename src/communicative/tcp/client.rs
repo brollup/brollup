@@ -1,5 +1,5 @@
 use crate::list::ListCodec;
-use crate::{nns_client, Socket};
+use crate::{nns_client, Socket, VSEDirectory};
 use crate::{
     tcp::{self, TCPError},
     vse,
@@ -229,6 +229,10 @@ pub trait Request {
         &self,
         signer_list: &Vec<[u8; 32]>,
     ) -> Result<vse::KeyMap, RequestError>;
+    async fn deliver_vse_directory(
+        &self,
+        vse_directory: &VSEDirectory,
+    ) -> Result<Duration, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -307,5 +311,46 @@ impl Request for Arc<Mutex<Peer>> {
         };
 
         Ok(keymap)
+    }
+
+    async fn deliver_vse_directory(
+        &self,
+        vse_directory: &VSEDirectory,
+    ) -> Result<Duration, RequestError> {
+        // Build request package.
+        let request_package = {
+            let kind = tcp::Kind::DeliverVSEDirectory;
+            let timestamp = Utc::now().timestamp();
+            let payload = {
+                let _vse_directory = vse_directory.lock().await;
+                _vse_directory.serialize()
+            };
+            tcp::Package::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: Socket = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // Wait for the 'pong' for 10 seconds.
+        let timeout = Duration::from_millis(10_000);
+
+        let (response_package, duration) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        // Expected response: 0x01
+        if response_payload != [0x01u8] {
+            return Err(RequestError::InvalidResponse);
+        }
+
+        Ok(duration)
     }
 }

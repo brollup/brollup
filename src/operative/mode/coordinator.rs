@@ -1,7 +1,7 @@
 use crate::{baked, key::KeyHolder, tcp_server};
 use crate::{
-    db, nns_client, tcp, tcp_client, vse, vse_setup_protocol, Network, OperatingMode, Peer,
-    PeerList, SignatoryDB, VSEDirectory,
+    db, nns_client, tcp, tcp_client, vse, vse_setup, Network, OperatingMode, Peer, PeerList,
+    SignatoryDB, VSEDirectory,
 };
 use colored::Colorize;
 use std::io::{self, BufRead, Write};
@@ -44,9 +44,11 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 6. Run TCP server.
     {
         let nns_client = nns_client.clone();
+        let signatory_db = Arc::clone(&signatory_db);
+        let vse_directory = Arc::clone(&vse_directory);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp_server::run(mode, &nns_client, &keys).await;
+            let _ = tcp_server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
         });
     }
 
@@ -125,20 +127,19 @@ async fn handle_vse_command(
     match parts.len() {
         2 => match parts[1].parse::<u64>() {
             Ok(no) => {
-                let mut _vse_directory = vse_directory.lock().await;
+                let directory_ = {
+                    let mut _vse_directory = vse_directory.lock().await;
+                    (*_vse_directory).clone()
+                };
 
-                match _vse_directory.setup(no) {
+                match directory_.setup(no) {
                     Some(setup) => {
                         setup.print();
                     }
                     None => {
-                        match vse_setup_protocol::run(operator_list).await {
+                        match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
                             Some(setup) => {
                                 eprintln!("VSE protocol run with success.");
-                                match _vse_directory.insert(no, setup.clone(), signatory_db).await {
-                                    true => eprintln!("VSE setup saved."),
-                                    false => return eprintln!("Failed to save VSE setup."),
-                                };
                                 setup.print();
                             }
                             None => return eprintln!("VSE protocol failed."),

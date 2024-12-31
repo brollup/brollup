@@ -21,6 +21,7 @@ pub enum TCPError {
 pub enum Kind {
     Ping,
     RetrieveVSEKeymap,
+    DeliverVSEDirectory,
 }
 
 impl Kind {
@@ -28,12 +29,14 @@ impl Kind {
         match self {
             Kind::Ping => 0x00,
             Kind::RetrieveVSEKeymap => 0x01,
+            Kind::DeliverVSEDirectory => 0x02,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
         match bytecode {
             0x00 => Some(Kind::Ping),
             0x01 => Some(Kind::RetrieveVSEKeymap),
+            0x02 => Some(Kind::DeliverVSEDirectory),
             _ => None,
         }
     }

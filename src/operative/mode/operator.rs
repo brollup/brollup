@@ -56,9 +56,11 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 6. Run TCP server.
     {
         let nns_client = nns_client.clone();
+        let signatory_db = Arc::clone(&signatory_db);
+        let vse_directory = Arc::clone(&vse_directory);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp_server::run(mode, &nns_client, &keys).await;
+            let _ = tcp_server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
         });
     }
 
@@ -97,9 +99,12 @@ async fn handle_vse_command(vse_directory: &VSEDirectory, parts: Vec<&str>) {
     match parts.len() {
         2 => match parts[1].parse::<u64>() {
             Ok(no) => {
-                let mut _vse_directory = vse_directory.lock().await;
+                let directory_ = {
+                    let mut _vse_directory = vse_directory.lock().await;
+                    (*_vse_directory).clone()
+                };
 
-                match _vse_directory.setup(no) {
+                match directory_.setup(no) {
                     Some(setup) => {
                         setup.print();
                     }

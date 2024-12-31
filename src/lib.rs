@@ -15,7 +15,7 @@ pub mod list;
 
 // Protocol
 #[path = "operative/protocol/vse_setup.rs"]
-pub mod vse_setup_protocol;
+pub mod vse_setup;
 
 // Inscriptive
 #[path = "inscriptive/db.rs"]

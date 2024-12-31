@@ -346,14 +346,21 @@ impl Directory {
         }
     }
 
-    pub async fn insert(&mut self, no: u64, setup: Setup, db: &SignatoryDB) -> bool {
-        match self.setups.insert(no, setup) {
+    pub async fn setups(&self) -> HashMap<u64, Setup> {
+        self.setups.clone()
+    }
+
+    pub async fn insert(&mut self, no: u64, setup: &Setup, db: &SignatoryDB) -> bool {
+        match self.setups.insert(no, setup.clone()) {
             Some(_) => return false,
-            None => self.save(db).await,
+            None => {
+                self.prune();
+                self.save(db).await
+            }
         }
     }
 
-    async fn save(&self, db: &SignatoryDB) -> bool {
+    pub async fn save(&self, db: &SignatoryDB) -> bool {
         let _db = db.lock().await;
 
         match _db
@@ -362,6 +369,14 @@ impl Directory {
         {
             Ok(_) => return true,
             Err(_) => return false,
+        }
+    }
+
+    pub fn prune(&mut self) {
+        if self.setups.len() > 3 {
+            if let Some(&min_key) = self.setups.keys().min() {
+                self.setups.remove(&min_key);
+            }
         }
     }
 

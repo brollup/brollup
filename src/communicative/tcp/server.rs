@@ -2,7 +2,7 @@ use crate::key::{KeyHolder, ToNostrKeyStr};
 
 use crate::list::ListCodec;
 use crate::tcp::Package;
-use crate::{baked, nns_client, tcp, vse, OperatingMode, Socket};
+use crate::{baked, nns_client, tcp, vse, OperatingMode, SignatoryDB, Socket, VSEDirectory};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -12,7 +12,13 @@ pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
 pub const PAYLOAD_READ_TIMEOUT: Duration = Duration::from_millis(3000);
 pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
-pub async fn run(mode: OperatingMode, nns_client: &nns_client::Client, keys: &KeyHolder) {
+pub async fn run(
+    mode: OperatingMode,
+    nns_client: &nns_client::Client,
+    keys: &KeyHolder,
+    signatory_db: &SignatoryDB,
+    vse_directory: &VSEDirectory,
+) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
     let listener = match TcpListener::bind(&addr).await {
@@ -35,11 +41,20 @@ pub async fn run(mode: OperatingMode, nns_client: &nns_client::Client, keys: &Ke
 
             tokio::spawn({
                 let socket = Arc::clone(&socket);
-
                 let keys = keys.clone();
+                let signatory_db = Arc::clone(&signatory_db);
+                let mut vse_directory = Arc::clone(&vse_directory);
 
                 async move {
-                    handle_socket(&socket, None, mode, &keys).await;
+                    handle_socket(
+                        &socket,
+                        None,
+                        mode,
+                        &keys,
+                        &signatory_db,
+                        &mut vse_directory,
+                    )
+                    .await;
                 }
             });
         },
@@ -52,15 +67,17 @@ pub async fn run(mode: OperatingMode, nns_client: &nns_client::Client, keys: &Ke
             loop {
                 match nns_client.query_address(&coordinator_npub).await {
                     Some(ip_address) => 'post_nns: loop {
+                        println!("post");
                         let (socket_, socket_addr) = match listener.accept().await {
                             Ok(conn) => (conn.0, conn.1),
                             Err(_) => continue,
                         };
-
+                        println!("ara");
                         // Operator only accepts incoming connections from the coordinator.
                         if socket_addr.ip().to_string() != ip_address {
                             continue;
                         }
+                        println!("gecti");
 
                         let socket = Arc::new(Mutex::new(socket_));
 
@@ -69,11 +86,20 @@ pub async fn run(mode: OperatingMode, nns_client: &nns_client::Client, keys: &Ke
                         tokio::spawn({
                             let socket = Arc::clone(&socket);
                             let socket_alive = Arc::clone(&socket_alive);
-
                             let keys = keys.clone();
+                            let signatory_db = Arc::clone(&signatory_db);
+                            let mut vse_directory = Arc::clone(&vse_directory);
 
                             async move {
-                                handle_socket(&socket, Some(&socket_alive), mode, &keys).await;
+                                handle_socket(
+                                    &socket,
+                                    Some(&socket_alive),
+                                    mode,
+                                    &keys,
+                                    &signatory_db,
+                                    &mut vse_directory,
+                                )
+                                .await;
                             }
                         });
 
@@ -105,6 +131,8 @@ async fn handle_socket(
     alive: Option<&Arc<Mutex<bool>>>,
     mode: OperatingMode,
     keys: &KeyHolder,
+    signatory_db: &SignatoryDB,
+    vse_directory: &mut VSEDirectory,
 ) {
     loop {
         let mut _socket = socket.lock().await;
@@ -179,7 +207,15 @@ async fn handle_socket(
         let package = tcp::Package::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
-        handle_package(package, &mut *_socket, mode, &keys).await;
+        handle_package(
+            package,
+            &mut *_socket,
+            mode,
+            keys,
+            signatory_db,
+            vse_directory,
+        )
+        .await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -196,6 +232,8 @@ async fn handle_package(
     socket: &mut tokio::net::TcpStream,
     mode: OperatingMode,
     keys: &KeyHolder,
+    signatory_db: &SignatoryDB,
+    vse_directory: &mut VSEDirectory,
 ) {
     let response_package_ = {
         match mode {
@@ -207,6 +245,16 @@ async fn handle_package(
                 tcp::Kind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
                 tcp::Kind::RetrieveVSEKeymap => {
                     handle_retrieve_vse_keymap(package.timestamp(), &package.payload(), keys).await
+                }
+
+                tcp::Kind::DeliverVSEDirectory => {
+                    handle_deliver_vse_directory(
+                        package.timestamp(),
+                        &package.payload(),
+                        signatory_db,
+                        vse_directory,
+                    )
+                    .await
                 } //_ => return,
             },
             OperatingMode::Node => return,
@@ -274,6 +322,33 @@ async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<tcp::Package> {
     let response_package = {
         let kind = tcp::Kind::Ping;
         let payload = [0x01u8]; // 0x01 for pong.
+
+        tcp::Package::new(kind, timestamp, &payload)
+    };
+
+    Some(response_package)
+}
+
+async fn handle_deliver_vse_directory(
+    timestamp: i64,
+    payload: &[u8],
+    signatory_db: &SignatoryDB,
+    vse_directory: &mut VSEDirectory,
+) -> Option<tcp::Package> {
+    let new_directory = vse::Directory::from_slice(&payload)?;
+
+    if !new_directory.save(signatory_db).await {
+        return None;
+    };
+
+    {
+        let mut _vse_directory = vse_directory.lock().await;
+        *_vse_directory = new_directory;
+    }
+
+    let response_package = {
+        let kind = tcp::Kind::DeliverVSEDirectory;
+        let payload = [0x01u8]; // 0x01 for success.
 
         tcp::Package::new(kind, timestamp, &payload)
     };
