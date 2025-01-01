@@ -45,18 +45,23 @@ pub async fn run(
         let connected_operator_key_list = connected_operator_key_list.clone();
         let setup = Arc::clone(&setup);
 
+        let operator_key = {
+            let _connected_operator = connected_operator.lock().await;
+            _connected_operator.nns_key()
+        };
+
         tasks.push(tokio::spawn(async move {
-            let map = match connected_operator
-                .retrieve_vse_keymap(&connected_operator_key_list)
+            let (map, auth_sig) = match connected_operator
+                .retrieve_vse_keymap(operator_key, &connected_operator_key_list)
                 .await
             {
-                Ok(map) => map,
+                Ok((map, auth_sig)) => (map, auth_sig),
                 Err(_) => return,
             };
 
             let mut _setup = setup.lock().await;
 
-            if !_setup.insert(map.clone()) {
+            if !_setup.insert(map.clone(), auth_sig) {
                 return;
             }
         }));

@@ -2,7 +2,7 @@ use crate::{
     db,
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    schnorr::{Bytes32, LiftScalar},
+    schnorr::{self, Bytes32, LiftScalar, Signature},
     SignatoryDB,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
@@ -176,19 +176,27 @@ impl KeyMap {
     pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
         Some(self.map.get(&correspondant)?.0.to_owned())
     }
+
+    pub fn auth_sig(&self, secret_key: [u8; 32]) -> Option<([u8; 32], [u8; 64])> {
+        let msg = self.serialize().hash();
+        let key = secret_key.secret_to_public()?;
+        let sig = schnorr::sign(secret_key, msg)?;
+
+        return Some((key, sig));
+    }
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct Setup {
     signers: Vec<[u8; 32]>,
-    vse_keys: Vec<KeyMap>,
+    vse_keys: Vec<(KeyMap, Signature)>,
 }
 
 impl Setup {
     pub fn new(signers: &Vec<[u8; 32]>) -> Setup {
         Setup {
             signers: signers.clone(),
-            vse_keys: Vec::<KeyMap>::new(),
+            vse_keys: Vec::<(KeyMap, Signature)>::new(),
         }
     }
 
@@ -196,7 +204,7 @@ impl Setup {
         self.signers.clone()
     }
 
-    pub fn vse_keys(&self) -> Vec<KeyMap> {
+    pub fn vse_keys(&self) -> Vec<(KeyMap, Signature)> {
         self.vse_keys.clone()
     }
 
@@ -214,11 +222,11 @@ impl Setup {
         }
     }
 
-    pub fn insert(&mut self, map: KeyMap) -> bool {
+    pub fn insert(&mut self, map: KeyMap, auth_sig: [u8; 64]) -> bool {
         if self.signers.contains(&map.signer_key()) {
-            if !self.vse_keys.contains(&map) {
+            if !self.vse_keys.contains(&(map.clone(), Signature(auth_sig))) {
                 if map.is_complete(&self.signers()) {
-                    self.vse_keys.push(map);
+                    self.vse_keys.push((map, Signature(auth_sig)));
                 }
                 return true;
             }
@@ -226,8 +234,18 @@ impl Setup {
         false
     }
 
+    pub fn map_sig(&self, signer: [u8; 32]) -> Option<(KeyMap, [u8; 64])> {
+        for (map, auth_sig) in self.vse_keys.iter() {
+            if map.signer_key() == signer {
+                return Some((map.to_owned(), auth_sig.0));
+            }
+        }
+
+        None
+    }
+
     pub fn map(&self, signer: [u8; 32]) -> Option<KeyMap> {
-        for map in self.vse_keys.iter() {
+        for (map, _) in self.vse_keys.iter() {
             if map.signer_key() == signer {
                 return Some(map.to_owned());
             }
@@ -241,7 +259,7 @@ impl Setup {
             return false;
         }
 
-        for map in self.vse_keys.iter() {
+        for (map, _) in self.vse_keys.iter() {
             if !map.is_complete(&self.signers()) {
                 return false;
             }
@@ -255,24 +273,46 @@ impl Setup {
             return false;
         }
 
-        for signer in self.signers.iter() {
-            let map = match self.map(signer.to_owned()) {
-                Some(map) => map,
-                None => return false,
-            };
-            let correspondants = map.map_list();
+        // 1. Auth sigs
+        {
+            for signer in self.signers.iter() {
+                let (map, auth_sig) = match self.map_sig(signer.to_owned()) {
+                    Some(tuple) => tuple,
+                    None => return false,
+                };
 
-            for correspondant in correspondants.iter() {
-                let vse_key_ = match self.vse_key(signer.to_owned(), correspondant.to_owned()) {
-                    Some(key) => key,
-                    None => return false,
-                };
-                let vse_key__ = match self.vse_key(correspondant.to_owned(), signer.to_owned()) {
-                    Some(key) => key,
-                    None => return false,
-                };
-                if vse_key_ != vse_key__ {
+                let msg = map.serialize().hash();
+                let key = map.signer_key();
+                let sig = auth_sig;
+
+                if !schnorr::verify(key, msg, sig) {
                     return false;
+                }
+            }
+        }
+
+        // 2. Sig matching.
+        {
+            for signer in self.signers.iter() {
+                let map = match self.map(signer.to_owned()) {
+                    Some(map) => map,
+                    None => return false,
+                };
+                let correspondants = map.map_list();
+
+                for correspondant in correspondants.iter() {
+                    let vse_key_ = match self.vse_key(signer.to_owned(), correspondant.to_owned()) {
+                        Some(key) => key,
+                        None => return false,
+                    };
+                    let vse_key__ = match self.vse_key(correspondant.to_owned(), signer.to_owned())
+                    {
+                        Some(key) => key,
+                        None => return false,
+                    };
+                    if vse_key_ != vse_key__ {
+                        return false;
+                    }
                 }
             }
         }
@@ -281,7 +321,7 @@ impl Setup {
     }
 
     pub fn vse_key(&self, signer_1: [u8; 32], signer_2: [u8; 32]) -> Option<[u8; 32]> {
-        for map in self.vse_keys.iter() {
+        for (map, _) in self.vse_keys.iter() {
             if map.signer_key() == signer_1 {
                 if let Some(key) = map.vse_key(signer_2) {
                     return Some(key);
@@ -293,19 +333,19 @@ impl Setup {
     }
 
     pub fn print(&self) {
-        for vse_keys in self.vse_keys().iter() {
-            println!("{}", hex::encode(vse_keys.signer_key()));
-            for map in vse_keys.map().iter() {
+        for (map, _) in self.vse_keys().iter() {
+            println!("{}", hex::encode(map.signer_key()));
+            for triple in map.map().iter() {
                 let proof = {
-                    match map.1 .1.clone() {
+                    match triple.1 .1.clone() {
                         Some(proof) => hex::encode(proof),
                         None => "None".to_owned(),
                     }
                 };
                 println!(
                     "    {} -> vse_key: {} proof: {}",
-                    hex::encode(map.0),
-                    hex::encode(map.1 .0),
+                    hex::encode(triple.0),
+                    hex::encode(triple.1 .0),
                     proof
                 );
             }

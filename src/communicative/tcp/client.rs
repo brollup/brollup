@@ -1,4 +1,5 @@
 use crate::list::ListCodec;
+use crate::schnorr::Authenticable;
 use crate::{nns_client, Socket};
 use crate::{
     tcp::{self, TCPError},
@@ -227,8 +228,9 @@ pub trait Request {
     async fn ping(&self) -> Result<Duration, RequestError>;
     async fn retrieve_vse_keymap(
         &self,
+        signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<vse::KeyMap, RequestError>;
+    ) -> Result<(vse::KeyMap, [u8; 64]), RequestError>;
     async fn deliver_vse_directory(
         &self,
         vse_directory: &vse::Directory,
@@ -280,10 +282,12 @@ impl Request for Arc<Mutex<Peer>> {
         Ok(duration)
     }
 
+    // This is when the coordinator asks each operators to return their vse keymaps.
     async fn retrieve_vse_keymap(
         &self,
+        signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<vse::KeyMap, RequestError> {
+    ) -> Result<(vse::KeyMap, [u8; 64]), RequestError> {
         // Build request package.
         let request_package = {
             let kind = tcp::Kind::RetrieveVSEKeymap;
@@ -306,14 +310,20 @@ impl Request for Arc<Mutex<Peer>> {
             _ => response_package.payload(),
         };
 
-        let keymap = match vse::KeyMap::from_slice(&response_payload) {
-            Some(keymap) => keymap,
-            None => return Err(RequestError::InvalidResponse),
-        };
+        let payload: Authenticable<vse::KeyMap> =
+            bincode::deserialize(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
-        Ok(keymap)
+        if (payload.key() != signer_key) || !payload.authenticate() {
+            return Err(RequestError::InvalidResponse);
+        }
+
+        let keymap = payload.object();
+
+        Ok((keymap, payload.sig()))
     }
 
+    // This is when the coordinator publishes each operator the new vse directory.
+    // Likely after retrieve_vse_keymap.
     async fn deliver_vse_directory(
         &self,
         vse_directory: &vse::Directory,
@@ -351,6 +361,9 @@ impl Request for Arc<Mutex<Peer>> {
 
         Ok(())
     }
+
+    // This is a coordinator or the operator asking from another peer
+    // about the vse directory in case they lost their local copy.
     async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError> {
         // Build request package.
         let request_package = {
