@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod vse_tests {
-    use brollup::vse::{KeyMap, Setup};
+    use brollup::vse::KeyMap;
 
     #[test]
-    fn vse_directory() -> Result<(), String> {
+    fn vse_keymap() -> Result<(), String> {
         let signer_1: [u8; 32] =
             hex::decode("45d4884c4c96b45728611b97a792c5a79e683fc0e7f82dd55c62101203970a03")
                 .unwrap()
@@ -64,52 +64,6 @@ mod vse_tests {
 
         if !signer_3_keymap.is_complete(&signer_list) {
             return Err("signer_3_keymap is not complete.".to_string());
-        }
-
-        let mut directory = Setup::new(&signer_list);
-
-        if !directory.insert(signer_1_keymap) {
-            return Err("Failed to insert signer_1_keymap".to_string());
-        }
-
-        if !directory.insert(signer_2_keymap) {
-            return Err("Failed to insert signer_2_keymap".to_string());
-        }
-
-        if !directory.insert(signer_3_keymap) {
-            return Err("Failed to insert signer_3_keymap".to_string());
-        }
-
-        if !directory.is_complete() {
-            return Err("Directory is not yet complete.".to_string());
-        }
-
-        if !directory.validate() {
-            return Err("Directory is not valid.".to_string());
-        }
-
-        let signer_1_2_vse_key_ = directory
-            .vse_key(signer_1, signer_2)
-            .ok_or("No signer_1_2_vse_key_ returned.".to_string())?;
-
-        if signer_1_2_vse_key_ != signer_1_2_vse_key {
-            return Err("Invalid signer_1_2_vse_key_.".to_string());
-        }
-
-        let signer_1_3_vse_key_ = directory
-            .vse_key(signer_1, signer_3)
-            .ok_or("No signer_1_3_vse_key_ returned.".to_string())?;
-
-        if signer_1_3_vse_key_ != signer_1_3_vse_key {
-            return Err("Invalid signer_1_3_vse_key_.".to_string());
-        }
-
-        let signer_2_3_vse_key_ = directory
-            .vse_key(signer_2, signer_3)
-            .ok_or("No signer_2_3_vse_key_ returned.".to_string())?;
-
-        if signer_2_3_vse_key_ != signer_2_3_vse_key {
-            return Err("Invalid signer_2_3_vse_key_.".to_string());
         }
 
         Ok(())
