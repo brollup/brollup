@@ -3,6 +3,9 @@
 use crate::{baked, hash::Hash};
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
 
 /// Signs a Schnorr message.
 pub fn sign(secret_key: [u8; 32], message: [u8; 32]) -> Option<[u8; 64]> {
@@ -206,5 +209,100 @@ impl LiftScalar for Scalar {
         let point = secret_to_lift.base_point_mul();
         secret_to_lift = secret_to_lift.negate_if(point.parity());
         secret_to_lift
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature(pub [u8; 64]);
+
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(&self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SignatureVisitor;
+
+        impl<'de> Visitor<'de> for SignatureVisitor {
+            type Value = Signature;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("64 bytes")
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                if v.len() == 64 {
+                    let mut array = [0u8; 64];
+                    array.copy_from_slice(v);
+                    Ok(Signature(array))
+                } else {
+                    Err(E::invalid_length(v.len(), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_bytes(SignatureVisitor)
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+pub struct Authenticable<T> {
+    object: T,
+    sig: Signature,
+    key: [u8; 32],
+}
+
+impl<T> Authenticable<T>
+where
+    T: Serialize + Clone,
+{
+    pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
+        let key = secret_key.secret_to_public()?;
+        let message = bincode::serialize(&object).ok()?.hash();
+        let sig = Signature(sign(secret_key, message)?);
+
+        Some(Self { object, sig, key })
+    }
+
+    pub fn object(&self) -> T {
+        self.object.clone()
+    }
+
+    pub fn object_bytes(&self) -> Option<Vec<u8>> {
+        bincode::serialize(&self.object).ok()
+    }
+
+    pub fn msg(&self) -> Option<[u8; 32]> {
+        let bytes = self.object_bytes()?;
+        Some(bytes.hash())
+    }
+
+    pub fn sig(&self) -> [u8; 64] {
+        self.sig.0
+    }
+
+    pub fn key(&self) -> [u8; 32] {
+        self.key
+    }
+
+    pub fn authenticate(&self) -> bool {
+        let key = self.key();
+        let msg = match self.msg() {
+            Some(msg) => msg,
+            None => return false,
+        };
+        let sig = self.sig();
+        verify(key, msg, sig)
     }
 }
