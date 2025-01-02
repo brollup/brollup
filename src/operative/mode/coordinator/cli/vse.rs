@@ -1,4 +1,4 @@
-use crate::{tcp_client::Client, vse_setup, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY};
+use crate::{tcp::client::Client, vse_setup, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY};
 
 // vse setup <no> print
 // vse setup <no> run

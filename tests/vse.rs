@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod vse_tests {
-    use brollup::vse::KeyMap;
+    use brollup::vse::VSEKeyMap;
 
     #[test]
     fn vse_keymap() -> Result<(), String> {
@@ -42,7 +42,7 @@ mod vse_tests {
                 .try_into()
                 .unwrap();
 
-        let mut signer_1_keymap = KeyMap::new(signer_1);
+        let mut signer_1_keymap = VSEKeyMap::new(signer_1);
         signer_1_keymap.insert(signer_2, signer_1_2_vse_key);
         signer_1_keymap.insert(signer_3, signer_1_3_vse_key);
 
@@ -50,7 +50,7 @@ mod vse_tests {
             return Err("signer_1_keymap is not complete.".to_string());
         }
 
-        let mut signer_2_keymap = KeyMap::new(signer_2);
+        let mut signer_2_keymap = VSEKeyMap::new(signer_2);
         signer_2_keymap.insert(signer_1, signer_1_2_vse_key);
         signer_2_keymap.insert(signer_3, signer_2_3_vse_key);
 
@@ -58,7 +58,7 @@ mod vse_tests {
             return Err("signer_2_keymap is not complete.".to_string());
         }
 
-        let mut signer_3_keymap = KeyMap::new(signer_3);
+        let mut signer_3_keymap = VSEKeyMap::new(signer_3);
         signer_3_keymap.insert(signer_1, signer_1_3_vse_key);
         signer_3_keymap.insert(signer_2, signer_2_3_vse_key);
 

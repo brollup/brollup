@@ -1,10 +1,13 @@
-use crate::tcp::{self, TCPError};
-use crate::tcp_client::Client;
 use crate::{nns_client, PEER, PEER_LIST, SOCKET};
 use async_trait::async_trait;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
+
+use super::{
+    client::Client,
+    tcp::{self, TCPError},
+};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum PeerKind {
@@ -36,7 +39,7 @@ impl Peer {
         kind: PeerKind,
         nns_key: [u8; 32],
         nns_client: &nns_client::Client,
-    ) -> Result<Arc<Mutex<Self>>, TCPError> {
+    ) -> Result<PEER, TCPError> {
         let (socket_, addr) = {
             match tcp::connect_nns(nns_key, &nns_client).await {
                 Ok(socket) => {
@@ -85,6 +88,13 @@ impl Peer {
         self.connection.clone()
     }
 
+    pub fn connected(&self) -> bool {
+        match self.connection() {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     pub fn socket(&self) -> Option<SOCKET> {
         let socket = Arc::clone(&self.connection()?.0);
         Some(socket)
@@ -115,7 +125,7 @@ pub trait Connection {
 }
 
 #[async_trait]
-impl Connection for Arc<Mutex<Peer>> {
+impl Connection for PEER {
     async fn socket(&self) -> Option<SOCKET> {
         let _self = self.lock().await;
         _self.socket()
@@ -229,20 +239,18 @@ impl PeerListExt for PEER_LIST {
     async fn active_peers(&self) -> Vec<PEER> {
         let mut list = Vec::<PEER>::new();
 
-        let _operator_list = self.lock().await;
+        let peer_list_: Vec<PEER> = {
+            let peer_list_ = self.lock().await;
+            (*peer_list_).clone()
+        };
 
-        for (_, peer) in _operator_list.iter().enumerate() {
-            let conn = {
+        for peer in peer_list_.iter() {
+            let connected = {
                 let _peer = peer.lock().await;
-                _peer.connection()
+                _peer.connected()
             };
 
-            if let Some(_) = conn {
-                {
-                    let _peer = peer.lock().await;
-                    //connected_operator_key_list.push(_peer.nns_key());
-                }
-
+            if connected {
                 list.push(Arc::clone(&peer));
             }
         }

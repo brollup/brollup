@@ -1,9 +1,10 @@
+use super::package::{PackageKind, TCPPackage};
+use super::tcp;
 use crate::key::{KeyHolder, ToNostrKeyStr};
-
 use crate::list::ListCodec;
 use crate::schnorr::Authenticable;
-use crate::tcp::Package;
-use crate::{baked, nns_client, tcp, vse, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
+use crate::vse::{VSEDirectory, VSEKeyMap};
+use crate::{baked, nns_client, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -152,7 +153,7 @@ async fn handle_socket(
             Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
             Err(_) => continue,                   // Iterate on read errors.
         }
-        let package_kind = match tcp::Kind::from_bytecode(package_kind_buffer[0]) {
+        let package_kind = match PackageKind::from_bytecode(package_kind_buffer[0]) {
             Some(kind) => kind,
             None => continue,
         };
@@ -205,7 +206,7 @@ async fn handle_socket(
             }
         }
 
-        let package = tcp::Package::new(package_kind, timestamp, &payload_bufer);
+        let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
         handle_package(
@@ -229,7 +230,7 @@ async fn handle_socket(
 }
 
 async fn handle_package(
-    package: Package,
+    package: TCPPackage,
     socket: &mut tokio::net::TcpStream,
     mode: OperatingMode,
     keys: &KeyHolder,
@@ -239,8 +240,8 @@ async fn handle_package(
     let response_package_ = {
         match mode {
             OperatingMode::Coordinator => match package.kind() {
-                tcp::Kind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
-                tcp::Kind::RetrieveVSEDirectory => {
+                PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
+                PackageKind::RetrieveVSEDirectory => {
                     handle_retrieve_vse_directory(
                         package.timestamp(),
                         &package.payload(),
@@ -251,12 +252,12 @@ async fn handle_package(
                 _ => return,
             },
             OperatingMode::Operator => match package.kind() {
-                tcp::Kind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
-                tcp::Kind::RetrieveVSEKeymap => {
+                PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
+                PackageKind::RetrieveVSEKeymap => {
                     handle_retrieve_vse_keymap(package.timestamp(), &package.payload(), keys).await
                 }
 
-                tcp::Kind::DeliverVSEDirectory => {
+                PackageKind::DeliverVSEDirectory => {
                     handle_deliver_vse_directory(
                         package.timestamp(),
                         &package.payload(),
@@ -266,7 +267,7 @@ async fn handle_package(
                     .await
                 }
 
-                tcp::Kind::RetrieveVSEDirectory => {
+                PackageKind::RetrieveVSEDirectory => {
                     handle_retrieve_vse_directory(
                         package.timestamp(),
                         &package.payload(),
@@ -282,7 +283,7 @@ async fn handle_package(
     let response_package = match response_package_ {
         Some(package) => package,
         // Empty package if None.
-        None => tcp::Package::new(package.kind(), package.timestamp(), &[]),
+        None => TCPPackage::new(package.kind(), package.timestamp(), &[]),
     };
 
     let _ = response_package
@@ -294,7 +295,7 @@ async fn handle_retrieve_vse_keymap(
     timestamp: i64,
     payload: &[u8],
     keys: &KeyHolder,
-) -> Option<tcp::Package> {
+) -> Option<TCPPackage> {
     let mut signer_list = match Vec::<[u8; 32]>::decode_list(&payload.to_vec()) {
         Some(list) => list,
         None => return None,
@@ -311,7 +312,7 @@ async fn handle_retrieve_vse_keymap(
         // TODO: Add majority check.
     }
 
-    let mut keymap = vse::KeyMap::new(keys.public_key());
+    let mut keymap = VSEKeyMap::new(keys.public_key());
 
     if !keymap.fill(keys.secret_key(), &signer_list) {
         return None;
@@ -321,29 +322,29 @@ async fn handle_retrieve_vse_keymap(
         return None;
     }
 
-    let auth_keymap: Authenticable<vse::KeyMap> = Authenticable::new(keymap, keys.secret_key())?;
+    let auth_keymap: Authenticable<VSEKeyMap> = Authenticable::new(keymap, keys.secret_key())?;
 
     let serialized: Vec<u8> = match bincode::serialize(&auth_keymap) {
         Ok(bytes) => bytes,
         Err(_) => return None,
     };
 
-    let package = Package::new(tcp::Kind::RetrieveVSEKeymap, timestamp, &serialized);
+    let package = TCPPackage::new(PackageKind::RetrieveVSEKeymap, timestamp, &serialized);
 
     Some(package)
 }
 
-async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<tcp::Package> {
+async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<TCPPackage> {
     // Expected payload: 0x00 ping.
     if payload != &[0x00] {
         return None;
     }
 
     let response_package = {
-        let kind = tcp::Kind::Ping;
+        let kind = PackageKind::Ping;
         let payload = [0x01u8]; // 0x01 for pong.
 
-        tcp::Package::new(kind, timestamp, &payload)
+        TCPPackage::new(kind, timestamp, &payload)
     };
 
     Some(response_package)
@@ -354,8 +355,8 @@ async fn handle_deliver_vse_directory(
     payload: &[u8],
     signatory_db: &SIGNATORY_DB,
     vse_directory: &mut VSE_DIRECTORY,
-) -> Option<tcp::Package> {
-    let new_directory = vse::Directory::from_slice(&payload)?;
+) -> Option<TCPPackage> {
+    let new_directory = VSEDirectory::from_slice(&payload)?;
 
     if !new_directory.save(signatory_db).await {
         return None;
@@ -367,10 +368,10 @@ async fn handle_deliver_vse_directory(
     }
 
     let response_package = {
-        let kind = tcp::Kind::DeliverVSEDirectory;
+        let kind = PackageKind::DeliverVSEDirectory;
         let payload = [0x01u8]; // 0x01 for success.
 
-        tcp::Package::new(kind, timestamp, &payload)
+        TCPPackage::new(kind, timestamp, &payload)
     };
 
     Some(response_package)
@@ -380,20 +381,20 @@ async fn handle_retrieve_vse_directory(
     timestamp: i64,
     payload: &[u8],
     vse_directory: &VSE_DIRECTORY,
-) -> Option<tcp::Package> {
+) -> Option<TCPPackage> {
     // Expected payload: 0x00.
     if payload != &[0x00] {
         return None;
     }
 
     let response_package = {
-        let kind = tcp::Kind::RetrieveVSEDirectory;
+        let kind = PackageKind::RetrieveVSEDirectory;
         let payload = {
             let _vse_directory = vse_directory.lock().await;
             _vse_directory.serialize()
         };
 
-        tcp::Package::new(kind, timestamp, &payload)
+        TCPPackage::new(kind, timestamp, &payload)
     };
 
     Some(response_package)

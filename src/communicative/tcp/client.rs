@@ -1,10 +1,9 @@
+use super::package::{PackageKind, TCPPackage};
+use super::peer::Connection;
+use super::tcp::{self, TCPError};
 use crate::list::ListCodec;
 use crate::schnorr::Authenticable;
-use crate::tcp_peer::Connection;
-use crate::{
-    tcp::{self, TCPError},
-    vse,
-};
+use crate::vse::{VSEDirectory, VSEKeyMap};
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -15,18 +14,16 @@ pub trait Client {
     async fn ping(&self) -> Result<Duration, RequestError>;
 
     // Signatory requests.
-    async fn retrieve_vse_keymap(
+    async fn request_vse_keymap(
         &self,
         signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<Authenticable<vse::KeyMap>, RequestError>;
+    ) -> Result<Authenticable<VSEKeyMap>, RequestError>;
 
-    async fn deliver_vse_directory(
-        &self,
-        vse_directory: &vse::Directory,
-    ) -> Result<(), RequestError>;
+    async fn deliver_vse_directory(&self, vse_directory: &VSEDirectory)
+        -> Result<(), RequestError>;
 
-    async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError>;
+    async fn retrieve_vse_directory(&self) -> Result<VSEDirectory, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -42,10 +39,10 @@ impl Client for PEER {
     async fn ping(&self) -> Result<Duration, RequestError> {
         // Build request package.
         let request_package = {
-            let kind = tcp::Kind::Ping;
+            let kind = PackageKind::Ping;
             let timestamp = Utc::now().timestamp();
             let payload = [0x00u8];
-            tcp::Package::new(kind, timestamp, &payload)
+            TCPPackage::new(kind, timestamp, &payload)
         };
 
         // Return the TCP socket.
@@ -75,17 +72,17 @@ impl Client for PEER {
     }
 
     // This is when the coordinator asks each operators to return their vse keymaps.
-    async fn retrieve_vse_keymap(
+    async fn request_vse_keymap(
         &self,
         signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<Authenticable<vse::KeyMap>, RequestError> {
+    ) -> Result<Authenticable<VSEKeyMap>, RequestError> {
         // Build request package.
         let request_package = {
-            let kind = tcp::Kind::RetrieveVSEKeymap;
+            let kind = PackageKind::RetrieveVSEKeymap;
             let timestamp = Utc::now().timestamp();
             let payload = signer_list.encode_list();
-            tcp::Package::new(kind, timestamp, &payload)
+            TCPPackage::new(kind, timestamp, &payload)
         };
 
         let socket: SOCKET = self
@@ -102,7 +99,7 @@ impl Client for PEER {
             _ => response_package.payload(),
         };
 
-        let auth_keymap: Authenticable<vse::KeyMap> =
+        let auth_keymap: Authenticable<VSEKeyMap> =
             bincode::deserialize(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
         if (auth_keymap.key() != signer_key) || !auth_keymap.authenticate() {
@@ -116,14 +113,14 @@ impl Client for PEER {
     // Likely after retrieve_vse_keymap.
     async fn deliver_vse_directory(
         &self,
-        vse_directory: &vse::Directory,
+        vse_directory: &VSEDirectory,
     ) -> Result<(), RequestError> {
         // Build request package.
         let request_package = {
-            let kind = tcp::Kind::DeliverVSEDirectory;
+            let kind = PackageKind::DeliverVSEDirectory;
             let timestamp = Utc::now().timestamp();
             let payload = vse_directory.serialize();
-            tcp::Package::new(kind, timestamp, &payload)
+            TCPPackage::new(kind, timestamp, &payload)
         };
 
         // Return the TCP socket.
@@ -154,13 +151,13 @@ impl Client for PEER {
 
     // This is a coordinator or the operator asking from another peer
     // about the vse directory in case they lost their local copy.
-    async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError> {
+    async fn retrieve_vse_directory(&self) -> Result<VSEDirectory, RequestError> {
         // Build request package.
         let request_package = {
-            let kind = tcp::Kind::RetrieveVSEDirectory;
+            let kind = PackageKind::RetrieveVSEDirectory;
             let timestamp = Utc::now().timestamp();
             let payload = [0x00u8];
-            tcp::Package::new(kind, timestamp, &payload)
+            TCPPackage::new(kind, timestamp, &payload)
         };
 
         // Return the TCP socket.
@@ -181,7 +178,7 @@ impl Client for PEER {
             _ => response_package.payload(),
         };
 
-        let vse_directory: vse::Directory = match bincode::deserialize(&response_payload) {
+        let vse_directory: VSEDirectory = match bincode::deserialize(&response_payload) {
             Ok(directory) => directory,
             Err(_) => return Err(RequestError::EmptyResponse),
         };

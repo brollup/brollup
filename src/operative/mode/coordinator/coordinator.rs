@@ -1,8 +1,10 @@
-use crate::tcp_peer::{Peer, PeerKind};
-use crate::{baked, key::KeyHolder, tcp_server};
+use crate::tcp::peer::{Peer, PeerKind};
+use crate::tcp::tcp::open_port;
+use crate::vse::VSEDirectory;
+use crate::{baked, key::KeyHolder};
 use crate::{
-    ccli, db, nns_client, nns_server, tcp, vse, Network, OperatingMode, PEER, PEER_LIST,
-    SIGNATORY_DB, VSE_DIRECTORY,
+    ccli, db, nns_client, nns_server, tcp, Network, OperatingMode, PEER, PEER_LIST, SIGNATORY_DB,
+    VSE_DIRECTORY,
 };
 
 use colored::Colorize;
@@ -33,13 +35,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. Initialize VSE Directory.
-    let mut vse_directory: VSE_DIRECTORY = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSE_DIRECTORY = match VSEDirectory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
 
     // 4. Open port 6272 for incoming connections.
-    match tcp::open_port().await {
+    match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
@@ -59,7 +61,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         let vse_directory = Arc::clone(&vse_directory);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp_server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
+            let _ = tcp::server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
         });
     }
 

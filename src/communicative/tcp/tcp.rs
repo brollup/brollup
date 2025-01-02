@@ -9,91 +9,14 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::sleep;
 
+use super::package::{PackageKind, TCPPackage};
+
 #[derive(Debug, Copy, Clone)]
 pub enum TCPError {
     ConnErr,
     ReadErr,
     WriteErr,
     Timeout,
-}
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum Kind {
-    Ping,
-    RetrieveVSEKeymap,
-    DeliverVSEDirectory,
-    RetrieveVSEDirectory,
-}
-
-impl Kind {
-    pub fn bytecode(&self) -> u8 {
-        match self {
-            Kind::Ping => 0x00,
-            Kind::RetrieveVSEKeymap => 0x01,
-            Kind::DeliverVSEDirectory => 0x02,
-            Kind::RetrieveVSEDirectory => 0x03,
-        }
-    }
-    pub fn from_bytecode(bytecode: u8) -> Option<Self> {
-        match bytecode {
-            0x00 => Some(Kind::Ping),
-            0x01 => Some(Kind::RetrieveVSEKeymap),
-            0x02 => Some(Kind::DeliverVSEDirectory),
-            0x03 => Some(Kind::RetrieveVSEDirectory),
-            _ => None,
-        }
-    }
-}
-
-pub struct Package {
-    kind: Kind,
-    timestamp: i64,
-    payload: Vec<u8>,
-}
-
-impl Package {
-    pub fn new(kind: Kind, timestamp: i64, payload: &[u8]) -> Package {
-        Package {
-            kind,
-            timestamp,
-            payload: payload.to_vec(),
-        }
-    }
-
-    pub fn kind(&self) -> Kind {
-        self.kind
-    }
-
-    pub fn timestamp(&self) -> i64 {
-        self.timestamp
-    }
-
-    pub fn payload_len(&self) -> u32 {
-        self.payload.len() as u32
-    }
-
-    pub fn payload(&self) -> Vec<u8> {
-        self.payload.clone()
-    }
-
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut bytes = Vec::<u8>::new();
-
-        bytes.extend([self.kind().bytecode()]);
-        bytes.extend(self.timestamp().to_be_bytes());
-        bytes.extend(self.payload_len().to_be_bytes());
-        bytes.extend(self.payload());
-
-        bytes
-    }
-
-    pub async fn deliver(
-        &self,
-        socket: &mut TcpStream,
-        timeout: Option<Duration>,
-    ) -> Result<(), TCPError> {
-        write(socket, &self.serialize(), timeout).await
-    }
 }
 
 pub async fn open_port() -> bool {
@@ -145,7 +68,7 @@ pub async fn connect_nns(
 
     connect(&ip_address).await
 }
-pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Package> {
+pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<TCPPackage> {
     let start = Instant::now();
 
     // Read package kind.
@@ -154,7 +77,7 @@ pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Pa
     read(socket, &mut package_kind_buffer, remaining_time)
         .await
         .ok()?;
-    let package_kind = Kind::from_bytecode(package_kind_buffer[0])?;
+    let package_kind = PackageKind::from_bytecode(package_kind_buffer[0])?;
 
     // Read timestamp.
     let mut timestamp_buffer = [0x00u8; 8];
@@ -179,7 +102,7 @@ pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<Pa
         .await
         .ok()?;
 
-    Some(Package::new(package_kind, timestamp, &payload_buffer))
+    Some(TCPPackage::new(package_kind, timestamp, &payload_buffer))
 }
 
 pub async fn read(
@@ -244,9 +167,9 @@ pub async fn write(
 
 pub async fn request(
     socket: &SOCKET,
-    package: Package,
+    package: TCPPackage,
     timeout: Option<Duration>,
-) -> Result<(Package, Duration), TCPError> {
+) -> Result<(TCPPackage, Duration), TCPError> {
     // Lock the socket.
     let mut _socket = socket.lock().await;
 

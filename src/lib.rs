@@ -5,12 +5,12 @@ use tokio::sync::Mutex;
 
 // Signatory.
 type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
-type VSE_DIRECTORY = Arc<Mutex<vse::Directory>>;
-type VSE_SETUP = Arc<Mutex<vse::Setup>>;
+type VSE_DIRECTORY = Arc<Mutex<vse::VSEDirectory>>;
+type VSE_SETUP = Arc<Mutex<vse::VSESetup>>;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
-type PEER = Arc<Mutex<tcp_peer::Peer>>;
+type PEER = Arc<Mutex<tcp::peer::Peer>>;
 type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
 
 #[path = "constructive/list.rs"]
@@ -76,17 +76,8 @@ pub mod nns_relay;
 #[path = "communicative/nns/client.rs"]
 pub mod nns_client;
 
-#[path = "communicative/tcp/tcp.rs"]
+#[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
-
-#[path = "communicative/tcp/server.rs"]
-pub mod tcp_server;
-
-#[path = "communicative/tcp/client.rs"]
-pub mod tcp_client;
-
-#[path = "communicative/tcp/peer.rs"]
-pub mod tcp_peer;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {

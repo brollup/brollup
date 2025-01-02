@@ -82,14 +82,14 @@ type VSEKey = [u8; 32];
 type VSEProof = Option<Vec<u8>>;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub struct KeyMap {
+pub struct VSEKeyMap {
     signer: [u8; 32],
     map: HashMap<SignerKey, (VSEKey, VSEProof)>,
 }
 
-impl KeyMap {
-    pub fn new(signer: [u8; 32]) -> KeyMap {
-        KeyMap {
+impl VSEKeyMap {
+    pub fn new(signer: [u8; 32]) -> VSEKeyMap {
+        VSEKeyMap {
             signer,
             map: HashMap::<SignerKey, (VSEKey, VSEProof)>::new(),
         }
@@ -187,16 +187,16 @@ impl KeyMap {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub struct Setup {
+pub struct VSESetup {
     signers: Vec<[u8; 32]>,
-    maps: Vec<Authenticable<KeyMap>>,
+    maps: Vec<Authenticable<VSEKeyMap>>,
 }
 
-impl Setup {
-    pub fn new(signers: &Vec<[u8; 32]>) -> Setup {
-        Setup {
+impl VSESetup {
+    pub fn new(signers: &Vec<[u8; 32]>) -> VSESetup {
+        VSESetup {
             signers: signers.clone(),
-            maps: Vec::<Authenticable<KeyMap>>::new(),
+            maps: Vec::<Authenticable<VSEKeyMap>>::new(),
         }
     }
 
@@ -204,7 +204,7 @@ impl Setup {
         self.signers.clone()
     }
 
-    pub fn maps(&self) -> Vec<Authenticable<KeyMap>> {
+    pub fn maps(&self) -> Vec<Authenticable<VSEKeyMap>> {
         self.maps.clone()
     }
 
@@ -222,7 +222,7 @@ impl Setup {
         }
     }
 
-    pub fn insert(&mut self, map: Authenticable<KeyMap>) -> bool {
+    pub fn insert(&mut self, map: Authenticable<VSEKeyMap>) -> bool {
         if self.signers.contains(&map.object().signer_key()) {
             if !self.maps.contains(&map) {
                 if map.object().is_complete(&self.signers()) {
@@ -234,7 +234,7 @@ impl Setup {
         false
     }
 
-    pub fn auth_map(&self, signer: [u8; 32]) -> Option<Authenticable<KeyMap>> {
+    pub fn auth_map(&self, signer: [u8; 32]) -> Option<Authenticable<VSEKeyMap>> {
         for map in self.maps.iter() {
             if map.object().signer_key() == signer {
                 return Some(map.to_owned());
@@ -244,7 +244,7 @@ impl Setup {
         None
     }
 
-    pub fn map(&self, signer: [u8; 32]) -> Option<KeyMap> {
+    pub fn map(&self, signer: [u8; 32]) -> Option<VSEKeyMap> {
         Some(self.auth_map(signer)?.object())
     }
 
@@ -349,18 +349,18 @@ impl Setup {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub struct Directory {
-    setups: HashMap<u64, Setup>,
+pub struct VSEDirectory {
+    setups: HashMap<u64, VSESetup>,
 }
 
-impl Directory {
+impl VSEDirectory {
     pub async fn new(db: &SIGNATORY_DB) -> Option<Self> {
         let _db = db.lock().await;
 
         let directory = match _db.vse_directory_conn().get(db::VSE_DIRECTORY_PATH).ok()? {
             Some(data) => bincode::deserialize(&data).ok()?,
-            None => Directory {
-                setups: HashMap::<u64, Setup>::new(),
+            None => VSEDirectory {
+                setups: HashMap::<u64, VSESetup>::new(),
             },
         };
 
@@ -381,11 +381,11 @@ impl Directory {
         }
     }
 
-    pub async fn setups(&self) -> HashMap<u64, Setup> {
+    pub async fn setups(&self) -> HashMap<u64, VSESetup> {
         self.setups.clone()
     }
 
-    pub async fn insert(&mut self, no: u64, setup: &Setup, db: &SIGNATORY_DB) -> bool {
+    pub async fn insert(&mut self, no: u64, setup: &VSESetup, db: &SIGNATORY_DB) -> bool {
         match self.setups.insert(no, setup.clone()) {
             Some(_) => return false,
             None => {
@@ -415,7 +415,7 @@ impl Directory {
         }
     }
 
-    pub fn setup(&self, no: u64) -> Option<Setup> {
+    pub fn setup(&self, no: u64) -> Option<VSESetup> {
         Some(self.setups.get(&no)?.clone())
     }
 

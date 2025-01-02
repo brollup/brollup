@@ -1,11 +1,12 @@
 use crate::db;
 use crate::nns_client;
 use crate::ocli;
-use crate::tcp;
-use crate::tcp_peer::Peer;
-use crate::tcp_peer::PeerKind;
-use crate::tcp_server;
-use crate::vse;
+
+use crate::tcp::peer::Peer;
+use crate::tcp::peer::PeerKind;
+use crate::tcp::server;
+use crate::tcp::tcp;
+use crate::vse::VSEDirectory;
 use crate::Network;
 use crate::OperatingMode;
 use crate::PEER;
@@ -39,7 +40,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. Initialize VSE Directory.
-    let mut vse_directory: VSE_DIRECTORY = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSE_DIRECTORY = match VSEDirectory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
@@ -65,7 +66,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         let vse_directory = Arc::clone(&vse_directory);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp_server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
+            let _ = server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
         });
     }
 

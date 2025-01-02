@@ -1,7 +1,7 @@
-use crate::tcp_peer::{Peer, PeerKind};
+use crate::tcp::peer::{Peer, PeerKind};
+use crate::PEER;
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, nns_client, Network};
-use crate::{tcp_client, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::time::Duration;
