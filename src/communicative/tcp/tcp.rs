@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use crate::key::ToNostrKeyStr;
-use crate::{baked, nns_client, SOCKET};
+use crate::nns::client::NNSClient;
+use crate::{baked, SOCKET};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::time::{Duration, Instant};
 use std::{io, vec};
@@ -52,10 +53,7 @@ pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
     }
 }
 
-pub async fn connect_nns(
-    nns_key: [u8; 32],
-    nns_client: &nns_client::Client,
-) -> Result<TcpStream, TCPError> {
+pub async fn connect_nns(nns_key: [u8; 32], nns_client: &NNSClient) -> Result<TcpStream, TCPError> {
     let npub = match nns_key.to_npub() {
         Some(npub) => npub,
         None => return Err(TCPError::ConnErr),

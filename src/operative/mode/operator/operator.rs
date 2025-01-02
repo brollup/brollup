@@ -1,18 +1,18 @@
 use crate::db;
-use crate::nns_client;
+use crate::nns;
+use crate::nns::client::NNSClient;
+use crate::noist::vse::VSEDirectory;
 use crate::ocli;
-
 use crate::tcp::peer::Peer;
 use crate::tcp::peer::PeerKind;
 use crate::tcp::server;
 use crate::tcp::tcp;
-use crate::vse::VSEDirectory;
 use crate::Network;
 use crate::OperatingMode;
 use crate::PEER;
 use crate::SIGNATORY_DB;
 use crate::VSE_DIRECTORY;
-use crate::{baked, key::KeyHolder, nns_server};
+use crate::{baked, key::KeyHolder};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
@@ -31,7 +31,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     println!("{}", "Initializing operator..");
 
     // 1. Initialize NNS client.
-    let nns_client = nns_client::Client::new(&keys).await;
+    let nns_client = NNSClient::new(&keys).await;
 
     // 2. Initialize signatory database.
     let signatory_db: SIGNATORY_DB = match db::Signatory::new() {
@@ -55,7 +55,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
-            let _ = nns_server::run(&nns_client, mode).await;
+            let _ = nns::server::run(&nns_client, mode).await;
         });
     }
 

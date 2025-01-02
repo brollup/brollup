@@ -2,9 +2,11 @@ use super::package::{PackageKind, TCPPackage};
 use super::tcp;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
+use crate::nns::client::NNSClient;
+use crate::noist::vse::{VSEDirectory, VSEKeyMap};
 use crate::schnorr::Authenticable;
-use crate::vse::{VSEDirectory, VSEKeyMap};
-use crate::{baked, nns_client, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
+
+use crate::{baked, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -16,7 +18,7 @@ pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
 pub async fn run(
     mode: OperatingMode,
-    nns_client: &nns_client::Client,
+    nns_client: &NNSClient,
     keys: &KeyHolder,
     signatory_db: &SIGNATORY_DB,
     vse_directory: &VSE_DIRECTORY,

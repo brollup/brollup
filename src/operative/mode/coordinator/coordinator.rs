@@ -1,10 +1,11 @@
+use crate::nns::client::NNSClient;
+use crate::noist::vse::VSEDirectory;
 use crate::tcp::peer::{Peer, PeerKind};
 use crate::tcp::tcp::open_port;
-use crate::vse::VSEDirectory;
+
 use crate::{baked, key::KeyHolder};
 use crate::{
-    ccli, db, nns_client, nns_server, tcp, Network, OperatingMode, PEER, PEER_LIST, SIGNATORY_DB,
-    VSE_DIRECTORY,
+    ccli, db, nns, tcp, Network, OperatingMode, PEER, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY,
 };
 
 use colored::Colorize;
@@ -26,7 +27,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     println!("{}", "Initializing coordinator..");
 
     // 1. Initialize NNS client.
-    let nns_client = nns_client::Client::new(&keys).await;
+    let nns_client = NNSClient::new(&keys).await;
 
     // 2. Initialize signatory database.
     let signatory_db: SIGNATORY_DB = match db::Signatory::new() {
@@ -50,7 +51,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
-            let _ = nns_server::run(&nns_client, mode).await;
+            let _ = nns::server::run(&nns_client, mode).await;
         });
     }
 

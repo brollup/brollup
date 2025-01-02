@@ -1,23 +1,23 @@
-use crate::{
-    key::KeyHolder,
-    nns_relay::{self, Relay},
-};
 use nostr_sdk::{EventBuilder, Filter, FromBech32, Kind, PublicKey};
 use std::time::Duration;
 
+use crate::key::KeyHolder;
+
+use super::relay::{self, Relay};
+
 #[derive(Clone)]
-pub struct Client {
+pub struct NNSClient {
     nostr_client: nostr_sdk::Client,
 }
 
-impl Client {
+impl NNSClient {
     pub async fn new(keys: &KeyHolder) -> Self {
         let nostr_client = nostr_sdk::Client::new(keys.nostr_key_pair());
         {
             nostr_client.add_default_relay_list().await;
             nostr_client.connect().await;
         }
-        Client { nostr_client }
+        NNSClient { nostr_client }
     }
 
     pub async fn query_address(&self, npub: &str) -> Option<String> {
@@ -31,7 +31,7 @@ impl Client {
         let events = {
             self.nostr_client
                 .fetch_events_from(
-                    nns_relay::DEFAULT_RELAY_LIST,
+                    relay::DEFAULT_RELAY_LIST,
                     vec![filter],
                     Some(Duration::from_secs(5)),
                 )

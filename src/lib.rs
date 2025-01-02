@@ -5,8 +5,8 @@ use tokio::sync::Mutex;
 
 // Signatory.
 type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
-type VSE_DIRECTORY = Arc<Mutex<vse::VSEDirectory>>;
-type VSE_SETUP = Arc<Mutex<vse::VSESetup>>;
+type VSE_DIRECTORY = Arc<Mutex<noist::vse::VSEDirectory>>;
+type VSE_SETUP = Arc<Mutex<noist::vse::VSESetup>>;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
@@ -28,54 +28,38 @@ pub mod db;
 pub mod baked;
 
 // Crypto modules.
-
-#[path = "transmutive/into.rs"]
-pub mod into;
-
 #[path = "transmutive/hash.rs"]
 pub mod hash;
-
+#[path = "transmutive/into.rs"]
+pub mod into;
 #[path = "transmutive/key.rs"]
 pub mod key;
-
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
 
-#[path = "transmutive/noist/vse.rs"]
-pub mod vse;
+// NOIST.
+#[path = "transmutive/noist/mod.rs"]
+pub mod noist;
 
 // Operating modes.
+#[path = "operative/mode/coordinator/coordinator.rs"]
+pub mod coordinator;
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
-
 #[path = "operative/mode/operator/operator.rs"]
 pub mod operator;
 
-#[path = "operative/mode/coordinator/coordinator.rs"]
-pub mod coordinator;
-
-// CLI
-// Operating modes.
+// Command line.
+#[path = "operative/mode/coordinator/cli/mod.rs"]
+pub mod ccli;
 #[path = "operative/mode/node/cli/mod.rs"]
 pub mod ncli;
-
 #[path = "operative/mode/operator/cli/mod.rs"]
 pub mod ocli;
 
-#[path = "operative/mode/coordinator/cli/mod.rs"]
-pub mod ccli;
-
 // Networking.
-
-#[path = "communicative/nns/server.rs"]
-pub mod nns_server;
-
-#[path = "communicative/nns/relay.rs"]
-pub mod nns_relay;
-
-#[path = "communicative/nns/client.rs"]
-pub mod nns_client;
-
+#[path = "communicative/nns/mod.rs"]
+pub mod nns;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
 

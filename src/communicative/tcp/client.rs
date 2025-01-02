@@ -2,15 +2,16 @@ use super::package::{PackageKind, TCPPackage};
 use super::peer::Connection;
 use super::tcp::{self, TCPError};
 use crate::list::ListCodec;
+use crate::noist::vse::{VSEDirectory, VSEKeyMap};
 use crate::schnorr::Authenticable;
-use crate::vse::{VSEDirectory, VSEKeyMap};
+
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
 use std::time::Duration;
 
 #[async_trait]
-pub trait Client {
+pub trait TCPClient {
     async fn ping(&self) -> Result<Duration, RequestError>;
 
     // Signatory requests.
@@ -35,7 +36,7 @@ pub enum RequestError {
 }
 
 #[async_trait]
-impl Client for PEER {
+impl TCPClient for PEER {
     async fn ping(&self) -> Result<Duration, RequestError> {
         // Build request package.
         let request_package = {

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::{
-    tcp::{client::Client, peer::PeerListExt},
-    vse::VSESetup,
+    noist::vse::VSESetup,
+    tcp::{client::TCPClient, peer::PeerListExt},
     PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY, VSE_SETUP,
 };
 

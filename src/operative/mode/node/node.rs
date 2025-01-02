@@ -1,7 +1,8 @@
+use crate::nns::client::NNSClient;
 use crate::tcp::peer::{Peer, PeerKind};
 use crate::PEER;
 use crate::{baked, key::KeyHolder, OperatingMode};
-use crate::{ncli, nns_client, Network};
+use crate::{ncli, Network};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::time::Duration;
@@ -13,7 +14,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     println!("{}", "Initializing node..");
 
     // 1. Initialize NNS client.
-    let nns_client = nns_client::Client::new(&keys).await;
+    let nns_client = NNSClient::new(&keys).await;
 
     // 2. Connect to the coordinator.
     let coordinator: PEER = {

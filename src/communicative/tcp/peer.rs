@@ -1,11 +1,11 @@
-use crate::{nns_client, PEER, PEER_LIST, SOCKET};
+use crate::{nns::client::NNSClient, PEER, PEER_LIST, SOCKET};
 use async_trait::async_trait;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 use super::{
-    client::Client,
+    client::TCPClient,
     tcp::{self, TCPError},
 };
 
@@ -30,7 +30,7 @@ impl PeerKind {
 pub struct Peer {
     kind: PeerKind,
     nns_key: [u8; 32],
-    nns_client: nns_client::Client,
+    nns_client: NNSClient,
     connection: Option<(SOCKET, SocketAddr)>,
 }
 
@@ -38,7 +38,7 @@ impl Peer {
     pub async fn connect(
         kind: PeerKind,
         nns_key: [u8; 32],
-        nns_client: &nns_client::Client,
+        nns_client: &NNSClient,
     ) -> Result<PEER, TCPError> {
         let (socket_, addr) = {
             match tcp::connect_nns(nns_key, &nns_client).await {
@@ -80,7 +80,7 @@ impl Peer {
         self.nns_key
     }
 
-    pub fn nns_client(&self) -> nns_client::Client {
+    pub fn nns_client(&self) -> NNSClient {
         self.nns_client.clone()
     }
 

@@ -1,4 +1,4 @@
-use crate::{baked, nns_client, OperatingMode};
+use crate::{baked, OperatingMode};
 use colored::Colorize;
 use std::{
     fs::{self, OpenOptions},
@@ -8,6 +8,8 @@ use std::{
 };
 use tokio::time::timeout;
 
+use super::client::NNSClient;
+
 const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
 
 /// Executes a persistent task that monitors changes
@@ -15,7 +17,7 @@ const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
 /// If a change is detected, it posts the update to Nostr,
 /// allowing NNS clients to retrieve it via the well-known npub.
 ///
-pub async fn run(nns_client: &nns_client::Client, mode: OperatingMode) {
+pub async fn run(nns_client: &NNSClient, mode: OperatingMode) {
     match mode {
         OperatingMode::Coordinator => (),
         OperatingMode::Operator => (),
