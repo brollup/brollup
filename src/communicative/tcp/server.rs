@@ -1,6 +1,7 @@
 use crate::key::{KeyHolder, ToNostrKeyStr};
 
 use crate::list::ListCodec;
+use crate::schnorr::Authenticable;
 use crate::tcp::Package;
 use crate::{baked, nns_client, tcp, vse, OperatingMode, SignatoryDB, Socket, VSEDirectory};
 use colored::Colorize;
@@ -320,12 +321,14 @@ async fn handle_retrieve_vse_keymap(
         return None;
     }
 
-    let serialized_keymap: Vec<u8> = match bincode::serialize(&keymap) {
+    let auth_keymap: Authenticable<vse::KeyMap> = Authenticable::new(keymap, keys.secret_key())?;
+
+    let serialized: Vec<u8> = match bincode::serialize(&auth_keymap) {
         Ok(bytes) => bytes,
         Err(_) => return None,
     };
 
-    let package = Package::new(tcp::Kind::RetrieveVSEKeymap, timestamp, &serialized_keymap);
+    let package = Package::new(tcp::Kind::RetrieveVSEKeymap, timestamp, &serialized);
 
     Some(package)
 }
