@@ -1,17 +1,19 @@
-use crate::{
-    tcp_client::{PeerListExt, Request},
-    vse, PeerList, SignatoryDB, VSEDirectory, VSESetup,
-};
 use futures::future::join_all;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::{
+    tcp_client::Client, tcp_peer::PeerListExt, vse, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY,
+    VSE_SETUP,
+};
+
 pub async fn run(
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
+    operator_list: &PEER_LIST,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &VSE_DIRECTORY,
     no: u64,
 ) -> Option<vse::Setup> {
+    println!("beign");
     let (operators, keys) = {
         (
             operator_list.active_peers().await,
@@ -19,7 +21,10 @@ pub async fn run(
         )
     };
 
-    let setup: VSESetup = {
+    println!("operators len: {}", operators.len());
+    println!("keys len: {}", keys.len());
+
+    let setup: VSE_SETUP = {
         let setup_ = vse::Setup::new(&keys);
         Arc::new(Mutex::new(setup_))
     };
@@ -37,17 +42,21 @@ pub async fn run(
                 _connected_operator.nns_key()
             };
 
+            println!("{} a soruyoruz.", hex::encode(key));
+
             tasks.push(tokio::spawn(async move {
                 let auth_keymap = match operator.retrieve_vse_keymap(key, &keys).await {
                     Ok(auth_keymap) => auth_keymap,
                     Err(_) => return,
                 };
+                println!("{} dondu.", hex::encode(key));
 
                 // Insertion.
                 {
                     let mut _setup = setup.lock().await;
 
                     if !_setup.insert(auth_keymap) {
+                        println!("Insertion da oldu.");
                         return;
                     }
                 }
@@ -62,10 +71,11 @@ pub async fn run(
         (*_setup).clone()
     };
 
+    println!("pre");
     if !setup_.validate() {
         return None;
     }
-
+    println!("post");
     let mut directory_ = {
         let mut _vse_directory = vse_directory.lock().await;
         (*_vse_directory).clone()

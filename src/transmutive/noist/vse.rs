@@ -3,7 +3,7 @@ use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
     schnorr::{self, Authenticable, Bytes32, LiftScalar},
-    SignatoryDB,
+    SIGNATORY_DB,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -249,6 +249,7 @@ impl Setup {
     }
 
     pub fn is_complete(&self) -> bool {
+        println!("len: {}", self.maps.len());
         if self.maps.len() != self.signers.len() {
             return false;
         }
@@ -263,10 +264,13 @@ impl Setup {
     }
 
     pub fn validate(&self) -> bool {
+        println!("pre pre auth");
+
         if !self.is_complete() {
             return false;
         }
 
+        println!("pre auth");
         // 1. Auth sigs
         {
             for signer in self.signers.iter() {
@@ -280,7 +284,7 @@ impl Setup {
                 }
             }
         }
-
+        println!("post auth");
         // 2. Sig matching.
         {
             for signer in self.signers.iter() {
@@ -350,7 +354,7 @@ pub struct Directory {
 }
 
 impl Directory {
-    pub async fn new(db: &SignatoryDB) -> Option<Self> {
+    pub async fn new(db: &SIGNATORY_DB) -> Option<Self> {
         let _db = db.lock().await;
 
         let directory = match _db.vse_directory_conn().get(db::VSE_DIRECTORY_PATH).ok()? {
@@ -381,7 +385,7 @@ impl Directory {
         self.setups.clone()
     }
 
-    pub async fn insert(&mut self, no: u64, setup: &Setup, db: &SignatoryDB) -> bool {
+    pub async fn insert(&mut self, no: u64, setup: &Setup, db: &SIGNATORY_DB) -> bool {
         match self.setups.insert(no, setup.clone()) {
             Some(_) => return false,
             None => {
@@ -391,7 +395,7 @@ impl Directory {
         }
     }
 
-    pub async fn save(&self, db: &SignatoryDB) -> bool {
+    pub async fn save(&self, db: &SIGNATORY_DB) -> bool {
         let _db = db.lock().await;
 
         match _db

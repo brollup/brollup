@@ -1,8 +1,10 @@
+use crate::tcp_peer::{Peer, PeerKind};
 use crate::{baked, key::KeyHolder, tcp_server};
 use crate::{
-    ccli, db, nns_client, tcp, tcp_client, vse, Network, OperatingMode, Peer, PeerList,
-    SignatoryDB, VSEDirectory,
+    ccli, db, nns_client, nns_server, tcp, vse, Network, OperatingMode, PEER, PEER_LIST,
+    SIGNATORY_DB, VSE_DIRECTORY,
 };
+
 use colored::Colorize;
 
 use std::io::{self, BufRead};
@@ -25,13 +27,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     let nns_client = nns_client::Client::new(&keys).await;
 
     // 2. Initialize signatory database.
-    let signatory_db: SignatoryDB = match db::Signatory::new() {
+    let signatory_db: SIGNATORY_DB = match db::Signatory::new() {
         Some(database) => Arc::new(Mutex::new(database)),
         None => return eprintln!("{}", "Error initializing database.".red()),
     };
 
     // 3. Initialize VSE Directory.
-    let mut vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSE_DIRECTORY = match vse::Directory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
@@ -40,6 +42,14 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     match tcp::open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
+    }
+
+    // 5. Run NNS server.
+    {
+        let nns_client = nns_client.clone();
+        let _ = tokio::spawn(async move {
+            let _ = nns_server::run(&nns_client, mode).await;
+        });
     }
 
     // 6. Run TCP server.
@@ -54,7 +64,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     }
 
     // 7. Initialize operator list.
-    let operator_list: PeerList = Arc::new(Mutex::new(Vec::<Peer>::new()));
+    let operator_list: PEER_LIST = Arc::new(Mutex::new(Vec::<PEER>::new()));
 
     // 8. Connect to operators.
     for nns_key in baked::OPERATOR_SET.iter() {
@@ -62,14 +72,8 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         let operator_list = Arc::clone(&operator_list);
 
         tokio::spawn(async move {
-            let operator: Peer = loop {
-                match tcp_client::Peer::connect(
-                    tcp_client::PeerKind::Operator,
-                    nns_key.to_owned(),
-                    &nns_client,
-                )
-                .await
-                {
+            let operator: PEER = loop {
+                match Peer::connect(PeerKind::Operator, nns_key.to_owned(), &nns_client).await {
                     Ok(connection) => break connection,
                     Err(_) => {
                         tokio::time::sleep(Duration::from_secs(5)).await;
@@ -88,9 +92,9 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 }
 
 pub async fn cli(
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    operator_list: &PEER_LIST,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     println!(
         "{}",

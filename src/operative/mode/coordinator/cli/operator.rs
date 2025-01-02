@@ -1,6 +1,6 @@
-use crate::PeerList;
+use crate::PEER_LIST;
 
-pub async fn command(operator_list: &PeerList) {
+pub async fn command(operator_list: &PEER_LIST) {
     let _operator_list = operator_list.lock().await;
 
     for (index, peer) in _operator_list.iter().enumerate() {

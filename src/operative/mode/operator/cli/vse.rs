@@ -1,4 +1,4 @@
-use crate::{tcp_client::Request, Peer, SignatoryDB, VSEDirectory};
+use crate::{tcp_client::Client, PEER, SIGNATORY_DB, VSE_DIRECTORY};
 
 // vse setup <no> print
 // vse dir print
@@ -6,9 +6,9 @@ use crate::{tcp_client::Request, Peer, SignatoryDB, VSEDirectory};
 // vse dir fetch save
 pub async fn command(
     parts: Vec<&str>,
-    coordinator: &Peer,
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    coordinator: &PEER,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     if parts.len() < 3 {
         return eprintln!("Incorrect usage.");
@@ -56,7 +56,7 @@ pub async fn command(
     }
 }
 
-async fn setup_print(vse_directory: &VSEDirectory, no: u64) {
+async fn setup_print(vse_directory: &VSE_DIRECTORY, no: u64) {
     let _vse_directory = vse_directory.lock().await;
     match _vse_directory.setup(no) {
         Some(setup) => setup.print(),
@@ -64,12 +64,12 @@ async fn setup_print(vse_directory: &VSEDirectory, no: u64) {
     }
 }
 
-async fn dir_print(vse_directory: &VSEDirectory) {
+async fn dir_print(vse_directory: &VSE_DIRECTORY) {
     let vse_directory_ = vse_directory.lock().await;
     vse_directory_.print().await;
 }
 
-async fn dir_fetch_print(coordinator: &Peer) {
+async fn dir_fetch_print(coordinator: &PEER) {
     // Retrieve peer from list:
 
     let directory_ = match coordinator.retrieve_vse_directory().await {
@@ -79,7 +79,7 @@ async fn dir_fetch_print(coordinator: &Peer) {
     directory_.print().await;
 }
 
-async fn dir_fetch_save(coordinator: &Peer, db: &SignatoryDB, vse_directory: &mut VSEDirectory) {
+async fn dir_fetch_save(coordinator: &PEER, db: &SIGNATORY_DB, vse_directory: &mut VSE_DIRECTORY) {
     let new_directory = match coordinator.retrieve_vse_directory().await {
         Ok(directory) => directory,
         Err(_) => return eprintln!("Error fetching directory."),

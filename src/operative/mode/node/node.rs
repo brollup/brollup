@@ -1,6 +1,7 @@
+use crate::tcp_peer::{Peer, PeerKind};
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, nns_client, Network};
-use crate::{tcp_client, Peer};
+use crate::{tcp_client, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::time::Duration;
@@ -15,10 +16,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     let nns_client = nns_client::Client::new(&keys).await;
 
     // 2. Connect to the coordinator.
-    let coordinator: Peer = {
+    let coordinator: PEER = {
         loop {
-            match tcp_client::Peer::connect(
-                tcp_client::PeerKind::Coordinator,
+            match Peer::connect(
+                PeerKind::Coordinator,
                 baked::COORDINATOR_WELL_KNOWN,
                 &nns_client,
             )
@@ -38,7 +39,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     cli(&coordinator).await;
 }
 
-pub async fn cli(coordinator_conn: &Peer) {
+pub async fn cli(coordinator_conn: &PEER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()

@@ -1,4 +1,4 @@
-use crate::{tcp_client::Request, vse_setup, PeerList, SignatoryDB, VSEDirectory};
+use crate::{tcp_client::Client, vse_setup, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY};
 
 // vse setup <no> print
 // vse setup <no> run
@@ -7,9 +7,9 @@ use crate::{tcp_client::Request, vse_setup, PeerList, SignatoryDB, VSEDirectory}
 // vse dir fetch <peer> save
 pub async fn command(
     parts: Vec<&str>,
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    operator_list: &PEER_LIST,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     if parts.len() < 3 {
         return eprintln!("Incorrect usage.");
@@ -70,7 +70,7 @@ pub async fn command(
     }
 }
 
-async fn setup_print(vse_directory: &VSEDirectory, no: u64) {
+async fn setup_print(vse_directory: &VSE_DIRECTORY, no: u64) {
     let _vse_directory = vse_directory.lock().await;
     match _vse_directory.setup(no) {
         Some(setup) => setup.print(),
@@ -79,9 +79,9 @@ async fn setup_print(vse_directory: &VSEDirectory, no: u64) {
 }
 
 async fn setup_run(
-    operator_list: &PeerList,
-    signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
+    operator_list: &PEER_LIST,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &VSE_DIRECTORY,
     no: u64,
 ) {
     match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
@@ -93,12 +93,12 @@ async fn setup_run(
     };
 }
 
-async fn dir_print(vse_directory: &VSEDirectory) {
+async fn dir_print(vse_directory: &VSE_DIRECTORY) {
     let vse_directory_ = vse_directory.lock().await;
     vse_directory_.print().await;
 }
 
-async fn dir_fetch_print(operator_list: &PeerList, peer: [u8; 32]) {
+async fn dir_fetch_print(operator_list: &PEER_LIST, peer: [u8; 32]) {
     // Retrieve peer from list:
     let _operator_list = operator_list.lock().await;
 
@@ -121,10 +121,10 @@ async fn dir_fetch_print(operator_list: &PeerList, peer: [u8; 32]) {
 }
 
 async fn dir_fetch_save(
-    operator_list: &PeerList,
+    operator_list: &PEER_LIST,
     peer: [u8; 32],
-    db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     // Retrieve peer from list:
     let _operator_list = operator_list.lock().await;

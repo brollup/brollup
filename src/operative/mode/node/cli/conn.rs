@@ -1,7 +1,7 @@
-use crate::Peer;
+use crate::PEER;
 
 // conn
-pub async fn command(coordinator: &Peer) {
+pub async fn command(coordinator: &PEER) {
     let _coordinator = coordinator.lock().await;
 
     match _coordinator.connection() {

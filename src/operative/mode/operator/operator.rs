@@ -2,14 +2,15 @@ use crate::db;
 use crate::nns_client;
 use crate::ocli;
 use crate::tcp;
-use crate::tcp_client;
+use crate::tcp_peer::Peer;
+use crate::tcp_peer::PeerKind;
 use crate::tcp_server;
 use crate::vse;
 use crate::Network;
 use crate::OperatingMode;
-use crate::Peer;
-use crate::SignatoryDB;
-use crate::VSEDirectory;
+use crate::PEER;
+use crate::SIGNATORY_DB;
+use crate::VSE_DIRECTORY;
 use crate::{baked, key::KeyHolder, nns_server};
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -32,13 +33,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     let nns_client = nns_client::Client::new(&keys).await;
 
     // 2. Initialize signatory database.
-    let signatory_db: SignatoryDB = match db::Signatory::new() {
+    let signatory_db: SIGNATORY_DB = match db::Signatory::new() {
         Some(database) => Arc::new(Mutex::new(database)),
         None => return eprintln!("{}", "Error initializing database.".red()),
     };
 
     // 3. Initialize VSE Directory.
-    let mut vse_directory: VSEDirectory = match vse::Directory::new(&signatory_db).await {
+    let mut vse_directory: VSE_DIRECTORY = match vse::Directory::new(&signatory_db).await {
         Some(directory) => Arc::new(Mutex::new(directory)),
         None => return eprintln!("{}", "Error initializing VSE directory.".red()),
     };
@@ -69,10 +70,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     }
 
     // 7. Connect to the coordinator.
-    let coordinator: Peer = {
+    let coordinator: PEER = {
         loop {
-            match tcp_client::Peer::connect(
-                tcp_client::PeerKind::Coordinator,
+            match Peer::connect(
+                PeerKind::Coordinator,
                 baked::COORDINATOR_WELL_KNOWN,
                 &nns_client,
             )
@@ -95,7 +96,11 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     cli(&signatory_db, &mut vse_directory, &coordinator).await;
 }
 
-pub async fn cli(signatory_db: &SignatoryDB, vse_directory: &mut VSEDirectory, coordinator: &Peer) {
+pub async fn cli(
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
+    coordinator: &PEER,
+) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()

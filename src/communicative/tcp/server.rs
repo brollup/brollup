@@ -3,7 +3,7 @@ use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::schnorr::Authenticable;
 use crate::tcp::Package;
-use crate::{baked, nns_client, tcp, vse, OperatingMode, SignatoryDB, Socket, VSEDirectory};
+use crate::{baked, nns_client, tcp, vse, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -17,8 +17,8 @@ pub async fn run(
     mode: OperatingMode,
     nns_client: &nns_client::Client,
     keys: &KeyHolder,
-    signatory_db: &SignatoryDB,
-    vse_directory: &VSEDirectory,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &VSE_DIRECTORY,
 ) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
@@ -128,12 +128,12 @@ pub async fn run(
 }
 
 async fn handle_socket(
-    socket: &Socket,
+    socket: &SOCKET,
     alive: Option<&Arc<Mutex<bool>>>,
     mode: OperatingMode,
     keys: &KeyHolder,
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     loop {
         let mut _socket = socket.lock().await;
@@ -233,8 +233,8 @@ async fn handle_package(
     socket: &mut tokio::net::TcpStream,
     mode: OperatingMode,
     keys: &KeyHolder,
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) {
     let response_package_ = {
         match mode {
@@ -352,8 +352,8 @@ async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<tcp::Package> {
 async fn handle_deliver_vse_directory(
     timestamp: i64,
     payload: &[u8],
-    signatory_db: &SignatoryDB,
-    vse_directory: &mut VSEDirectory,
+    signatory_db: &SIGNATORY_DB,
+    vse_directory: &mut VSE_DIRECTORY,
 ) -> Option<tcp::Package> {
     let new_directory = vse::Directory::from_slice(&payload)?;
 
@@ -379,7 +379,7 @@ async fn handle_deliver_vse_directory(
 async fn handle_retrieve_vse_directory(
     timestamp: i64,
     payload: &[u8],
-    vse_directory: &VSEDirectory,
+    vse_directory: &VSE_DIRECTORY,
 ) -> Option<tcp::Package> {
     // Expected payload: 0x00.
     if payload != &[0x00] {

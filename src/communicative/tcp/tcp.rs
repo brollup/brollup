@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::key::ToNostrKeyStr;
-use crate::{baked, nns_client, Socket};
+use crate::{baked, nns_client, SOCKET};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::time::{Duration, Instant};
 use std::{io, vec};
@@ -243,7 +243,7 @@ pub async fn write(
 }
 
 pub async fn request(
-    socket: &Socket,
+    socket: &SOCKET,
     package: Package,
     timeout: Option<Duration>,
 ) -> Result<(Package, Duration), TCPError> {

@@ -1,15 +1,17 @@
+#![allow(non_camel_case_types)]
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 // Signatory.
-type SignatoryDB = Arc<Mutex<db::Signatory>>;
-type VSEDirectory = Arc<Mutex<vse::Directory>>;
-type VSESetup = Arc<Mutex<vse::Setup>>;
+type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
+type VSE_DIRECTORY = Arc<Mutex<vse::Directory>>;
+type VSE_SETUP = Arc<Mutex<vse::Setup>>;
 
 // Networking.
-type Socket = Arc<Mutex<tokio::net::TcpStream>>;
-type Peer = Arc<Mutex<tcp_client::Peer>>;
-type PeerList = Arc<Mutex<Vec<Peer>>>;
+type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
+type PEER = Arc<Mutex<tcp_peer::Peer>>;
+type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
 
 #[path = "constructive/list.rs"]
 pub mod list;
@@ -82,6 +84,9 @@ pub mod tcp_server;
 
 #[path = "communicative/tcp/client.rs"]
 pub mod tcp_client;
+
+#[path = "communicative/tcp/peer.rs"]
+pub mod tcp_peer;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
