@@ -1,6 +1,6 @@
 use crate::{
-    tcp_client::{self, Request},
-    vse, Peer, PeerList, SignatoryDB, VSEDirectory,
+    tcp_client::{PeerListExt, Request},
+    vse, PeerList, SignatoryDB, VSEDirectory, VSESetup,
 };
 use futures::future::join_all;
 use std::sync::Arc;
@@ -12,62 +12,50 @@ pub async fn run(
     vse_directory: &VSEDirectory,
     no: u64,
 ) -> Option<vse::Setup> {
-    let mut connected_operator_key_list = Vec::<[u8; 32]>::new();
-    let connected_operator_list: Vec<Peer> = {
-        let mut list: Vec<Arc<Mutex<tcp_client::Peer>>> = Vec::<Peer>::new();
-        let _operator_list = operator_list.lock().await;
-
-        for (_, peer) in _operator_list.iter().enumerate() {
-            let conn = {
-                let _peer = peer.lock().await;
-                _peer.connection()
-            };
-
-            if let Some(_) = conn {
-                {
-                    let _peer = peer.lock().await;
-                    connected_operator_key_list.push(_peer.nns_key());
-                }
-
-                list.push(Arc::clone(&peer));
-            }
-        }
-        list
+    let (operators, keys) = {
+        (
+            operator_list.active_peers().await,
+            operator_list.active_keys().await,
+        )
     };
 
-    let setup = Arc::new(Mutex::new(vse::Setup::new(&connected_operator_key_list)));
+    let setup: VSESetup = {
+        let setup_ = vse::Setup::new(&keys);
+        Arc::new(Mutex::new(setup_))
+    };
 
-    // Phase #1: Setup retrieval.
+    // Phase #1: Retrieve keymaps and insert setup.
+    {
+        let mut tasks = vec![];
 
-    let mut tasks = vec![];
+        for operator in operators.clone() {
+            let keys = keys.clone();
+            let setup = Arc::clone(&setup);
 
-    for connected_operator in connected_operator_list.clone() {
-        let connected_operator_key_list = connected_operator_key_list.clone();
-        let setup = Arc::clone(&setup);
-
-        let operator_key = {
-            let _connected_operator = connected_operator.lock().await;
-            _connected_operator.nns_key()
-        };
-
-        tasks.push(tokio::spawn(async move {
-            let (map, auth_sig) = match connected_operator
-                .retrieve_vse_keymap(operator_key, &connected_operator_key_list)
-                .await
-            {
-                Ok((map, auth_sig)) => (map, auth_sig),
-                Err(_) => return,
+            let key = {
+                let _connected_operator = operator.lock().await;
+                _connected_operator.nns_key()
             };
 
-            let mut _setup = setup.lock().await;
+            tasks.push(tokio::spawn(async move {
+                let auth_keymap = match operator.retrieve_vse_keymap(key, &keys).await {
+                    Ok(auth_keymap) => auth_keymap,
+                    Err(_) => return,
+                };
 
-            if !_setup.insert(map.clone(), auth_sig) {
-                return;
-            }
-        }));
+                // Insertion.
+                {
+                    let mut _setup = setup.lock().await;
+
+                    if !_setup.insert(auth_keymap) {
+                        return;
+                    }
+                }
+            }));
+        }
+
+        join_all(tasks).await;
     }
-
-    join_all(tasks).await;
 
     let setup_ = {
         let _setup = setup.lock().await;
@@ -87,24 +75,27 @@ pub async fn run(
         return None;
     }
 
+    // Directory is final.
+
     {
         let mut _vse_directory = vse_directory.lock().await;
         *_vse_directory = directory_.clone();
     }
 
-    // Phase #2: Deliver directory.
+    // Phase #2: Deliver directory to each operator.
+    {
+        let mut tasks = vec![];
 
-    let mut tasks = vec![];
+        for operator in operators.clone() {
+            let directory_ = directory_.clone();
 
-    for connected_operator in connected_operator_list {
-        let directory_ = directory_.clone();
+            tasks.push(tokio::spawn(async move {
+                operator.deliver_vse_directory(&directory_).await
+            }));
+        }
 
-        tasks.push(tokio::spawn(async move {
-            connected_operator.deliver_vse_directory(&directory_).await
-        }));
+        join_all(tasks).await;
     }
-
-    join_all(tasks).await;
 
     Some(setup_)
 }

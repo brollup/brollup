@@ -1,6 +1,6 @@
 use crate::list::ListCodec;
 use crate::schnorr::Authenticable;
-use crate::{nns_client, Socket};
+use crate::{nns_client, PeerList, Socket};
 use crate::{
     tcp::{self, TCPError},
     vse,
@@ -223,18 +223,65 @@ impl Connection for Arc<Mutex<Peer>> {
     }
 }
 
+#[async_trait::async_trait]
+pub trait PeerListExt {
+    async fn active_peers(&self) -> Vec<crate::Peer>;
+    async fn active_keys(&self) -> Vec<[u8; 32]>;
+}
+
+#[async_trait::async_trait]
+impl PeerListExt for PeerList {
+    async fn active_peers(&self) -> Vec<crate::Peer> {
+        let mut list = Vec::<crate::Peer>::new();
+
+        let _operator_list = self.lock().await;
+
+        for (_, peer) in _operator_list.iter().enumerate() {
+            let conn = {
+                let _peer = peer.lock().await;
+                _peer.connection()
+            };
+
+            if let Some(_) = conn {
+                {
+                    let _peer = peer.lock().await;
+                    //connected_operator_key_list.push(_peer.nns_key());
+                }
+
+                list.push(Arc::clone(&peer));
+            }
+        }
+        list
+    }
+
+    async fn active_keys(&self) -> Vec<[u8; 32]> {
+        let mut key_list = Vec::<[u8; 32]>::new();
+
+        for peer in self.active_peers().await.iter() {
+            let _peer = peer.lock().await;
+            key_list.push(_peer.nns_key());
+        }
+
+        key_list
+    }
+}
+
 #[async_trait]
 pub trait Request {
     async fn ping(&self) -> Result<Duration, RequestError>;
+
+    // Signatory requests.
     async fn retrieve_vse_keymap(
         &self,
         signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<(vse::KeyMap, [u8; 64]), RequestError>;
+    ) -> Result<Authenticable<vse::KeyMap>, RequestError>;
+
     async fn deliver_vse_directory(
         &self,
         vse_directory: &vse::Directory,
     ) -> Result<(), RequestError>;
+
     async fn retrieve_vse_directory(&self) -> Result<vse::Directory, RequestError>;
 }
 
@@ -242,7 +289,8 @@ pub trait Request {
 pub enum RequestError {
     TCPErr(TCPError),
     InvalidResponse,
-    EmptyResponse, // Empty reponses are error.
+    // Empty reponses are of error.
+    EmptyResponse,
 }
 
 #[async_trait]
@@ -287,7 +335,7 @@ impl Request for Arc<Mutex<Peer>> {
         &self,
         signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<(vse::KeyMap, [u8; 64]), RequestError> {
+    ) -> Result<Authenticable<vse::KeyMap>, RequestError> {
         // Build request package.
         let request_package = {
             let kind = tcp::Kind::RetrieveVSEKeymap;
@@ -310,16 +358,14 @@ impl Request for Arc<Mutex<Peer>> {
             _ => response_package.payload(),
         };
 
-        let payload: Authenticable<vse::KeyMap> =
+        let auth_keymap: Authenticable<vse::KeyMap> =
             bincode::deserialize(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
-        if (payload.key() != signer_key) || !payload.authenticate() {
+        if (auth_keymap.key() != signer_key) || !auth_keymap.authenticate() {
             return Err(RequestError::InvalidResponse);
         }
 
-        let keymap = payload.object();
-
-        Ok((keymap, payload.sig()))
+        Ok(auth_keymap)
     }
 
     // This is when the coordinator publishes each operator the new vse directory.

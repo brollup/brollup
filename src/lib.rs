@@ -4,6 +4,7 @@ use tokio::sync::Mutex;
 // Signatory.
 type SignatoryDB = Arc<Mutex<db::Signatory>>;
 type VSEDirectory = Arc<Mutex<vse::Directory>>;
+type VSESetup = Arc<Mutex<vse::Setup>>;
 
 // Networking.
 type Socket = Arc<Mutex<tokio::net::TcpStream>>;
