@@ -2,7 +2,7 @@ use crate::{
     db,
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    schnorr::{self, Authenticable, Bytes32, LiftScalar},
+    schnorr::{self, Authenticable, Bytes32, LiftScalar, Sighash},
     SIGNATORY_DB,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
@@ -183,6 +183,33 @@ impl VSEKeyMap {
         let sig = schnorr::sign(secret_key, msg)?;
 
         return Some((key, sig));
+    }
+}
+
+impl Sighash for VSEKeyMap {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage: Vec<u8> = Vec::<u8>::new();
+
+        preimage.extend(self.signer_key());
+
+        let mut maps: Vec<(SignerKey, (VSEKey, VSEProof))> = self.map().into_iter().collect();
+        maps.sort_by(|a, b| a.0.cmp(&b.0));
+
+        for (signer_key, (vse_key, proof)) in maps.iter() {
+            preimage.extend(signer_key);
+            preimage.extend(vse_key);
+            match proof {
+                Some(proof) => {
+                    preimage.push(0x01);
+                    preimage.extend(proof)
+                }
+                None => preimage.push(0x00),
+            }
+        }
+
+        println!("auth_hash preimage is {}", hex::encode(&preimage));
+
+        preimage.hash()
     }
 }
 

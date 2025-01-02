@@ -255,8 +255,8 @@ async fn handle_package(
             },
             OperatingMode::Operator => match package.kind() {
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
-                PackageKind::RetrieveVSEKeymap => {
-                    handle_retrieve_vse_keymap(package.timestamp(), &package.payload(), keys).await
+                PackageKind::RequestVSEKeymap => {
+                    handle_request_vse_keymap(package.timestamp(), &package.payload(), keys).await
                 }
 
                 PackageKind::DeliverVSEDirectory => {
@@ -293,7 +293,7 @@ async fn handle_package(
         .await;
 }
 
-async fn handle_retrieve_vse_keymap(
+async fn handle_request_vse_keymap(
     timestamp: i64,
     payload: &[u8],
     keys: &KeyHolder,
@@ -331,7 +331,7 @@ async fn handle_retrieve_vse_keymap(
         Err(_) => return None,
     };
 
-    let package = TCPPackage::new(PackageKind::RetrieveVSEKeymap, timestamp, &serialized);
+    let package = TCPPackage::new(PackageKind::RequestVSEKeymap, timestamp, &serialized);
 
     Some(package)
 }

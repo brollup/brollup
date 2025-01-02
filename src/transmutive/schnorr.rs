@@ -265,12 +265,13 @@ pub struct Authenticable<T> {
 
 impl<T> Authenticable<T>
 where
-    T: Serialize + Clone,
+    T: Sighash + Clone,
 {
     pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
         let key = secret_key.secret_to_public()?;
-        let message = bincode::serialize(&object).ok()?.hash();
-        let sig = Signature(sign(secret_key, message)?);
+        let msg = object.sighash();
+        println!("constr authash {}", hex::encode(msg));
+        let sig = Signature(sign(secret_key, msg)?);
 
         Some(Self { object, sig, key })
     }
@@ -279,13 +280,10 @@ where
         self.object.clone()
     }
 
-    pub fn object_bytes(&self) -> Option<Vec<u8>> {
-        bincode::serialize(&self.object).ok()
-    }
-
     pub fn msg(&self) -> Option<[u8; 32]> {
-        let bytes = self.object_bytes()?;
-        Some(bytes.hash())
+        let authash =self.object().sighash();
+        println!("ver authash {}", hex::encode(authash));
+        Some(authash)
     }
 
     pub fn sig(&self) -> [u8; 64] {
@@ -305,4 +303,8 @@ where
         let sig = self.sig();
         verify(key, msg, sig)
     }
+}
+
+pub trait Sighash {
+    fn sighash(&self) -> [u8; 32];
 }

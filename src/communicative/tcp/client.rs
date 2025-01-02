@@ -80,7 +80,7 @@ impl TCPClient for PEER {
     ) -> Result<Authenticable<VSEKeyMap>, RequestError> {
         // Build request package.
         let request_package = {
-            let kind = PackageKind::RetrieveVSEKeymap;
+            let kind = PackageKind::RequestVSEKeymap;
             let timestamp = Utc::now().timestamp();
             let payload = signer_list.encode_list();
             TCPPackage::new(kind, timestamp, &payload)
@@ -91,7 +91,10 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        let (response_package, _) = tcp::request(&socket, request_package, None)
+        // Timeout 3 seconds.
+        let timeout = Duration::from_millis(3_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
             .map_err(|err| RequestError::TCPErr(err))?;
 
@@ -102,6 +105,8 @@ impl TCPClient for PEER {
 
         let auth_keymap: Authenticable<VSEKeyMap> =
             bincode::deserialize(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+
+        println!("authen :{}", auth_keymap.authenticate());
 
         if (auth_keymap.key() != signer_key) || !auth_keymap.authenticate() {
             return Err(RequestError::InvalidResponse);

@@ -14,7 +14,6 @@ pub async fn run(
     vse_directory: &VSE_DIRECTORY,
     no: u64,
 ) -> Option<VSESetup> {
-    println!("beign");
     let (operators, keys) = {
         (
             operator_list.active_peers().await,
@@ -22,15 +21,10 @@ pub async fn run(
         )
     };
 
-    println!("operators len: {}", operators.len());
-    println!("keys len: {}", keys.len());
-
     let vse_setup: VSE_SETUP = {
         let setup_ = VSESetup::new(&keys);
         Arc::new(Mutex::new(setup_))
     };
-
-    println!("ara 0");
 
     // Phase #1: Retrieve keymaps and insert setup.
     {
@@ -45,57 +39,48 @@ pub async fn run(
                 _connected_operator.nns_key()
             };
 
-            println!("{} a soruyoruz.", hex::encode(key));
-
             tasks.push(tokio::spawn(async move {
                 let auth_keymap = match operator.request_vse_keymap(key, &keys).await {
                     Ok(auth_keymap) => auth_keymap,
                     Err(_) => return,
                 };
-                println!("{} dondu.", hex::encode(key));
 
                 // Insertion.
                 {
                     let mut _vse_setup = vse_setup.lock().await;
-
-                    if !_vse_setup.insert(auth_keymap) {
-                        println!("Insertion olmadi.");
-                    } else {
-                        println!("Insertion oldu.");
-                    }
+                    _vse_setup.insert(auth_keymap);
                 }
             }));
         }
 
         join_all(tasks).await;
     }
-    println!("ara 1");
+
     let vse_setup_ = {
         let _vse_setup = vse_setup.lock().await;
         (*_vse_setup).clone()
     };
 
-    println!("ara 2");
     if !vse_setup_.validate() {
         return None;
     }
-    println!("ara 3");
+
     let mut directory_ = {
         let mut _vse_directory = vse_directory.lock().await;
         (*_vse_directory).clone()
     };
-    println!("ara 4");
+
     if !directory_.insert(no, &vse_setup_, signatory_db).await {
         return None;
     }
-    println!("ara 5");
-    // Directory is final.
+
+    // Directory is ready.
 
     {
         let mut _vse_directory = vse_directory.lock().await;
         *_vse_directory = directory_.clone();
     }
-    println!("ara 6");
+
     // Phase #2: Deliver directory to each operator.
     {
         let mut tasks = vec![];
@@ -110,7 +95,6 @@ pub async fn run(
 
         join_all(tasks).await;
     }
-    println!("ara 7");
 
     Some(vse_setup_)
 }

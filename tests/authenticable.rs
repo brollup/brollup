@@ -1,13 +1,26 @@
 #[cfg(test)]
 mod schnorr_tests {
-    use brollup::schnorr::Authenticable;
-    use hex;
+    use brollup::{
+        hash::Hash,
+        schnorr::{Authenticable, Sighash},
+    };
     use serde::{Deserialize, Serialize};
 
     #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
     pub struct DemoStruct {
         pub field1: String,
         pub field2: u32,
+    }
+
+    impl Sighash for DemoStruct {
+        fn sighash(&self) -> [u8; 32] {
+            let mut preimage: Vec<u8> = Vec::<u8>::new();
+
+            preimage.extend(self.field1.as_bytes());
+            preimage.extend(self.field2.to_be().to_be_bytes());
+
+            preimage.hash()
+        }
     }
 
     #[test]
