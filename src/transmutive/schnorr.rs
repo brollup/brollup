@@ -255,7 +255,7 @@ where
     pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
         let key = secret_key.secret_to_public()?;
         let msg = object.sighash();
-        println!("constr authash {}", hex::encode(msg));
+
         let sig = Signature(sign(secret_key, msg)?);
 
         Some(Self { object, sig, key })
@@ -267,7 +267,6 @@ where
 
     pub fn msg(&self) -> Option<[u8; 32]> {
         let authash = self.object().sighash();
-        println!("ver authash {}", hex::encode(authash));
         Some(authash)
     }
 

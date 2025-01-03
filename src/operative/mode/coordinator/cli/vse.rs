@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::{tcp::client::TCPClient, vse_setup, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY};
 
 // vse setup <no> print
@@ -86,10 +88,13 @@ async fn setup_run(
 ) {
     match vse_setup::run(operator_list, signatory_db, vse_directory, no).await {
         Some(setup) => {
-            eprintln!("VSE protocol #{} run with success and saved.", no);
+            println!(
+                "{}",
+                format!("VSE protocol #{} run with success and saved.", no).green()
+            );
             setup.print();
         }
-        None => return eprintln!("VSE protocol #{} failed.", no),
+        None => return eprintln!("{}", format!("VSE protocol #{} failed.", no).red()),
     };
 }
 
@@ -110,8 +115,11 @@ async fn dir_fetch_print(operator_list: &PEER_LIST, peer: [u8; 32]) {
 
         if lookup {
             let directory_ = match operator.retrieve_vse_directory().await {
-                Ok(directory) => directory,
-                Err(_) => return eprintln!("Error fetching directory."),
+                Ok(directory) => {
+                    println!("{}", "Directory retrieved.".green());
+                    directory
+                }
+                Err(_) => return eprintln!("{}", "Error fetching directory.".red()),
             };
             directory_.print().await;
         }
@@ -138,7 +146,7 @@ async fn dir_fetch_save(
         if lookup {
             let new_directory = match operator.retrieve_vse_directory().await {
                 Ok(directory) => directory,
-                Err(_) => return eprintln!("Error fetching directory."),
+                Err(_) => return eprintln!("{}", "Error fetching directory.".red()),
             };
 
             match new_directory.save(&db).await {
@@ -146,9 +154,9 @@ async fn dir_fetch_save(
                     let mut _vse_directory = vse_directory.lock().await;
                     *_vse_directory = new_directory;
 
-                    return eprintln!("Directory retrieved and saved.");
+                    return println!("{}", "Directory retrieved and saved.".green());
                 }
-                false => return eprintln!("Error saving directory."),
+                false => return eprintln!("{}", "Error saving directory.".red()),
             }
         }
     }

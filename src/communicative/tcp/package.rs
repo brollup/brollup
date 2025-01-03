@@ -8,7 +8,7 @@ use super::tcp::{self, TCPError};
 pub enum PackageKind {
     Ping,
     RequestVSEKeymap,
-    DeliverVSEDirectory,
+    DeliverVSESetup,
     RetrieveVSEDirectory,
 }
 
@@ -17,7 +17,7 @@ impl PackageKind {
         match self {
             PackageKind::Ping => 0x00,
             PackageKind::RequestVSEKeymap => 0x01,
-            PackageKind::DeliverVSEDirectory => 0x02,
+            PackageKind::DeliverVSESetup => 0x02,
             PackageKind::RetrieveVSEDirectory => 0x03,
         }
     }
@@ -25,7 +25,7 @@ impl PackageKind {
         match bytecode {
             0x00 => Some(PackageKind::Ping),
             0x01 => Some(PackageKind::RequestVSEKeymap),
-            0x02 => Some(PackageKind::DeliverVSEDirectory),
+            0x02 => Some(PackageKind::DeliverVSESetup),
             0x03 => Some(PackageKind::RetrieveVSEDirectory),
             _ => None,
         }

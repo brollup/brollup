@@ -230,13 +230,12 @@ impl Connection for PEER {
 
 #[async_trait::async_trait]
 pub trait PeerListExt {
-    async fn active_peers(&self) -> Vec<PEER>;
-    async fn active_keys(&self) -> Vec<[u8; 32]>;
+    async fn connected(&self) -> Vec<PEER>;
 }
 
 #[async_trait::async_trait]
 impl PeerListExt for PEER_LIST {
-    async fn active_peers(&self) -> Vec<PEER> {
+    async fn connected(&self) -> Vec<PEER> {
         let mut list = Vec::<PEER>::new();
 
         let peer_list_: Vec<PEER> = {
@@ -255,16 +254,5 @@ impl PeerListExt for PEER_LIST {
             }
         }
         list
-    }
-
-    async fn active_keys(&self) -> Vec<[u8; 32]> {
-        let mut key_list = Vec::<[u8; 32]>::new();
-
-        for peer in self.active_peers().await.iter() {
-            let _peer = peer.lock().await;
-            key_list.push(_peer.nns_key());
-        }
-
-        key_list
     }
 }

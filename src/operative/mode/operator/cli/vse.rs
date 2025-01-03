@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::{tcp::client::TCPClient, PEER, SIGNATORY_DB, VSE_DIRECTORY};
 
 // vse setup <no> print
@@ -74,7 +76,7 @@ async fn dir_fetch_print(coordinator: &PEER) {
 
     let directory_ = match coordinator.retrieve_vse_directory().await {
         Ok(directory) => directory,
-        Err(_) => return eprintln!("Error fetching directory."),
+        Err(_) => return eprintln!("{}", "Error fetching directory.".red()),
     };
     directory_.print().await;
 }
@@ -82,7 +84,7 @@ async fn dir_fetch_print(coordinator: &PEER) {
 async fn dir_fetch_save(coordinator: &PEER, db: &SIGNATORY_DB, vse_directory: &mut VSE_DIRECTORY) {
     let new_directory = match coordinator.retrieve_vse_directory().await {
         Ok(directory) => directory,
-        Err(_) => return eprintln!("Error fetching directory."),
+        Err(_) => return eprintln!("{}", "Error fetching directory.".red()),
     };
 
     match new_directory.save(&db).await {
@@ -90,8 +92,8 @@ async fn dir_fetch_save(coordinator: &PEER, db: &SIGNATORY_DB, vse_directory: &m
             let mut _vse_directory = vse_directory.lock().await;
             *_vse_directory = new_directory;
 
-            return eprintln!("Directory retrieved and saved.");
+            return println!("{}", "Directory retrieved and saved.".green());
         }
-        false => return eprintln!("Error saving directory."),
+        false => return eprintln!("{}", "Error saving directory.".red()),
     }
 }

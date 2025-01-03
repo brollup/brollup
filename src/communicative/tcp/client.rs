@@ -2,7 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use super::peer::Connection;
 use super::tcp::{self, TCPError};
 use crate::list::ListCodec;
-use crate::noist::vse::{VSEDirectory, VSEKeyMap};
+use crate::noist::vse::{VSEDirectory, VSEKeyMap, VSESetup};
 use crate::schnorr::Authenticable;
 
 use crate::{PEER, SOCKET};
@@ -21,8 +21,7 @@ pub trait TCPClient {
         signer_list: &Vec<[u8; 32]>,
     ) -> Result<Authenticable<VSEKeyMap>, RequestError>;
 
-    async fn deliver_vse_directory(&self, vse_directory: &VSEDirectory)
-        -> Result<(), RequestError>;
+    async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
 
     async fn retrieve_vse_directory(&self) -> Result<VSEDirectory, RequestError>;
 }
@@ -31,8 +30,8 @@ pub trait TCPClient {
 pub enum RequestError {
     TCPErr(TCPError),
     InvalidResponse,
-    // Empty reponses are of error.
     EmptyResponse,
+    ErrorResponse,
 }
 
 #[async_trait]
@@ -117,15 +116,12 @@ impl TCPClient for PEER {
 
     // This is when the coordinator publishes each operator the new vse directory.
     // Likely after retrieve_vse_keymap.
-    async fn deliver_vse_directory(
-        &self,
-        vse_directory: &VSEDirectory,
-    ) -> Result<(), RequestError> {
+    async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError> {
         // Build request package.
         let request_package = {
-            let kind = PackageKind::DeliverVSEDirectory;
+            let kind = PackageKind::DeliverVSESetup;
             let timestamp = Utc::now().timestamp();
-            let payload = vse_directory.serialize();
+            let payload = vse_setup.serialize();
             TCPPackage::new(kind, timestamp, &payload)
         };
 
@@ -147,12 +143,11 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        // Expected response: 0x01
-        if response_payload != [0x01u8] {
-            return Err(RequestError::InvalidResponse);
+        match response_payload.as_slice() {
+            [0x01u8] => return Ok(()),
+            [0x00u8] => return Err(RequestError::ErrorResponse),
+            _ => return Err(RequestError::InvalidResponse),
         }
-
-        Ok(())
     }
 
     // This is a coordinator or the operator asking from another peer

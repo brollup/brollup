@@ -15,7 +15,7 @@ pub fn encrypting_key_secret(self_secret: [u8; 32], to_public: [u8; 32]) -> Opti
 
     let shared_secret_point = self_secret * to_public;
     let shared_secret_point_bytes = shared_secret_point.serialize_uncompressed();
-    let shared_secret_point_hash = (&shared_secret_point_bytes).hash(Some(HashTag::SecretKey));
+    let shared_secret_point_hash = (&shared_secret_point_bytes).hash(Some(HashTag::SharedSecret));
     let shared_secret = match MaybeScalar::reduce_from(&shared_secret_point_hash) {
         MaybeScalar::Valid(scalar) => scalar.lift(),
         MaybeScalar::Zero => Scalar::reduce_from(&shared_secret_point_hash).lift(),
@@ -202,16 +202,22 @@ impl Sighash for VSEKeyMap {
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSESetup {
+    no: u64,
     signers: Vec<[u8; 32]>,
     maps: HashMap<[u8; 32], Authenticable<VSEKeyMap>>,
 }
 
 impl VSESetup {
-    pub fn new(signers: &Vec<[u8; 32]>) -> VSESetup {
+    pub fn new(signers: &Vec<[u8; 32]>, no: u64) -> VSESetup {
         VSESetup {
+            no,
             signers: signers.clone(),
             maps: HashMap::<[u8; 32], Authenticable<VSEKeyMap>>::new(),
         }
+    }
+
+    pub fn no(&self) -> u64 {
+        self.no
     }
 
     pub fn signers(&self) -> Vec<[u8; 32]> {
@@ -327,6 +333,10 @@ impl VSESetup {
     }
 
     pub fn print(&self) {
+        if self.maps.len() == 0 {
+            println!("None.");
+        }
+
         for (key, map) in self.maps().iter() {
             println!("{}", hex::encode(key));
             for triple in map.object().map().iter() {
@@ -381,12 +391,19 @@ impl VSEDirectory {
         }
     }
 
+    pub fn no_reserved(&self, no: u64) -> bool {
+        match self.setups.get(&no) {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     pub async fn setups(&self) -> HashMap<u64, VSESetup> {
         self.setups.clone()
     }
 
-    pub async fn insert(&mut self, no: u64, setup: &VSESetup, db: &SIGNATORY_DB) -> bool {
-        match self.setups.insert(no, setup.clone()) {
+    pub async fn insert(&mut self, setup: &VSESetup, db: &SIGNATORY_DB) -> bool {
+        match self.setups.insert(setup.no(), setup.clone()) {
             Some(_) => return false,
             None => {
                 self.prune();

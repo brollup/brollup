@@ -108,7 +108,14 @@ pub async fn cli(
     let handle = stdin.lock();
 
     for line in handle.lines() {
-        let line = line.unwrap();
+        let line = match line {
+            Ok(line) => line,
+            Err(_) => {
+                eprintln!("{}", format!("Invalid line.").yellow());
+                continue;
+            }
+        };
+
         let parts: Vec<&str> = line.trim().split_whitespace().collect();
 
         if parts.is_empty() {

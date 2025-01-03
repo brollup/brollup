@@ -3,7 +3,7 @@ use super::tcp;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
-use crate::noist::vse::{VSEDirectory, VSEKeyMap};
+use crate::noist::vse::{VSEKeyMap, VSESetup};
 use crate::schnorr::Authenticable;
 
 use crate::{baked, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
@@ -259,8 +259,8 @@ async fn handle_package(
                     handle_request_vse_keymap(package.timestamp(), &package.payload(), keys).await
                 }
 
-                PackageKind::DeliverVSEDirectory => {
-                    handle_deliver_vse_directory(
+                PackageKind::DeliverVSESetup => {
+                    handle_deliver_vse_setup(
                         package.timestamp(),
                         &package.payload(),
                         signatory_db,
@@ -344,26 +344,25 @@ async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<TCPPackage> {
     Some(response_package)
 }
 
-async fn handle_deliver_vse_directory(
+async fn handle_deliver_vse_setup(
     timestamp: i64,
     payload: &[u8],
     signatory_db: &SIGNATORY_DB,
     vse_directory: &mut VSE_DIRECTORY,
 ) -> Option<TCPPackage> {
-    let new_directory = VSEDirectory::from_slice(&payload)?;
+    let vse_setup = VSESetup::from_slice(&payload)?;
 
-    if !new_directory.save(signatory_db).await {
-        return None;
+    let insertion = {
+        let mut _vse_directory = vse_directory.lock().await;
+        _vse_directory.insert(&vse_setup, signatory_db).await
     };
 
-    {
-        let mut _vse_directory = vse_directory.lock().await;
-        *_vse_directory = new_directory;
-    }
-
     let response_package = {
-        let kind = PackageKind::DeliverVSEDirectory;
-        let payload = [0x01u8]; // 0x01 for success.
+        let kind = PackageKind::DeliverVSESetup;
+        let payload = match insertion {
+            true => [0x01u8],  // 0x00 for success.
+            false => [0x00u8], // 0x01 for failure.
+        };
 
         TCPPackage::new(kind, timestamp, &payload)
     };

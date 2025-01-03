@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod schnorr_tests {
+mod authenticable_tests {
     use brollup::{
         hash::{Hash, HashTag},
         schnorr::{Authenticable, Sighash},
