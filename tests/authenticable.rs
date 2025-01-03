@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod schnorr_tests {
     use brollup::{
-        hash::Hash,
+        hash::{Hash, HashTag},
         schnorr::{Authenticable, Sighash},
     };
     use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ mod schnorr_tests {
             preimage.extend(self.field1.as_bytes());
             preimage.extend(self.field2.to_be().to_be_bytes());
 
-            preimage.hash()
+            preimage.hash(Some(HashTag::SighashAuthenticable))
         }
     }
 

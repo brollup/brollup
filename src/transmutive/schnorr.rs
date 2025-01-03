@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use crate::{baked, hash::Hash};
+use crate::hash::Hash;
+use crate::hash::HashTag;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::de::{self, Visitor};
@@ -87,17 +88,11 @@ pub fn verify(public_key: [u8; 32], message: [u8; 32], signature: [u8; 64]) -> b
 fn challenge(public_nonce: Point, public_key: Point, message: [u8; 32]) -> MaybeScalar {
     let mut challenge_preimage = Vec::<u8>::with_capacity(160);
 
-    let challenge_tag = (baked::PROJECT_TAG.to_lowercase() + "/challenge")
-        .as_bytes()
-        .hash();
-
-    challenge_preimage.extend(challenge_tag);
-    challenge_preimage.extend(challenge_tag);
     challenge_preimage.extend(public_nonce.serialize_xonly());
     challenge_preimage.extend(public_key.serialize_xonly());
     challenge_preimage.extend(message);
 
-    let challenge = challenge_preimage.hash();
+    let challenge = challenge_preimage.hash(Some(HashTag::SignatureChallenge));
 
     MaybeScalar::reduce_from(&challenge)
 }
@@ -106,16 +101,10 @@ fn challenge(public_nonce: Point, public_key: Point, message: [u8; 32]) -> Maybe
 fn secret_nonce(secret_key: [u8; 32], message: [u8; 32]) -> MaybeScalar {
     let mut secret_nonce_preimage = Vec::<u8>::new();
 
-    let secret_nonce_tag = (baked::PROJECT_TAG.to_lowercase() + "/secretnonce")
-        .as_bytes()
-        .hash();
-
-    secret_nonce_preimage.extend(secret_nonce_tag);
-    secret_nonce_preimage.extend(secret_nonce_tag);
     secret_nonce_preimage.extend(secret_key);
     secret_nonce_preimage.extend(message);
 
-    let secret_nonce = secret_nonce_preimage.hash();
+    let secret_nonce = secret_nonce_preimage.hash(Some(HashTag::SecretNonce));
 
     MaybeScalar::reduce_from(&secret_nonce)
 }
@@ -125,11 +114,7 @@ pub fn generate_secret() -> [u8; 32] {
     let mut random_entropy = [0u8; 32];
     OsRng.fill_bytes(&mut random_entropy);
 
-    let mut secret_bytes = Vec::<u8>::with_capacity(64);
-    secret_bytes.extend(baked::PROJECT_TAG.as_bytes());
-    secret_bytes.extend(random_entropy);
-
-    let secret = secret_bytes.hash();
+    let secret = random_entropy.hash(Some(HashTag::SecretKey));
     let secret_scalar = match MaybeScalar::reduce_from(&secret) {
         MaybeScalar::Valid(scalar) => scalar,
         MaybeScalar::Zero => Scalar::reduce_from(&secret),
@@ -281,7 +266,7 @@ where
     }
 
     pub fn msg(&self) -> Option<[u8; 32]> {
-        let authash =self.object().sighash();
+        let authash = self.object().sighash();
         println!("ver authash {}", hex::encode(authash));
         Some(authash)
     }

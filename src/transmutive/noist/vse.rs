@@ -1,8 +1,8 @@
 use crate::{
     db,
-    hash::Hash,
+    hash::{Hash, HashTag},
     into::{IntoPoint, IntoScalar},
-    schnorr::{self, Authenticable, Bytes32, LiftScalar, Sighash},
+    schnorr::{Authenticable, Bytes32, LiftScalar, Sighash},
     SIGNATORY_DB,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
@@ -15,7 +15,7 @@ pub fn encrypting_key_secret(self_secret: [u8; 32], to_public: [u8; 32]) -> Opti
 
     let shared_secret_point = self_secret * to_public;
     let shared_secret_point_bytes = shared_secret_point.serialize_uncompressed();
-    let shared_secret_point_hash = (&shared_secret_point_bytes).hash();
+    let shared_secret_point_hash = (&shared_secret_point_bytes).hash(Some(HashTag::SecretKey));
     let shared_secret = match MaybeScalar::reduce_from(&shared_secret_point_hash) {
         MaybeScalar::Valid(scalar) => scalar.lift(),
         MaybeScalar::Zero => Scalar::reduce_from(&shared_secret_point_hash).lift(),
@@ -176,14 +176,6 @@ impl VSEKeyMap {
     pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
         Some(self.map.get(&correspondant)?.0.to_owned())
     }
-
-    pub fn auth_sig(&self, secret_key: [u8; 32]) -> Option<([u8; 32], [u8; 64])> {
-        let msg = self.serialize().hash();
-        let key = secret_key.secret_to_public()?;
-        let sig = schnorr::sign(secret_key, msg)?;
-
-        return Some((key, sig));
-    }
 }
 
 impl Sighash for VSEKeyMap {
@@ -207,9 +199,7 @@ impl Sighash for VSEKeyMap {
             }
         }
 
-        println!("auth_hash preimage is {}", hex::encode(&preimage));
-
-        preimage.hash()
+        preimage.hash(Some(HashTag::SighashAuthenticable))
     }
 }
 
