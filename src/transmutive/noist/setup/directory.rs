@@ -51,6 +51,10 @@ impl VSEDirectory {
     }
 
     pub async fn insert(&mut self, setup: &VSESetup, db: &SIGNATORY_DB) -> bool {
+        if !setup.validate() {
+            return false;
+        };
+
         match self.setups.insert(setup.no(), setup.clone()) {
             Some(_) => return false,
             None => {
