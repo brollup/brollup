@@ -314,15 +314,7 @@ async fn handle_request_vse_keymap(
         // TODO: Add majority check.
     }
 
-    let mut keymap = VSEKeyMap::new(keys.public_key());
-
-    if !keymap.fill(keys.secret_key(), &signer_list) {
-        return None;
-    };
-
-    if !keymap.is_complete(&signer_list) {
-        return None;
-    }
+    let keymap = VSEKeyMap::new(keys.secret_key(), &signer_list)?;
 
     let auth_keymap: Authenticable<VSEKeyMap> = Authenticable::new(keymap, keys.secret_key())?;
 

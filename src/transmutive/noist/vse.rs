@@ -77,22 +77,37 @@ pub fn verify(
         }
 }
 
-type SignerKey = [u8; 32];
-type VSEKey = [u8; 32];
+type CorrespondantKey = [u8; 32];
+type CorrespondantVSEKey = [u8; 32];
 type VSEProof = Option<Vec<u8>>;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSEKeyMap {
-    signer: [u8; 32],
-    map: HashMap<SignerKey, (VSEKey, VSEProof)>,
+    key: [u8; 32],
+    map: HashMap<CorrespondantKey, (CorrespondantVSEKey, VSEProof)>,
 }
 
 impl VSEKeyMap {
-    pub fn new(signer: [u8; 32]) -> VSEKeyMap {
-        VSEKeyMap {
-            signer,
-            map: HashMap::<SignerKey, (VSEKey, VSEProof)>::new(),
+    pub fn new(self_secret: [u8; 32], list: &Vec<[u8; 32]>) -> Option<VSEKeyMap> {
+        let self_public = self_secret.secret_to_public()?;
+
+        let mut map = HashMap::<CorrespondantKey, (CorrespondantVSEKey, VSEProof)>::new();
+
+        for to_public in list {
+            if to_public != &self_public {
+                let correspondant_vse_key = match encrypting_key_public(self_secret, *to_public) {
+                    Some(vse_key) => vse_key,
+                    None => return None,
+                };
+
+                map.insert(*to_public, (correspondant_vse_key, None));
+            }
         }
+
+        Some(VSEKeyMap {
+            key: self_public,
+            map,
+        })
     }
 
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
@@ -109,18 +124,12 @@ impl VSEKeyMap {
         }
     }
 
-    pub fn map(&self) -> HashMap<SignerKey, (VSEKey, VSEProof)> {
+    pub fn map(&self) -> HashMap<CorrespondantKey, (CorrespondantVSEKey, VSEProof)> {
         self.map.clone()
     }
 
-    pub fn signer_key(&self) -> [u8; 32] {
-        self.signer
-    }
-
-    pub fn insert(&mut self, signer_key: [u8; 32], vse_key: [u8; 32]) {
-        if signer_key != self.signer {
-            self.map.insert(signer_key, (vse_key, None));
-        }
+    pub fn key(&self) -> [u8; 32] {
+        self.key
     }
 
     pub fn map_list(&self) -> Vec<[u8; 32]> {
@@ -132,7 +141,7 @@ impl VSEKeyMap {
     pub fn full_list(&self) -> Vec<[u8; 32]> {
         let mut full_list = Vec::<[u8; 32]>::new();
 
-        full_list.push(self.signer_key());
+        full_list.push(self.key());
         full_list.extend(self.map_list());
         full_list.sort();
 
@@ -160,19 +169,6 @@ impl VSEKeyMap {
         false
     }
 
-    pub fn fill(&mut self, secret_key: [u8; 32], list: &Vec<[u8; 32]>) -> bool {
-        for key in list {
-            if key != &self.signer_key() {
-                let vse_key = match encrypting_key_public(secret_key, *key) {
-                    Some(key) => key,
-                    None => return false,
-                };
-                self.insert(*key, vse_key);
-            }
-        }
-        true
-    }
-
     pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
         Some(self.map.get(&correspondant)?.0.to_owned())
     }
@@ -182,9 +178,10 @@ impl Sighash for VSEKeyMap {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
-        preimage.extend(self.signer_key());
+        preimage.extend(self.key());
 
-        let mut maps: Vec<(SignerKey, (VSEKey, VSEProof))> = self.map().into_iter().collect();
+        let mut maps: Vec<(CorrespondantKey, (CorrespondantVSEKey, VSEProof))> =
+            self.map().into_iter().collect();
         maps.sort_by(|a, b| a.0.cmp(&b.0));
 
         for (signer_key, (vse_key, proof)) in maps.iter() {
@@ -206,14 +203,14 @@ impl Sighash for VSEKeyMap {
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSESetup {
     signers: Vec<[u8; 32]>,
-    maps: Vec<Authenticable<VSEKeyMap>>,
+    maps: HashMap<[u8; 32], Authenticable<VSEKeyMap>>,
 }
 
 impl VSESetup {
     pub fn new(signers: &Vec<[u8; 32]>) -> VSESetup {
         VSESetup {
             signers: signers.clone(),
-            maps: Vec::<Authenticable<VSEKeyMap>>::new(),
+            maps: HashMap::<[u8; 32], Authenticable<VSEKeyMap>>::new(),
         }
     }
 
@@ -221,7 +218,7 @@ impl VSESetup {
         self.signers.clone()
     }
 
-    pub fn maps(&self) -> Vec<Authenticable<VSEKeyMap>> {
+    pub fn maps(&self) -> HashMap<[u8; 32], Authenticable<VSEKeyMap>> {
         self.maps.clone()
     }
 
@@ -240,10 +237,10 @@ impl VSESetup {
     }
 
     pub fn insert(&mut self, map: Authenticable<VSEKeyMap>) -> bool {
-        if self.signers.contains(&map.object().signer_key()) {
-            if !self.maps.contains(&map) {
+        if self.signers.contains(&map.object().key()) {
+            if let None = self.maps.get(&map.key()) {
                 if map.object().is_complete(&self.signers()) {
-                    self.maps.push(map);
+                    self.maps.insert(map.key(), map);
                 }
                 return true;
             }
@@ -252,13 +249,8 @@ impl VSESetup {
     }
 
     pub fn auth_map(&self, signer: [u8; 32]) -> Option<Authenticable<VSEKeyMap>> {
-        for map in self.maps.iter() {
-            if map.object().signer_key() == signer {
-                return Some(map.to_owned());
-            }
-        }
-
-        None
+        let map = self.maps().get(&signer)?.clone();
+        Some(map)
     }
 
     pub fn map(&self, signer: [u8; 32]) -> Option<VSEKeyMap> {
@@ -266,12 +258,11 @@ impl VSESetup {
     }
 
     pub fn is_complete(&self) -> bool {
-        println!("len: {}", self.maps.len());
         if self.maps.len() != self.signers.len() {
             return false;
         }
 
-        for map in self.maps.iter() {
+        for (_, map) in self.maps.iter() {
             if !map.object().is_complete(&self.signers()) {
                 return false;
             }
@@ -281,43 +272,35 @@ impl VSESetup {
     }
 
     pub fn validate(&self) -> bool {
-        println!("pre pre auth");
-
+        // 0. Completeness
         if !self.is_complete() {
             return false;
         }
 
-        println!("pre auth");
-        // 1. Auth sigs
-        {
-            for signer in self.signers.iter() {
-                let map = match self.auth_map(signer.to_owned()) {
-                    Some(tuple) => tuple,
-                    None => return false,
-                };
-
-                if (&map.key() != signer) || !map.authenticate() {
+        for (key, map) in self.maps().iter() {
+            // 1. Auth sigs
+            {
+                if !self.signers().contains(key) {
+                    return false;
+                }
+                if key != &map.key() {
+                    return false;
+                }
+                if !map.authenticate() {
                     return false;
                 }
             }
-        }
-        println!("post auth");
-        // 2. Sig matching.
-        {
-            for signer in self.signers.iter() {
-                let map = match self.map(signer.to_owned()) {
-                    Some(map) => map,
-                    None => return false,
-                };
-                let correspondants = map.map_list();
+
+            // 2. Sig matching.
+            {
+                let correspondants = map.object().map_list();
 
                 for correspondant in correspondants.iter() {
-                    let vse_key_ = match self.vse_key(signer.to_owned(), correspondant.to_owned()) {
+                    let vse_key_ = match self.vse_key(key.to_owned(), correspondant.to_owned()) {
                         Some(key) => key,
                         None => return false,
                     };
-                    let vse_key__ = match self.vse_key(correspondant.to_owned(), signer.to_owned())
-                    {
+                    let vse_key__ = match self.vse_key(correspondant.to_owned(), key.to_owned()) {
                         Some(key) => key,
                         None => return false,
                     };
@@ -332,8 +315,8 @@ impl VSESetup {
     }
 
     pub fn vse_key(&self, signer_1: [u8; 32], signer_2: [u8; 32]) -> Option<[u8; 32]> {
-        for map in self.maps.iter() {
-            if map.object().signer_key() == signer_1 {
+        for (key, map) in self.maps.iter() {
+            if key == &signer_1 {
                 if let Some(key) = map.object().vse_key(signer_2) {
                     return Some(key);
                 }
@@ -344,8 +327,8 @@ impl VSESetup {
     }
 
     pub fn print(&self) {
-        for map in self.maps().iter() {
-            println!("{}", hex::encode(map.object().signer_key()));
+        for (key, map) in self.maps().iter() {
+            println!("{}", hex::encode(key));
             for triple in map.object().map().iter() {
                 let proof = {
                     match triple.1 .1.clone() {
