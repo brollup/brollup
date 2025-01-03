@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::{
-    noist::vse::VSESetup,
+    noist::vse::setup::VSESetup,
     tcp::{client::TCPClient, peer::PeerListExt},
     PEER, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY, VSE_SETUP,
 };

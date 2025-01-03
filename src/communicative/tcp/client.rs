@@ -2,7 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use super::peer::Connection;
 use super::tcp::{self, TCPError};
 use crate::list::ListCodec;
-use crate::noist::vse::{VSEDirectory, VSEKeyMap, VSESetup};
+use crate::noist::vse::{directory::VSEDirectory, keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
 use crate::{PEER, SOCKET};

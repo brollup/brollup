@@ -1,5 +1,5 @@
 use crate::nns::client::NNSClient;
-use crate::noist::vse::VSEDirectory;
+use crate::noist::vse::directory::VSEDirectory;
 use crate::tcp::peer::{Peer, PeerKind};
 use crate::tcp::tcp::open_port;
 
