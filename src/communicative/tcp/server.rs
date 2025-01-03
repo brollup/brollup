@@ -3,7 +3,7 @@ use super::tcp;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
-use crate::noist::vse::{keymap::VSEKeyMap, setup::VSESetup};
+use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
 use crate::{baked, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod vse_tests {
-    use brollup::noist::vse::VSEKeyMap;
+    use brollup::noist::setup::keymap::VSEKeyMap;
 
     #[test]
     fn vse_keymap() -> Result<(), String> {

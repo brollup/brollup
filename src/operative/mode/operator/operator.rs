@@ -1,7 +1,7 @@
 use crate::db;
 use crate::nns;
 use crate::nns::client::NNSClient;
-use crate::noist::vse::directory::VSEDirectory;
+use crate::noist::setup::directory::VSEDirectory;
 use crate::ocli;
 use crate::tcp::peer::Peer;
 use crate::tcp::peer::PeerKind;

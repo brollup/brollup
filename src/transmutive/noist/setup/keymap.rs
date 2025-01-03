@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     hash::{Hash, HashTag},
+    into::{IntoPoint, IntoScalar},
+    noist::vse::encrypting_key_public,
     schnorr::{Bytes32, Sighash},
 };
-
-use super::vse::encrypting_key_public;
 
 type CorrespondantKey = [u8; 32];
 type CorrespondantVSEKey = [u8; 32];
@@ -27,12 +27,12 @@ impl VSEKeyMap {
 
         for to_public in list {
             if to_public != &self_public {
-                let correspondant_vse_key = match encrypting_key_public(self_secret, *to_public) {
-                    Some(vse_key) => vse_key,
-                    None => return None,
-                };
+                let correspondant_vse_key = encrypting_key_public(
+                    self_secret.into_scalar().ok()?,
+                    to_public.into_point().ok()?,
+                );
 
-                map.insert(*to_public, (correspondant_vse_key, None));
+                map.insert(*to_public, (correspondant_vse_key.serialize_xonly(), None));
             }
         }
 

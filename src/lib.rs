@@ -5,8 +5,8 @@ use tokio::sync::Mutex;
 
 // Signatory.
 type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
-type VSE_DIRECTORY = Arc<Mutex<noist::vse::directory::VSEDirectory>>;
-type VSE_SETUP = Arc<Mutex<noist::vse::setup::VSESetup>>;
+type VSE_DIRECTORY = Arc<Mutex<noist::setup::directory::VSEDirectory>>;
+type VSE_SETUP = Arc<Mutex<noist::setup::setup::VSESetup>>;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
