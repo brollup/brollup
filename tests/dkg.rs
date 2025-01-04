@@ -47,6 +47,10 @@ mod dkg_test {
         println!("sharemap_1 :");
         sharemap_1.print();
 
+        if !sharemap_1.vss_verify() {
+            return Err(format!("sharemap_1F vss_verify failed."));
+        }
+
         let sharemap_2 = match DKGShareMap::new(signer_2_secret, &full_list) {
             Some(sharemap) => sharemap,
             None => return Err(format!("sharemap_2 is not complete.")),

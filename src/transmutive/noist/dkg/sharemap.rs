@@ -1,7 +1,9 @@
+use secp::{MaybeScalar, Point, Scalar};
+
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    noist::{secret::secret_share_gen, setup::setup::VSESetup, vse},
+    noist::{secret::secret_share_gen, setup::setup::VSESetup, vse, vss},
     schnorr::{generate_secret, Bytes32},
 };
 use std::collections::HashMap;
@@ -131,7 +133,7 @@ impl DKGShareMap {
         }
     }
 
-    pub fn vse_validate(&self, setup: VSESetup) -> bool {
+    pub fn vse_verify(&self, setup: VSESetup) -> bool {
         for (key, (pubshare, encsec)) in self.shares.iter() {
             let vse_key = match setup.vse_key(self.signer, key.to_owned()) {
                 Some(vse_key) => vse_key,
@@ -158,6 +160,38 @@ impl DKGShareMap {
                 public_share_point,
                 encrypting_key_public,
             ) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn vss_verify(&self) -> bool {
+        let mut vss_commitments = Vec::<Point>::new();
+
+        for vss_commitment in self.vss_commitments.iter() {
+            let point = match vss_commitment.into_point() {
+                Ok(point) => point,
+                Err(_) => return false,
+            };
+            vss_commitments.push(point);
+        }
+
+        for (index, (_, (pubshare, _))) in self.ordered_shares().iter().enumerate() {
+            let index_scalar = match MaybeScalar::from((index + 1) as u128) {
+                MaybeScalar::Valid(scalar) => scalar,
+                MaybeScalar::Zero => return false,
+            };
+
+            let pubshare_point = match pubshare.into_point() {
+                Ok(point) => point,
+                Err(_) => return false,
+            };
+
+            let share_i = (index_scalar, pubshare_point);
+
+            if !vss::vss_verify_point(share_i, &vss_commitments) {
                 return false;
             }
         }
