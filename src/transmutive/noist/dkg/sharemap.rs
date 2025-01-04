@@ -1,4 +1,4 @@
-use secp::{MaybeScalar, Point, Scalar};
+use secp::{MaybeScalar, Point};
 
 use crate::{
     hash::Hash,
