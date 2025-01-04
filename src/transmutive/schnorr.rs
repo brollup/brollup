@@ -12,7 +12,8 @@ use std::fmt;
 pub fn sign(secret_key: [u8; 32], message: [u8; 32]) -> Option<[u8; 64]> {
     // Secret-public key pairs.
 
-    let secret_key_scalar = secret_key.to_scalar()?;
+    let secret_key_scalar_ = secret_key.to_scalar()?;
+    let secret_key_scalar = secret_key_scalar_.lift();
     let public_key_point = secret_key_scalar.base_point_mul();
 
     // Secret-public nonce pairs.
@@ -285,6 +286,7 @@ where
             None => return false,
         };
         let sig = self.sig();
+
         verify(key, msg, sig)
     }
 }

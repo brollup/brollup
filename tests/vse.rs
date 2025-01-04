@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod vse_tests {
-    use brollup::noist::setup::keymap::VSEKeyMap;
+    use brollup::{
+        noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
+        schnorr::Authenticable,
+    };
 
     #[test]
     fn vse_keymap() -> Result<(), String> {
@@ -47,12 +50,30 @@ mod vse_tests {
             return Err(format!("signer_1_keymap is not complete."));
         }
 
+        let signer_1_auth_keymap = match Authenticable::new(signer_1_keymap, signer_1_secret) {
+            Some(keymap) => keymap,
+            None => return Err(format!("signer_1_auth_keymap err.")),
+        };
+
+        if !signer_1_auth_keymap.authenticate() {
+            println!("signer_1_auth_keymap auth err.");
+        }
+
         // Signer 2 keymap.
         let signer_2_keymap =
-            VSEKeyMap::new(signer_2_secret, &vec![signer_3_public, signer_1_public]).unwrap();
+            VSEKeyMap::new(signer_2_secret, &vec![signer_1_public, signer_3_public]).unwrap();
 
         if !signer_2_keymap.is_complete(&full_list) {
             return Err(format!("signer_2_keymap is not complete."));
+        }
+
+        let signer_2_auth_keymap = match Authenticable::new(signer_2_keymap, signer_2_secret) {
+            Some(keymap) => keymap,
+            None => return Err(format!("signer_2_auth_keymap err.")),
+        };
+
+        if !signer_2_auth_keymap.authenticate() {
+            println!("signer_2_auth_keymap auth err.");
         }
 
         // Signer 3 keymap.
@@ -61,6 +82,33 @@ mod vse_tests {
 
         if !signer_3_keymap.is_complete(&full_list) {
             return Err(format!("signer_3_keymap is not complete."));
+        }
+
+        let signer_3_auth_keymap = match Authenticable::new(signer_3_keymap, signer_3_secret) {
+            Some(keymap) => keymap,
+            None => return Err(format!("signer_3_auth_keymap err.")),
+        };
+
+        if !signer_3_auth_keymap.authenticate() {
+            println!("signer_3_auth_keymap auth err.");
+        }
+
+        let mut vse_setup = VSESetup::new(&full_list, 0);
+
+        if !vse_setup.insert(signer_1_auth_keymap) {
+            return Err(format!("signer_1_auth_keymap insert err."));
+        };
+
+        if !vse_setup.insert(signer_2_auth_keymap) {
+            return Err(format!("signer_2_auth_keymap insert err."));
+        };
+
+        if !vse_setup.insert(signer_3_auth_keymap) {
+            return Err(format!("signer_3_auth_keymap insert err."));
+        };
+
+        if !vse_setup.validate() {
+            return Err(format!("vse_setup validate err."));
         }
 
         Ok(())

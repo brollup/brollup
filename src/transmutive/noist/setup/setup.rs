@@ -116,6 +116,7 @@ impl VSESetup {
                         Some(key) => key,
                         None => return false,
                     };
+
                     if vse_key_ != vse_key__ {
                         return false;
                     }

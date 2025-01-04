@@ -104,6 +104,15 @@ impl VSEKeyMap {
     pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
         Some(self.map.get(&correspondant)?.0.to_owned())
     }
+
+    pub fn print(&self) {
+        println!("self key {}", hex::encode(self.key));
+
+        for map in self.map() {
+            println!("  {} -> {}", hex::encode(map.0), hex::encode(map.1 .0));
+        }
+        println!("");
+    }
 }
 
 impl Sighash for VSEKeyMap {

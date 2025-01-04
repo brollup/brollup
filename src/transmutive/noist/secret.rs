@@ -9,7 +9,7 @@ pub fn secret_share_gen(
     secret_key: Scalar,
     num_participants: u8,
     threshold: u8,
-) -> Result<(Vec<(Scalar, Scalar)>, Point, Vec<Point>), SecpError> {
+) -> Result<(Vec<(Scalar, Scalar)>, Vec<Point>), SecpError> {
     // Generate random coefficients for the polynomial.
     let mut coefficients = Vec::<Scalar>::new();
 
@@ -37,7 +37,6 @@ pub fn secret_share_gen(
 
     Ok((
         participant_private_keys,
-        vss_commitments[0],
         vss_commitments,
     ))
 }
