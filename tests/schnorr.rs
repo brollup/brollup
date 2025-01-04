@@ -37,7 +37,7 @@ mod schnorr_tests {
                 .map_err(|_| "Failed to convert public key hex.".to_string())?;
 
         let signature: [u8; 64] =
-            hex::decode("ba760712dbf3f27536a73d1b8bbe2be251c7ec1e7c439e8fb3e13378dc6e445392755d60c522f6f1dda183b34560e875b4cda1823e8ffb6a0014a3a9cf5e38e1")
+            hex::decode("6adc99f755cb7fa7812d060670be7cac428b01baac8a9aa75c49ef3a91f6437650bf14e199a41c50722e09922e20d4fd9f1a4f5ae60f145b24dbfc9f4a0851b6")
                 .map_err(|_| format!("Failed to parse signature hex."))?
                 .try_into()
                 .map_err(|_| "Failed to convert signature hex.".to_string())?;
