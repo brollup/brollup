@@ -228,14 +228,25 @@ mod noist_tests {
         println!("is_full: {}", session.is_full());
         println!("is_above_threshold: {}", session.is_above_threshold());
 
-        let hiding_point = match session.combined_hiding_point() {
+        session.print();
+
+        let binding_factors = match session.binding_factors(None, None) {
+            Some(factors) => factors,
+            None => return Err(format!("binding_factors err.")),
+        };
+
+        for (index, binding_factor) in binding_factors.iter().enumerate() {
+            println!("#{} binding_factor: {}", index, hex::encode(binding_factor));
+        }
+
+        let hiding_point = match session.group_combined_hiding_point() {
             Some(point) => point,
             None => return Err(format!("hiding_point err.")),
         };
 
         println!("hiding_point: {}", hex::encode(hiding_point.serialize()));
 
-        let combined_pre_binding_point = match session.combined_pre_binding_point() {
+        let combined_pre_binding_point = match session.group_combined_pre_binding_point() {
             Some(point) => point,
             None => return Err(format!("combined_full_point err.")),
         };
@@ -245,17 +256,18 @@ mod noist_tests {
             hex::encode(combined_pre_binding_point.serialize())
         );
 
-        let combined_post_binding_point = match session.combined_post_binding_point(None, None) {
-            Some(point) => point,
-            None => return Err(format!("combined_post_binding_point err.")),
-        };
+        let combined_post_binding_point =
+            match session.group_combined_post_binding_point(None, None) {
+                Some(point) => point,
+                None => return Err(format!("combined_post_binding_point err.")),
+            };
 
         println!(
             "combined_post_binding_point: {}",
             hex::encode(combined_post_binding_point.serialize())
         );
 
-        let combined_full_point = match session.combined_full_point(None, None) {
+        let combined_full_point = match session.group_combined_full_point(None, None) {
             Some(point) => point,
             None => return Err(format!("combined_full_point err.")),
         };

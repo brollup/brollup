@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     hash::Hash,
-    into::{IntoPointByteVec, IntoPointVec, IntoScalar},
+    into::{IntoPoint, IntoPointByteVec, IntoPointVec, IntoScalar},
     noist::setup::setup::VSESetup,
     schnorr::Authenticable,
 };
@@ -149,7 +149,7 @@ impl DKGSession {
         self.packages.len() >= threshold
     }
 
-    pub fn combined_hiding_point(&self) -> Option<Point> {
+    pub fn group_combined_hiding_point(&self) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages().iter() {
@@ -162,7 +162,7 @@ impl DKGSession {
         };
     }
 
-    pub fn combined_pre_binding_point(&self) -> Option<Point> {
+    pub fn group_combined_pre_binding_point(&self) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages().iter() {
@@ -175,7 +175,7 @@ impl DKGSession {
         };
     }
 
-    pub fn combined_post_binding_point(
+    pub fn group_combined_post_binding_point(
         &self,
         group_key: Option<[u8; 32]>,
         message: Option<[u8; 32]>,
@@ -200,13 +200,13 @@ impl DKGSession {
         };
     }
 
-    pub fn combined_full_point(
+    pub fn group_combined_full_point(
         &self,
         group_key: Option<[u8; 32]>,
         message: Option<[u8; 32]>,
     ) -> Option<Point> {
-        let hiding = self.combined_hiding_point()?;
-        let binding = self.combined_post_binding_point(group_key, message)?;
+        let hiding = self.group_combined_hiding_point()?;
+        let binding = self.group_combined_post_binding_point(group_key, message)?;
         match hiding + binding {
             MaybePoint::Valid(point) => return Some(point),
             MaybePoint::Infinity => return None,
@@ -251,5 +251,85 @@ impl DKGSession {
             binding_factors.push(binding_factor);
         }
         Some(binding_factors)
+    }
+
+    pub fn signatory_combined_hiding_point(&self, signatory: [u8; 32]) -> Option<Point> {
+        let signatory_point = signatory.into_point().ok()?;
+
+        let mut combined_point = MaybePoint::Infinity;
+
+        for (_, package) in self.packages.iter() {
+            let hiding_shares = package.object().hiding().shares();
+            let share = hiding_shares.get(&signatory_point)?;
+            combined_point = combined_point + share.0;
+        }
+
+        match combined_point {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        }
+    }
+
+    pub fn signatory_combined_pre_binding_point(&self, signatory: [u8; 32]) -> Option<Point> {
+        let signatory_point = signatory.into_point().ok()?;
+
+        let mut combined_point = MaybePoint::Infinity;
+
+        for (_, package) in self.packages.iter() {
+            let binding_shares = package.object().binding().shares();
+            let share = binding_shares.get(&signatory_point)?;
+            combined_point = combined_point + share.0;
+        }
+
+        match combined_point {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        }
+    }
+
+    pub fn signatory_combined_post_binding_point(
+        &self,
+        signatory: [u8; 32],
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
+    ) -> Option<Point> {
+        let signatory_point = signatory.into_point().ok()?;
+        let binding_factors = self.binding_factors(group_key, message)?;
+        let ordered_packages = self.ordered_packages();
+
+        let mut combined_point = MaybePoint::Infinity;
+
+        for (index, (_, package)) in ordered_packages.iter().enumerate() {
+            let binding_factor = binding_factors[index].into_scalar().ok()?;
+
+            let binding_shares = package.binding().shares();
+            let share = binding_shares.get(&signatory_point)?;
+            combined_point = combined_point + (share.0 * binding_factor);
+        }
+
+        match combined_point {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        }
+    }
+
+    pub fn signatory_combined_full_point(
+        &self,
+        signatory: [u8; 32],
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
+    ) -> Option<Point> {
+        let hiding = self.signatory_combined_hiding_point(signatory)?;
+        let binding = self.signatory_combined_post_binding_point(signatory, group_key, message)?;
+        match hiding + binding {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        };
+    }
+
+    pub fn print(&self) {
+        for (signatory, package) in self.ordered_packages().iter() {
+            package.print();
+        }
     }
 }

@@ -82,6 +82,10 @@ impl DKGPackage {
     }
 
     pub fn print(&self) {
+        println!(
+            "Package by {} :",
+            hex::encode(self.signatory.serialize_xonly())
+        );
         println!("Hiding Sharemap :");
         self.hiding.print();
 
