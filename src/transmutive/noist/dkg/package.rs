@@ -1,10 +1,13 @@
-use crate::{noist::setup::setup::VSESetup, schnorr::Bytes32};
+use secp::Point;
+use serde::{Deserialize, Serialize};
+
+use crate::{into::IntoPoint, noist::setup::setup::VSESetup, schnorr::Bytes32};
 
 use super::sharemap::DKGShareMap;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DKGPackage {
-    signer: [u8; 32],
+    signatory: Point,
     hiding: DKGShareMap,
     binding: DKGShareMap,
 }
@@ -16,15 +19,17 @@ impl DKGPackage {
         let hiding = DKGShareMap::new(secret_key, public_key, &signatories)?;
         let binding = DKGShareMap::new(secret_key, public_key, &signatories)?;
 
-        Some(DKGPackage {
-            signer: public_key,
+        let package = DKGPackage {
+            signatory: public_key.into_point().ok()?,
             hiding,
             binding,
-        })
+        };
+
+        Some(package)
     }
 
-    pub fn signer(&self) -> [u8; 32] {
-        self.signer.clone()
+    pub fn signatory(&self) -> Point {
+        self.signatory.clone()
     }
 
     pub fn hiding(&self) -> DKGShareMap {
@@ -33,6 +38,18 @@ impl DKGPackage {
 
     pub fn binding(&self) -> DKGShareMap {
         self.binding.clone()
+    }
+
+    pub fn is_complete(&self, signatories: &Vec<[u8; 32]>) -> bool {
+        if !self.hiding.is_complete(signatories) {
+            return false;
+        }
+
+        if !self.binding.is_complete(signatories) {
+            return false;
+        }
+
+        true
     }
 
     pub fn vss_verify(&self) -> bool {

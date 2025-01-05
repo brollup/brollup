@@ -134,6 +134,23 @@ impl DKGShareMap {
         Some(constant_point.to_owned())
     }
 
+    pub fn is_complete(&self, signatories: &Vec<[u8; 32]>) -> bool {
+        let mut signatories = signatories.clone();
+        signatories.sort();
+
+        if signatories.len() != self.shares.len() {
+            return false;
+        }
+
+        for (index, (signatory, _)) in self.ordered_shares().iter().enumerate() {
+            if signatory.serialize_xonly() != signatories[index] {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn vss_verify(&self) -> bool {
         let mut vss_commitments = Vec::<Point>::new();
 

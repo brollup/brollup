@@ -6,6 +6,8 @@ use crate::baked;
 pub enum HashTag {
     SighashAuthenticable,
     SignatureChallenge,
+    GroupCommitment,
+    BindingFactor,
     SharedSecret,
     SecretNonce,
     SecretKey,
@@ -16,6 +18,8 @@ impl HashTag {
         let str = match self {
             HashTag::SighashAuthenticable => "sighash/authenticable",
             HashTag::SignatureChallenge => "challenge",
+            HashTag::GroupCommitment => "groupcommitment",
+            HashTag::BindingFactor => "bindingfactor",
             HashTag::SharedSecret => "sharedsecret",
             HashTag::SecretNonce => "secretnonce",
             HashTag::SecretKey => "secretkey",
