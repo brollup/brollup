@@ -188,23 +188,10 @@ impl DKGSession {
         Some(preimage.hash(Some(crate::hash::HashTag::GroupCommitment)))
     }
 
-    pub fn binding_factors_for_group_key(&self) -> Option<Vec<[u8; 32]>> {
-        let mut binding_factors = Vec::<[u8; 32]>::new();
-
-        for (index, _) in self.packages.iter().enumerate() {
-            let mut preimage = Vec::<u8>::new();
-            preimage.extend(index.to_be_bytes());
-            preimage.extend(self.group_commitment_hash()?);
-            let binding_factor = preimage.hash(Some(crate::hash::HashTag::BindingFactor));
-            binding_factors.push(binding_factor);
-        }
-        Some(binding_factors)
-    }
-
-    pub fn binding_factors_for_nonce(
+    pub fn binding_factors(
         &self,
-        group_key: [u8; 32],
-        message: [u8; 32],
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
     ) -> Option<Vec<[u8; 32]>> {
         let mut binding_factors = Vec::<[u8; 32]>::new();
 
@@ -213,8 +200,14 @@ impl DKGSession {
 
             preimage.extend(index.to_be_bytes());
             preimage.extend(self.group_commitment_hash()?);
-            preimage.extend(group_key);
-            preimage.extend(message);
+
+            if let Some(group_key) = group_key {
+                preimage.extend(group_key);
+            };
+
+            if let Some(message) = message {
+                preimage.extend(message);
+            };
 
             let binding_factor = preimage.hash(Some(crate::hash::HashTag::BindingFactor));
             binding_factors.push(binding_factor);
