@@ -7,6 +7,7 @@ use crate::{
     hash::Hash,
     into::{IntoPointByteVec, IntoPointVec},
     noist::setup::setup::VSESetup,
+    schnorr::Authenticable,
 };
 
 use super::package::DKGPackage;
@@ -15,7 +16,7 @@ use super::package::DKGPackage;
 pub struct DKGSession {
     nonce: u64,
     signatories: Vec<Point>,
-    packages: HashMap<Point, DKGPackage>,
+    packages: HashMap<Point, Authenticable<DKGPackage>>,
 }
 
 impl DKGSession {
@@ -26,7 +27,7 @@ impl DKGSession {
         let session = DKGSession {
             nonce,
             signatories: signatories.into_point_vec().ok()?,
-            packages: HashMap::<Point, DKGPackage>::new(),
+            packages: HashMap::<Point, Authenticable<DKGPackage>>::new(),
         };
 
         Some(session)
@@ -40,8 +41,16 @@ impl DKGSession {
         self.signatories.clone()
     }
 
-    pub fn packages(&self) -> HashMap<Point, DKGPackage> {
+    pub fn auth_packages(&self) -> HashMap<Point, Authenticable<DKGPackage>> {
         self.packages.clone()
+    }
+
+    pub fn packages(&self) -> HashMap<Point, DKGPackage> {
+        let mut packages = HashMap::<Point, DKGPackage>::new();
+        for (signatory, auth_package) in self.packages.iter() {
+            packages.insert(signatory.to_owned(), auth_package.object());
+        }
+        packages
     }
 
     pub fn ordered_packages(&self) -> Vec<(Point, DKGPackage)> {
@@ -50,8 +59,22 @@ impl DKGSession {
         maps
     }
 
-    pub fn insert(&mut self, package: &DKGPackage, vse_setup: &VSESetup) -> bool {
+    pub fn insert(
+        &mut self,
+        auth_package: &Authenticable<DKGPackage>,
+        vse_setup: &VSESetup,
+    ) -> bool {
+        if !auth_package.authenticate() {
+            return false;
+        }
+
+        let package = auth_package.object();
+
         let package_signatory = package.signatory();
+
+        if package_signatory.serialize_xonly() != auth_package.key() {
+            return false;
+        }
 
         if !self.signatories.contains(&package_signatory) {
             return false;
@@ -78,7 +101,41 @@ impl DKGSession {
             return false;
         }
 
-        self.packages.insert(package_signatory, package.to_owned());
+        self.packages
+            .insert(package_signatory, auth_package.to_owned());
+
+        true
+    }
+
+    pub fn verify(&self, vse_setup: &VSESetup) -> bool {
+        for (signatory, auth_package) in self.packages.iter() {
+            if auth_package.key() != signatory.serialize_xonly() {
+                return false;
+            }
+
+            if !auth_package.authenticate() {
+                return false;
+            }
+
+            let self_signatories = match self.signatories.into_xpoint_vec() {
+                Ok(vec) => vec,
+                Err(_) => return false,
+            };
+
+            let package = auth_package.object();
+
+            if !package.is_complete(&self_signatories) {
+                return false;
+            }
+
+            if !package.vss_verify() {
+                return false;
+            }
+
+            if !package.vse_verify(vse_setup) {
+                return false;
+            }
+        }
 
         true
     }
@@ -95,7 +152,7 @@ impl DKGSession {
     pub fn combined_hiding_point(&self) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
-        for (_, package) in self.packages.iter() {
+        for (_, package) in self.packages().iter() {
             combined_point = combined_point + package.hiding().constant_point()?;
         }
 
@@ -108,7 +165,7 @@ impl DKGSession {
     pub fn combined_binding_point(&self) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
-        for (_, package) in self.packages.iter() {
+        for (_, package) in self.packages().iter() {
             combined_point = combined_point + package.binding().constant_point()?;
         }
 

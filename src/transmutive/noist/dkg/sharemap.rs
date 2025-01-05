@@ -2,7 +2,7 @@ use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
     noist::{secret::secret_share_gen, setup::setup::VSESetup, vse, vss},
-    schnorr::generate_secret,
+    schnorr::{generate_secret, Sighash},
 };
 use secp::{MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGShareMap {
-    signer: Point,
+    signatory: Point,
     vss_commitments: Vec<Point>,
     shares: HashMap<Point, (Point, Scalar)>,
 }
@@ -79,7 +79,7 @@ impl DKGShareMap {
         }
 
         Some(DKGShareMap {
-            signer: self_point,
+            signatory: self_point,
             vss_commitments,
             shares,
         })
@@ -99,8 +99,8 @@ impl DKGShareMap {
         }
     }
 
-    pub fn signer(&self) -> Point {
-        self.signer.clone()
+    pub fn signatory(&self) -> Point {
+        self.signatory.clone()
     }
 
     pub fn vss_commitments(&self) -> Vec<Point> {
@@ -176,12 +176,12 @@ impl DKGShareMap {
 
     pub fn vse_verify(&self, setup: &VSESetup) -> bool {
         for (key, (pubshare, encsec)) in self.shares.iter() {
-            if self.signer == key.to_owned() {
+            if self.signatory == key.to_owned() {
                 if encsec != &Scalar::one() {
                     return false;
                 }
             } else {
-                let vse_point = match setup.vse_point(self.signer, key.to_owned()) {
+                let vse_point = match setup.vse_point(self.signatory, key.to_owned()) {
                     Some(vse_key) => vse_key,
                     None => return false,
                 };
@@ -216,5 +216,24 @@ impl DKGShareMap {
             println!("   pubshare: {}", hex::encode(pubshare.serialize()));
             println!("   encsec: {}\n", hex::encode(encsec.serialize()));
         }
+    }
+}
+
+impl Sighash for DKGShareMap {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage = Vec::<u8>::new();
+        preimage.extend(self.signatory.serialize_xonly());
+
+        for vss_commitment in self.vss_commitments.iter() {
+            preimage.extend(vss_commitment.serialize_uncompressed());
+        }
+
+        for share in self.shares.iter() {
+            preimage.extend(share.0.serialize_xonly());
+            preimage.extend(share.1 .0.serialize_uncompressed());
+            preimage.extend(share.1 .1.serialize());
+        }
+
+        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
     }
 }

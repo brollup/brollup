@@ -1,7 +1,12 @@
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
-use crate::{into::IntoPoint, noist::setup::setup::VSESetup, schnorr::Bytes32};
+use crate::{
+    hash::Hash,
+    into::IntoPoint,
+    noist::setup::setup::VSESetup,
+    schnorr::{Bytes32, Sighash},
+};
 
 use super::sharemap::DKGShareMap;
 
@@ -82,5 +87,15 @@ impl DKGPackage {
 
         println!("\n Binding Sharemap :");
         self.binding.print();
+    }
+}
+
+impl Sighash for DKGPackage {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage = Vec::<u8>::new();
+        preimage.extend(self.signatory.serialize_xonly());
+        preimage.extend(self.hiding.sighash());
+        preimage.extend(self.binding.sighash());
+        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
     }
 }

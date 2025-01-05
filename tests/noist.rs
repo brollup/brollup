@@ -139,6 +139,15 @@ mod noist_tests {
             return Err(format!("package_1 vse_verify failed."));
         }
 
+        let auth_package_1 = match Authenticable::new(package_1, signer_1_secret) {
+            Some(package) => package,
+            None => return Err(format!("auth_package_1 err.")),
+        };
+
+        if !auth_package_1.authenticate() {
+            return Err(format!("auth_package_1 authenticate err."));
+        }
+
         let package_2 = match DKGPackage::new(signer_2_secret, &full_list) {
             Some(package) => package,
             None => return Err(format!("err creating package_2.")),
@@ -154,6 +163,15 @@ mod noist_tests {
 
         if !package_2.vse_verify(&vse_setup) {
             return Err(format!("package_2 vse_verify failed."));
+        }
+
+        let auth_package_2 = match Authenticable::new(package_2, signer_2_secret) {
+            Some(package) => package,
+            None => return Err(format!("auth_package_1 err.")),
+        };
+
+        if !auth_package_2.authenticate() {
+            return Err(format!("auth_package_1 authenticate err."));
         }
 
         let package_3 = match DKGPackage::new(signer_3_secret, &full_list) {
@@ -173,20 +191,29 @@ mod noist_tests {
             return Err(format!("package_3 vse_verify failed."));
         }
 
+        let auth_package_3 = match Authenticable::new(package_3, signer_3_secret) {
+            Some(package) => package,
+            None => return Err(format!("auth_package_1 err.")),
+        };
+
+        if !auth_package_3.authenticate() {
+            return Err(format!("auth_package_1 authenticate err."));
+        }
+
         let mut session = match DKGSession::new(0, &full_list) {
             Some(session) => session,
             None => return Err(format!("session construction failed.")),
         };
 
-        if !session.insert(&package_1, &vse_setup) {
+        if !session.insert(&auth_package_1, &vse_setup) {
             return Err(format!("session package_1 insertion failed."));
         }
 
-        if !session.insert(&package_2, &vse_setup) {
+        if !session.insert(&auth_package_2, &vse_setup) {
             return Err(format!("session package_2 insertion failed."));
         }
 
-        if !session.insert(&package_3, &vse_setup) {
+        if !session.insert(&auth_package_3, &vse_setup) {
             return Err(format!("session package_3 insertion failed."));
         }
 
@@ -194,8 +221,24 @@ mod noist_tests {
             return Err(format!("session threshold is not met (2-of-3)."));
         }
 
+        if !session.verify(&vse_setup) {
+            return Err(format!("session verify err."));
+        }
+
         println!("is_full: {}", session.is_full());
         println!("is_above_threshold: {}", session.is_above_threshold());
+
+        let xxx = session.binding_factors_for_group_key().unwrap();
+        println!("mk {}", hex::encode(xxx[0]));
+        println!("mk {}", hex::encode(xxx[1]));
+        println!("mk {}", hex::encode(xxx[2]));
+
+        let zzz = session
+            .binding_factors_for_nonce([0xffu8; 32], [0xffu8; 32])
+            .unwrap();
+        println!("z {}", hex::encode(zzz[0]));
+        println!("z {}", hex::encode(zzz[1]));
+        println!("z {}", hex::encode(zzz[2]));
 
         Ok(())
     }
