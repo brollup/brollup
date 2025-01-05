@@ -1,16 +1,13 @@
-use std::collections::HashMap;
-
-use secp::{MaybePoint, Point};
-use serde::{Deserialize, Serialize};
-
+use super::package::DKGPackage;
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoPointByteVec, IntoPointVec, IntoScalar},
     noist::setup::setup::VSESetup,
     schnorr::Authenticable,
 };
-
-use super::package::DKGPackage;
+use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGSession {
@@ -328,8 +325,24 @@ impl DKGSession {
     }
 
     pub fn print(&self) {
-        for (signatory, package) in self.ordered_packages().iter() {
+        for (_, package) in self.ordered_packages().iter() {
             package.print();
         }
+    }
+
+    pub fn signatory_lagrance_index(&self, signatory: [u8; 32]) -> Option<Scalar> {
+        let mut signatories = self.signatories().into_xpoint_vec().ok()?;
+        signatories.sort();
+
+        for (index, signatory_key) in signatories.iter().enumerate() {
+            if signatory_key == &signatory {
+                match MaybeScalar::from((index + 1) as u128) {
+                    MaybeScalar::Valid(scalar) => return Some(scalar),
+                    MaybeScalar::Zero => return None,
+                }
+            }
+        }
+
+        None
     }
 }
