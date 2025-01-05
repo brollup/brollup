@@ -1,2 +1,2 @@
 # Communicative Files
-Project files related to networking, client, server, and nameservice.
+Project files related to RPC, networking and nameservice.
