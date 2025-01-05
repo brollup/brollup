@@ -277,6 +277,52 @@ mod noist_tests {
             hex::encode(combined_full_point.serialize())
         );
 
+        let signatory_1_hiding = match session.signatory_combined_hiding_point(signer_1_public) {
+            Some(point) => point,
+            None => return Err(format!("signatory_1_hiding err.")),
+        };
+
+        println!("");
+
+        println!(
+            "signatory_1_hiding: {}",
+            hex::encode(signatory_1_hiding.serialize())
+        );
+
+        let signatory_1_pre_binding =
+            match session.signatory_combined_pre_binding_point(signer_1_public) {
+                Some(point) => point,
+                None => return Err(format!("signatory_1_pre_binding err.")),
+            };
+
+        println!(
+            "signatory_1_pre_binding: {}",
+            hex::encode(signatory_1_pre_binding.serialize())
+        );
+
+        let signatory_1_post_binding =
+            match session.signatory_combined_post_binding_point(signer_1_public, None, None) {
+                Some(point) => point,
+                None => return Err(format!("signatory_1_post_binding err.")),
+            };
+
+        println!(
+            "signatory_1_post_binding: {}",
+            hex::encode(signatory_1_post_binding.serialize())
+        );
+
+        if let Some(index) = session.signatory_lagrance_index(signer_1_public) {
+            println!("signatory 1 index: {}", hex::encode(index.serialize()));
+        }
+
+        if let Some(index) = session.signatory_lagrance_index(signer_2_public) {
+            println!("signatory 2 index: {}", hex::encode(index.serialize()));
+        }
+
+        if let Some(index) = session.signatory_lagrance_index(signer_3_public) {
+            println!("signatory 3 index: {}", hex::encode(index.serialize()));
+        }
+
         Ok(())
     }
 }
