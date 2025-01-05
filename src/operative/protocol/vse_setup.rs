@@ -81,7 +81,11 @@ pub async fn run(
     }
 
     let vse_setup: VSE_SETUP = {
-        let setup_ = VSESetup::new(&active_keys, no);
+        let setup_ = match VSESetup::new(&active_keys, no) {
+            Some(setup) => setup,
+            None => return None,
+        };
+
         Arc::new(Mutex::new(setup_))
     };
 

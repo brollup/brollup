@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod noist_tests {
+    use brollup::into::IntoPointVec;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
@@ -47,7 +48,14 @@ mod noist_tests {
         let signer_1_keymap =
             VSEKeyMap::new(signer_1_secret, &vec![signer_2_public, signer_3_public]).unwrap();
 
-        if !signer_1_keymap.is_complete(&full_list) {
+        let full_point_list = match full_list.into_point_vec() {
+            Ok(list) => list,
+            Err(_) => return Err(format!("full_point_list err.")),
+        };
+
+        signer_1_keymap.print();
+
+        if !signer_1_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_1_keymap is not complete."));
         }
 
@@ -64,7 +72,7 @@ mod noist_tests {
         let signer_2_keymap =
             VSEKeyMap::new(signer_2_secret, &vec![signer_1_public, signer_3_public]).unwrap();
 
-        if !signer_2_keymap.is_complete(&full_list) {
+        if !signer_2_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_2_keymap is not complete."));
         }
 
@@ -81,7 +89,7 @@ mod noist_tests {
         let signer_3_keymap =
             VSEKeyMap::new(signer_3_secret, &vec![signer_1_public, signer_2_public]).unwrap();
 
-        if !signer_3_keymap.is_complete(&full_list) {
+        if !signer_3_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_3_keymap is not complete."));
         }
 
@@ -94,7 +102,10 @@ mod noist_tests {
             println!("signer_3_auth_keymap auth err.");
         }
 
-        let mut vse_setup = VSESetup::new(&full_list, 0);
+        let mut vse_setup = match VSESetup::new(&full_list, 0) {
+            Some(setup) => setup,
+            None => return Err(format!("vse_setup err.")),
+        };
 
         if !vse_setup.insert(signer_1_auth_keymap) {
             return Err(format!("signer_1_auth_keymap insert err."));
@@ -219,11 +230,16 @@ mod noist_tests {
 
         let full_list = vec![signer_1_public, signer_2_public, signer_3_public];
 
+        let full_point_list = match full_list.into_point_vec() {
+            Ok(list) => list,
+            Err(_) => return Err(format!("full_point_list err.")),
+        };
+
         // Signer 1 keymap.
         let signer_1_keymap =
             VSEKeyMap::new(signer_1_secret, &vec![signer_2_public, signer_3_public]).unwrap();
 
-        if !signer_1_keymap.is_complete(&full_list) {
+        if !signer_1_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_1_keymap is not complete."));
         }
 
@@ -240,7 +256,7 @@ mod noist_tests {
         let signer_2_keymap =
             VSEKeyMap::new(signer_2_secret, &vec![signer_1_public, signer_3_public]).unwrap();
 
-        if !signer_2_keymap.is_complete(&full_list) {
+        if !signer_2_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_2_keymap is not complete."));
         }
 
@@ -257,7 +273,7 @@ mod noist_tests {
         let signer_3_keymap =
             VSEKeyMap::new(signer_3_secret, &vec![signer_1_public, signer_2_public]).unwrap();
 
-        if !signer_3_keymap.is_complete(&full_list) {
+        if !signer_3_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_3_keymap is not complete."));
         }
 
@@ -270,7 +286,10 @@ mod noist_tests {
             println!("signer_3_auth_keymap auth err.");
         }
 
-        let mut vse_setup = VSESetup::new(&full_list, 0);
+        let mut vse_setup = match VSESetup::new(&full_list, 0) {
+            Some(setup) => setup,
+            None => return Err(format!("vse_setup err.")),
+        };
 
         if !vse_setup.insert(signer_1_auth_keymap) {
             return Err(format!("signer_1_auth_keymap insert err."));

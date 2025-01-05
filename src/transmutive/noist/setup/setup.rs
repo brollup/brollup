@@ -1,36 +1,48 @@
 use std::collections::HashMap;
 
+use secp::Point;
 use serde::{Deserialize, Serialize};
 
-use crate::schnorr::Authenticable;
+use crate::{into::IntoPoint, schnorr::Authenticable};
 
 use super::keymap::VSEKeyMap;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSESetup {
     no: u64,
-    signers: Vec<[u8; 32]>,
-    maps: HashMap<[u8; 32], Authenticable<VSEKeyMap>>,
+    signatories: Vec<Point>,
+    maps: HashMap<Point, Authenticable<VSEKeyMap>>,
 }
 
 impl VSESetup {
-    pub fn new(signers: &Vec<[u8; 32]>, no: u64) -> VSESetup {
-        VSESetup {
+    pub fn new(signatories: &Vec<[u8; 32]>, no: u64) -> Option<Self> {
+        let signatories = {
+            let mut list = Vec::<Point>::new();
+            for signatory in signatories {
+                let signatory_point = signatory.into_point().ok()?;
+                list.push(signatory_point);
+            }
+            list
+        };
+
+        let vse_setup = VSESetup {
             no,
-            signers: signers.clone(),
-            maps: HashMap::<[u8; 32], Authenticable<VSEKeyMap>>::new(),
-        }
+            signatories,
+            maps: HashMap::<Point, Authenticable<VSEKeyMap>>::new(),
+        };
+
+        Some(vse_setup)
     }
 
     pub fn no(&self) -> u64 {
         self.no
     }
 
-    pub fn signers(&self) -> Vec<[u8; 32]> {
-        self.signers.clone()
+    pub fn signatories(&self) -> Vec<Point> {
+        self.signatories.clone()
     }
 
-    pub fn maps(&self) -> HashMap<[u8; 32], Authenticable<VSEKeyMap>> {
+    pub fn maps(&self) -> HashMap<Point, Authenticable<VSEKeyMap>> {
         self.maps.clone()
     }
 
@@ -49,10 +61,19 @@ impl VSESetup {
     }
 
     pub fn insert(&mut self, map: Authenticable<VSEKeyMap>) -> bool {
-        if self.signers.contains(&map.object().key()) {
-            if let None = self.maps.get(&map.key()) {
-                if map.object().is_complete(&self.signers()) {
-                    self.maps.insert(map.key(), map);
+        if self.signatories.contains(&map.object().signatory()) {
+            let map_key_point = match map.key().into_point() {
+                Ok(point) => point,
+                Err(_) => return false,
+            };
+
+            if let None = self.maps.get(&map_key_point) {
+                if map.object().is_complete(&self.signatories()) {
+                    let map_key_point = match map.key().into_point() {
+                        Ok(point) => point,
+                        Err(_) => return false,
+                    };
+                    self.maps.insert(map_key_point, map);
                 }
                 return true;
             }
@@ -60,22 +81,23 @@ impl VSESetup {
         false
     }
 
-    pub fn auth_map(&self, signer: [u8; 32]) -> Option<Authenticable<VSEKeyMap>> {
-        let map = self.maps().get(&signer)?.clone();
+    pub fn auth_map(&self, correspondant: [u8; 32]) -> Option<Authenticable<VSEKeyMap>> {
+        let correspondant_point = correspondant.into_point().ok()?;
+        let map = self.maps().get(&correspondant_point)?.clone();
         Some(map)
     }
 
-    pub fn map(&self, signer: [u8; 32]) -> Option<VSEKeyMap> {
-        Some(self.auth_map(signer)?.object())
+    pub fn map(&self, correspondant: [u8; 32]) -> Option<VSEKeyMap> {
+        Some(self.auth_map(correspondant)?.object())
     }
 
     pub fn is_complete(&self) -> bool {
-        if self.maps.len() != self.signers.len() {
+        if self.maps.len() != self.signatories.len() {
             return false;
         }
 
         for (_, map) in self.maps.iter() {
-            if !map.object().is_complete(&self.signers()) {
+            if !map.object().is_complete(&self.signatories()) {
                 return false;
             }
         }
@@ -92,10 +114,16 @@ impl VSESetup {
         for (key, map) in self.maps().iter() {
             // 1. Auth sigs
             {
-                if !self.signers().contains(key) {
+                if !self.signatories().contains(key) {
                     return false;
                 }
-                if key != &map.key() {
+
+                let map_key_point = match map.key().into_point() {
+                    Ok(point) => point,
+                    Err(_) => return false,
+                };
+
+                if key != &map_key_point {
                     return false;
                 }
                 if !map.authenticate() {
@@ -105,7 +133,7 @@ impl VSESetup {
 
             // 2. Sig matching.
             {
-                let correspondants = map.object().map_list();
+                let correspondants = map.object().correspondants();
 
                 for correspondant in correspondants.iter() {
                     let vse_key_ = match self.vse_key(key.to_owned(), correspondant.to_owned()) {
@@ -127,16 +155,20 @@ impl VSESetup {
         true
     }
 
-    pub fn vse_key(&self, signer_1: [u8; 32], signer_2: [u8; 32]) -> Option<[u8; 32]> {
+    pub fn vse_point(&self, signer_1: Point, signer_2: Point) -> Option<Point> {
         for (key, map) in self.maps.iter() {
             if key == &signer_1 {
-                if let Some(key) = map.object().vse_key(signer_2) {
-                    return Some(key);
+                if let Some(point) = map.object().vse_point(signer_2) {
+                    return Some(point);
                 }
             }
         }
 
         None
+    }
+
+    pub fn vse_key(&self, signer_1: Point, signer_2: Point) -> Option<[u8; 32]> {
+        Some(self.vse_point(signer_1, signer_2)?.serialize_xonly())
     }
 
     pub fn print(&self) {
@@ -145,7 +177,7 @@ impl VSESetup {
         }
 
         for (key, map) in self.maps().iter() {
-            println!("{}", hex::encode(key));
+            println!("{}", hex::encode(key.serialize_xonly()));
             for triple in map.object().map().iter() {
                 let proof = {
                     match triple.1 .1.clone() {
@@ -155,8 +187,8 @@ impl VSESetup {
                 };
                 println!(
                     "    {} -> vse_key: {} proof: {}",
-                    hex::encode(triple.0),
-                    hex::encode(triple.1 .0),
+                    hex::encode(triple.0.serialize_xonly()),
+                    hex::encode(triple.1 .0.serialize_xonly()),
                     proof
                 );
             }

@@ -1,43 +1,40 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
-
 use crate::{
     hash::{Hash, HashTag},
     into::{IntoPoint, IntoScalar},
     noist::vse::encrypting_key_public,
     schnorr::{Bytes32, Sighash},
 };
-
-type CorrespondantKey = [u8; 32];
-type CorrespondantVSEKey = [u8; 32];
-type VSEProof = Option<Vec<u8>>;
+use secp::Point;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSEKeyMap {
-    key: [u8; 32],
-    map: HashMap<CorrespondantKey, (CorrespondantVSEKey, VSEProof)>,
+    signatory: Point,
+    map: HashMap<Point, (Point, Option<Vec<u8>>)>, // Point (correspondant key) -> Point (vse key)
 }
 
 impl VSEKeyMap {
     pub fn new(self_secret: [u8; 32], list: &Vec<[u8; 32]>) -> Option<VSEKeyMap> {
-        let self_public = self_secret.secret_to_public()?;
+        let self_point = self_secret.secret_to_public()?.into_point().ok()?;
 
-        let mut map = HashMap::<CorrespondantKey, (CorrespondantVSEKey, VSEProof)>::new();
+        let mut map = HashMap::<Point, (Point, Option<Vec<u8>>)>::new();
 
         for to_public in list {
-            if to_public != &self_public {
-                let correspondant_vse_key = encrypting_key_public(
+            let to_point = to_public.into_point().ok()?;
+
+            if to_point != self_point {
+                let to_vse_point = encrypting_key_public(
                     self_secret.into_scalar().ok()?,
                     to_public.into_point().ok()?,
                 );
 
-                map.insert(*to_public, (correspondant_vse_key.serialize_xonly(), None));
+                map.insert(to_point, (to_vse_point, None));
             }
         }
 
         Some(VSEKeyMap {
-            key: self_public,
+            signatory: self_point,
             map,
         })
     }
@@ -56,60 +53,76 @@ impl VSEKeyMap {
         }
     }
 
-    pub fn map(&self) -> HashMap<CorrespondantKey, (CorrespondantVSEKey, VSEProof)> {
+    pub fn map(&self) -> HashMap<Point, (Point, Option<Vec<u8>>)> {
         self.map.clone()
     }
 
-    pub fn key(&self) -> [u8; 32] {
-        self.key
+    pub fn signatory(&self) -> Point {
+        self.signatory
     }
 
-    pub fn map_list(&self) -> Vec<[u8; 32]> {
-        let mut keys: Vec<[u8; 32]> = self.map.keys().cloned().collect();
+    pub fn correspondants(&self) -> Vec<Point> {
+        let mut keys: Vec<Point> = self.map.keys().cloned().collect();
         keys.sort();
         keys
     }
 
-    pub fn full_list(&self) -> Vec<[u8; 32]> {
-        let mut full_list = Vec::<[u8; 32]>::new();
-
-        full_list.push(self.key());
-        full_list.extend(self.map_list());
+    pub fn full_signer_list(&self) -> Vec<Point> {
+        let mut full_list = Vec::<Point>::new();
+        full_list.push(self.signatory());
+        full_list.extend(self.correspondants());
         full_list.sort();
-
         full_list
     }
 
-    pub fn is_complete(&self, expected_list: &Vec<[u8; 32]>) -> bool {
-        let expected_list = {
-            let mut expected_list_ = expected_list.clone();
-            expected_list_.sort();
-            expected_list_
-        };
+    pub fn is_complete(&self, expected_list: &Vec<Point>) -> bool {
+        let self_list = self.full_signer_list();
 
-        let full_list = self.full_list();
+        let mut expected_list = expected_list.clone();
+        expected_list.sort();
 
-        if full_list.len() == expected_list.len() {
-            for (index, key) in full_list.iter().enumerate() {
+        if self_list.len() == expected_list.len() {
+            for (index, key) in self_list.iter().enumerate() {
                 if key != &expected_list[index] {
                     return false;
                 }
             }
+
             return true;
         }
 
         false
     }
 
-    pub fn vse_key(&self, correspondant: [u8; 32]) -> Option<[u8; 32]> {
-        Some(self.map.get(&correspondant)?.0.to_owned())
+    pub fn vse_point(&self, correspondant: Point) -> Option<Point> {
+        Some(self.map.get(&correspondant)?.0)
+    }
+
+    pub fn vse_key(&self, correspondant: Point) -> Option<[u8; 32]> {
+        Some(self.vse_point(correspondant)?.serialize_xonly())
+    }
+
+    pub fn ordered_map(&self) -> Vec<(Point, (Point, Option<Vec<u8>>))> {
+        let mut sorted_map: Vec<_> = self.map.iter().collect();
+        sorted_map.sort_by(|a, b| a.0.cmp(b.0));
+        sorted_map
+            .into_iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
     }
 
     pub fn print(&self) {
-        println!("self key {}", hex::encode(self.key));
+        println!(
+            "Self key: {}",
+            hex::encode(self.signatory.serialize_xonly())
+        );
 
         for map in self.map() {
-            println!("  {} -> {}", hex::encode(map.0), hex::encode(map.1 .0));
+            println!(
+                "  {} -> {}",
+                hex::encode(map.0.serialize_xonly()),
+                hex::encode(map.1 .0.serialize_xonly())
+            );
         }
         println!("");
     }
@@ -118,16 +131,11 @@ impl VSEKeyMap {
 impl Sighash for VSEKeyMap {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
+        preimage.extend(self.signatory().serialize_xonly());
 
-        preimage.extend(self.key());
-
-        let mut maps: Vec<(CorrespondantKey, (CorrespondantVSEKey, VSEProof))> =
-            self.map().into_iter().collect();
-        maps.sort_by(|a, b| a.0.cmp(&b.0));
-
-        for (signer_key, (vse_key, proof)) in maps.iter() {
-            preimage.extend(signer_key);
-            preimage.extend(vse_key);
+        for (correspondant, (vse_point, proof)) in self.ordered_map().iter() {
+            preimage.extend(correspondant.serialize_xonly());
+            preimage.extend(vse_point.serialize_xonly());
             match proof {
                 Some(proof) => {
                     preimage.push(0x01);

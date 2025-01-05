@@ -56,6 +56,53 @@ impl IntoByteArray for Vec<u8> {
     }
 }
 
+pub trait IntoPointVec {
+    fn into_point_vec(&self) -> Result<Vec<Point>, SecpError>;
+}
+
+impl IntoPointVec for Vec<[u8; 32]> {
+    fn into_point_vec(&self) -> Result<Vec<Point>, SecpError> {
+        let mut points = Vec::<Point>::new();
+        for point_bytes in self {
+            points.push(point_bytes.into_point()?);
+        }
+        Ok(points)
+    }
+}
+
+impl IntoPointVec for Vec<[u8; 33]> {
+    fn into_point_vec(&self) -> Result<Vec<Point>, SecpError> {
+        let mut points = Vec::<Point>::new();
+        for point_bytes in self {
+            points.push(point_bytes.into_point()?);
+        }
+        Ok(points)
+    }
+}
+
+pub trait IntoPointByteVec {
+    fn into_xpoint_vec(&self) -> Result<Vec<[u8; 32]>, SecpError>;
+    fn into_cpoint_vec(&self) -> Result<Vec<[u8; 33]>, SecpError>;
+}
+
+impl IntoPointByteVec for Vec<Point> {
+    fn into_xpoint_vec(&self) -> Result<Vec<[u8; 32]>, SecpError> {
+        let mut point_bytes = Vec::<[u8; 32]>::new();
+        for point in self {
+            point_bytes.push(point.serialize_xonly());
+        }
+        Ok(point_bytes)
+    }
+
+    fn into_cpoint_vec(&self) -> Result<Vec<[u8; 33]>, SecpError> {
+        let mut point_bytes = Vec::<[u8; 33]>::new();
+        for point in self {
+            point_bytes.push(point.serialize());
+        }
+        Ok(point_bytes)
+    }
+}
+
 pub trait IntoPoint {
     fn into_point(&self) -> Result<Point, SecpError>;
 }
