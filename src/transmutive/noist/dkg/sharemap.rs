@@ -1,10 +1,10 @@
-use secp::{MaybeScalar, Point};
+use secp::{MaybeScalar, Point, Scalar};
 
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
     noist::{secret::secret_share_gen, setup::setup::VSESetup, vse, vss},
-    schnorr::{generate_secret, Bytes32},
+    schnorr::generate_secret,
 };
 use std::collections::HashMap;
 
@@ -21,13 +21,17 @@ pub struct DKGShareMap {
 }
 
 impl DKGShareMap {
-    pub fn new(secret_key: [u8; 32], signatories: &Vec<[u8; 32]>) -> Option<Self> {
-        let self_public = secret_key.secret_to_public()?;
+    pub fn new(
+        secret_key: [u8; 32],
+        public_key: [u8; 32],
+        signatories: &Vec<[u8; 32]>,
+    ) -> Option<Self> {
+        let self_public_point = public_key.into_point().ok()?;
 
         let polynomial_secret = {
             let mut preimage = Vec::<u8>::new();
-            preimage.extend(generate_secret());
             preimage.extend(secret_key);
+            preimage.extend(generate_secret());
             preimage
                 .hash(Some(crate::hash::HashTag::SecretKey))
                 .into_scalar()
@@ -65,9 +69,15 @@ impl DKGShareMap {
                 let secret_share = secret_shares[index].1;
                 let public_share = secret_share.base_point_mul();
 
-                let encrypting_key_secret =
-                    vse::encrypting_key_secret(self_secret_scalar, signatory_public_point);
-                let secret_share_enc = vse::encrypt(secret_share, encrypting_key_secret).ok()?;
+                let secret_share_enc = {
+                    if signatory_public_point == self_public_point {
+                        Scalar::one()
+                    } else {
+                        let encrypting_key_secret =
+                            vse::encrypting_key_secret(self_secret_scalar, signatory_public_point);
+                        vse::encrypt(secret_share, encrypting_key_secret).ok()?
+                    }
+                };
 
                 shares.insert(
                     signatory.to_owned(),
@@ -77,7 +87,7 @@ impl DKGShareMap {
         }
 
         Some(DKGShareMap {
-            signer: self_public,
+            signer: public_key,
             vss_commitments,
             shares,
         })
@@ -113,60 +123,6 @@ impl DKGShareMap {
         Some(share.1)
     }
 
-    pub fn print(&self) {
-        println!("VSS Commitments :");
-        for (index, vss_commitment) in self.vss_commitments.iter().enumerate() {
-            let str = match index {
-                0 => format!("#0 -> {} (Constant Point)", hex::encode(vss_commitment)),
-                _ => format!("#{} -> {}", index, hex::encode(vss_commitment)),
-            };
-            println!("{}", str);
-        }
-
-        println!("");
-
-        println!("Shares :");
-        for (index, (key, (pubshare, encsec))) in self.ordered_shares().iter().enumerate() {
-            println!("#{} {}", index, hex::encode(key));
-            println!("   pubshare: {}", hex::encode(pubshare));
-            println!("   encsec: {}\n", hex::encode(encsec));
-        }
-    }
-
-    pub fn vse_verify(&self, setup: VSESetup) -> bool {
-        for (key, (pubshare, encsec)) in self.shares.iter() {
-            let vse_key = match setup.vse_key(self.signer, key.to_owned()) {
-                Some(vse_key) => vse_key,
-                None => return false,
-            };
-
-            let encrypted_share_scalar = match encsec.into_scalar() {
-                Ok(scalar) => scalar,
-                Err(_) => return false,
-            };
-
-            let public_share_point = match pubshare.into_point() {
-                Ok(point) => point,
-                Err(_) => return false,
-            };
-
-            let encrypting_key_public = match vse_key.into_point() {
-                Ok(point) => point,
-                Err(_) => return false,
-            };
-
-            if !vse::verify(
-                encrypted_share_scalar,
-                public_share_point,
-                encrypting_key_public,
-            ) {
-                return false;
-            }
-        }
-
-        true
-    }
-
     pub fn vss_verify(&self) -> bool {
         let mut vss_commitments = Vec::<Point>::new();
 
@@ -197,5 +153,70 @@ impl DKGShareMap {
         }
 
         true
+    }
+
+    pub fn vse_verify(&self, setup: &VSESetup) -> bool {
+        for (key, (pubshare, encsec)) in self.shares.iter() {
+            if self.signer == key.to_owned() {
+                let encsec_scalar = match encsec.into_scalar() {
+                    Ok(scalar) => scalar,
+                    Err(_) => return false,
+                };
+
+                if encsec_scalar != Scalar::one() {
+                    return false;
+                }
+            } else {
+                let vse_key = match setup.vse_key(self.signer, key.to_owned()) {
+                    Some(vse_key) => vse_key,
+                    None => return false,
+                };
+
+                let encrypted_share_scalar = match encsec.into_scalar() {
+                    Ok(scalar) => scalar,
+                    Err(_) => return false,
+                };
+
+                let public_share_point = match pubshare.into_point() {
+                    Ok(point) => point,
+                    Err(_) => return false,
+                };
+
+                let encrypting_key_public = match vse_key.into_point() {
+                    Ok(point) => point,
+                    Err(_) => return false,
+                };
+
+                if !vse::verify(
+                    encrypted_share_scalar,
+                    public_share_point,
+                    encrypting_key_public,
+                ) {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    pub fn print(&self) {
+        println!("VSS Commitments :");
+        for (index, vss_commitment) in self.vss_commitments.iter().enumerate() {
+            let str = match index {
+                0 => format!("#0 -> {} (Constant Point)", hex::encode(vss_commitment)),
+                _ => format!("#{} -> {}", index, hex::encode(vss_commitment)),
+            };
+            println!("{}", str);
+        }
+
+        println!("");
+
+        println!("Shares :");
+        for (index, (key, (pubshare, encsec))) in self.ordered_shares().iter().enumerate() {
+            println!("#{} {}", index, hex::encode(key));
+            println!("   pubshare: {}", hex::encode(pubshare));
+            println!("   encsec: {}\n", hex::encode(encsec));
+        }
     }
 }
