@@ -13,9 +13,6 @@ type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
 type PEER = Arc<Mutex<tcp::peer::Peer>>;
 type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
 
-#[path = "constructive/list.rs"]
-pub mod list;
-
 // Protocol
 #[path = "operative/protocol/vse_setup.rs"]
 pub mod vse_setup;
@@ -36,6 +33,9 @@ pub mod into;
 pub mod key;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
+
+#[path = "transmutive/list.rs"]
+pub mod list;
 
 // NOIST.
 #[path = "transmutive/noist/mod.rs"]
