@@ -228,17 +228,42 @@ mod noist_tests {
         println!("is_full: {}", session.is_full());
         println!("is_above_threshold: {}", session.is_above_threshold());
 
-        let xxx = session.binding_factors_for_group_key().unwrap();
-        println!("mk {}", hex::encode(xxx[0]));
-        println!("mk {}", hex::encode(xxx[1]));
-        println!("mk {}", hex::encode(xxx[2]));
+        let hiding_point = match session.combined_hiding_point() {
+            Some(point) => point,
+            None => return Err(format!("hiding_point err.")),
+        };
 
-        let zzz = session
-            .binding_factors_for_nonce([0xffu8; 32], [0xffu8; 32])
-            .unwrap();
-        println!("z {}", hex::encode(zzz[0]));
-        println!("z {}", hex::encode(zzz[1]));
-        println!("z {}", hex::encode(zzz[2]));
+        println!("hiding_point: {}", hex::encode(hiding_point.serialize()));
+
+        let combined_pre_binding_point = match session.combined_pre_binding_point() {
+            Some(point) => point,
+            None => return Err(format!("combined_full_point err.")),
+        };
+
+        println!(
+            "combined_pre_binding_point: {}",
+            hex::encode(combined_pre_binding_point.serialize())
+        );
+
+        let combined_post_binding_point = match session.combined_post_binding_point(None, None) {
+            Some(point) => point,
+            None => return Err(format!("combined_post_binding_point err.")),
+        };
+
+        println!(
+            "combined_post_binding_point: {}",
+            hex::encode(combined_post_binding_point.serialize())
+        );
+
+        let combined_full_point = match session.combined_full_point(None, None) {
+            Some(point) => point,
+            None => return Err(format!("combined_full_point err.")),
+        };
+
+        println!(
+            "combined_full_point: {}",
+            hex::encode(combined_full_point.serialize())
+        );
 
         Ok(())
     }

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     hash::Hash,
-    into::{IntoPointByteVec, IntoPointVec},
+    into::{IntoPointByteVec, IntoPointVec, IntoScalar},
     noist::setup::setup::VSESetup,
     schnorr::Authenticable,
 };
@@ -162,7 +162,7 @@ impl DKGSession {
         };
     }
 
-    pub fn combined_binding_point(&self) -> Option<Point> {
+    pub fn combined_pre_binding_point(&self) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages().iter() {
@@ -170,6 +170,44 @@ impl DKGSession {
         }
 
         match combined_point {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        };
+    }
+
+    pub fn combined_post_binding_point(
+        &self,
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
+    ) -> Option<Point> {
+        let mut combined_point = MaybePoint::Infinity;
+        let binding_factors = self.binding_factors(group_key, message)?;
+        let ordered_packages = self.ordered_packages();
+
+        if binding_factors.len() != ordered_packages.len() {
+            return None;
+        }
+
+        for (index, (_, package)) in ordered_packages.iter().enumerate() {
+            let binding_factor = binding_factors[index].into_scalar().ok()?;
+            combined_point =
+                combined_point + (package.binding().constant_point()? * binding_factor);
+        }
+
+        match combined_point {
+            MaybePoint::Valid(point) => return Some(point),
+            MaybePoint::Infinity => return None,
+        };
+    }
+
+    pub fn combined_full_point(
+        &self,
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
+    ) -> Option<Point> {
+        let hiding = self.combined_hiding_point()?;
+        let binding = self.combined_post_binding_point(group_key, message)?;
+        match hiding + binding {
             MaybePoint::Valid(point) => return Some(point),
             MaybePoint::Infinity => return None,
         };
