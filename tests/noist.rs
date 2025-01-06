@@ -106,7 +106,7 @@ mod noist_tests {
 
         let _combined_group_pre_binding_point = session.group_combined_pre_binding_point().unwrap();
 
-        let _combined_group_post_binding_point = session
+        let combined_group_post_binding_point = session
             .group_combined_post_binding_point(None, None)
             .unwrap();
 
@@ -115,121 +115,186 @@ mod noist_tests {
         let s_1_hiding_secret = session
             .signatory_combined_hiding_secret(signer_1_secret)
             .unwrap();
+        let s_1_post_binding_secret = session
+            .signatory_combined_post_binding_secret(signer_1_secret, None, None)
+            .unwrap();
 
         let s_2_hiding_secret = session
             .signatory_combined_hiding_secret(signer_2_secret)
+            .unwrap();
+        let s_2_post_binding_secret = session
+            .signatory_combined_post_binding_secret(signer_2_secret, None, None)
             .unwrap();
 
         let s_3_hiding_secret = session
             .signatory_combined_hiding_secret(signer_3_secret)
             .unwrap();
+        let s_3_post_binding_secret = session
+            .signatory_combined_post_binding_secret(signer_3_secret, None, None)
+            .unwrap();
 
         let s_1_hiding_point = session
             .signatory_combined_hiding_point(signer_1_public)
             .unwrap();
+        let s_1_post_binding_point = session
+            .signatory_combined_post_binding_point(signer_1_public, None, None)
+            .unwrap();
 
         assert_eq!(s_1_hiding_secret.base_point_mul(), s_1_hiding_point);
+        assert_eq!(
+            s_1_post_binding_secret.base_point_mul(),
+            s_1_post_binding_point
+        );
 
         let s_2_hiding_point = session
             .signatory_combined_hiding_point(signer_2_public)
             .unwrap();
+        let s_2_post_binding_point = session
+            .signatory_combined_post_binding_point(signer_2_public, None, None)
+            .unwrap();
 
         assert_eq!(s_2_hiding_secret.base_point_mul(), s_2_hiding_point);
+        assert_eq!(
+            s_2_post_binding_secret.base_point_mul(),
+            s_2_post_binding_point
+        );
 
         let s_3_hiding_point = session
             .signatory_combined_hiding_point(signer_3_public)
             .unwrap();
+        let s_3_post_binding_point = session
+            .signatory_combined_post_binding_point(signer_3_public, None, None)
+            .unwrap();
 
         assert_eq!(s_3_hiding_secret.base_point_mul(), s_3_hiding_point);
+        assert_eq!(
+            s_3_post_binding_secret.base_point_mul(),
+            s_3_post_binding_point
+        );
 
         // Case #1 signatory 1 & 2 produced.
-
         let active_list = vec![signer_1_public, signer_2_public];
         let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
         let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
         let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
         let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
+        let s_1_post_binding_secret_lagranced = s_1_post_binding_secret * s_1_lagrance;
 
         let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
         let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
         let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
+        let s_2_post_binding_secret_lagranced = s_2_post_binding_secret * s_2_lagrance;
 
-        let s1_s2_combined_secret_lagranced =
+        let s1_s2_combined_hiding_secret_lagranced =
             (s_1_hiding_secret_lagranced + s_2_hiding_secret_lagranced).unwrap();
+        let s1_s2_combined_post_binding_secret_lagranced =
+            (s_1_post_binding_secret_lagranced + s_2_post_binding_secret_lagranced).unwrap();
 
         assert_eq!(
-            s1_s2_combined_secret_lagranced.base_point_mul(),
+            s1_s2_combined_hiding_secret_lagranced.base_point_mul(),
             combined_group_hiding_point
         );
 
-        // Case #2 signatory 1 & 3 produced.
+        assert_eq!(
+            s1_s2_combined_post_binding_secret_lagranced.base_point_mul(),
+            combined_group_post_binding_point
+        );
 
+        // Case #2 signatory 1 & 3 produced.
         let active_list = vec![signer_1_public, signer_3_public];
         let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
         let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
         let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
         let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
+        let s_1_post_binding_secret_lagranced = s_1_post_binding_secret * s_1_lagrance;
 
         let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
         let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
         let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+        let s_3_post_binding_secret_lagranced = s_3_post_binding_secret * s_3_lagrance;
 
-        let s1_s3_combined_secret_lagranced =
+        let s1_s3_combined_hiding_secret_lagranced =
             (s_1_hiding_secret_lagranced + s_3_hiding_secret_lagranced).unwrap();
+        let s1_s3_combined_post_binding_secret_lagranced =
+            (s_1_post_binding_secret_lagranced + s_3_post_binding_secret_lagranced).unwrap();
 
         assert_eq!(
-            s1_s3_combined_secret_lagranced.base_point_mul(),
+            s1_s3_combined_hiding_secret_lagranced.base_point_mul(),
             combined_group_hiding_point
         );
 
-        // Case #3 signatory 2 & 3 produced.
+        assert_eq!(
+            s1_s3_combined_post_binding_secret_lagranced.base_point_mul(),
+            combined_group_post_binding_point
+        );
 
+        // Case #3 signatory 2 & 3 produced.
         let active_list = vec![signer_2_public, signer_3_public];
         let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
         let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
         let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
         let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
+        let s_2_post_binding_secret_lagranced = s_2_post_binding_secret * s_2_lagrance;
 
         let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
         let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
         let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+        let s_3_post_binding_secret_lagranced = s_3_post_binding_secret * s_3_lagrance;
 
-        let s2_s3_combined_secret_lagranced =
+        let s2_s3_combined_hiding_secret_lagranced =
             (s_2_hiding_secret_lagranced + s_3_hiding_secret_lagranced).unwrap();
+        let s2_s3_combined_post_binding_secret_lagranced =
+            (s_2_post_binding_secret_lagranced + s_3_post_binding_secret_lagranced).unwrap();
 
         assert_eq!(
-            s2_s3_combined_secret_lagranced.base_point_mul(),
+            s2_s3_combined_hiding_secret_lagranced.base_point_mul(),
             combined_group_hiding_point
         );
 
-        // Case #4 all signatories 1, 2 & 3 produced.
+        assert_eq!(
+            s2_s3_combined_post_binding_secret_lagranced.base_point_mul(),
+            combined_group_post_binding_point
+        );
 
+        // Case #4 all signatories 1, 2 & 3 produced.
         let active_list = vec![signer_1_public, signer_2_public, signer_3_public];
         let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
         let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
         let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
         let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
+        let s_1_post_binding_secret_lagranced = s_1_post_binding_secret * s_1_lagrance;
 
         let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
         let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
         let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
+        let s_2_post_binding_secret_lagranced = s_2_post_binding_secret * s_2_lagrance;
 
         let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
         let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
         let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+        let s_3_post_binding_secret_lagranced = s_3_post_binding_secret * s_3_lagrance;
 
-        let s1_s2_s3_combined_secret_lagranced = (s_1_hiding_secret_lagranced
+        let s1_s2_s3_combined_hiding_secret_lagranced = (s_1_hiding_secret_lagranced
             + s_2_hiding_secret_lagranced
             + s_3_hiding_secret_lagranced)
             .unwrap();
+        let s1_s2_s3_combined_post_binding_secret_lagranced = (s_1_post_binding_secret_lagranced
+            + s_2_post_binding_secret_lagranced
+            + s_3_post_binding_secret_lagranced)
+            .unwrap();
 
         assert_eq!(
-            s1_s2_s3_combined_secret_lagranced.base_point_mul(),
+            s1_s2_s3_combined_hiding_secret_lagranced.base_point_mul(),
             combined_group_hiding_point
+        );
+
+        assert_eq!(
+            s1_s2_s3_combined_post_binding_secret_lagranced.base_point_mul(),
+            combined_group_post_binding_point
         );
 
         Ok(())
