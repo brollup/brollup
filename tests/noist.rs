@@ -51,8 +51,7 @@ mod noist_tests {
         };
 
         // Signer 1 keymap.
-        let signer_1_keymap =
-            VSEKeyMap::new(signer_1_secret, &vec![signer_2_public, signer_3_public]).unwrap();
+        let signer_1_keymap = VSEKeyMap::new(signer_1_secret, &full_list).unwrap();
 
         if !signer_1_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_1_keymap is not complete."));
@@ -68,8 +67,7 @@ mod noist_tests {
         }
 
         // Signer 2 keymap.
-        let signer_2_keymap =
-            VSEKeyMap::new(signer_2_secret, &vec![signer_1_public, signer_3_public]).unwrap();
+        let signer_2_keymap = VSEKeyMap::new(signer_2_secret, &full_list).unwrap();
 
         if !signer_2_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_2_keymap is not complete."));
@@ -85,8 +83,7 @@ mod noist_tests {
         }
 
         // Signer 3 keymap.
-        let signer_3_keymap =
-            VSEKeyMap::new(signer_3_secret, &vec![signer_1_public, signer_2_public]).unwrap();
+        let signer_3_keymap = VSEKeyMap::new(signer_3_secret, &full_list).unwrap();
 
         if !signer_3_keymap.is_complete(&full_point_list) {
             return Err(format!("signer_3_keymap is not complete."));
@@ -121,6 +118,9 @@ mod noist_tests {
         if !vse_setup.validate() {
             return Err(format!("vse_setup validate err."));
         }
+
+        println!("printing setup..");
+        vse_setup.print();
 
         let package_1 = match DKGPackage::new(signer_1_secret, &full_list) {
             Some(package) => package,
@@ -285,9 +285,16 @@ mod noist_tests {
         println!("");
 
         println!(
-            "signatory_1_hiding: {}",
+            "signatory 1 combined hiding point: {}",
             hex::encode(signatory_1_hiding.serialize())
         );
+
+        if let Some(scalar) = session.signatory_combined_hiding_secret(signer_1_secret) {
+            println!(
+                "signatory 1 combined hiding secret: {}",
+                hex::encode(scalar.serialize())
+            );
+        }
 
         let signatory_1_pre_binding =
             match session.signatory_combined_pre_binding_point(signer_1_public) {

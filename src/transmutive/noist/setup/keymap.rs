@@ -23,14 +23,12 @@ impl VSEKeyMap {
         for to_public in list {
             let to_point = to_public.into_point().ok()?;
 
-            if to_point != self_point {
-                let to_vse_point = encrypting_key_public(
-                    self_secret.into_scalar().ok()?,
-                    to_public.into_point().ok()?,
-                );
+            let to_vse_point = encrypting_key_public(
+                self_secret.into_scalar().ok()?,
+                to_public.into_point().ok()?,
+            );
 
-                map.insert(to_point, (to_vse_point, None));
-            }
+            map.insert(to_point, (to_vse_point, None));
         }
 
         Some(VSEKeyMap {
@@ -61,28 +59,20 @@ impl VSEKeyMap {
         self.signatory
     }
 
-    pub fn correspondants(&self) -> Vec<Point> {
+    pub fn signatories(&self) -> Vec<Point> {
         let mut keys: Vec<Point> = self.map.keys().cloned().collect();
         keys.sort();
         keys
     }
 
-    pub fn full_signer_list(&self) -> Vec<Point> {
-        let mut full_list = Vec::<Point>::new();
-        full_list.push(self.signatory());
-        full_list.extend(self.correspondants());
-        full_list.sort();
-        full_list
-    }
-
     pub fn is_complete(&self, expected_list: &Vec<Point>) -> bool {
-        let self_list = self.full_signer_list();
+        let signatories = self.signatories();
 
         let mut expected_list = expected_list.clone();
         expected_list.sort();
 
-        if self_list.len() == expected_list.len() {
-            for (index, key) in self_list.iter().enumerate() {
+        if signatories.len() == expected_list.len() {
+            for (index, key) in signatories.iter().enumerate() {
                 if key != &expected_list[index] {
                     return false;
                 }

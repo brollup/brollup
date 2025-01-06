@@ -65,13 +65,9 @@ impl DKGShareMap {
                 let public_share = secret_share.base_point_mul();
 
                 let secret_share_enc = {
-                    if signatory_point == self_point {
-                        Scalar::one()
-                    } else {
-                        let encrypting_key_secret =
-                            vse::encrypting_key_secret(self_secret_scalar, signatory_point);
-                        vse::encrypt(secret_share, encrypting_key_secret).ok()?
-                    }
+                    let encrypting_key_secret =
+                        vse::encrypting_key_secret(self_secret_scalar, signatory_point);
+                    vse::encrypt(secret_share, encrypting_key_secret).ok()?
                 };
 
                 shares.insert(signatory_point, (public_share, secret_share_enc));
@@ -176,19 +172,13 @@ impl DKGShareMap {
 
     pub fn vse_verify(&self, setup: &VSESetup) -> bool {
         for (key, (pubshare, encsec)) in self.shares.iter() {
-            if self.signatory == key.to_owned() {
-                if encsec != &Scalar::one() {
-                    return false;
-                }
-            } else {
-                let vse_point = match setup.vse_point(self.signatory, key.to_owned()) {
-                    Some(vse_key) => vse_key,
-                    None => return false,
-                };
+            let vse_point = match setup.vse_point(self.signatory, key.to_owned()) {
+                Some(vse_key) => vse_key,
+                None => return false,
+            };
 
-                if !vse::verify(encsec.to_owned(), pubshare.to_owned(), vse_point) {
-                    return false;
-                }
+            if !vse::verify(encsec.to_owned(), pubshare.to_owned(), vse_point) {
+                return false;
             }
         }
 

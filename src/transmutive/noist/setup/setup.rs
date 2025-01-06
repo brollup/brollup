@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
-use crate::{into::IntoPoint, schnorr::Authenticable};
+use crate::{
+    into::{IntoPoint, IntoPointVec},
+    schnorr::Authenticable,
+};
 
 use super::keymap::VSEKeyMap;
 
@@ -16,14 +19,7 @@ pub struct VSESetup {
 
 impl VSESetup {
     pub fn new(signatories: &Vec<[u8; 32]>, no: u64) -> Option<Self> {
-        let signatories = {
-            let mut list = Vec::<Point>::new();
-            for signatory in signatories {
-                let signatory_point = signatory.into_point().ok()?;
-                list.push(signatory_point);
-            }
-            list
-        };
+        let signatories = signatories.into_point_vec().ok()?;
 
         let vse_setup = VSESetup {
             no,
@@ -96,8 +92,9 @@ impl VSESetup {
             return false;
         }
 
-        for (_, map) in self.maps.iter() {
-            if !map.object().is_complete(&self.signatories()) {
+        for (_, auth_map) in self.maps.iter() {
+            let map = auth_map.object();
+            if !map.is_complete(&self.signatories()) {
                 return false;
             }
         }
@@ -133,20 +130,22 @@ impl VSESetup {
 
             // 2. Sig matching.
             {
-                let correspondants = map.object().correspondants();
+                let signatories = map.object().signatories();
 
-                for correspondant in correspondants.iter() {
-                    let vse_key_ = match self.vse_key(key.to_owned(), correspondant.to_owned()) {
-                        Some(key) => key,
-                        None => return false,
-                    };
-                    let vse_key__ = match self.vse_key(correspondant.to_owned(), key.to_owned()) {
-                        Some(key) => key,
-                        None => return false,
-                    };
+                for signatory in signatories.iter() {
+                    if signatory != key {
+                        let vse_key_ = match self.vse_key(key.to_owned(), signatory.to_owned()) {
+                            Some(key) => key,
+                            None => return false,
+                        };
+                        let vse_key__ = match self.vse_key(signatory.to_owned(), key.to_owned()) {
+                            Some(key) => key,
+                            None => return false,
+                        };
 
-                    if vse_key_ != vse_key__ {
-                        return false;
+                        if vse_key_ != vse_key__ {
+                            return false;
+                        }
                     }
                 }
             }

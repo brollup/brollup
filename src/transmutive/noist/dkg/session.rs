@@ -2,8 +2,8 @@ use super::package::DKGPackage;
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoPointByteVec, IntoPointVec, IntoScalar},
-    noist::setup::setup::VSESetup,
-    schnorr::Authenticable,
+    noist::{setup::setup::VSESetup, vse},
+    schnorr::{Authenticable, LiftScalar},
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -322,6 +322,27 @@ impl DKGSession {
             MaybePoint::Valid(point) => return Some(point),
             MaybePoint::Infinity => return None,
         };
+    }
+
+    pub fn signatory_combined_hiding_secret(&self, secret_key: [u8; 32]) -> Option<Scalar> {
+        let signatory_secret = secret_key.into_scalar().ok()?.lift();
+        let signatory_public = signatory_secret.base_point_mul();
+        let mut combined_secret = MaybeScalar::Zero;
+
+        for (signatory, package) in self.packages.iter() {
+            let hiding_shares = package.object().hiding().shares();
+            let encsec = hiding_shares.get(&signatory_public)?.1;
+            let encrypting_key_secret =
+                vse::encrypting_key_secret(signatory_secret, signatory.to_owned());
+            let decsec = vse::decrypt(encsec, encrypting_key_secret).ok()?;
+
+            combined_secret = combined_secret + decsec;
+        }
+
+        match combined_secret {
+            MaybeScalar::Valid(scalar) => return Some(scalar),
+            MaybeScalar::Zero => return None,
+        }
     }
 
     pub fn print(&self) {
