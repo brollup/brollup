@@ -8,8 +8,14 @@ use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
+#[derive(Clone, PartialEq)]
+pub enum SigningMode {
+    Brollup,
+    BIP340,
+}
+
 /// Signs a Schnorr message.
-pub fn sign(secret_key: [u8; 32], message: [u8; 32]) -> Option<[u8; 64]> {
+pub fn sign(secret_key: [u8; 32], message: [u8; 32], mode: SigningMode) -> Option<[u8; 64]> {
     // Secret-public key pairs.
 
     let secret_key_scalar_ = secret_key.to_scalar()?;
@@ -25,7 +31,7 @@ pub fn sign(secret_key: [u8; 32], message: [u8; 32]) -> Option<[u8; 64]> {
     let public_nonce_point = secret_nonce_scalar.base_point_mul();
 
     // Signature challenge.
-    let challenge_scalar = match challenge(public_nonce_point, public_key_point, message) {
+    let challenge_scalar = match challenge(public_nonce_point, public_key_point, message, mode) {
         MaybeScalar::Valid(scalar) => scalar,
         MaybeScalar::Zero => return None,
     };
@@ -44,7 +50,12 @@ pub fn sign(secret_key: [u8; 32], message: [u8; 32]) -> Option<[u8; 64]> {
 }
 
 /// Verifies a Schnorr message.
-pub fn verify(public_key: [u8; 32], message: [u8; 32], signature: [u8; 64]) -> bool {
+pub fn verify(
+    public_key: [u8; 32],
+    message: [u8; 32],
+    signature: [u8; 64],
+    mode: SigningMode,
+) -> bool {
     let public_key_point = match public_key.to_even_point() {
         Some(public_key_point_) => public_key_point_,
         None => return false,
@@ -60,7 +71,7 @@ pub fn verify(public_key: [u8; 32], message: [u8; 32], signature: [u8; 64]) -> b
         None => return false,
     };
 
-    let challenge_scalar = match challenge(public_nonce_point, public_key_point, message) {
+    let challenge_scalar = match challenge(public_nonce_point, public_key_point, message, mode) {
         MaybeScalar::Valid(scalar) => scalar,
         MaybeScalar::Zero => return false,
     };
@@ -86,14 +97,22 @@ pub fn verify(public_key: [u8; 32], message: [u8; 32], signature: [u8; 64]) -> b
 }
 
 /// Returns signature challenge.
-fn challenge(public_nonce: Point, public_key: Point, message: [u8; 32]) -> MaybeScalar {
+pub fn challenge(
+    public_nonce: Point,
+    public_key: Point,
+    message: [u8; 32],
+    mode: SigningMode,
+) -> MaybeScalar {
     let mut challenge_preimage = Vec::<u8>::with_capacity(160);
 
     challenge_preimage.extend(public_nonce.serialize_xonly());
     challenge_preimage.extend(public_key.serialize_xonly());
     challenge_preimage.extend(message);
 
-    let challenge = challenge_preimage.hash(Some(HashTag::SignatureChallenge));
+    let challenge = match mode {
+        SigningMode::Brollup => challenge_preimage.hash(Some(HashTag::SignatureChallenge)),
+        SigningMode::BIP340 => challenge_preimage.hash(Some(HashTag::BIP340Challenge)),
+    };
 
     MaybeScalar::reduce_from(&challenge)
 }
@@ -257,7 +276,7 @@ where
         let key = secret_key.secret_to_public()?;
         let msg = object.sighash();
 
-        let sig = Signature(sign(secret_key, msg)?);
+        let sig = Signature(sign(secret_key, msg, SigningMode::Brollup)?);
 
         Some(Self { object, sig, key })
     }
@@ -287,7 +306,7 @@ where
         };
         let sig = self.sig();
 
-        verify(key, msg, sig)
+        verify(key, msg, sig, SigningMode::Brollup)
     }
 }
 

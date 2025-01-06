@@ -17,7 +17,7 @@ mod schnorr_tests {
                 .try_into()
                 .map_err(|_| "Failed to convert secret key hex.".to_string())?;
 
-        schnorr::sign(secret_key, message).ok_or_else(|| "Failed to sign.".to_string())?;
+        let _sig = schnorr::sign(secret_key, message, schnorr::SigningMode::Brollup).unwrap();
 
         Ok(())
     }
@@ -42,9 +42,14 @@ mod schnorr_tests {
                 .try_into()
                 .map_err(|_| "Failed to convert signature hex.".to_string())?;
 
-        schnorr::verify(public_key, message, signature)
-            .then(|| ())
-            .ok_or("Failed to verify signature.")?;
+        schnorr::verify(
+            public_key,
+            message,
+            signature,
+            schnorr::SigningMode::Brollup,
+        )
+        .then(|| ())
+        .ok_or("Failed to verify signature.")?;
 
         Ok(())
     }

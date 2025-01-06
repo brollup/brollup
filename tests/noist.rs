@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod noist_tests {
-    use brollup::into::{IntoPointVec, IntoScalar};
+    use brollup::into::IntoPointVec;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::dkg::session::DKGSession;
 
     use brollup::noist::lagrance::{interpolating_value, lagrance_index, lagrance_index_list};
+    use brollup::schnorr::{challenge, verify};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
@@ -336,10 +337,24 @@ mod noist_tests {
         // combined_group_hiding_point
         // combined_group_post_binding_point
 
+        // challenge
+        let message = [0xffu8; 32];
+
         let gk = Some(combined_group_point.serialize_xonly());
-        let msg = Some([0xffu8; 32]);
+        let msg = Some(message);
 
         let combined_group_point_nonce = session_nonce.group_combined_full_point(gk, msg).unwrap();
+
+        let group_nonce_parity = combined_group_point_nonce.parity();
+        let group_key_parity = combined_group_point.parity();
+
+        let challenge = challenge(
+            combined_group_point_nonce,
+            combined_group_point,
+            message,
+            brollup::schnorr::SigningMode::BIP340,
+        )
+        .unwrap();
 
         let s_1_hiding_secret_nonce = session_nonce
             .signatory_combined_hiding_secret(signer_1_secret)
@@ -379,18 +394,6 @@ mod noist_tests {
         let s_3_post_binding_public_nonce = session_nonce
             .signatory_combined_post_binding_point(signer_3_public, gk, msg)
             .unwrap();
-
-        // challenge
-        let challenge = [0x05u8; 32].into_scalar().unwrap();
-
-        let group_key_parity = combined_group_point.parity();
-        let group_nonce_parity = combined_group_point_nonce.parity();
-
-        let group_key_is_odd: bool = group_key_parity.into();
-        let group_nonce_is_odd: bool = group_nonce_parity.into();
-
-        println!("group_key_is_odd : {}", group_key_is_odd);
-        println!("group_nonce_is_odd : {}", group_nonce_is_odd);
 
         let combined_group_point_ = combined_group_point.negate_if(combined_group_point.parity());
         let combined_group_point_nonce_ =
@@ -492,8 +495,6 @@ mod noist_tests {
 
         assert_eq!(s3_partial_sig.base_point_mul(), equation);
 
-        println!("buraya kadar :)");
-
         // Case #1 signer 1 & 2 produced.
         let active_list = vec![signer_1_public, signer_2_public];
         let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
@@ -512,41 +513,18 @@ mod noist_tests {
 
         assert_eq!(s1_s2_agg_sig.base_point_mul(), equation);
 
-        // Case #2 signer 1 & 3 produced.
-        let active_list = vec![signer_1_public, signer_3_public];
-        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+        let mut s1_s2_full_sig_ = Vec::<u8>::with_capacity(64);
+        s1_s2_full_sig_.extend(combined_group_point_nonce.serialize_xonly());
+        s1_s2_full_sig_.extend(s1_s2_agg_sig.serialize());
 
-        let s1_index = lagrance_index(&full_list, signer_1_public).unwrap();
-        let s1_lagrance = interpolating_value(&index_list, s1_index).unwrap();
+        let s1_s2_full_sig: [u8; 64] = s1_s2_full_sig_.try_into().unwrap();
 
-        let s3_index = lagrance_index(&full_list, signer_3_public).unwrap();
-        let s3_lagrance = interpolating_value(&index_list, s3_index).unwrap();
-
-        let s1_s3_agg_sig_ = (s1_partial_sig * s1_lagrance) + (s3_partial_sig * s3_lagrance);
-        let s1_s3_agg_sig = s1_s3_agg_sig_.unwrap();
-
-        let equation_ = combined_group_point_nonce_ + (challenge * combined_group_point_);
-        let equation = equation_.unwrap();
-
-        assert_eq!(s1_s3_agg_sig.base_point_mul(), equation);
-
-        // Case #3 signer 2 & 3 produced.
-        let active_list = vec![signer_2_public, signer_3_public];
-        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
-
-        let s2_index = lagrance_index(&full_list, signer_2_public).unwrap();
-        let s2_lagrance = interpolating_value(&index_list, s2_index).unwrap();
-
-        let s3_index = lagrance_index(&full_list, signer_3_public).unwrap();
-        let s3_lagrance = interpolating_value(&index_list, s3_index).unwrap();
-
-        let s2_s3_agg_sig_ = (s2_partial_sig * s2_lagrance) + (s3_partial_sig * s3_lagrance);
-        let s2_s3_agg_sig = s2_s3_agg_sig_.unwrap();
-
-        let equation_ = combined_group_point_nonce_ + (challenge * combined_group_point_);
-        let equation = equation_.unwrap();
-
-        assert_eq!(s2_s3_agg_sig.base_point_mul(), equation);
+        assert!(verify(
+            combined_group_point.serialize_xonly(),
+            message,
+            s1_s2_full_sig,
+            brollup::schnorr::SigningMode::BIP340
+        ));
 
         Ok(())
     }
