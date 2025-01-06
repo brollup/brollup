@@ -3,6 +3,8 @@ mod noist_tests {
     use brollup::into::IntoPointVec;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::dkg::session::DKGSession;
+
+    use brollup::noist::lagrance::{interpolating_value, lagrance_index, lagrance_index_list};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
@@ -44,291 +46,191 @@ mod noist_tests {
                 .unwrap();
 
         let full_list = vec![signer_1_public, signer_2_public, signer_3_public];
-
-        let full_point_list = match full_list.into_point_vec() {
-            Ok(list) => list,
-            Err(_) => return Err(format!("full_point_list err.")),
-        };
+        let full_point_list = full_list.into_point_vec().unwrap();
 
         // Signer 1 keymap.
         let signer_1_keymap = VSEKeyMap::new(signer_1_secret, &full_list).unwrap();
-
-        if !signer_1_keymap.is_complete(&full_point_list) {
-            return Err(format!("signer_1_keymap is not complete."));
-        }
-
-        let signer_1_auth_keymap = match Authenticable::new(signer_1_keymap, signer_1_secret) {
-            Some(keymap) => keymap,
-            None => return Err(format!("signer_1_auth_keymap err.")),
-        };
-
-        if !signer_1_auth_keymap.authenticate() {
-            println!("signer_1_auth_keymap auth err.");
-        }
+        assert!(signer_1_keymap.is_complete(&full_point_list));
+        let signer_1_auth_keymap = Authenticable::new(signer_1_keymap, signer_1_secret).unwrap();
+        assert!(signer_1_auth_keymap.authenticate());
 
         // Signer 2 keymap.
         let signer_2_keymap = VSEKeyMap::new(signer_2_secret, &full_list).unwrap();
-
-        if !signer_2_keymap.is_complete(&full_point_list) {
-            return Err(format!("signer_2_keymap is not complete."));
-        }
-
-        let signer_2_auth_keymap = match Authenticable::new(signer_2_keymap, signer_2_secret) {
-            Some(keymap) => keymap,
-            None => return Err(format!("signer_2_auth_keymap err.")),
-        };
-
-        if !signer_2_auth_keymap.authenticate() {
-            println!("signer_2_auth_keymap auth err.");
-        }
+        assert!(signer_2_keymap.is_complete(&full_point_list));
+        let signer_2_auth_keymap = Authenticable::new(signer_2_keymap, signer_2_secret).unwrap();
+        assert!(signer_2_auth_keymap.authenticate());
 
         // Signer 3 keymap.
         let signer_3_keymap = VSEKeyMap::new(signer_3_secret, &full_list).unwrap();
+        assert!(signer_3_keymap.is_complete(&full_point_list));
+        let signer_3_auth_keymap = Authenticable::new(signer_3_keymap, signer_3_secret).unwrap();
+        assert!(signer_3_auth_keymap.authenticate());
 
-        if !signer_3_keymap.is_complete(&full_point_list) {
-            return Err(format!("signer_3_keymap is not complete."));
-        }
+        let mut vse_setup = VSESetup::new(&full_list, 0).unwrap();
+        assert!(vse_setup.insert(signer_1_auth_keymap));
+        assert!(vse_setup.insert(signer_2_auth_keymap));
+        assert!(vse_setup.insert(signer_3_auth_keymap));
+        assert!(vse_setup.validate());
 
-        let signer_3_auth_keymap = match Authenticable::new(signer_3_keymap, signer_3_secret) {
-            Some(keymap) => keymap,
-            None => return Err(format!("signer_3_auth_keymap err.")),
-        };
+        let package_1 = DKGPackage::new(signer_1_secret, &full_list).unwrap();
+        assert!(package_1.is_complete(&full_list));
+        assert!(package_1.vss_verify());
+        assert!(package_1.vse_verify(&vse_setup));
+        let auth_package_1 = Authenticable::new(package_1, signer_1_secret).unwrap();
+        assert!(auth_package_1.authenticate());
 
-        if !signer_3_auth_keymap.authenticate() {
-            println!("signer_3_auth_keymap auth err.");
-        }
+        let package_2 = DKGPackage::new(signer_2_secret, &full_list).unwrap();
+        assert!(package_2.is_complete(&full_list));
+        assert!(package_2.vss_verify());
+        assert!(package_2.vse_verify(&vse_setup));
+        let auth_package_2 = Authenticable::new(package_2, signer_2_secret).unwrap();
+        assert!(auth_package_2.authenticate());
 
-        let mut vse_setup = match VSESetup::new(&full_list, 0) {
-            Some(setup) => setup,
-            None => return Err(format!("vse_setup err.")),
-        };
+        let package_3 = DKGPackage::new(signer_3_secret, &full_list).unwrap();
+        assert!(package_3.is_complete(&full_list));
+        assert!(package_3.vss_verify());
+        assert!(package_3.vse_verify(&vse_setup));
+        let auth_package_3 = Authenticable::new(package_3, signer_3_secret).unwrap();
+        assert!(auth_package_3.authenticate());
 
-        if !vse_setup.insert(signer_1_auth_keymap) {
-            return Err(format!("signer_1_auth_keymap insert err."));
-        };
+        let mut session = DKGSession::new(0, &full_list).unwrap();
 
-        if !vse_setup.insert(signer_2_auth_keymap) {
-            return Err(format!("signer_2_auth_keymap insert err."));
-        };
+        assert!(session.insert(&auth_package_1, &vse_setup));
+        assert!(session.insert(&auth_package_2, &vse_setup));
+        assert!(session.insert(&auth_package_3, &vse_setup));
 
-        if !vse_setup.insert(signer_3_auth_keymap) {
-            return Err(format!("signer_3_auth_keymap insert err."));
-        };
+        assert!(session.is_above_threshold());
+        assert!(session.verify(&vse_setup));
 
-        if !vse_setup.validate() {
-            return Err(format!("vse_setup validate err."));
-        }
+        let combined_group_hiding_point = session.group_combined_hiding_point().unwrap();
 
-        println!("printing setup..");
-        vse_setup.print();
+        let _combined_group_pre_binding_point = session.group_combined_pre_binding_point().unwrap();
 
-        let package_1 = match DKGPackage::new(signer_1_secret, &full_list) {
-            Some(package) => package,
-            None => return Err(format!("err creating package_1.")),
-        };
+        let _combined_group_post_binding_point = session
+            .group_combined_post_binding_point(None, None)
+            .unwrap();
 
-        if !package_1.is_complete(&full_list) {
-            return Err(format!("package_1 is_complete failed."));
-        }
+        let _combined_group_point = session.group_combined_full_point(None, None).unwrap();
 
-        if !package_1.vss_verify() {
-            return Err(format!("package_1 vss_verify failed."));
-        }
+        let s_1_hiding_secret = session
+            .signatory_combined_hiding_secret(signer_1_secret)
+            .unwrap();
 
-        if !package_1.vse_verify(&vse_setup) {
-            return Err(format!("package_1 vse_verify failed."));
-        }
+        let s_2_hiding_secret = session
+            .signatory_combined_hiding_secret(signer_2_secret)
+            .unwrap();
 
-        let auth_package_1 = match Authenticable::new(package_1, signer_1_secret) {
-            Some(package) => package,
-            None => return Err(format!("auth_package_1 err.")),
-        };
+        let s_3_hiding_secret = session
+            .signatory_combined_hiding_secret(signer_3_secret)
+            .unwrap();
 
-        if !auth_package_1.authenticate() {
-            return Err(format!("auth_package_1 authenticate err."));
-        }
+        let s_1_hiding_point = session
+            .signatory_combined_hiding_point(signer_1_public)
+            .unwrap();
 
-        let package_2 = match DKGPackage::new(signer_2_secret, &full_list) {
-            Some(package) => package,
-            None => return Err(format!("err creating package_2.")),
-        };
+        assert_eq!(s_1_hiding_secret.base_point_mul(), s_1_hiding_point);
 
-        if !package_2.is_complete(&full_list) {
-            return Err(format!("package_2 is_complete failed."));
-        }
+        let s_2_hiding_point = session
+            .signatory_combined_hiding_point(signer_2_public)
+            .unwrap();
 
-        if !package_2.vss_verify() {
-            return Err(format!("package_2 vss_verify failed."));
-        }
+        assert_eq!(s_2_hiding_secret.base_point_mul(), s_2_hiding_point);
 
-        if !package_2.vse_verify(&vse_setup) {
-            return Err(format!("package_2 vse_verify failed."));
-        }
+        let s_3_hiding_point = session
+            .signatory_combined_hiding_point(signer_3_public)
+            .unwrap();
 
-        let auth_package_2 = match Authenticable::new(package_2, signer_2_secret) {
-            Some(package) => package,
-            None => return Err(format!("auth_package_1 err.")),
-        };
+        assert_eq!(s_3_hiding_secret.base_point_mul(), s_3_hiding_point);
 
-        if !auth_package_2.authenticate() {
-            return Err(format!("auth_package_1 authenticate err."));
-        }
+        // Case #1 signatory 1 & 2 produced.
 
-        let package_3 = match DKGPackage::new(signer_3_secret, &full_list) {
-            Some(package) => package,
-            None => return Err(format!("err creating package_3.")),
-        };
+        let active_list = vec![signer_1_public, signer_2_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
-        if !package_3.is_complete(&full_list) {
-            return Err(format!("package_3 is_complete failed."));
-        }
+        let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
+        let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
+        let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
 
-        if !package_3.vss_verify() {
-            return Err(format!("package_3 vss_verify failed."));
-        }
+        let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
+        let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
+        let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
 
-        if !package_3.vse_verify(&vse_setup) {
-            return Err(format!("package_3 vse_verify failed."));
-        }
+        let s1_s2_combined_secret_lagranced =
+            (s_1_hiding_secret_lagranced + s_2_hiding_secret_lagranced).unwrap();
 
-        let auth_package_3 = match Authenticable::new(package_3, signer_3_secret) {
-            Some(package) => package,
-            None => return Err(format!("auth_package_1 err.")),
-        };
-
-        if !auth_package_3.authenticate() {
-            return Err(format!("auth_package_1 authenticate err."));
-        }
-
-        let mut session = match DKGSession::new(0, &full_list) {
-            Some(session) => session,
-            None => return Err(format!("session construction failed.")),
-        };
-
-        if !session.insert(&auth_package_1, &vse_setup) {
-            return Err(format!("session package_1 insertion failed."));
-        }
-
-        if !session.insert(&auth_package_2, &vse_setup) {
-            return Err(format!("session package_2 insertion failed."));
-        }
-
-        if !session.insert(&auth_package_3, &vse_setup) {
-            return Err(format!("session package_3 insertion failed."));
-        }
-
-        if !session.is_above_threshold() {
-            return Err(format!("session threshold is not met (2-of-3)."));
-        }
-
-        if !session.verify(&vse_setup) {
-            return Err(format!("session verify err."));
-        }
-
-        println!("is_full: {}", session.is_full());
-        println!("is_above_threshold: {}", session.is_above_threshold());
-
-        session.print();
-
-        let binding_factors = match session.binding_factors(None, None) {
-            Some(factors) => factors,
-            None => return Err(format!("binding_factors err.")),
-        };
-
-        for (index, binding_factor) in binding_factors.iter().enumerate() {
-            println!("#{} binding_factor: {}", index, hex::encode(binding_factor));
-        }
-
-        let hiding_point = match session.group_combined_hiding_point() {
-            Some(point) => point,
-            None => return Err(format!("hiding_point err.")),
-        };
-
-        println!("hiding_point: {}", hex::encode(hiding_point.serialize()));
-
-        let combined_pre_binding_point = match session.group_combined_pre_binding_point() {
-            Some(point) => point,
-            None => return Err(format!("combined_full_point err.")),
-        };
-
-        println!(
-            "combined_pre_binding_point: {}",
-            hex::encode(combined_pre_binding_point.serialize())
+        assert_eq!(
+            s1_s2_combined_secret_lagranced.base_point_mul(),
+            combined_group_hiding_point
         );
 
-        let combined_post_binding_point =
-            match session.group_combined_post_binding_point(None, None) {
-                Some(point) => point,
-                None => return Err(format!("combined_post_binding_point err.")),
-            };
+        // Case #2 signatory 1 & 3 produced.
 
-        println!(
-            "combined_post_binding_point: {}",
-            hex::encode(combined_post_binding_point.serialize())
+        let active_list = vec![signer_1_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+
+        let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
+        let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
+        let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
+
+        let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
+        let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+
+        let s1_s3_combined_secret_lagranced =
+            (s_1_hiding_secret_lagranced + s_3_hiding_secret_lagranced).unwrap();
+
+        assert_eq!(
+            s1_s3_combined_secret_lagranced.base_point_mul(),
+            combined_group_hiding_point
         );
 
-        let combined_full_point = match session.group_combined_full_point(None, None) {
-            Some(point) => point,
-            None => return Err(format!("combined_full_point err.")),
-        };
+        // Case #3 signatory 2 & 3 produced.
 
-        println!(
-            "combined_full_point: {}",
-            hex::encode(combined_full_point.serialize())
+        let active_list = vec![signer_2_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+
+        let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
+        let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
+        let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
+
+        let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
+        let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+
+        let s2_s3_combined_secret_lagranced =
+            (s_2_hiding_secret_lagranced + s_3_hiding_secret_lagranced).unwrap();
+
+        assert_eq!(
+            s2_s3_combined_secret_lagranced.base_point_mul(),
+            combined_group_hiding_point
         );
 
-        let signatory_1_hiding = match session.signatory_combined_hiding_point(signer_1_public) {
-            Some(point) => point,
-            None => return Err(format!("signatory_1_hiding err.")),
-        };
+        // Case #4 all signatories 1, 2 & 3 produced.
 
-        println!("");
+        let active_list = vec![signer_1_public, signer_2_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
 
-        println!(
-            "signatory 1 combined hiding point: {}",
-            hex::encode(signatory_1_hiding.serialize())
+        let s_1_index = lagrance_index(&full_list, signer_1_public).unwrap();
+        let s_1_lagrance = interpolating_value(&index_list, s_1_index).unwrap();
+        let s_1_hiding_secret_lagranced = s_1_hiding_secret * s_1_lagrance;
+
+        let s_2_index = lagrance_index(&full_list, signer_2_public).unwrap();
+        let s_2_lagrance = interpolating_value(&index_list, s_2_index).unwrap();
+        let s_2_hiding_secret_lagranced = s_2_hiding_secret * s_2_lagrance;
+
+        let s_3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s_3_lagrance = interpolating_value(&index_list, s_3_index).unwrap();
+        let s_3_hiding_secret_lagranced = s_3_hiding_secret * s_3_lagrance;
+
+        let s1_s2_s3_combined_secret_lagranced = (s_1_hiding_secret_lagranced
+            + s_2_hiding_secret_lagranced
+            + s_3_hiding_secret_lagranced)
+            .unwrap();
+
+        assert_eq!(
+            s1_s2_s3_combined_secret_lagranced.base_point_mul(),
+            combined_group_hiding_point
         );
-
-        if let Some(scalar) = session.signatory_combined_hiding_secret(signer_1_secret) {
-            println!(
-                "signatory 1 combined hiding secret: {}",
-                hex::encode(scalar.serialize())
-            );
-        }
-
-        let signatory_1_pre_binding =
-            match session.signatory_combined_pre_binding_point(signer_1_public) {
-                Some(point) => point,
-                None => return Err(format!("signatory_1_pre_binding err.")),
-            };
-
-        println!(
-            "signatory_1_pre_binding: {}",
-            hex::encode(signatory_1_pre_binding.serialize())
-        );
-
-        let signatory_1_post_binding =
-            match session.signatory_combined_post_binding_point(signer_1_public, None, None) {
-                Some(point) => point,
-                None => return Err(format!("signatory_1_post_binding err.")),
-            };
-
-        println!(
-            "signatory_1_post_binding: {}",
-            hex::encode(signatory_1_post_binding.serialize())
-        );
-
-        if let Some(index) = session.signatory_lagrance_index(signer_1_public) {
-            println!("signatory 1 index: {}", hex::encode(index.serialize()));
-        }
-
-        if let Some(index) = session.signatory_lagrance_index(signer_2_public) {
-            println!("signatory 2 index: {}", hex::encode(index.serialize()));
-        }
-
-        if let Some(index) = session.signatory_lagrance_index(signer_3_public) {
-            println!("signatory 3 index: {}", hex::encode(index.serialize()));
-        }
 
         Ok(())
     }

@@ -105,6 +105,10 @@ impl DKGSession {
     }
 
     pub fn verify(&self, vse_setup: &VSESetup) -> bool {
+        if !self.is_above_threshold() {
+            return false;
+        }
+
         for (signatory, auth_package) in self.packages.iter() {
             if auth_package.key() != signatory.serialize_xonly() {
                 return false;
@@ -345,25 +349,60 @@ impl DKGSession {
         }
     }
 
+    pub fn signatory_combined_pre_binding_secret(&self, secret_key: [u8; 32]) -> Option<Scalar> {
+        let signatory_secret = secret_key.into_scalar().ok()?.lift();
+        let signatory_public = signatory_secret.base_point_mul();
+        let mut combined_secret = MaybeScalar::Zero;
+
+        for (signatory, package) in self.packages.iter() {
+            let binding_shares = package.object().binding().shares();
+            let encsec = binding_shares.get(&signatory_public)?.1;
+            let encrypting_key_secret =
+                vse::encrypting_key_secret(signatory_secret, signatory.to_owned());
+            let decsec = vse::decrypt(encsec, encrypting_key_secret).ok()?;
+
+            combined_secret = combined_secret + decsec;
+        }
+
+        match combined_secret {
+            MaybeScalar::Valid(scalar) => return Some(scalar),
+            MaybeScalar::Zero => return None,
+        }
+    }
+
+    pub fn signatory_combined_post_binding_secret(
+        &self,
+        secret_key: [u8; 32],
+        group_key: Option<[u8; 32]>,
+        message: Option<[u8; 32]>,
+    ) -> Option<Scalar> {
+        let signatory_secret = secret_key.into_scalar().ok()?.lift();
+        let signatory_public = signatory_secret.base_point_mul();
+        let mut combined_secret = MaybeScalar::Zero;
+
+        let binding_factors = self.binding_factors(group_key, message)?;
+
+        for (index, (signatory, package)) in self.ordered_packages().iter().enumerate() {
+            let binding_factor = binding_factors[index].into_scalar().ok()?;
+
+            let binding_shares = package.binding().shares();
+            let encsec = binding_shares.get(&signatory_public)?.1;
+            let encrypting_key_secret =
+                vse::encrypting_key_secret(signatory_secret, signatory.to_owned());
+            let decsec = vse::decrypt(encsec, encrypting_key_secret).ok()?;
+
+            combined_secret = combined_secret + (decsec * binding_factor);
+        }
+
+        match combined_secret {
+            MaybeScalar::Valid(scalar) => return Some(scalar),
+            MaybeScalar::Zero => return None,
+        }
+    }
+
     pub fn print(&self) {
         for (_, package) in self.ordered_packages().iter() {
             package.print();
         }
-    }
-
-    pub fn signatory_lagrance_index(&self, signatory: [u8; 32]) -> Option<Scalar> {
-        let mut signatories = self.signatories().into_xpoint_vec().ok()?;
-        signatories.sort();
-
-        for (index, signatory_key) in signatories.iter().enumerate() {
-            if signatory_key == &signatory {
-                match MaybeScalar::from((index + 1) as u128) {
-                    MaybeScalar::Valid(scalar) => return Some(scalar),
-                    MaybeScalar::Zero => return None,
-                }
-            }
-        }
-
-        None
     }
 }

@@ -3,7 +3,7 @@ use secp::{MaybeScalar, Point, Scalar};
 
 use crate::into::SecpError;
 
-use super::{lagrance::lagrance_interpolating_value, vss::vss_commit};
+use super::{lagrance::interpolating_value, vss::vss_commit};
 
 pub fn secret_share_gen(
     secret_key: Scalar,
@@ -35,10 +35,7 @@ pub fn secret_share_gen(
 
     let vss_commitments = vss_commit(&coefficients)?;
 
-    Ok((
-        participant_private_keys,
-        vss_commitments,
-    ))
+    Ok((participant_private_keys, vss_commitments))
 }
 
 pub fn secret_share_shard(
@@ -111,7 +108,7 @@ fn polynomial_interpolate_constant(points: &Vec<(Scalar, Scalar)>) -> Result<Sca
     let mut f_zero: MaybeScalar = MaybeScalar::Zero;
 
     for point in points {
-        let delta = point.1 * lagrance_interpolating_value(&x_coords, point.0)?;
+        let delta = point.1 * interpolating_value(&x_coords, point.0)?;
         f_zero += delta;
     }
 
