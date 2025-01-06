@@ -526,6 +526,104 @@ mod noist_tests {
             brollup::schnorr::SigningMode::BIP340
         ));
 
+        // Case #2 signer 1 & 3 produced.
+        let active_list = vec![signer_1_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+
+        let s1_index = lagrance_index(&full_list, signer_1_public).unwrap();
+        let s1_lagrance = interpolating_value(&index_list, s1_index).unwrap();
+
+        let s3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s3_lagrance = interpolating_value(&index_list, s3_index).unwrap();
+
+        let s1_s3_agg_sig_ = (s1_partial_sig * s1_lagrance) + (s3_partial_sig * s3_lagrance);
+        let s1_s3_agg_sig = s1_s3_agg_sig_.unwrap();
+
+        let equation_ = combined_group_point_nonce_ + (challenge * combined_group_point_);
+        let equation = equation_.unwrap();
+
+        assert_eq!(s1_s3_agg_sig.base_point_mul(), equation);
+
+        let mut s1_s3_full_sig_ = Vec::<u8>::with_capacity(64);
+        s1_s3_full_sig_.extend(combined_group_point_nonce.serialize_xonly());
+        s1_s3_full_sig_.extend(s1_s3_agg_sig.serialize());
+
+        let s1_s3_full_sig: [u8; 64] = s1_s3_full_sig_.try_into().unwrap();
+
+        assert!(verify(
+            combined_group_point.serialize_xonly(),
+            message,
+            s1_s3_full_sig,
+            brollup::schnorr::SigningMode::BIP340
+        ));
+
+        // Case #3 signer 2 & 3 produced.
+        let active_list = vec![signer_2_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+
+        let s2_index = lagrance_index(&full_list, signer_2_public).unwrap();
+        let s2_lagrance = interpolating_value(&index_list, s2_index).unwrap();
+
+        let s3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s3_lagrance = interpolating_value(&index_list, s3_index).unwrap();
+
+        let s2_s3_agg_sig_ = (s2_partial_sig * s2_lagrance) + (s3_partial_sig * s3_lagrance);
+        let s2_s3_agg_sig = s2_s3_agg_sig_.unwrap();
+
+        let equation_ = combined_group_point_nonce_ + (challenge * combined_group_point_);
+        let equation = equation_.unwrap();
+
+        assert_eq!(s2_s3_agg_sig.base_point_mul(), equation);
+
+        let mut s2_s3_full_sig_ = Vec::<u8>::with_capacity(64);
+        s2_s3_full_sig_.extend(combined_group_point_nonce.serialize_xonly());
+        s2_s3_full_sig_.extend(s2_s3_agg_sig.serialize());
+
+        let s2_s3_full_sig: [u8; 64] = s2_s3_full_sig_.try_into().unwrap();
+
+        assert!(verify(
+            combined_group_point.serialize_xonly(),
+            message,
+            s2_s3_full_sig,
+            brollup::schnorr::SigningMode::BIP340
+        ));
+
+        // Case #4 all signers 1, 2 & 3 produced.
+        let active_list = vec![signer_1_public, signer_2_public, signer_3_public];
+        let index_list = lagrance_index_list(&full_list, &active_list).unwrap();
+
+        let s1_index = lagrance_index(&full_list, signer_1_public).unwrap();
+        let s1_lagrance = interpolating_value(&index_list, s1_index).unwrap();
+
+        let s2_index = lagrance_index(&full_list, signer_2_public).unwrap();
+        let s2_lagrance = interpolating_value(&index_list, s2_index).unwrap();
+
+        let s3_index = lagrance_index(&full_list, signer_3_public).unwrap();
+        let s3_lagrance = interpolating_value(&index_list, s3_index).unwrap();
+
+        let s1_s2_s3_agg_sig_ = (s1_partial_sig * s1_lagrance)
+            + (s2_partial_sig * s2_lagrance)
+            + (s3_partial_sig * s3_lagrance);
+        let s1_s2_s3_agg_sig = s1_s2_s3_agg_sig_.unwrap();
+
+        let equation_ = combined_group_point_nonce_ + (challenge * combined_group_point_);
+        let equation = equation_.unwrap();
+
+        assert_eq!(s1_s2_s3_agg_sig.base_point_mul(), equation);
+
+        let mut s1_s2_s3_full_sig_ = Vec::<u8>::with_capacity(64);
+        s1_s2_s3_full_sig_.extend(combined_group_point_nonce.serialize_xonly());
+        s1_s2_s3_full_sig_.extend(s1_s2_s3_agg_sig.serialize());
+
+        let s1_s2_s3_full_sig: [u8; 64] = s1_s2_s3_full_sig_.try_into().unwrap();
+
+        assert!(verify(
+            combined_group_point.serialize_xonly(),
+            message,
+            s1_s2_s3_full_sig,
+            brollup::schnorr::SigningMode::BIP340
+        ));
+
         Ok(())
     }
 }
