@@ -120,10 +120,6 @@ impl DKGDirectory {
             if session_index != 0 {
                 return false;
             }
-        } else {
-            if session_index > self.index_height {
-                return false;
-            }
         }
 
         if !session.verify(&self.vse_setup) {
@@ -135,6 +131,7 @@ impl DKGDirectory {
             .insert(session.index().to_be_bytes(), session.serialize())
         {
             if let None = self.sessions.insert(session_index, session.to_owned()) {
+                self.set_index_height(session_index);
                 return true;
             }
         }
