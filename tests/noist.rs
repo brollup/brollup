@@ -140,10 +140,10 @@ mod noist_tests {
             .unwrap();
 
         let s_1_hiding_point = session
-            .signatory_combined_hiding_point(signer_1_public)
+            .signatory_combined_hiding_public(signer_1_public)
             .unwrap();
         let s_1_post_binding_point = session
-            .signatory_combined_post_binding_point(signer_1_public, None, None)
+            .signatory_combined_post_binding_public(signer_1_public, None, None)
             .unwrap();
 
         assert_eq!(s_1_hiding_secret.base_point_mul(), s_1_hiding_point);
@@ -153,10 +153,10 @@ mod noist_tests {
         );
 
         let s_2_hiding_point = session
-            .signatory_combined_hiding_point(signer_2_public)
+            .signatory_combined_hiding_public(signer_2_public)
             .unwrap();
         let s_2_post_binding_point = session
-            .signatory_combined_post_binding_point(signer_2_public, None, None)
+            .signatory_combined_post_binding_public(signer_2_public, None, None)
             .unwrap();
 
         assert_eq!(s_2_hiding_secret.base_point_mul(), s_2_hiding_point);
@@ -166,10 +166,10 @@ mod noist_tests {
         );
 
         let s_3_hiding_point = session
-            .signatory_combined_hiding_point(signer_3_public)
+            .signatory_combined_hiding_public(signer_3_public)
             .unwrap();
         let s_3_post_binding_point = session
-            .signatory_combined_post_binding_point(signer_3_public, None, None)
+            .signatory_combined_post_binding_public(signer_3_public, None, None)
             .unwrap();
 
         assert_eq!(s_3_hiding_secret.base_point_mul(), s_3_hiding_point);
@@ -363,39 +363,39 @@ mod noist_tests {
             .signatory_combined_hiding_secret(signer_1_secret)
             .unwrap();
         let s_1_hiding_public_nonce = session_nonce
-            .signatory_combined_hiding_point(signer_1_public)
+            .signatory_combined_hiding_public(signer_1_public)
             .unwrap();
         let s_1_post_binding_secret_nonce = session_nonce
             .signatory_combined_post_binding_secret(signer_1_secret, gk, msg)
             .unwrap();
         let s_1_post_binding_public_nonce = session_nonce
-            .signatory_combined_post_binding_point(signer_1_public, gk, msg)
+            .signatory_combined_post_binding_public(signer_1_public, gk, msg)
             .unwrap();
 
         let s_2_hiding_secret_nonce = session_nonce
             .signatory_combined_hiding_secret(signer_2_secret)
             .unwrap();
         let s_2_hiding_public_nonce = session_nonce
-            .signatory_combined_hiding_point(signer_2_public)
+            .signatory_combined_hiding_public(signer_2_public)
             .unwrap();
         let s_2_post_binding_secret_nonce = session_nonce
             .signatory_combined_post_binding_secret(signer_2_secret, gk, msg)
             .unwrap();
         let s_2_post_binding_public_nonce = session_nonce
-            .signatory_combined_post_binding_point(signer_2_public, gk, msg)
+            .signatory_combined_post_binding_public(signer_2_public, gk, msg)
             .unwrap();
 
         let s_3_hiding_secret_nonce = session_nonce
             .signatory_combined_hiding_secret(signer_3_secret)
             .unwrap();
         let s_3_hiding_public_nonce = session_nonce
-            .signatory_combined_hiding_point(signer_3_public)
+            .signatory_combined_hiding_public(signer_3_public)
             .unwrap();
         let s_3_post_binding_secret_nonce = session_nonce
             .signatory_combined_post_binding_secret(signer_3_secret, gk, msg)
             .unwrap();
         let s_3_post_binding_public_nonce = session_nonce
-            .signatory_combined_post_binding_point(signer_3_public, gk, msg)
+            .signatory_combined_post_binding_public(signer_3_public, gk, msg)
             .unwrap();
 
         let combined_group_point_ = combined_group_point.negate_if(combined_group_point.parity());

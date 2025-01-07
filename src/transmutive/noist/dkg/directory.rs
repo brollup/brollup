@@ -1,6 +1,5 @@
 use super::session::DKGSession;
 use crate::{
-    into::IntoScalar,
     noist::{
         lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
         setup::setup::VSESetup,
