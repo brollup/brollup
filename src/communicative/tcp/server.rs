@@ -1,5 +1,6 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp;
+use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
@@ -304,10 +305,12 @@ async fn handle_request_vse_keymap(
     };
     signer_list.sort();
 
+    let signer_list = signer_list.into_point_vec().ok()?;
+
     // # Security block.
     {
         for signer in signer_list.iter() {
-            if !baked::OPERATOR_SET.contains(signer) {
+            if !baked::OPERATOR_SET.contains(&signer.serialize_xonly()) {
                 return None;
             }
         }

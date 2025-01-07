@@ -1,4 +1,4 @@
-use secp::{MaybeScalar, Scalar};
+use secp::{MaybeScalar, Point, Scalar};
 
 use crate::into::SecpError;
 
@@ -36,8 +36,8 @@ pub fn interpolating_value(x_vec: &Vec<Scalar>, x_i: Scalar) -> Result<Scalar, S
 }
 
 pub fn lagrance_index_list(
-    full_list: &Vec<[u8; 32]>,
-    active_list: &Vec<[u8; 32]>,
+    full_list: &Vec<Point>,
+    active_list: &Vec<Point>,
 ) -> Option<Vec<Scalar>> {
     let mut active_list = active_list.clone();
     active_list.sort();
@@ -55,7 +55,7 @@ pub fn lagrance_index_list(
     Some(index_list)
 }
 
-pub fn lagrance_index(full_list: &Vec<[u8; 32]>, signatory: [u8; 32]) -> Option<Scalar> {
+pub fn lagrance_index(full_list: &Vec<Point>, signatory: Point) -> Option<Scalar> {
     let mut full_list = full_list.clone();
     full_list.sort();
 

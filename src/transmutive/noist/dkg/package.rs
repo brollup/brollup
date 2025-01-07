@@ -18,7 +18,7 @@ pub struct DKGPackage {
 }
 
 impl DKGPackage {
-    pub fn new(secret_key: [u8; 32], signatories: &Vec<[u8; 32]>) -> Option<Self> {
+    pub fn new(secret_key: [u8; 32], signatories: &Vec<Point>) -> Option<Self> {
         let public_key = secret_key.secret_to_public()?;
 
         let hiding = DKGShareMap::new(secret_key, public_key, &signatories)?;
@@ -45,7 +45,7 @@ impl DKGPackage {
         self.binding.clone()
     }
 
-    pub fn is_complete(&self, signatories: &Vec<[u8; 32]>) -> bool {
+    pub fn is_complete(&self, signatories: &Vec<Point>) -> bool {
         if !self.hiding.is_complete(signatories) {
             return false;
         }

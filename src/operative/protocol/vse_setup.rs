@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::{
+    into::IntoPointVec,
     noist::setup::setup::VSESetup,
     tcp::{client::TCPClient, peer::PeerListExt},
     PEER, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY, VSE_SETUP,
@@ -81,7 +82,7 @@ pub async fn run(
     }
 
     let vse_setup: VSE_SETUP = {
-        let setup_ = match VSESetup::new(&active_keys, no) {
+        let setup_ = match VSESetup::new(&active_keys.into_point_vec().ok()?, no) {
             Some(setup) => setup,
             None => return None,
         };

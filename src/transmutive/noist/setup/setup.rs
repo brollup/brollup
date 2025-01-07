@@ -3,10 +3,7 @@ use std::collections::HashMap;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    into::{IntoPoint, IntoPointVec},
-    schnorr::Authenticable,
-};
+use crate::{into::IntoPoint, schnorr::Authenticable};
 
 use super::keymap::VSEKeyMap;
 
@@ -18,8 +15,9 @@ pub struct VSESetup {
 }
 
 impl VSESetup {
-    pub fn new(signatories: &Vec<[u8; 32]>, no: u64) -> Option<Self> {
-        let signatories = signatories.into_point_vec().ok()?;
+    pub fn new(signatories: &Vec<Point>, no: u64) -> Option<Self> {
+        let mut signatories = signatories.clone();
+        signatories.sort();
 
         let vse_setup = VSESetup {
             no,

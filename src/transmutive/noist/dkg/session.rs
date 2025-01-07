@@ -1,7 +1,7 @@
 use super::package::DKGPackage;
 use crate::{
     hash::Hash,
-    into::{IntoPoint, IntoPointByteVec, IntoPointVec, IntoScalar},
+    into::IntoScalar,
     noist::{setup::setup::VSESetup, vse},
     schnorr::{Authenticable, LiftScalar, Sighash},
 };
@@ -17,13 +17,13 @@ pub struct DKGSession {
 }
 
 impl DKGSession {
-    pub fn new(nonce: u64, signatories: &Vec<[u8; 32]>) -> Option<Self> {
+    pub fn new(nonce: u64, signatories: &Vec<Point>) -> Option<Self> {
         let mut signatories = signatories.clone();
         signatories.sort();
 
         let session = DKGSession {
             nonce,
-            signatories: signatories.into_point_vec().ok()?,
+            signatories,
             packages: HashMap::<Point, Authenticable<DKGPackage>>::new(),
         };
 
@@ -95,12 +95,7 @@ impl DKGSession {
             return false;
         }
 
-        let self_signatories = match self.signatories.into_xpoint_vec() {
-            Ok(vec) => vec,
-            Err(_) => return false,
-        };
-
-        if !package.is_complete(&self_signatories) {
+        if !package.is_complete(&self.signatories) {
             return false;
         }
 
@@ -132,14 +127,9 @@ impl DKGSession {
                 return false;
             }
 
-            let self_signatories = match self.signatories.into_xpoint_vec() {
-                Ok(vec) => vec,
-                Err(_) => return false,
-            };
-
             let package = auth_package.object();
 
-            if !package.is_complete(&self_signatories) {
+            if !package.is_complete(&self.signatories) {
                 return false;
             }
 
@@ -270,14 +260,12 @@ impl DKGSession {
         Some(binding_factors)
     }
 
-    pub fn signatory_combined_hiding_point(&self, signatory: [u8; 32]) -> Option<Point> {
-        let signatory_point = signatory.into_point().ok()?;
-
+    pub fn signatory_combined_hiding_point(&self, signatory: Point) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages.iter() {
             let hiding_shares = package.object().hiding().shares();
-            let share = hiding_shares.get(&signatory_point)?;
+            let share = hiding_shares.get(&signatory)?;
             combined_point = combined_point + share.0;
         }
 
@@ -287,14 +275,12 @@ impl DKGSession {
         }
     }
 
-    pub fn signatory_combined_pre_binding_point(&self, signatory: [u8; 32]) -> Option<Point> {
-        let signatory_point = signatory.into_point().ok()?;
-
+    pub fn signatory_combined_pre_binding_point(&self, signatory: Point) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages.iter() {
             let binding_shares = package.object().binding().shares();
-            let share = binding_shares.get(&signatory_point)?;
+            let share = binding_shares.get(&signatory)?;
             combined_point = combined_point + share.0;
         }
 
@@ -306,11 +292,10 @@ impl DKGSession {
 
     pub fn signatory_combined_post_binding_point(
         &self,
-        signatory: [u8; 32],
+        signatory: Point,
         group_key: Option<[u8; 32]>,
         message: Option<[u8; 32]>,
     ) -> Option<Point> {
-        let signatory_point = signatory.into_point().ok()?;
         let binding_factors = self.binding_factors(group_key, message)?;
         let ordered_packages = self.ordered_packages();
 
@@ -320,7 +305,7 @@ impl DKGSession {
             let binding_factor = binding_factors[index].into_scalar().ok()?;
 
             let binding_shares = package.binding().shares();
-            let share = binding_shares.get(&signatory_point)?;
+            let share = binding_shares.get(&signatory)?;
             combined_point = combined_point + (share.0 * binding_factor);
         }
 
@@ -332,7 +317,7 @@ impl DKGSession {
 
     pub fn signatory_combined_full_point(
         &self,
-        signatory: [u8; 32],
+        signatory: Point,
         group_key: Option<[u8; 32]>,
         message: Option<[u8; 32]>,
     ) -> Option<Point> {

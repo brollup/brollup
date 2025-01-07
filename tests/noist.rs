@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod noist_tests {
-    use brollup::into::IntoPointVec;
+    use brollup::into::IntoPoint;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::dkg::session::DKGSession;
 
@@ -46,24 +46,27 @@ mod noist_tests {
                 .try_into()
                 .unwrap();
 
+        let signer_1_public = signer_1_public.into_point().unwrap();
+        let signer_2_public = signer_2_public.into_point().unwrap();
+        let signer_3_public = signer_3_public.into_point().unwrap();
+
         let full_list = vec![signer_1_public, signer_2_public, signer_3_public];
-        let full_point_list = full_list.into_point_vec().unwrap();
 
         // Signer 1 keymap.
         let signer_1_keymap = VSEKeyMap::new(signer_1_secret, &full_list).unwrap();
-        assert!(signer_1_keymap.is_complete(&full_point_list));
+        assert!(signer_1_keymap.is_complete(&full_list));
         let signer_1_auth_keymap = Authenticable::new(signer_1_keymap, signer_1_secret).unwrap();
         assert!(signer_1_auth_keymap.authenticate());
 
         // Signer 2 keymap.
         let signer_2_keymap = VSEKeyMap::new(signer_2_secret, &full_list).unwrap();
-        assert!(signer_2_keymap.is_complete(&full_point_list));
+        assert!(signer_2_keymap.is_complete(&full_list));
         let signer_2_auth_keymap = Authenticable::new(signer_2_keymap, signer_2_secret).unwrap();
         assert!(signer_2_auth_keymap.authenticate());
 
         // Signer 3 keymap.
         let signer_3_keymap = VSEKeyMap::new(signer_3_secret, &full_list).unwrap();
-        assert!(signer_3_keymap.is_complete(&full_point_list));
+        assert!(signer_3_keymap.is_complete(&full_list));
         let signer_3_auth_keymap = Authenticable::new(signer_3_keymap, signer_3_secret).unwrap();
         assert!(signer_3_auth_keymap.authenticate());
 

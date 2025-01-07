@@ -19,7 +19,7 @@ impl DKGShareMap {
     pub fn new(
         secret_key: [u8; 32],
         public_key: [u8; 32],
-        signatories: &Vec<[u8; 32]>,
+        signatories: &Vec<Point>,
     ) -> Option<Self> {
         let self_point = public_key.into_point().ok()?;
 
@@ -58,7 +58,7 @@ impl DKGShareMap {
             signatories.sort();
 
             for (index, signatory) in signatories.iter().enumerate() {
-                let signatory_point = signatory.into_point().ok()?;
+                let signatory_point = signatory.to_owned();
                 let self_secret_scalar = secret_key.into_scalar().ok()?;
 
                 let secret_share = secret_shares[index].1;
@@ -130,7 +130,7 @@ impl DKGShareMap {
         Some(constant_point.to_owned())
     }
 
-    pub fn is_complete(&self, signatories: &Vec<[u8; 32]>) -> bool {
+    pub fn is_complete(&self, signatories: &Vec<Point>) -> bool {
         let mut signatories = signatories.clone();
         signatories.sort();
 
@@ -139,7 +139,7 @@ impl DKGShareMap {
         }
 
         for (index, (signatory, _)) in self.ordered_shares().iter().enumerate() {
-            if signatory.serialize_xonly() != signatories[index] {
+            if signatory != &signatories[index] {
                 return false;
             }
         }

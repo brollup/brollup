@@ -15,20 +15,16 @@ pub struct VSEKeyMap {
 }
 
 impl VSEKeyMap {
-    pub fn new(self_secret: [u8; 32], list: &Vec<[u8; 32]>) -> Option<VSEKeyMap> {
+    pub fn new(self_secret: [u8; 32], list: &Vec<Point>) -> Option<VSEKeyMap> {
         let self_point = self_secret.secret_to_public()?.into_point().ok()?;
 
         let mut map = HashMap::<Point, (Point, Option<Vec<u8>>)>::new();
 
         for to_public in list {
-            let to_point = to_public.into_point().ok()?;
+            let to_vse_point =
+                encrypting_key_public(self_secret.into_scalar().ok()?, to_public.to_owned());
 
-            let to_vse_point = encrypting_key_public(
-                self_secret.into_scalar().ok()?,
-                to_public.into_point().ok()?,
-            );
-
-            map.insert(to_point, (to_vse_point, None));
+            map.insert(to_public.to_owned(), (to_vse_point, None));
         }
 
         Some(VSEKeyMap {
