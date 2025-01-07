@@ -2,11 +2,11 @@
 
 use crate::hash::Hash;
 use crate::hash::HashTag;
+use crate::into::IntoPoint;
+use crate::into::IntoScalar;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq)]
 pub enum SigningMode {
@@ -217,55 +217,11 @@ impl LiftScalar for Scalar {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Signature(pub [u8; 64]);
-
-impl Serialize for Signature {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_bytes(&self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for Signature {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SignatureVisitor;
-
-        impl<'de> Visitor<'de> for SignatureVisitor {
-            type Value = Signature;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("64 bytes")
-            }
-
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                if v.len() == 64 {
-                    let mut array = [0u8; 64];
-                    array.copy_from_slice(v);
-                    Ok(Signature(array))
-                } else {
-                    Err(E::invalid_length(v.len(), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_bytes(SignatureVisitor)
-    }
-}
-
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct Authenticable<T> {
     object: T,
-    sig: Signature,
-    key: [u8; 32],
+    sig: (Point, Scalar),
+    key: Point,
 }
 
 impl<T> Authenticable<T>
@@ -274,16 +230,23 @@ where
 {
     pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
         let key = secret_key.secret_to_public()?;
+        let key_point = key.into_point().ok()?;
+
         let msg = object.sighash();
 
-        let sig = Signature(sign(secret_key, msg, SigningMode::Brollup)?);
+        let sig = sign(secret_key, msg, SigningMode::Brollup)?;
+        let nonce = &sig[..32].to_vec().into_point().ok()?;
+        let s_com = &sig[32..].to_vec().into_scalar().ok()?;
 
-        Some(Self { object, sig, key })
+        Some(Self {
+            object,
+            sig: (nonce.to_owned(), s_com.to_owned()),
+            key: key_point,
+        })
     }
 
-
     pub fn serialize(&self) -> Vec<u8> {
-        match bincode::serialize(&self) {
+        match serde_json::to_vec(self) {
             Ok(bytes) => bytes,
             Err(_) => vec![],
         }
@@ -299,11 +262,14 @@ where
     }
 
     pub fn sig(&self) -> [u8; 64] {
-        self.sig.0
+        let mut sig = Vec::<u8>::with_capacity(64);
+        sig.extend(self.sig.0.serialize_xonly());
+        sig.extend(self.sig.1.serialize());
+        sig.try_into().unwrap()
     }
 
     pub fn key(&self) -> [u8; 32] {
-        self.key
+        self.key.serialize_xonly()
     }
 
     pub fn authenticate(&self) -> bool {

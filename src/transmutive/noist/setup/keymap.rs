@@ -34,14 +34,14 @@ impl VSEKeyMap {
     }
 
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
-        match bincode::deserialize(&bytes) {
+        match serde_json::from_slice(bytes) {
             Ok(keymap) => Some(keymap),
             Err(_) => None,
         }
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        match bincode::serialize(&self) {
+        match serde_json::to_vec(self) {
             Ok(bytes) => bytes,
             Err(_) => vec![],
         }

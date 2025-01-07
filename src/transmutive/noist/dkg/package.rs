@@ -6,14 +6,13 @@ use crate::{
     into::IntoPoint,
     noist::setup::setup::VSESetup,
     schnorr::{Bytes32, Sighash},
-    secp_point::SecpPoint,
 };
 
 use super::sharemap::DKGShareMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGPackage {
-    signatory: SecpPoint,
+    signatory: Point,
     hiding: DKGShareMap,
     binding: DKGShareMap,
 }
@@ -26,7 +25,7 @@ impl DKGPackage {
         let binding = DKGShareMap::new(secret_key, public_key, &signatories)?;
 
         let package = DKGPackage {
-            signatory: SecpPoint::new(public_key.into_point().ok()?),
+            signatory: public_key.into_point().ok()?,
             hiding,
             binding,
         };
@@ -34,8 +33,22 @@ impl DKGPackage {
         Some(package)
     }
 
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        match serde_json::from_slice(bytes) {
+            Ok(keymap) => Some(keymap),
+            Err(_) => None,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn signatory(&self) -> Point {
-        self.signatory.inner().clone()
+        self.signatory.clone()
     }
 
     pub fn hiding(&self) -> DKGShareMap {
@@ -85,7 +98,7 @@ impl DKGPackage {
     pub fn print(&self) {
         println!(
             "Package by {} :",
-            hex::encode(self.signatory.inner().serialize_xonly())
+            hex::encode(self.signatory.serialize_xonly())
         );
         println!("Hiding Sharemap :");
         self.hiding.print();
@@ -98,7 +111,7 @@ impl DKGPackage {
 impl Sighash for DKGPackage {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
-        preimage.extend(self.signatory.inner().serialize_xonly());
+        preimage.extend(self.signatory.serialize_xonly());
         preimage.extend(self.hiding.sighash());
         preimage.extend(self.binding.sighash());
         preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))

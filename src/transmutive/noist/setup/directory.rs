@@ -16,7 +16,7 @@ impl VSEDirectory {
         let _db = db.lock().await;
 
         let directory = match _db.vse_directory_conn().get(db::VSE_DIRECTORY_PATH).ok()? {
-            Some(data) => bincode::deserialize(&data).ok()?,
+            Some(data) => serde_json::from_slice(&data).ok()?,
             None => VSEDirectory {
                 setups: HashMap::<u64, VSESetup>::new(),
             },
@@ -26,14 +26,14 @@ impl VSEDirectory {
     }
 
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
-        match bincode::deserialize(&bytes) {
-            Ok(directory) => Some(directory),
+        match serde_json::from_slice(bytes) {
+            Ok(keymap) => Some(keymap),
             Err(_) => None,
         }
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        match bincode::serialize(&self) {
+        match serde_json::to_vec(self) {
             Ok(bytes) => bytes,
             Err(_) => vec![],
         }

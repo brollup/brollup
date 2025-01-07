@@ -28,6 +28,20 @@ impl VSESetup {
         Some(vse_setup)
     }
 
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        match serde_json::from_slice(bytes) {
+            Ok(keymap) => Some(keymap),
+            Err(_) => None,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn no(&self) -> u64 {
         self.no
     }
@@ -38,20 +52,6 @@ impl VSESetup {
 
     pub fn maps(&self) -> HashMap<Point, Authenticable<VSEKeyMap>> {
         self.maps.clone()
-    }
-
-    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
-        match bincode::deserialize(&bytes) {
-            Ok(directory) => Some(directory),
-            Err(_) => None,
-        }
-    }
-
-    pub fn serialize(&self) -> Vec<u8> {
-        match bincode::serialize(&self) {
-            Ok(bytes) => bytes,
-            Err(_) => vec![],
-        }
     }
 
     pub fn insert(&mut self, map: Authenticable<VSEKeyMap>) -> bool {

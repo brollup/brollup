@@ -5,7 +5,6 @@ use crate::{
         setup::setup::VSESetup,
     },
     schnorr::challenge,
-    secp_point::SecpPoint,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
@@ -14,7 +13,7 @@ use std::collections::HashMap;
 pub struct DKGDirectory {
     batch_no: u64,                      // In-memory batch number.
     vse_setup: VSESetup,                // VSE setup.
-    signatories: Vec<SecpPoint>,        // Signatories list.
+    signatories: Vec<Point>,            // Signatories list.
     sessions: HashMap<u64, DKGSession>, // In-memory DKG sessions (index, session).
     sessions_db: sled::Db,              // Database connection.
     index_height: u64,
@@ -29,8 +28,6 @@ impl DKGDirectory {
 
         let mut signatories = signatories.clone();
         signatories.sort();
-
-        let signatories_ = signatories.into_iter().map(SecpPoint::new).collect();
 
         // sessions path 'db/signatory/dkg/batches/BATCH_NO/sessions' key is SESSION_INDEX
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
@@ -55,7 +52,7 @@ impl DKGDirectory {
             if let Ok((index, session)) = lookup {
                 let index: u64 = u64::from_be_bytes(index.as_ref().try_into().ok()?);
 
-                let session: DKGSession = match bincode::deserialize(&session) {
+                let session: DKGSession = match serde_json::from_slice(&session) {
                     Ok(session) => session,
                     Err(_) => return None,
                 };
@@ -67,7 +64,7 @@ impl DKGDirectory {
         Some(DKGDirectory {
             batch_no,
             vse_setup: vse_setup.to_owned(),
-            signatories: signatories_,
+            signatories,
             sessions,
             sessions_db,
             index_height,
@@ -105,10 +102,7 @@ impl DKGDirectory {
     }
 
     pub fn signatories(&self) -> Vec<Point> {
-        self.signatories
-            .iter()
-            .map(|secp_point| secp_point.inner().clone())
-            .collect()
+        self.signatories.clone()
     }
 
     pub fn insert(&mut self, session: &DKGSession) -> bool {

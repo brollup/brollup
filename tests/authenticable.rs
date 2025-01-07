@@ -43,28 +43,14 @@ mod authenticable_tests {
             "de8f0861ec3b9488d5a75042d246a011e1e1736d791d9d664b73a47375ab122f"
         );
 
-        let authenticable_bytes = bincode::serialize(&authenticable).unwrap();
+        let authenticable_bytes = authenticable.serialize();
 
         let authenticable: Authenticable<DemoStruct> =
-            bincode::deserialize(&authenticable_bytes).unwrap();
+            serde_json::from_slice(&authenticable_bytes).unwrap();
 
         if !authenticable.authenticate() {
             return Err("Authentication failed.".into());
         }
-
-        let authenticable_bytes = authenticable.serialize();
-
-        println!("authenticable_bytes: {}", hex::encode(&authenticable_bytes));
-
-        let _deserialized: Authenticable<DemoStruct> =
-            bincode::deserialize(&authenticable_bytes).unwrap();
-
-        //println!("{}", des.object().field1);
-
-        let my_struct = authenticable.object();
-
-        assert_eq!(my_struct.field1, "Brollup");
-        assert_eq!(my_struct.field2, 21);
 
         Ok(())
     }

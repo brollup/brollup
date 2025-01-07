@@ -4,7 +4,6 @@ use crate::{
     into::IntoScalar,
     noist::{setup::setup::VSESetup, vse},
     schnorr::{Authenticable, LiftScalar, Sighash},
-    secp_point::SecpPoint,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -13,39 +12,33 @@ use std::collections::HashMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGSession {
     index: u64,
-    signatories: Vec<SecpPoint>,
-    packages: HashMap<SecpPoint, Authenticable<DKGPackage>>,
+    signatories: Vec<Point>,
+    packages: HashMap<Point, Authenticable<DKGPackage>>,
 }
 
 impl DKGSession {
     pub fn new(index: u64, signatories: &Vec<Point>) -> Option<Self> {
-        let signatories: Vec<SecpPoint> = signatories
-            .clone()
-            .into_iter()
-            .map(SecpPoint::new)
-            .collect();
+        let mut signatories = signatories.clone();
+        signatories.sort();
 
         let session = DKGSession {
             index,
             signatories,
-            packages: HashMap::<SecpPoint, Authenticable<DKGPackage>>::new(),
+            packages: HashMap::<Point, Authenticable<DKGPackage>>::new(),
         };
 
         Some(session)
     }
 
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
-        match bincode::deserialize(&bytes) {
+        match serde_json::from_slice(bytes) {
             Ok(keymap) => Some(keymap),
-            Err(err) => {
-                println!("err {:?}", err);
-                None
-            }
+            Err(_) => None,
         }
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        match bincode::serialize(&self) {
+        match serde_json::to_vec(self) {
             Ok(bytes) => bytes,
             Err(_) => vec![],
         }
@@ -58,7 +51,7 @@ impl DKGSession {
     pub fn signatories(&self) -> Vec<Point> {
         self.signatories
             .iter()
-            .map(|secp_point| secp_point.inner().clone())
+            .map(|secp_point| secp_point.clone())
             .collect()
     }
 
@@ -66,14 +59,14 @@ impl DKGSession {
         self.packages
             .clone()
             .into_iter()
-            .map(|(secp_key, auth_dkg_package)| (secp_key.inner().clone(), auth_dkg_package))
+            .map(|(secp_key, auth_dkg_package)| (secp_key.clone(), auth_dkg_package))
             .collect()
     }
 
     pub fn packages(&self) -> HashMap<Point, DKGPackage> {
         let mut packages = HashMap::<Point, DKGPackage>::new();
         for (signatory, auth_package) in self.packages.iter() {
-            packages.insert(signatory.inner().to_owned(), auth_package.object());
+            packages.insert(signatory.to_owned(), auth_package.object());
         }
         packages
     }
@@ -101,21 +94,18 @@ impl DKGSession {
             return false;
         }
 
-        if !self
-            .signatories
-            .contains(&SecpPoint::new(package_signatory))
-        {
+        if !self.signatories.contains(&package_signatory) {
             return false;
         }
 
-        if let Some(_) = self.packages.get(&SecpPoint::new(package_signatory)) {
+        if let Some(_) = self.packages.get(&package_signatory) {
             return false;
         }
 
         let signatories_: Vec<Point> = self
             .signatories
             .iter()
-            .map(|secp_point| secp_point.inner().clone())
+            .map(|secp_point| secp_point.clone())
             .collect();
 
         if !package.is_complete(&signatories_) {
@@ -131,7 +121,7 @@ impl DKGSession {
         }
 
         self.packages
-            .insert(SecpPoint::new(package_signatory), auth_package.to_owned());
+            .insert(package_signatory, auth_package.to_owned());
 
         true
     }
@@ -142,7 +132,7 @@ impl DKGSession {
         }
 
         for (signatory, auth_package) in self.packages.iter() {
-            if auth_package.key() != signatory.inner().serialize_xonly() {
+            if auth_package.key() != signatory.serialize_xonly() {
                 return false;
             }
 
@@ -155,7 +145,7 @@ impl DKGSession {
             let signatories_: Vec<Point> = self
                 .signatories
                 .iter()
-                .map(|secp_point| secp_point.inner().clone())
+                .map(|secp_point| secp_point.clone())
                 .collect();
 
             if !package.is_complete(&signatories_) {
@@ -367,7 +357,7 @@ impl DKGSession {
             let hiding_shares = package.object().hiding().shares();
             let encsec = hiding_shares.get(&signatory_public)?.1;
             let encrypting_key_secret =
-                vse::encrypting_key_secret(signatory_secret, signatory.inner().to_owned());
+                vse::encrypting_key_secret(signatory_secret, signatory.to_owned());
             let decsec = vse::decrypt(encsec, encrypting_key_secret).ok()?;
 
             combined_secret = combined_secret + decsec;
@@ -388,7 +378,7 @@ impl DKGSession {
             let binding_shares = package.object().binding().shares();
             let encsec = binding_shares.get(&signatory_public)?.1;
             let encrypting_key_secret =
-                vse::encrypting_key_secret(signatory_secret, signatory.inner().to_owned());
+                vse::encrypting_key_secret(signatory_secret, signatory.to_owned());
             let decsec = vse::decrypt(encsec, encrypting_key_secret).ok()?;
 
             combined_secret = combined_secret + decsec;

@@ -84,6 +84,7 @@ mod noist_tests {
 
         // Session 1 :
         let mut s1 = dkg_dir.new_session().unwrap();
+
         let s1_p1 = {
             let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
             Authenticable::new(package, signer_1_secret).unwrap()
@@ -96,9 +97,11 @@ mod noist_tests {
             let package = DKGPackage::new(signer_3_secret, &full_list).unwrap();
             Authenticable::new(package, signer_3_secret).unwrap()
         };
+
         if !s1.insert(&s1_p1, &vse_setup) {
             return Err("s1_p1 insertion err".into());
         }
+
         if !s1.insert(&s2_p1, &vse_setup) {
             return Err("s2_p1 insertion err".into());
         }
@@ -179,6 +182,8 @@ mod noist_tests {
 
         println!("dir index height  : {}", dkg_dir.index_height());
         println!("session index : {}", signing_session.index());
+
+        //
 
         Ok(())
     }
