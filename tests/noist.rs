@@ -115,7 +115,7 @@ mod noist_tests {
 
         println!("s1 nonce is: {}", s1.nonce());
 
-        let group_key = dkg_dir.group_key().unwrap();
+        let _group_key = dkg_dir.group_key().unwrap();
 
         // Session 2 :
         let mut s2 = dkg_dir.new_session().unwrap();

@@ -1,5 +1,6 @@
 use secp::Point;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SecpPoint(Point);
@@ -11,6 +12,16 @@ impl SecpPoint {
 
     pub fn inner(&self) -> &Point {
         &self.0
+    }
+}
+
+// Implement `Eq` for `SecpPoint`
+impl Eq for SecpPoint {}
+
+// Implement `Hash` for `SecpPoint`
+impl Hash for SecpPoint {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.serialize().hash(state);
     }
 }
 

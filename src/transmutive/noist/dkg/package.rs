@@ -6,13 +6,14 @@ use crate::{
     into::IntoPoint,
     noist::setup::setup::VSESetup,
     schnorr::{Bytes32, Sighash},
+    secp_point::SecpPoint,
 };
 
 use super::sharemap::DKGShareMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGPackage {
-    signatory: Point,
+    signatory: SecpPoint,
     hiding: DKGShareMap,
     binding: DKGShareMap,
 }
@@ -25,7 +26,7 @@ impl DKGPackage {
         let binding = DKGShareMap::new(secret_key, public_key, &signatories)?;
 
         let package = DKGPackage {
-            signatory: public_key.into_point().ok()?,
+            signatory: SecpPoint::new(public_key.into_point().ok()?),
             hiding,
             binding,
         };
@@ -34,7 +35,7 @@ impl DKGPackage {
     }
 
     pub fn signatory(&self) -> Point {
-        self.signatory.clone()
+        self.signatory.inner().clone()
     }
 
     pub fn hiding(&self) -> DKGShareMap {
@@ -84,7 +85,7 @@ impl DKGPackage {
     pub fn print(&self) {
         println!(
             "Package by {} :",
-            hex::encode(self.signatory.serialize_xonly())
+            hex::encode(self.signatory.inner().serialize_xonly())
         );
         println!("Hiding Sharemap :");
         self.hiding.print();
@@ -97,7 +98,7 @@ impl DKGPackage {
 impl Sighash for DKGPackage {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
-        preimage.extend(self.signatory.serialize_xonly());
+        preimage.extend(self.signatory.inner().serialize_xonly());
         preimage.extend(self.hiding.sighash());
         preimage.extend(self.binding.sighash());
         preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))

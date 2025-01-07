@@ -5,15 +5,16 @@ use crate::{
         setup::setup::VSESetup,
     },
     schnorr::challenge,
+    secp_point::SecpPoint,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
-use std::{collections::HashMap, io::Read};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct DKGDirectory {
     batch_no: u64,                      // In-memory batch number.
     vse_setup: VSESetup,                // VSE setup.
-    signatories: Vec<Point>,            // Signatories list.
+    signatories: Vec<SecpPoint>,        // Signatories list.
     sessions: HashMap<u64, DKGSession>, // In-memory DKG sessions (nonce, (session, is_toxic)).
     sessions_db: sled::Db,              // Database connection.
     nonce_bound: u64,
@@ -28,6 +29,8 @@ impl DKGDirectory {
         let mut signatories = signatories.clone();
         signatories.sort();
 
+        let signatories_ = signatories.into_iter().map(SecpPoint::new).collect();
+
         // sessions path 'db/signatory/dkg/batches/BATCH_NO/sessions' key is SESSION_INDEX
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
         let sessions_path = format!("{}/{}/sessions", "db/signatory/dkg/batches", batch_no);
@@ -39,18 +42,12 @@ impl DKGDirectory {
         for lookup in sessions_db.iter() {
             if let Ok((nonce, session)) = lookup {
                 let nonce: u64 = u64::from_be_bytes(nonce.as_ref().try_into().ok()?);
-                println!("pre err");
-                let bytes = session.as_ref();
-                println!("mk bytes: {}", hex::encode(bytes));
 
                 let session: DKGSession = match bincode::deserialize(&session) {
                     Ok(session) => session,
-                    Err(err) => {
-                        println!("erris {:?}", err);
-                        return None;
-                    }
+                    Err(_) => return None,
                 };
-                println!("post err");
+
                 sessions.insert(nonce, session);
             }
         }
@@ -60,7 +57,7 @@ impl DKGDirectory {
         Some(DKGDirectory {
             batch_no,
             vse_setup: vse_setup.to_owned(),
-            signatories,
+            signatories: signatories_,
             sessions,
             sessions_db,
             nonce_bound,
@@ -88,7 +85,10 @@ impl DKGDirectory {
     }
 
     pub fn signatories(&self) -> Vec<Point> {
-        self.signatories.clone()
+        self.signatories
+            .iter()
+            .map(|secp_point| secp_point.inner().clone())
+            .collect()
     }
 
     pub fn insert(&mut self, session: &DKGSession) -> bool {
@@ -199,7 +199,7 @@ impl DKGDirectory {
             }
         };
 
-        DKGSession::new(new_nonce_bound, &self.signatories)
+        DKGSession::new(new_nonce_bound, &self.signatories())
     }
 
     pub fn pick_nonce(&mut self) -> Option<u64> {

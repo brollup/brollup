@@ -3,6 +3,7 @@ use crate::{
     into::{IntoPoint, IntoScalar},
     noist::{secret::secret_share_gen, setup::setup::VSESetup, vse, vss},
     schnorr::{generate_secret, Sighash},
+    secp_point::SecpPoint,
 };
 use secp::{MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -10,9 +11,9 @@ use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGShareMap {
-    signatory: Point,
-    vss_commitments: Vec<Point>,
-    shares: HashMap<Point, (Point, Scalar)>,
+    signatory: SecpPoint,
+    vss_commitments: Vec<SecpPoint>,
+    shares: HashMap<SecpPoint, (SecpPoint, Scalar)>,
 }
 
 impl DKGShareMap {
@@ -44,14 +45,14 @@ impl DKGShareMap {
         let (secret_shares, vss_points) =
             secret_share_gen(polynomial_secret, num_signatories, threshold).ok()?;
 
-        let mut vss_commitments = Vec::<Point>::new();
+        let mut vss_commitments = Vec::<SecpPoint>::new();
         {
             for vss_point in vss_points {
-                vss_commitments.push(vss_point);
+                vss_commitments.push(SecpPoint::new(vss_point));
             }
         }
 
-        let mut shares = HashMap::<Point, (Point, Scalar)>::new();
+        let mut shares = HashMap::<SecpPoint, (SecpPoint, Scalar)>::new();
 
         {
             let mut signatories = signatories.clone();
@@ -70,12 +71,15 @@ impl DKGShareMap {
                     vse::encrypt(secret_share, encrypting_key_secret).ok()?
                 };
 
-                shares.insert(signatory_point, (public_share, secret_share_enc));
+                shares.insert(
+                    SecpPoint::new(signatory_point),
+                    (SecpPoint::new(public_share), secret_share_enc),
+                );
             }
         }
 
         Some(DKGShareMap {
-            signatory: self_point,
+            signatory: SecpPoint::new(self_point),
             vss_commitments,
             shares,
         })
@@ -96,15 +100,24 @@ impl DKGShareMap {
     }
 
     pub fn signatory(&self) -> Point {
-        self.signatory.clone()
+        self.signatory.inner().clone()
     }
 
     pub fn vss_commitments(&self) -> Vec<Point> {
-        self.vss_commitments.clone()
+        self.vss_commitments
+            .iter()
+            .map(|secp_point| secp_point.inner().clone())
+            .collect()
     }
 
     pub fn shares(&self) -> HashMap<Point, (Point, Scalar)> {
-        self.shares.clone()
+        self.shares
+            .clone()
+            .into_iter()
+            .map(|(secp_key, (secp_val, scalar))| {
+                (secp_key.inner().clone(), (secp_val.inner().clone(), scalar))
+            })
+            .collect()
     }
 
     pub fn ordered_shares(&self) -> Vec<(Point, (Point, Scalar))> {
@@ -115,8 +128,8 @@ impl DKGShareMap {
 
     pub fn share_by_key(&self, key: [u8; 32]) -> Option<(Point, Scalar)> {
         let key_point = key.into_point().ok()?;
-        let share = self.shares.get(&key_point)?;
-        Some(share.to_owned())
+        let share = self.shares.get(&SecpPoint::new(key_point))?;
+        Some((share.0.inner().to_owned(), share.1))
     }
 
     pub fn share_by_index(&self, index: u8) -> Option<(Point, Scalar)> {
@@ -127,7 +140,7 @@ impl DKGShareMap {
 
     pub fn constant_point(&self) -> Option<Point> {
         let constant_point = self.vss_commitments.get(0)?;
-        Some(constant_point.to_owned())
+        Some(constant_point.inner().to_owned())
     }
 
     pub fn is_complete(&self, signatories: &Vec<Point>) -> bool {
@@ -151,7 +164,7 @@ impl DKGShareMap {
         let mut vss_commitments = Vec::<Point>::new();
 
         for vss_commitment in self.vss_commitments.iter() {
-            vss_commitments.push(vss_commitment.to_owned());
+            vss_commitments.push(vss_commitment.inner().to_owned());
         }
 
         for (index, (_, (pubshare, _))) in self.ordered_shares().iter().enumerate() {
@@ -172,12 +185,13 @@ impl DKGShareMap {
 
     pub fn vse_verify(&self, setup: &VSESetup) -> bool {
         for (key, (pubshare, encsec)) in self.shares.iter() {
-            let vse_point = match setup.vse_point(self.signatory, key.to_owned()) {
-                Some(vse_key) => vse_key,
-                None => return false,
-            };
+            let vse_point =
+                match setup.vse_point(self.signatory.inner().to_owned(), key.inner().to_owned()) {
+                    Some(vse_key) => vse_key,
+                    None => return false,
+                };
 
-            if !vse::verify(encsec.to_owned(), pubshare.to_owned(), vse_point) {
+            if !vse::verify(encsec.to_owned(), pubshare.inner().to_owned(), vse_point) {
                 return false;
             }
         }
@@ -191,9 +205,13 @@ impl DKGShareMap {
             let str = match index {
                 0 => format!(
                     "#0 -> {} (Constant Point)",
-                    hex::encode(vss_commitment.serialize())
+                    hex::encode(vss_commitment.inner().serialize())
                 ),
-                _ => format!("#{} -> {}", index, hex::encode(vss_commitment.serialize())),
+                _ => format!(
+                    "#{} -> {}",
+                    index,
+                    hex::encode(vss_commitment.inner().serialize())
+                ),
             };
             println!("{}", str);
         }
@@ -212,15 +230,15 @@ impl DKGShareMap {
 impl Sighash for DKGShareMap {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
-        preimage.extend(self.signatory.serialize_xonly());
+        preimage.extend(self.signatory.inner().serialize_xonly());
 
         for vss_commitment in self.vss_commitments.iter() {
-            preimage.extend(vss_commitment.serialize_uncompressed());
+            preimage.extend(vss_commitment.inner().serialize_uncompressed());
         }
 
         for share in self.shares.iter() {
-            preimage.extend(share.0.serialize_xonly());
-            preimage.extend(share.1 .0.serialize_uncompressed());
+            preimage.extend(share.0.inner().serialize_xonly());
+            preimage.extend(share.1 .0.inner().serialize_uncompressed());
             preimage.extend(share.1 .1.serialize());
         }
 
