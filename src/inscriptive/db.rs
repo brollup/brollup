@@ -1,4 +1,4 @@
-pub const VSE_DIRECTORY_PATH: &str = "db/signatory/vse_directory";
+pub const VSE_DIRECTORY_PATH: &str = "db/signatory/vse";
 
 pub struct Signatory {
     vse_directory_conn: sled::Db,

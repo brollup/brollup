@@ -3,7 +3,7 @@ use crate::{
     hash::Hash,
     into::{IntoPoint, IntoPointByteVec, IntoPointVec, IntoScalar},
     noist::{setup::setup::VSESetup, vse},
-    schnorr::{Authenticable, LiftScalar},
+    schnorr::{Authenticable, LiftScalar, Sighash},
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -28,6 +28,20 @@ impl DKGSession {
         };
 
         Some(session)
+    }
+
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        match bincode::deserialize(&bytes) {
+            Ok(keymap) => Some(keymap),
+            Err(_) => None,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match bincode::serialize(&self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
     }
 
     pub fn nonce(&self) -> u64 {
@@ -145,6 +159,8 @@ impl DKGSession {
         self.signatories.len() == self.packages.len()
     }
 
+    /// Checks whether there are enough number of DKG packages based on the
+    /// same threshold value required to produce a valid digital signature.
     pub fn is_above_threshold(&self) -> bool {
         let threshold = (self.signatories.len() / 2) + 1;
         self.packages.len() >= threshold
@@ -404,5 +420,28 @@ impl DKGSession {
         for (_, package) in self.ordered_packages().iter() {
             package.print();
         }
+    }
+}
+
+impl Sighash for DKGSession {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage = Vec::<u8>::new();
+        preimage.extend(self.nonce().to_be_bytes());
+
+        let mut signatories = self.signatories();
+        signatories.sort();
+
+        for signatory in signatories.iter() {
+            preimage.extend(signatory.serialize_xonly());
+        }
+
+        let packages = self.ordered_packages();
+
+        for (signatory, package) in packages.iter() {
+            preimage.extend(signatory.serialize_xonly());
+            preimage.extend(package.sighash());
+        }
+
+        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
     }
 }
