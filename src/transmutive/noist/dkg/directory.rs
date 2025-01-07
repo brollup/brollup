@@ -5,16 +5,20 @@ use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct DKGDirectory {
-    sessions_db: sled::Db, // Database connection.
-    vse_setup: VSESetup,
-    batch_no: u64,                              // In-memory batch number.
-    signatories: Vec<Point>,                    // Signatories list.
-    sessions: HashMap<u64, (DKGSession, bool)>, // In-memory DKG sessions (nonce, (session, is_toxic)).
+    batch_no: u64,                      // In-memory batch number.
+    vse_setup: VSESetup,                // VSE setup.
+    signatories: Vec<Point>,            // Signatories list.
+    sessions: HashMap<u64, DKGSession>, // In-memory DKG sessions (nonce, (session, is_toxic)).
+    sessions_db: sled::Db,              // Database connection.
     nonce_bound: u64,
 }
 // 'db/signatory/dkg/batches/BATCH_NO' key:SESSION_NONCE
 impl DKGDirectory {
     async fn new(batch_no: u64, signatories: &Vec<Point>, vse_setup: &VSESetup) -> Option<Self> {
+        if vse_setup.no() != batch_no {
+            return None;
+        }
+
         let mut signatories = signatories.clone();
         signatories.sort();
 
@@ -23,25 +27,25 @@ impl DKGDirectory {
         let sessions_path = format!("{}/{}/sessions", "db/signatory/dkg/batches", batch_no);
         let sessions_db = sled::open(sessions_path).ok()?;
 
-        let mut sessions = HashMap::<u64, (DKGSession, bool)>::new();
+        let mut sessions = HashMap::<u64, DKGSession>::new();
 
         // Insert DKG sessions to the memory.
         for lookup in sessions_db.iter() {
             if let Ok((nonce, session)) = lookup {
                 let nonce: u64 = u64::from_be_bytes(nonce.as_ref().try_into().ok()?);
                 let session: DKGSession = bincode::deserialize(session.as_ref()).ok()?;
-                sessions.insert(nonce, (session, false));
+                sessions.insert(nonce, session);
             }
         }
 
         let nonce_bound = sessions.keys().max().unwrap_or(&0).to_owned();
 
         Some(DKGDirectory {
-            sessions_db,
-            vse_setup: vse_setup.to_owned(),
             batch_no,
+            vse_setup: vse_setup.to_owned(),
             signatories,
             sessions,
+            sessions_db,
             nonce_bound,
         })
     }
@@ -58,7 +62,7 @@ impl DKGDirectory {
         self.batch_no
     }
 
-    pub fn sessions(&self) -> HashMap<u64, (DKGSession, bool)> {
+    pub fn sessions(&self) -> HashMap<u64, DKGSession> {
         self.sessions.clone()
     }
 
@@ -92,10 +96,7 @@ impl DKGDirectory {
             .sessions_db
             .insert(session.nonce().to_be_bytes(), session.serialize())
         {
-            if let None = self
-                .sessions
-                .insert(session_nonce, (session.to_owned(), false))
-            {
+            if let None = self.sessions.insert(session_nonce, session.to_owned()) {
                 self.nonce_bound = session_nonce;
                 return true;
             }
@@ -104,10 +105,10 @@ impl DKGDirectory {
     }
 
     pub async fn key_session(&self) -> Option<DKGSession> {
-        Some(self.sessions.get(&0)?.0.to_owned())
+        Some(self.sessions.get(&0)?.to_owned())
     }
 
-    pub async fn nonce_session(&self, nonce: u64) -> Option<(DKGSession, bool)> {
+    pub async fn nonce_session(&self, nonce: u64) -> Option<DKGSession> {
         // Nonce '0' is allocated for the group key.
         if nonce == 0 {
             return None;
@@ -122,7 +123,7 @@ impl DKGDirectory {
     }
 
     pub async fn group_nonce(&self, nonce: u64, message: [u8; 32]) -> Option<Point> {
-        let nonce_session = self.nonce_session(nonce).await?.0;
+        let nonce_session = self.nonce_session(nonce).await?;
         let group_key_bytes = self.group_key().await?.serialize_xonly();
         let group_nonce =
             nonce_session.group_combined_full_point(Some(group_key_bytes), Some(message))?;
@@ -146,44 +147,21 @@ impl DKGDirectory {
         }
     }
 
-    pub async fn set_toxic(&mut self, nonce: u64) -> bool {
-        // Nonce '0' is allocated for the group key.
+    pub async fn remove(&mut self, nonce: u64) -> bool {
+        // Group key session cannot be removed.
         if nonce == 0 {
             return false;
         }
 
-        let (session, _) = match self.nonce_session(nonce).await {
-            Some(session) => session,
-            None => return false,
-        };
+        if let Err(_) = self.sessions_db.remove(nonce.to_be_bytes()) {
+            return false;
+        }
 
-        self.sessions.insert(nonce, (session, true));
+        if let None = self.sessions.remove(&nonce) {
+            return false;
+        }
 
         true
-    }
-
-    pub async fn remove_in_memory(&mut self, nonce: u64) -> bool {
-        // Group key session cannot be removed.
-        if nonce == 0 {
-            return false;
-        }
-
-        match self.sessions.remove(&nonce) {
-            Some(_) => return true,
-            None => return false,
-        };
-    }
-
-    pub async fn remove_db(&mut self, nonce: u64) -> bool {
-        // Group key session cannot be removed.
-        if nonce == 0 {
-            return false;
-        }
-
-        match self.sessions_db.remove(nonce.to_be_bytes()) {
-            Ok(_) => return true,
-            Err(_) => return false,
-        };
     }
 
     pub fn num_nonce_sessions(&self) -> u64 {
@@ -209,15 +187,14 @@ impl DKGDirectory {
         let session = self
             .sessions
             .iter()
-            .filter(|(&key, &(_, is_toxic))| key != 0 && !is_toxic) // Exclude nonce: 0
+            .filter(|(&key, _)| key != 0) // Exclude nonce: 0
             .min_by_key(|(&key, _)| key)
-            .map(|(_, (session, _))| session)?
+            .map(|(_, session)| session)?
             .to_owned();
 
         let session_nonce = session.nonce();
-        // A picked DKG session becomes toxic, and should be removed from db.
-        self.set_toxic(session_nonce).await;
-        self.remove_db(session_nonce).await;
+        // A picked DKG session becomes toxic, and should be removed.
+        self.remove(session_nonce).await;
 
         Some(session.to_owned())
     }
