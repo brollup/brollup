@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::into::IntoPoint;
+    use brollup::noist::dkg::directory::DKGDirectory;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::dkg::session::DKGSession;
 
@@ -10,6 +11,147 @@ mod noist_tests {
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
     };
+
+    #[tokio::test]
+    async fn noist_test_new() -> Result<(), String> {
+        let signer_1_secret: [u8; 32] =
+            hex::decode("396e7f3b89843e1e5610b1fdbaabf1b6a53066f43b22c529f839d69b6799ce8f")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let signer_1_public: [u8; 32] =
+            hex::decode("eae0001e445c4f748f91010c1fb6d5b99391e588e605dbbb6ca4e5d98e520cd7")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let signer_2_secret: [u8; 32] =
+            hex::decode("31dfea206f96e7b254e00fddb22baac233feb57d6ea98f3fe6929becad1eee78")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let signer_2_public: [u8; 32] =
+            hex::decode("25451c1c2d326a14e86c7921cb1467512c944801c4fc0f81f8bd89e85d3ab1f1")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let signer_3_secret: [u8; 32] =
+            hex::decode("38e2361ab771574909a9768670fa33406a311a2cae7d446359f09df18ac2cb83")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let signer_3_public: [u8; 32] =
+            hex::decode("e8e5393d1873b616c12c6e2bee0c637f58dc5762dda654903c4dd1a72d762c34")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let signer_1_public = signer_1_public.into_point().unwrap();
+        let signer_2_public = signer_2_public.into_point().unwrap();
+        let signer_3_public = signer_3_public.into_point().unwrap();
+
+        let full_list = vec![signer_1_public, signer_2_public, signer_3_public];
+
+        // Signer 1 keymap.
+        let signer_1_keymap = VSEKeyMap::new(signer_1_secret, &full_list).unwrap();
+        assert!(signer_1_keymap.is_complete(&full_list));
+        let signer_1_auth_keymap = Authenticable::new(signer_1_keymap, signer_1_secret).unwrap();
+        assert!(signer_1_auth_keymap.authenticate());
+
+        // Signer 2 keymap.
+        let signer_2_keymap = VSEKeyMap::new(signer_2_secret, &full_list).unwrap();
+        assert!(signer_2_keymap.is_complete(&full_list));
+        let signer_2_auth_keymap = Authenticable::new(signer_2_keymap, signer_2_secret).unwrap();
+        assert!(signer_2_auth_keymap.authenticate());
+
+        // Signer 3 keymap.
+        let signer_3_keymap = VSEKeyMap::new(signer_3_secret, &full_list).unwrap();
+        assert!(signer_3_keymap.is_complete(&full_list));
+        let signer_3_auth_keymap = Authenticable::new(signer_3_keymap, signer_3_secret).unwrap();
+        assert!(signer_3_auth_keymap.authenticate());
+
+        let mut vse_setup = VSESetup::new(&full_list, 0).unwrap();
+        assert!(vse_setup.insert(signer_1_auth_keymap));
+        assert!(vse_setup.insert(signer_2_auth_keymap));
+        assert!(vse_setup.insert(signer_3_auth_keymap));
+        assert!(vse_setup.validate());
+
+        //vse_setup.print();
+
+        let batch_no = 0;
+        let mut dkg_dir = DKGDirectory::new(batch_no, &full_list, &vse_setup).unwrap();
+
+        // Session 1 :
+        let mut s1 = dkg_dir.new_session().unwrap();
+        let s1_p1 = {
+            let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_1_secret).unwrap()
+        };
+        let s2_p1 = {
+            let package = DKGPackage::new(signer_2_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_2_secret).unwrap()
+        };
+        let s3_p1 = {
+            let package = DKGPackage::new(signer_3_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_3_secret).unwrap()
+        };
+        if !s1.insert(&s1_p1, &vse_setup) {
+            return Err("s1_p1 insertion err".into());
+        }
+        if !s1.insert(&s2_p1, &vse_setup) {
+            return Err("s2_p1 insertion err".into());
+        }
+        if !s1.insert(&s3_p1, &vse_setup) {
+            return Err("s3_p1 insertion err".into());
+        }
+        if !s1.verify(&vse_setup) {
+            return Err("vse_setup verify err".into());
+        };
+
+        if !dkg_dir.insert(&s1) {
+            return Err("s1 insert err".into());
+        }
+
+        println!("s1 nonce is: {}", s1.nonce());
+
+        let group_key = dkg_dir.group_key().unwrap();
+
+        // Session 2 :
+        let mut s2 = dkg_dir.new_session().unwrap();
+        let s1_p2 = {
+            let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_1_secret).unwrap()
+        };
+        let s2_p2 = {
+            let package = DKGPackage::new(signer_2_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_2_secret).unwrap()
+        };
+        let s3_p2 = {
+            let package = DKGPackage::new(signer_3_secret, &full_list).unwrap();
+            Authenticable::new(package, signer_3_secret).unwrap()
+        };
+        if !s2.insert(&s1_p2, &vse_setup) {
+            return Err("s1_p1 insertion err".into());
+        }
+        if !s2.insert(&s2_p2, &vse_setup) {
+            return Err("s2_p1 insertion err".into());
+        }
+        if !s2.insert(&s3_p2, &vse_setup) {
+            return Err("s3_p1 insertion err".into());
+        }
+        if !s2.verify(&vse_setup) {
+            return Err("vse_setup verify err".into());
+        };
+
+        if !dkg_dir.insert(&s2) {
+            return Err("s2 insert err".into());
+        }
+
+        println!("s2 nonce is: {}", s2.nonce());
+
+        Ok(())
+    }
 
     #[test]
     fn noist_test() -> Result<(), String> {

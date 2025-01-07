@@ -7,7 +7,7 @@ use crate::{
     schnorr::challenge,
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
 #[derive(Clone)]
 pub struct DKGDirectory {
@@ -20,7 +20,7 @@ pub struct DKGDirectory {
 }
 // 'db/signatory/dkg/batches/BATCH_NO' key:SESSION_NONCE
 impl DKGDirectory {
-    async fn new(batch_no: u64, signatories: &Vec<Point>, vse_setup: &VSESetup) -> Option<Self> {
+    pub fn new(batch_no: u64, signatories: &Vec<Point>, vse_setup: &VSESetup) -> Option<Self> {
         if vse_setup.no() != batch_no {
             return None;
         }
@@ -39,7 +39,18 @@ impl DKGDirectory {
         for lookup in sessions_db.iter() {
             if let Ok((nonce, session)) = lookup {
                 let nonce: u64 = u64::from_be_bytes(nonce.as_ref().try_into().ok()?);
-                let session: DKGSession = bincode::deserialize(session.as_ref()).ok()?;
+                println!("pre err");
+                let bytes = session.as_ref();
+                println!("mk bytes: {}", hex::encode(bytes));
+
+                let session: DKGSession = match bincode::deserialize(&session) {
+                    Ok(session) => session,
+                    Err(err) => {
+                        println!("erris {:?}", err);
+                        return None;
+                    }
+                };
+                println!("post err");
                 sessions.insert(nonce, session);
             }
         }
@@ -80,21 +91,23 @@ impl DKGDirectory {
         self.signatories.clone()
     }
 
-    pub async fn insert(&mut self, session: &DKGSession) -> bool {
+    pub fn insert(&mut self, session: &DKGSession) -> bool {
         // Nonce session insertions are not allowed, if key session is not set.
-        if let None = self.key_session().await {
-            if session.nonce() != 0 {
+
+        let session_nonce = session.nonce();
+
+        if let None = self.key_session() {
+            if session_nonce != 0 {
+                return false;
+            }
+        } else {
+            if session_nonce < self.nonce_bound {
+                println!("hee burda");
                 return false;
             }
         }
 
         if !session.verify(&self.vse_setup) {
-            return false;
-        }
-
-        let session_nonce = session.nonce();
-
-        if session_nonce <= self.nonce_bound {
             return false;
         }
 
@@ -110,11 +123,11 @@ impl DKGDirectory {
         false
     }
 
-    pub async fn key_session(&self) -> Option<DKGSession> {
+    pub fn key_session(&self) -> Option<DKGSession> {
         Some(self.sessions.get(&0)?.to_owned())
     }
 
-    pub async fn nonce_session(&self, nonce: u64) -> Option<DKGSession> {
+    pub fn nonce_session(&self, nonce: u64) -> Option<DKGSession> {
         // Nonce '0' is allocated for the group key.
         if nonce == 0 {
             return None;
@@ -122,23 +135,23 @@ impl DKGDirectory {
         Some(self.sessions.get(&nonce)?.to_owned())
     }
 
-    pub async fn group_key(&self) -> Option<Point> {
-        let group_key_session = self.key_session().await?;
+    pub fn group_key(&self) -> Option<Point> {
+        let group_key_session = self.key_session()?;
         let group_key = group_key_session.group_combined_full_point(None, None)?;
         Some(group_key)
     }
 
-    pub async fn group_nonce(&self, nonce: u64, message: [u8; 32]) -> Option<Point> {
-        let nonce_session = self.nonce_session(nonce).await?;
-        let group_key_bytes = self.group_key().await?.serialize_xonly();
+    pub fn group_nonce(&self, nonce: u64, message: [u8; 32]) -> Option<Point> {
+        let nonce_session = self.nonce_session(nonce)?;
+        let group_key_bytes = self.group_key()?.serialize_xonly();
         let group_nonce =
             nonce_session.group_combined_full_point(Some(group_key_bytes), Some(message))?;
         Some(group_nonce)
     }
 
-    pub async fn challenge(&self, nonce: u64, message: [u8; 32]) -> Option<Scalar> {
-        let group_nonce = self.group_nonce(nonce, message).await?;
-        let group_key = self.group_key().await?;
+    pub fn challenge(&self, nonce: u64, message: [u8; 32]) -> Option<Scalar> {
+        let group_nonce = self.group_nonce(nonce, message)?;
+        let group_key = self.group_key()?;
 
         let challenge = challenge(
             group_nonce,
@@ -153,7 +166,7 @@ impl DKGDirectory {
         }
     }
 
-    pub async fn remove(&mut self, nonce: u64) -> bool {
+    pub fn remove(&mut self, nonce: u64) -> bool {
         // Group key session cannot be removed.
         if nonce == 0 {
             return false;
@@ -174,9 +187,9 @@ impl DKGDirectory {
         (self.sessions.len() as u64) - 1 // Total number of sessions minus the key session.
     }
 
-    pub async fn new_session(&mut self) -> Option<DKGSession> {
+    pub fn new_session(&mut self) -> Option<DKGSession> {
         let new_nonce_bound = {
-            match self.key_session().await {
+            match self.key_session() {
                 None => 0,
                 Some(_) => {
                     let new_nonce_bound = self.nonce_bound + 1;
@@ -189,7 +202,7 @@ impl DKGDirectory {
         DKGSession::new(new_nonce_bound, &self.signatories)
     }
 
-    pub async fn pick_nonce(&mut self) -> Option<u64> {
+    pub fn pick_nonce(&mut self) -> Option<u64> {
         self.sessions
             .iter()
             .filter(|(&key, _)| key != 0)
@@ -197,17 +210,13 @@ impl DKGDirectory {
             .map(|(&key, _)| key)
     }
 
-    pub async fn signing_session(
-        &mut self,
-        nonce: u64,
-        message: [u8; 32],
-    ) -> Option<SigningSession> {
-        let key_session = self.key_session().await?;
-        let nonce_session = self.nonce_session(nonce).await?;
+    pub fn signing_session(&mut self, nonce: u64, message: [u8; 32]) -> Option<SigningSession> {
+        let key_session = self.key_session()?;
+        let nonce_session = self.nonce_session(nonce)?;
 
-        let challenge = self.challenge(nonce_session.nonce(), message).await?;
-        let group_key = self.group_key().await?;
-        let group_nonce = self.group_nonce(nonce_session.nonce(), message).await?;
+        let challenge = self.challenge(nonce_session.nonce(), message)?;
+        let group_key = self.group_key()?;
+        let group_nonce = self.group_nonce(nonce_session.nonce(), message)?;
 
         let signing_session = SigningSession::new(
             &key_session,
@@ -218,7 +227,7 @@ impl DKGDirectory {
             group_nonce,
         );
 
-        self.remove(nonce).await;
+        self.remove(nonce);
 
         Some(signing_session)
     }

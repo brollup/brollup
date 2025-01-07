@@ -25,6 +25,8 @@ pub mod db;
 pub mod baked;
 
 // Crypto modules.
+#[path = "transmutive/point.rs"]
+pub mod secp_point;
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]

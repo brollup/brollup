@@ -33,7 +33,10 @@ impl DKGSession {
     pub fn from_slice(bytes: &[u8]) -> Option<Self> {
         match bincode::deserialize(&bytes) {
             Ok(keymap) => Some(keymap),
-            Err(_) => None,
+            Err(err) => {
+                println!("err {:?}", err);
+                None
+            }
         }
     }
 

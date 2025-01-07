@@ -270,7 +270,7 @@ pub struct Authenticable<T> {
 
 impl<T> Authenticable<T>
 where
-    T: Sighash + Clone,
+    T: Serialize + Sighash + Clone,
 {
     pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
         let key = secret_key.secret_to_public()?;
@@ -279,6 +279,14 @@ where
         let sig = Signature(sign(secret_key, msg, SigningMode::Brollup)?);
 
         Some(Self { object, sig, key })
+    }
+
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match bincode::serialize(&self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
     }
 
     pub fn object(&self) -> T {
