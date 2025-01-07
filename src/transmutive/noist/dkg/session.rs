@@ -260,7 +260,7 @@ impl DKGSession {
         Some(binding_factors)
     }
 
-    pub fn signatory_combined_hiding_point(&self, signatory: Point) -> Option<Point> {
+    pub fn signatory_combined_hiding_public(&self, signatory: Point) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages.iter() {
@@ -275,7 +275,7 @@ impl DKGSession {
         }
     }
 
-    pub fn signatory_combined_pre_binding_point(&self, signatory: Point) -> Option<Point> {
+    pub fn signatory_combined_pre_binding_public(&self, signatory: Point) -> Option<Point> {
         let mut combined_point = MaybePoint::Infinity;
 
         for (_, package) in self.packages.iter() {
@@ -290,7 +290,7 @@ impl DKGSession {
         }
     }
 
-    pub fn signatory_combined_post_binding_point(
+    pub fn signatory_combined_post_binding_public(
         &self,
         signatory: Point,
         group_key: Option<[u8; 32]>,
@@ -321,8 +321,8 @@ impl DKGSession {
         group_key: Option<[u8; 32]>,
         message: Option<[u8; 32]>,
     ) -> Option<Point> {
-        let hiding = self.signatory_combined_hiding_point(signatory)?;
-        let binding = self.signatory_combined_post_binding_point(signatory, group_key, message)?;
+        let hiding = self.signatory_combined_hiding_public(signatory)?;
+        let binding = self.signatory_combined_post_binding_public(signatory, group_key, message)?;
         match hiding + binding {
             MaybePoint::Valid(point) => return Some(point),
             MaybePoint::Infinity => return None,

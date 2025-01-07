@@ -1,6 +1,13 @@
 use super::session::DKGSession;
-use crate::{noist::setup::setup::VSESetup, schnorr::challenge};
-use secp::{MaybeScalar, Point, Scalar};
+use crate::{
+    into::IntoScalar,
+    noist::{
+        lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
+        setup::setup::VSESetup,
+    },
+    schnorr::challenge,
+};
+use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -183,19 +190,217 @@ impl DKGDirectory {
         DKGSession::new(new_nonce_bound, &self.signatories)
     }
 
-    pub async fn pick_session(&mut self) -> Option<DKGSession> {
-        let session = self
-            .sessions
+    pub async fn pick_nonce(&mut self) -> Option<u64> {
+        self.sessions
             .iter()
-            .filter(|(&key, _)| key != 0) // Exclude nonce: 0
-            .min_by_key(|(&key, _)| key)
-            .map(|(_, session)| session)?
-            .to_owned();
+            .filter(|(&key, _)| key != 0)
+            .max_by_key(|(&key, _)| key)
+            .map(|(&key, _)| key)
+    }
 
-        let session_nonce = session.nonce();
-        // A picked DKG session becomes toxic, and should be removed.
-        self.remove(session_nonce).await;
+    pub async fn signing_session(
+        &mut self,
+        nonce: u64,
+        message: [u8; 32],
+    ) -> Option<SigningSession> {
+        let key_session = self.key_session().await?;
+        let nonce_session = self.nonce_session(nonce).await?;
 
-        Some(session.to_owned())
+        let challenge = self.challenge(nonce_session.nonce(), message).await?;
+        let group_key = self.group_key().await?;
+        let group_nonce = self.group_nonce(nonce_session.nonce(), message).await?;
+
+        let signing_session = SigningSession::new(
+            &key_session,
+            &nonce_session,
+            challenge,
+            message,
+            group_key,
+            group_nonce,
+        );
+
+        self.remove(nonce).await;
+
+        Some(signing_session)
+    }
+}
+
+#[derive(Clone)]
+pub struct SigningSession {
+    key_session: DKGSession,
+    nonce_session: DKGSession,
+    challenge: Scalar,
+    message: [u8; 32],
+    group_key: Point,
+    group_nonce: Point,
+    partial_sigs: HashMap<Point, Scalar>,
+}
+
+impl SigningSession {
+    pub fn new(
+        key_session: &DKGSession,
+        nonce_session: &DKGSession,
+        challenge: Scalar,
+        message: [u8; 32],
+        group_key: Point,
+        group_nonce: Point,
+    ) -> SigningSession {
+        SigningSession {
+            key_session: key_session.to_owned(),
+            nonce_session: nonce_session.to_owned(),
+            challenge,
+            message,
+            group_key,
+            group_nonce,
+            partial_sigs: HashMap::<Point, Scalar>::new(),
+        }
+    }
+
+    pub fn partial_sign(&self, secret_key: [u8; 32]) -> Option<Scalar> {
+        let group_key_bytes = self.group_key.serialize_xonly();
+        let message_bytes = self.message;
+        let challenge = self.challenge;
+
+        // (k + ed) + (k + ed)
+        let hiding_secret_key_ = self
+            .key_session
+            .signatory_combined_hiding_secret(secret_key)?;
+        let hiding_secret_key = hiding_secret_key_.negate_if(self.group_key.parity());
+
+        let post_binding_secret_key_ = self
+            .key_session
+            .signatory_combined_post_binding_secret(secret_key, None, None)?;
+        let post_binding_secret_key = post_binding_secret_key_.negate_if(self.group_key.parity());
+
+        let hiding_secret_nonce_ = self
+            .nonce_session
+            .signatory_combined_hiding_secret(secret_key)?;
+        let hiding_secret_nonce = hiding_secret_nonce_.negate_if(self.group_nonce.parity());
+
+        let post_binding_secret_nonce_ =
+            self.nonce_session.signatory_combined_post_binding_secret(
+                secret_key,
+                Some(group_key_bytes),
+                Some(message_bytes),
+            )?;
+        let post_binding_secret_nonce =
+            post_binding_secret_nonce_.negate_if(self.group_nonce.parity());
+
+        let partial_sig = (hiding_secret_nonce + (challenge * hiding_secret_key))
+            + (post_binding_secret_nonce + (challenge * post_binding_secret_key));
+
+        match partial_sig {
+            MaybeScalar::Valid(scalar) => return Some(scalar),
+            MaybeScalar::Zero => return None,
+        }
+    }
+
+    pub fn partial_sig_verify(&self, signatory: Point, sig: Scalar) -> bool {
+        let group_key_bytes = self.group_key.serialize_xonly();
+        let message_bytes = self.message;
+        let challenge = self.challenge;
+
+        // (R + eP) + (R + eP)
+        let hiding_public_key_ = match self.key_session.signatory_combined_hiding_public(signatory)
+        {
+            Some(point) => point,
+            None => return false,
+        };
+
+        let hiding_public_key = hiding_public_key_.negate_if(self.group_key.parity());
+
+        let post_binding_public_key_ = match self
+            .key_session
+            .signatory_combined_post_binding_public(signatory, None, None)
+        {
+            Some(point) => point,
+            None => return false,
+        };
+
+        let post_binding_public_key = post_binding_public_key_.negate_if(self.group_key.parity());
+
+        let hiding_public_nonce_ = match self
+            .nonce_session
+            .signatory_combined_hiding_public(signatory)
+        {
+            Some(point) => point,
+            None => return false,
+        };
+
+        let hiding_public_nonce = hiding_public_nonce_.negate_if(self.group_nonce.parity());
+
+        let post_binding_public_nonce_ =
+            match self.nonce_session.signatory_combined_post_binding_public(
+                signatory,
+                Some(group_key_bytes),
+                Some(message_bytes),
+            ) {
+                Some(point) => point,
+                None => return false,
+            };
+
+        let post_binding_public_nonce =
+            post_binding_public_nonce_.negate_if(self.group_nonce.parity());
+
+        let equation = (hiding_public_nonce + (challenge * hiding_public_key))
+            + (post_binding_public_nonce + (challenge * post_binding_public_key));
+
+        let equation_point = match equation {
+            MaybePoint::Valid(point) => point,
+            MaybePoint::Infinity => return false,
+        };
+
+        equation_point == sig.base_point_mul()
+    }
+
+    pub fn insert_partial_sig(&mut self, signatory: Point, sig: Scalar) -> bool {
+        if self.partial_sig_verify(signatory, sig) {
+            if let None = self.partial_sigs.insert(signatory, sig) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn is_above_threshold(&self) -> bool {
+        let threshold = (self.key_session.signatories().len() / 2) + 1;
+        self.partial_sigs.len() >= threshold
+    }
+
+    pub fn aggregated_sig(&self) -> Option<Scalar> {
+        let full_list = self.key_session.signatories();
+        let mut active_list = Vec::<Point>::new();
+
+        // Fill lagrance index list.
+        for (signatory, _) in self.partial_sigs.iter() {
+            active_list.push(signatory.to_owned());
+        }
+
+        let index_list = lagrance_index_list(&full_list, &active_list)?;
+
+        let mut agg_sig = MaybeScalar::Zero;
+
+        for (signatory, partial_sig) in self.partial_sigs.iter() {
+            let lagrance_index = lagrance_index(&full_list, signatory.to_owned())?;
+            let lagrance = interpolating_value(&index_list, lagrance_index).ok()?;
+            let partial_sig_lagranced = partial_sig.to_owned() * lagrance;
+            agg_sig = agg_sig + partial_sig_lagranced;
+        }
+
+        match agg_sig {
+            MaybeScalar::Valid(scalar) => return Some(scalar),
+            MaybeScalar::Zero => return None,
+        };
+    }
+
+    pub fn full_aggregated_sig_bytes(&self) -> Option<[u8; 64]> {
+        let group_nonce = self.group_nonce.serialize_xonly();
+        let agg_sig = self.aggregated_sig()?.serialize();
+
+        let mut full = Vec::<u8>::with_capacity(64);
+        full.extend(group_nonce);
+        full.extend(agg_sig);
+        let full_bytes: [u8; 64] = full.try_into().ok()?;
+        Some(full_bytes)
     }
 }
