@@ -12,13 +12,13 @@ use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGSession {
-    nonce: u64,
+    index: u64,
     signatories: Vec<SecpPoint>,
     packages: HashMap<SecpPoint, Authenticable<DKGPackage>>,
 }
 
 impl DKGSession {
-    pub fn new(nonce: u64, signatories: &Vec<Point>) -> Option<Self> {
+    pub fn new(index: u64, signatories: &Vec<Point>) -> Option<Self> {
         let signatories: Vec<SecpPoint> = signatories
             .clone()
             .into_iter()
@@ -26,7 +26,7 @@ impl DKGSession {
             .collect();
 
         let session = DKGSession {
-            nonce,
+            index,
             signatories,
             packages: HashMap::<SecpPoint, Authenticable<DKGPackage>>::new(),
         };
@@ -51,8 +51,8 @@ impl DKGSession {
         }
     }
 
-    pub fn nonce(&self) -> u64 {
-        self.nonce
+    pub fn index(&self) -> u64 {
+        self.index
     }
 
     pub fn signatories(&self) -> Vec<Point> {
@@ -251,7 +251,7 @@ impl DKGSession {
 
     pub fn group_commitment_hash(&self) -> Option<[u8; 32]> {
         let mut preimage = Vec::<u8>::new();
-        preimage.extend(self.nonce.to_be_bytes());
+        preimage.extend(self.index.to_be_bytes());
 
         for (signatory, package) in self.ordered_packages().iter() {
             preimage.extend(signatory.serialize_xonly());
@@ -440,7 +440,7 @@ impl DKGSession {
 impl Sighash for DKGSession {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
-        preimage.extend(self.nonce().to_be_bytes());
+        preimage.extend(self.index().to_be_bytes());
 
         let mut signatories = self.signatories();
         signatories.sort();

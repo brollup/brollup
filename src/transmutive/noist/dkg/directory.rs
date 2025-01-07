@@ -15,9 +15,10 @@ pub struct DKGDirectory {
     batch_no: u64,                      // In-memory batch number.
     vse_setup: VSESetup,                // VSE setup.
     signatories: Vec<SecpPoint>,        // Signatories list.
-    sessions: HashMap<u64, DKGSession>, // In-memory DKG sessions (nonce, (session, is_toxic)).
+    sessions: HashMap<u64, DKGSession>, // In-memory DKG sessions (index, session).
     sessions_db: sled::Db,              // Database connection.
-    nonce_bound: u64,
+    index_height: u64,
+    index_height_db: sled::Db,
 }
 // 'db/signatory/dkg/batches/BATCH_NO' key:SESSION_NONCE
 impl DKGDirectory {
@@ -33,6 +34,17 @@ impl DKGDirectory {
 
         // sessions path 'db/signatory/dkg/batches/BATCH_NO/sessions' key is SESSION_INDEX
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
+        let mut index_height: u64 = 0;
+
+        let index_height_path = format!("{}/{}", "db/signatory/dkg/batches", batch_no);
+        let index_height_db = sled::open(index_height_path).ok()?;
+
+        if let Ok(lookup) = index_height_db.get(&"ih") {
+            if let Some(height) = lookup {
+                index_height = u64::from_be_bytes(height.as_ref().try_into().ok()?);
+            }
+        };
+
         let sessions_path = format!("{}/{}/sessions", "db/signatory/dkg/batches", batch_no);
         let sessions_db = sled::open(sessions_path).ok()?;
 
@@ -40,19 +52,17 @@ impl DKGDirectory {
 
         // Insert DKG sessions to the memory.
         for lookup in sessions_db.iter() {
-            if let Ok((nonce, session)) = lookup {
-                let nonce: u64 = u64::from_be_bytes(nonce.as_ref().try_into().ok()?);
+            if let Ok((index, session)) = lookup {
+                let index: u64 = u64::from_be_bytes(index.as_ref().try_into().ok()?);
 
                 let session: DKGSession = match bincode::deserialize(&session) {
                     Ok(session) => session,
                     Err(_) => return None,
                 };
 
-                sessions.insert(nonce, session);
+                sessions.insert(index, session);
             }
         }
-
-        let nonce_bound = sessions.keys().max().unwrap_or(&0).to_owned();
 
         Some(DKGDirectory {
             batch_no,
@@ -60,8 +70,18 @@ impl DKGDirectory {
             signatories: signatories_,
             sessions,
             sessions_db,
-            nonce_bound,
+            index_height,
+            index_height_db,
         })
+    }
+
+    pub fn set_index_height(&mut self, new_height: u64) {
+        if self.index_height < new_height {
+            let _ = self
+                .index_height_db
+                .insert(&"ih", &new_height.to_be_bytes());
+            self.index_height = new_height;
+        }
     }
 
     pub fn sessions_db(&self) -> sled::Db {
@@ -80,8 +100,8 @@ impl DKGDirectory {
         self.sessions.clone()
     }
 
-    pub fn nonce_bound(&self) -> u64 {
-        self.nonce_bound
+    pub fn index_height(&self) -> u64 {
+        self.index_height
     }
 
     pub fn signatories(&self) -> Vec<Point> {
@@ -94,15 +114,14 @@ impl DKGDirectory {
     pub fn insert(&mut self, session: &DKGSession) -> bool {
         // Nonce session insertions are not allowed, if key session is not set.
 
-        let session_nonce = session.nonce();
+        let session_index = session.index();
 
         if let None = self.key_session() {
-            if session_nonce != 0 {
+            if session_index != 0 {
                 return false;
             }
         } else {
-            if session_nonce < self.nonce_bound {
-                println!("hee burda");
+            if session_index > self.index_height {
                 return false;
             }
         }
@@ -113,10 +132,9 @@ impl DKGDirectory {
 
         if let Ok(_) = self
             .sessions_db
-            .insert(session.nonce().to_be_bytes(), session.serialize())
+            .insert(session.index().to_be_bytes(), session.serialize())
         {
-            if let None = self.sessions.insert(session_nonce, session.to_owned()) {
-                self.nonce_bound = session_nonce;
+            if let None = self.sessions.insert(session_index, session.to_owned()) {
                 return true;
             }
         }
@@ -188,35 +206,41 @@ impl DKGDirectory {
     }
 
     pub fn new_session(&mut self) -> Option<DKGSession> {
-        let new_nonce_bound = {
+        let new_index_height = {
             match self.key_session() {
                 None => 0,
                 Some(_) => {
-                    let new_nonce_bound = self.nonce_bound + 1;
-                    self.nonce_bound = new_nonce_bound;
-                    new_nonce_bound
+                    let new_index_height = self.index_height + 1;
+                    self.set_index_height(self.index_height + 1);
+                    new_index_height
                 }
             }
         };
 
-        DKGSession::new(new_nonce_bound, &self.signatories())
+        DKGSession::new(new_index_height, &self.signatories())
     }
 
-    pub fn pick_nonce(&mut self) -> Option<u64> {
-        self.sessions
+    pub fn pick_index(&mut self) -> Option<u64> {
+        let picked = self
+            .sessions
             .iter()
             .filter(|(&key, _)| key != 0)
-            .max_by_key(|(&key, _)| key)
-            .map(|(&key, _)| key)
+            .min_by_key(|(&key, _)| key)
+            .map(|(&key, _)| key)?;
+
+        return Some(picked);
     }
 
     pub fn signing_session(&mut self, nonce: u64, message: [u8; 32]) -> Option<SigningSession> {
+        if nonce == 0 {
+            return None;
+        }
         let key_session = self.key_session()?;
         let nonce_session = self.nonce_session(nonce)?;
 
-        let challenge = self.challenge(nonce_session.nonce(), message)?;
+        let challenge = self.challenge(nonce_session.index(), message)?;
         let group_key = self.group_key()?;
-        let group_nonce = self.group_nonce(nonce_session.nonce(), message)?;
+        let group_nonce = self.group_nonce(nonce_session.index(), message)?;
 
         let signing_session = SigningSession::new(
             &key_session,
@@ -230,6 +254,11 @@ impl DKGDirectory {
         self.remove(nonce);
 
         Some(signing_session)
+    }
+
+    pub fn pick_session(&mut self, message: [u8; 32]) -> Option<SigningSession> {
+        let nonce = self.pick_index()?;
+        self.signing_session(nonce, message)
     }
 }
 
@@ -262,6 +291,10 @@ impl SigningSession {
             group_nonce,
             partial_sigs: HashMap::<Point, Scalar>::new(),
         }
+    }
+
+    pub fn index(&self) -> u64 {
+        self.nonce_session.index()
     }
 
     pub fn partial_sign(&self, secret_key: [u8; 32]) -> Option<Scalar> {

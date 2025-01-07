@@ -2,12 +2,8 @@
 mod authenticable_tests {
     use brollup::{
         hash::{Hash, HashTag},
-        into::IntoPoint,
-        noist::dkg::{session::DKGSession, sharemap::DKGShareMap},
         schnorr::{Authenticable, Sighash},
-        secp_point::SecpPoint,
     };
-    use secp::{MaybePoint, Point, Scalar};
     use serde::{Deserialize, Serialize};
 
     #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
@@ -69,25 +65,6 @@ mod authenticable_tests {
 
         assert_eq!(my_struct.field1, "Brollup");
         assert_eq!(my_struct.field2, 21);
-
-        Ok(())
-    }
-
-    #[test]
-    fn authenticable_test_2() -> Result<(), String> {
-        #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-        pub struct DemoStruct {
-            pub field1: Scalar,
-            pub field2: Point,
-        }
-
-        let point = SecpPoint::new(Scalar::one().base_point_mul());
-
-        let bytes = bincode::serialize(&point).unwrap();
-        let des: SecpPoint = bincode::deserialize(&bytes).unwrap();
-
-        //let bytes = bincode::serialize(&my_struct).unwrap();
-        //let des: DemoStruct = bincode::deserialize(&bytes).unwrap();
 
         Ok(())
     }

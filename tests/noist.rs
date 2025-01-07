@@ -6,14 +6,14 @@ mod noist_tests {
     use brollup::noist::dkg::session::DKGSession;
 
     use brollup::noist::lagrance::{interpolating_value, lagrance_index, lagrance_index_list};
-    use brollup::schnorr::{challenge, verify};
+    use brollup::schnorr::{self, challenge, verify};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
     };
 
     #[tokio::test]
-    async fn noist_test_new() -> Result<(), String> {
+    async fn noist_test_dir() -> Result<(), String> {
         let signer_1_secret: [u8; 32] =
             hex::decode("396e7f3b89843e1e5610b1fdbaabf1b6a53066f43b22c529f839d69b6799ce8f")
                 .unwrap()
@@ -113,8 +113,6 @@ mod noist_tests {
             return Err("s1 insert err".into());
         }
 
-        println!("s1 nonce is: {}", s1.nonce());
-
         let _group_key = dkg_dir.group_key().unwrap();
 
         // Session 2 :
@@ -148,7 +146,39 @@ mod noist_tests {
             return Err("s2 insert err".into());
         }
 
-        println!("s2 nonce is: {}", s2.nonce());
+        let msg = [0xfdu8; 32];
+
+        // signing session
+        let mut signing_session = dkg_dir.pick_session(msg).unwrap();
+
+        let s1_p1 = signing_session.partial_sign(signer_1_secret).unwrap();
+        let _s2_p1 = signing_session.partial_sign(signer_2_secret).unwrap();
+        let s3_p1 = signing_session.partial_sign(signer_3_secret).unwrap();
+
+        if !signing_session.insert_partial_sig(signer_1_public, s1_p1) {
+            return Err("s1_p1 insert err".into());
+        };
+
+        if !signing_session.insert_partial_sig(signer_3_public, s3_p1) {
+            return Err("s3_p1 insert err".into());
+        };
+
+        if !signing_session.is_above_threshold() {
+            return Err("is_above_threshold err".into());
+        }
+
+        let sig = signing_session.full_aggregated_sig_bytes().unwrap();
+        let pubkey = dkg_dir.group_key().unwrap().serialize_xonly();
+
+        assert!(schnorr::verify(
+            pubkey,
+            msg,
+            sig,
+            schnorr::SigningMode::BIP340
+        ));
+
+        println!("dir index height  : {}", dkg_dir.index_height());
+        println!("session index : {}", signing_session.index());
 
         Ok(())
     }
