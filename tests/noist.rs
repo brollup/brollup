@@ -83,7 +83,7 @@ mod noist_tests {
         let mut dkg_dir = DKGDirectory::new(batch_no, &full_list, &vse_setup).unwrap();
 
         // Session 1 :
-        let mut s1 = dkg_dir.new_session().unwrap();
+        let mut s1 = dkg_dir.pick_session_to_fill().unwrap();
 
         let s1_p1 = {
             let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
@@ -119,7 +119,7 @@ mod noist_tests {
         let _group_key = dkg_dir.group_key().unwrap();
 
         // Session 2 :
-        let mut s2 = dkg_dir.new_session().unwrap();
+        let mut s2 = dkg_dir.pick_session_to_fill().unwrap();
         let s1_p2 = {
             let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
             Authenticable::new(package, signer_1_secret).unwrap()
@@ -152,7 +152,7 @@ mod noist_tests {
         let msg = [0xfdu8; 32];
 
         // signing session
-        let mut signing_session = dkg_dir.pick_session(msg).unwrap();
+        let mut signing_session = dkg_dir.pick_session_to_sign(msg).unwrap();
 
         let s1_p1 = signing_session.partial_sign(signer_1_secret).unwrap();
         let _s2_p1 = signing_session.partial_sign(signer_2_secret).unwrap();
