@@ -196,22 +196,7 @@ impl DKGDirectory {
         (self.sessions.len() as u64) - 1 // Total number of sessions minus the key session.
     }
 
-    pub fn new_session(&mut self) -> Option<DKGSession> {
-        let new_index_height = {
-            match self.key_session() {
-                None => 0,
-                Some(_) => {
-                    let new_index_height = self.index_height + 1;
-                    self.set_index_height(self.index_height + 1);
-                    new_index_height
-                }
-            }
-        };
-
-        DKGSession::new(new_index_height, &self.signatories())
-    }
-
-    pub fn pick_index(&mut self) -> Option<u64> {
+    pub fn pick_fresh_index(&mut self) -> Option<u64> {
         let picked = self
             .sessions
             .iter()
@@ -247,8 +232,23 @@ impl DKGDirectory {
         Some(signing_session)
     }
 
-    pub fn pick_session(&mut self, message: [u8; 32]) -> Option<SigningSession> {
-        let nonce = self.pick_index()?;
+    pub fn pick_session_to_fill(&mut self) -> Option<DKGSession> {
+        let new_index_height = {
+            match self.key_session() {
+                None => 0,
+                Some(_) => {
+                    let new_index_height = self.index_height + 1;
+                    self.set_index_height(self.index_height + 1);
+                    new_index_height
+                }
+            }
+        };
+
+        DKGSession::new(new_index_height, &self.signatories())
+    }
+
+    pub fn pick_session_to_sign(&mut self, message: [u8; 32]) -> Option<SigningSession> {
+        let nonce = self.pick_fresh_index()?;
         self.signing_session(nonce, message)
     }
 }
