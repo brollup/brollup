@@ -29,10 +29,10 @@ pub fn encrypt(
 }
 
 pub fn decrypt(
-    secret_to_decrypt: Scalar,
+    encrypted_share_scalar: Scalar,
     encrypting_key_secret: Scalar,
 ) -> Result<Scalar, SecpError> {
-    match secret_to_decrypt - encrypting_key_secret {
+    match encrypted_share_scalar - encrypting_key_secret {
         MaybeScalar::Valid(scalar) => Ok(scalar),
         MaybeScalar::Zero => Err(SecpError::InvalidScalar),
     }
