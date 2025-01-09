@@ -25,7 +25,7 @@ impl DKGDirectory {
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
         let mut index_height: u64 = 0;
 
-        let index_height_path = format!("{}/{}", "db/noist/batch/", batch_no);
+        let index_height_path = format!("{}/{}", "db/noist/dkgdir/", batch_no);
         let index_height_db = sled::open(index_height_path).ok()?;
 
         if let Ok(lookup) = index_height_db.get(&[0x00]) {
@@ -34,7 +34,7 @@ impl DKGDirectory {
             }
         };
 
-        let sessions_path = format!("{}/{}/{}", "db/noist/batch", batch_no, "session");
+        let sessions_path = format!("{}/{}/{}", "db/noist/dkgdir", batch_no, "dkgses");
         let sessions_db = sled::open(sessions_path).ok()?;
 
         let mut sessions = HashMap::<u64, DKGSession>::new();
@@ -119,7 +119,7 @@ impl DKGDirectory {
         Some(group_nonce)
     }
 
-    pub fn remove(&mut self, index: u64) -> bool {
+    pub fn remove_session(&mut self, index: u64) -> bool {
         // Group key session cannot be removed.
         if index == 0 {
             return false;
@@ -209,7 +209,7 @@ impl DKGDirectory {
             message,
         )?;
 
-        self.remove(fresh_index);
+        self.remove_session(fresh_index);
 
         Some(signing_session)
     }

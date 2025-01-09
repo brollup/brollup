@@ -28,6 +28,10 @@ impl NOISTManager {
         })
     }
 
+    pub fn directories(&self) -> HashMap<u64, DKGDirectory> {
+        self.directories.clone()
+    }
+
     pub fn directory(&self, setup_no: u64) -> Option<DKGDirectory> {
         Some(self.directories.get(&setup_no)?.to_owned())
     }
