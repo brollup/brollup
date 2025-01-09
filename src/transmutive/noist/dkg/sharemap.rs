@@ -1,7 +1,7 @@
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    noist::{secret::secret_share_gen, setup::setup::VSESetup, vse, vss},
+    noist::{share::secret_share_gen, setup::setup::VSESetup, vse, vss},
     schnorr::{generate_secret, Sighash},
 };
 use secp::{MaybeScalar, Point, Scalar};

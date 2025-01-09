@@ -79,11 +79,10 @@ mod noist_tests {
 
         //vse_setup.print();
 
-        let batch_no = 0;
-        let mut dkg_dir = DKGDirectory::new(batch_no, &full_list, &vse_setup).unwrap();
+        let mut dkg_dir = DKGDirectory::new(&vse_setup).unwrap();
 
         // Session 1 :
-        let mut s1 = dkg_dir.pick_session_to_fill().unwrap();
+        let mut s1 = dkg_dir.new_session_to_fill().unwrap();
 
         let s1_p1 = {
             let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
@@ -112,14 +111,14 @@ mod noist_tests {
             return Err("vse_setup verify err".into());
         };
 
-        if !dkg_dir.insert(&s1) {
+        if !dkg_dir.insert_session_filled(&s1) {
             return Err("s1 insert err".into());
         }
 
         let _group_key = dkg_dir.group_key().unwrap();
 
         // Session 2 :
-        let mut s2 = dkg_dir.pick_session_to_fill().unwrap();
+        let mut s2 = dkg_dir.new_session_to_fill().unwrap();
         let s1_p2 = {
             let package = DKGPackage::new(signer_1_secret, &full_list).unwrap();
             Authenticable::new(package, signer_1_secret).unwrap()
@@ -145,14 +144,14 @@ mod noist_tests {
             return Err("vse_setup verify err".into());
         };
 
-        if !dkg_dir.insert(&s2) {
+        if !dkg_dir.insert_session_filled(&s2) {
             return Err("s2 insert err".into());
         }
 
         let msg = [0xfdu8; 32];
 
         // signing session
-        let mut signing_session = dkg_dir.pick_session_to_sign(msg).unwrap();
+        let mut signing_session = dkg_dir.pick_signing_session(msg).unwrap();
 
         let s1_p1 = signing_session.partial_sign(signer_1_secret).unwrap();
         let _s2_p1 = signing_session.partial_sign(signer_2_secret).unwrap();
