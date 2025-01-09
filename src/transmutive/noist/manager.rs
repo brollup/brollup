@@ -32,7 +32,7 @@ impl NOISTManager {
         Some(self.directories.get(&setup_no)?.to_owned())
     }
 
-    pub fn new_setup(&mut self, setup: &VSESetup) -> bool {
+    pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
         let setup_no = setup.no();
 
         if self.directories.contains_key(&setup_no) {
