@@ -10,8 +10,11 @@ NOIST is a non-interactive, single-session t-of-n threshold signature scheme all
 ### Abortion-proof Sessions
 Signing sessions do not abort if a signatory produces an invalid partial signature or fails to fulfill the promise of producing a partial signature. Each signing session is guaranteed to yield a valid aggregate signature as long as the threshold is met.
  
-### Non-interactive Signing
-Partial signatures can be gathered without a time constraint (i.e., session timeout), as long as enough DKG packages are available for the group nonce. Otherwise, preprocessing must be run to populate the nonce pool with new DKG packages, which is an interactive process in itself.
+### Nonce Pooling
+The group nonce becomes available immediately upon entering a signing session, provided that enough DKG packages are available for the group nonce. Otherwise, preprocessing must be run to populate the nonce pool with new DKG packages.
+
+### Non-reactive Mode
+NOIST can be run without time constraints, allowing partial signatures to be gathered from offline clients (e.g., hardware wallets) or semi-uptime clients (e.g., smartphones) without a session timeout.
 
 ## Algorithms
 ### Computing Encryption Keys
@@ -53,7 +56,7 @@ Algorithm _ShareDecrypt(en, ess)_:
 -   Return _ss_.
 
 ### Verifying Shares
-To verify the authenticity of a FROST share, the encrypted secret and public share pairs provided by a signatory, along with the encryption public key derived from _EncryptionKeys_, are input to the _ShareEncVerify_ algorithm. The algorithm returns whether the encrypted secret share has been encrypted correctly.
+To verify the authenticity of a FROST share, the encrypted secret and public share pairs provided by a signatory, along with the encryption public key are input to the _ShareEncVerify_ algorithm. The algorithm returns whether the encrypted secret share has been encrypted correctly.
 
 Algorithm _ShareEncVerify(ess, PS, EP)_:
 -   Inputs:
