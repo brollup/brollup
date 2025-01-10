@@ -1,5 +1,5 @@
 
-# Non-interactive Single-session Threshold Signatures.
+# Non-interactive Single-session Threshold Signatures
 NOIST is a non-interactive, single-session t-of-n threshold signature scheme allowing multiple untrusted entities to jointly produce digital signatures in constant time, where a disruptive signer cannot force a re-do of the entire signing session. The resulting signature is a single 64-byte [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) compatible Schnorr signature.
 
 > [!WARNING]
@@ -7,10 +7,10 @@ NOIST is a non-interactive, single-session t-of-n threshold signature scheme all
 
 ## Key Features
 
-### Abortion-proof
+### Abortion-proof Sessions
 Signing sessions do not abort if a signatory produces an invalid partial signature or fails to fulfill the promise of producing a partial signature. Each signing session is guaranteed to yield a valid aggregate signature as long as the threshold is met.
  
-### Non-interactive
+### Non-interactive Signing
 Partial signatures can be gathered without a time constraint (i.e., session timeout), as long as enough DKG packages are available for the group nonce. Otherwise, preprocessing must be run to populate the nonce pool with new DKG packages, which is an interactive process in itself.
 
 ## Algorithms
