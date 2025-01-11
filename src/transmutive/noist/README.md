@@ -79,7 +79,7 @@ Algorithm _EncryptionKey(sk, PK)_:
 -   Return  _d, P_.
 
 #### Encrypting Secret Shares
-To encrypt a FROST share, the secret share produced by _SecretShareShard_ and the encryption secret key derived from _EncryptionKey_ are input to the _ShareEncrypt_ algorithm. The algorithm returns the encrypted secret share, which can be safely transmitted over an insecure channel.
+To encrypt a FROST share, the secret share produced by _SecretShard_ and the encryption secret key derived from _EncryptionKey_ are input to the _ShareEncrypt_ algorithm. The algorithm returns the encrypted secret share, which can be safely transmitted over an insecure channel.
 
 Algorithm _ShareEncrypt(ss, es)_:
 -   Inputs:
@@ -128,14 +128,14 @@ Algorithm _CommitShares(co[1..t])_:
 #### Verifying Share Commitments
 The algorithm _VerifyShare_ takes the lagrance index and public share of a signatory, and a list of all share commitments.
 
-Algorithm _VerifyShare(li, PS, C[1..t])_:
+Algorithm _VerifyShare(li, PS, COM[1..t])_:
 -   Inputs:
     -   Lagrance index of the signatory _li_: a secp scalar.
     -   Public share of the signatory _PS_: a secp point.
-    -   List of share commitments _C[1..t]_: a list of secp points.
+    -   List of share commitments _COM[1..t]_: a list of secp points.
 -   Let _P_ = a secp point at infinity.
 -   For _i .. t_:
-    -   _P += C[i] • (li ^ i mod n)_
+    -   _P += COM[i] • (li ^ i mod n)_
 -   Return _P == PS_.
 
 ### Polynomial 
@@ -191,8 +191,8 @@ Before forming a quorum, the intended signatories agree on the well-known public
 ## Setup
 NOIST encrypts FROST shares using encryption keys derived from a one-time setup via the Elliptic Curve Diffie-Hellman (ECDH) key exchange. These encryption keys are computed once and reused in subsequent sessions throughout the quorum's lifetime. FROST shares are encrypted in a manner that allows all parties to authenticate them, while ensuring they can only be decrypted by the intended signatory.
 
-For signatories i .. n the coordinator collects encryption public keys from all signatories:
--   For i = 0 .. n:
+For signatories _i .. n_ the coordinator collects encryption public keys from all signatories:
+-   For _i = 0 .. n_:
     -   Let be _EP_i[]_ an empty list with length n.
     -   For j = 0 .. n:
         -  _- , EP_i_j = EncryptionKey(sk_i, PK_j)_.
@@ -207,7 +207,7 @@ After collecting all contributions, the coordinator verifies that the encryption
         -   Continue if _k == i_.
         -   Fail if _EP_i[k] != EP_k[i]_.
 
-If the above fails, the coordinator must manually re-adjust the signatory set and re-run the setup. Currently, there is no identifiable aborts for identifying malicious contributions.
+If the above fails, the coordinator must manually re-adjust the signatory set and re-run the setup. Currently, there is no identifiable aborts for identifying malicious setup contributions.
 
 ## Preprocessing
 NOIST works by periodically running Distributed Key Generation (DKG) sessions to stockpile DKG packages. These DKG packages are subsequently used in signing sessions to construct the group nonce. This ensures that as long as a sufficient number of DKG packages are available, the group nonce becomes known at the start of a signing session.

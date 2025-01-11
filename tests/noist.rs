@@ -90,17 +90,18 @@ mod noist_tests {
             let mut dkg_session = dkg_directory.new_session_to_fill().unwrap();
 
             // Communicate and fill.
+            let index = dkg_session.index();
 
             let s1_package = {
-                let package = DKGPackage::new(signer_1_secret, &public_list).unwrap();
+                let package = DKGPackage::new(signer_1_secret, index, &public_list).unwrap();
                 Authenticable::new(package, signer_1_secret).unwrap()
             };
             let s2_package = {
-                let package = DKGPackage::new(signer_2_secret, &public_list).unwrap();
+                let package = DKGPackage::new(signer_2_secret, index, &public_list).unwrap();
                 Authenticable::new(package, signer_2_secret).unwrap()
             };
             let s3_package = {
-                let package = DKGPackage::new(signer_3_secret, &public_list).unwrap();
+                let package = DKGPackage::new(signer_3_secret, index, &public_list).unwrap();
                 Authenticable::new(package, signer_3_secret).unwrap()
             };
 
