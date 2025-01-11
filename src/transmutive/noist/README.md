@@ -33,7 +33,7 @@ Algorithm _LagranceIndex(PK, PK[1..n])_:
 #### Lagrance Index List
 The algorithm _LagranceIndexList_ provides the index locations of a subset of signatories within a list of all signatories, based on the lexicographical order of well-known public keys.
 
-Algorithm _LagranceIndex(T[1..t], N[1..n])_:
+Algorithm _LagranceIndexList(T[1..t], N[1..n])_:
 -   Inputs:
     -   List of threshold number of well-known signatories  _T[1..t]_: a list of secp points.
     -   List of all well-known signatories  _N[1..n]_: a list of secp points.
@@ -119,16 +119,16 @@ The algorithm _CommitShares_ takes a list of polynomial coefficients and returns
 Algorithm _CommitShares(co[1..t])_:
 -   Inputs:
     -   List of polynomial coefficients  _co[1..t]_: a list of secp scalars.
--   Let _C[]_ be an empty list with length _N_.
--   For co_i in co[1..t]
-    -   _C_i = co_i • G_
-    -   Insert _C_i_ into _C[]_.
--   Return _C[1..t]_.
+-   Let _COM[]_ be an empty list with length _t_.
+-   For _i = 1 .. t_:
+    -   _COM_i = co[i] • G_
+    -   Insert _COM_i_ into _COM[]_.
+-   Return _COM[1..t]_.
 
 #### Verifying Share Commitments
-The algorithm _VerifyShares_ takes the lagrance index and public share of a signatory, and a list of all share commitments.
+The algorithm _VerifyShare_ takes the lagrance index and public share of a signatory, and a list of all share commitments.
 
-Algorithm _VerifyShares(li, PS, C[1..t])_:
+Algorithm _VerifyShare(li, PS, C[1..t])_:
 -   Inputs:
     -   Lagrance index of the signatory _li_: a secp scalar.
     -   Public share of the signatory _PS_: a secp point.
@@ -177,12 +177,12 @@ Algorithm _GenPolynomial(s, t, n)_:
     -   Number of total shares _n_: a secp scalar.
 
 -   Let _co[]_ be an empty list with length _t-1_.
--   Let _C[]_ be an empty list with length _t-1_.
+-   Let _COM[]_ be an empty list with length _t-1_.
 -   For _i = 0 .. t-1_:
     -   Let _co_i_ = a secp scalar freshly generated uniformly at random.
     -   Insert _co_i into co[]_.
 -   Let _ss[], co' = ShareShard(s, co[1..t-1], n)_.
--   Let _C[t] = CommitShares(co')_.
+-   Let _COM[t] = CommitShares(co')_.
 -   Return _ss[n], C[t]_.
 
 ## Pre-setup
@@ -212,24 +212,52 @@ If the above fails, the coordinator must manually re-adjust the signatory set an
 ## Preprocessing
 NOIST works by periodically running Distributed Key Generation (DKG) sessions to stockpile DKG packages. These DKG packages are subsequently used in signing sessions to construct the group nonce. This ensures that as long as a sufficient number of DKG packages are available, the group nonce becomes known at the start of a signing session.
 
-For signatories _i .. n_ the coordinator tries to collect DKG packages from all signatories:
+#### Retrieving DKG Packages
+
+For signatories _1 .. n_ the coordinator tries to collect DKG packages from each signatory:
 
 -   Let _t = (n / 2) + 1_.
--   For i = 0 .. n:
-    -   Let be _ess_i_h[]_ an empty list for hiding contributions with length n.
-    -   Let be _ess_i_b[]_ an empty list for binding contributions with length n.
-    -   Let _s_ = a secp scalar freshly generated uniformly at random.
-    -   Let _ss_i_h[1..n], C_i_h[1..t] = GenPolynomial(s, t, n)_.
-    -   Let _ss_i_b[1..n], C_i_b[1..t] = GenPolynomial(s, t, n)_.
+-   For _i = 0 .. n_:
+    -   Let _ess_h_i[], ess_b_i[]_ be two empty lists for hiding and binding encrypted secret shares, respectively, each with a length of _n_.
+    -   Let _PS_h_i[], PS_b_i[]_ be two empty lists for hiding and binding public shares, respectively, each with a length of _n_.
+    -   Let _s_h, s_b_ = two secp scalars freshly generated uniformly at random.
+    -   Let _ss_h_i[1..n], COM_h_i[1..t] = GenPolynomial(s_h, t, n)_.
+    -   Let _ss_b_i[1..n], COM_b_i[1..t] = GenPolynomial(s_b, t, n)_.
+    -   For _z = 0 .. n_:
+        -  Let _PS_h_i_z = ss_h_i[z] • G_.
+        -  Insert _PS_h_i_z into PS_h_i[]_.
+        -  Let _PS_b_i_z = ss_b_i[z] • G_.
+        -  Insert _PS_b_i_z into PS_b_i[]_.
     -   For j = 0 .. n:
         -  _es_i_j = EncryptionKey(sk_i, PK_j)_.
-        -  _ess_i_j_h = ShareEncrypt(ss_i_h[j], es_j)_.
-        -  _ess_i_j_b = ShareEncrypt(ss_i_b[j], es_j)_.
-        -  Insert _j, ess_i_j_h_ into _ess_i_h[]_.
-        -  Insert _j, ess_i_j_b_ into _ess_i_b[]_.
-    -   Return _i, ess_i_j_h[1..n], ess_i_j_b[1..n], C_i_h[1..t], C_i_b[1..t]_.
+        -  _ess_h_i_j = ShareEncrypt(ss_h_i[j], es_i_j)_.
+        -  _ess_b_i_j = ShareEncrypt(ss_b_i[j], es_i_j)_.
+        -  Insert _j, ess_h_i_j_ into _ess_h_i[]_.
+        -  Insert _j, ess_b_i_j_ into _ess_b_i[]_.
+    -   Let _pkg_i = PK_i, ess_h_i[1..n], PS_h_i[1..n], COM_h_i[1..t], ess_b_i[1..n], PS_b_i[1..n], COM_b_i[1..t]_.
+    -   Let _m_i = H(bytes(pkg_i))_.
+    -   Let _sig_i = SchnorrSign(m_i, sk_i)_.
+    -   Return _pkg_i, sig_i_.
 
-If the coordinator collects at least _(n / 2) + 1_ contributions, the preprocessing session is considered 'done'.
+When the coordinator collects _(n / 2) + 1_ or more packages, the task is considered done.
+
+#### Verifying DKG Packages
+
+For DKG packages _1 .. m_ where _m >= (n / 2) + 1_ the packages are verified as follows:
+
+-   For _i = 1 .. m_:
+    -  Let _pkg_i = PK_i, ess_h_i[1..n], PS_h_i[1..n], COM_h_i[1..t], ess_b_i[1..n], PS_b_i[1..n], COM_b_i[1..t]_.
+    -  Let _m_i = H(bytes(p_i))_.
+    -  Fail if _!SchnorrVerify(m_i, PK_i, sig_i)_.
+    -  For _k = 1 .. n_:
+       -  Let li_k = _LagranceIndex(PK[k], PK[1..n])_.
+       -  Let _PS_h_i_k, PS_b_i_k = PS_h_i[k], PS_b_i[k]_.
+       -  Fail if _!VerifyShare(li_k, PS_h_k, COM_h_i[1..t]) || !VerifyShare(li_k, PS_b_k, COM_b_i[1..t])_.
+       -  Let _ess_h_i_k, ess_b_i_k = ess_h_i[k], ess_b_i[k]_.
+       -  Let _EP_i_k_ be the encryption public key from the setup phase.
+       -  Fail if _!ShareEncVerify(ess_h_i_k, PS_h_i_k, EP_i_k) || !ShareEncVerify(ess_b_i_k, PS_b_i_k, EP_i_k)_.
+
+The coordinator initially performs the verification after retrieving the DKG packages. This is then distributed to all signatories, who each also perform the verification individually.
 
 ## Signing
 
