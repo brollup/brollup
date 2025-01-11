@@ -17,7 +17,52 @@ The group nonce becomes available immediately upon entering a signing session, p
 NOIST can be run without time constraints, allowing partial signatures to be gathered from offline clients (e.g., hardware wallets) or semi-uptime clients (e.g., smartphones) without a session timeout.
 
 ## Algorithms
-### Computing Encryption Keys
+
+### Lagrance
+
+#### Lagrance Index
+The algorithm _LagranceIndex_ returns the index location of a signatory in a list of all signatories, determined by the lexicographical ordering of well-known public keys.
+
+Algorithm _LagranceIndex(PK, PK[1..n])_:
+-   Inputs:
+    -   Public key of the well-known signatory  _PK_: a secp point.
+    -   List of all well-known signatories  _PK[1..n]_: a list of secp points.
+-   Let _PK'[1..n] = PK[1..n]_ sorted in lexicographical order.
+-   Return the index of _PK_ in _PK'[1..n]_.
+
+#### Lagrance Index List
+The algorithm _LagranceIndexList_ provides the index locations of a subset of signatories within a list of all signatories, based on the lexicographical order of well-known public keys.
+
+Algorithm _LagranceIndex(T[1..t], N[1..n])_:
+-   Inputs:
+    -   List of threshold number of well-known signatories  _T[1..t]_: a list of secp points.
+    -   List of all well-known signatories  _N[1..n]_: a list of secp points.
+-   Let _T'[1..T] = T[1..T]_ sorted in lexicographical order.
+-   Let _R[]_ be an empty list with length _t_.
+-   For _i = 1 .. t_:
+    -    Let _li = LagranceIndex(T[i], N[1..n])_.
+    -    Insert _li_ to _R[]_.
+- Return _R[1..t]_.
+
+#### Lagrance Interpolating Value
+The algorithm _InterpolatingValue_ returns the polynomial interpolating value for a signatory, given the signatory's Lagrange index and a list of Lagrange indexes meeting the threshold number.
+
+Algorithm _InterpolatingValue(li, li[1..n])_:
+-   Inputs:
+    -   Lagrance index of a signatory  _li_: a secp scalar.
+    -   List of threshold number of lagrance indexes  _li[1..t]_: a list of secp scalars.
+
+-   Fail if _li_ not in _li[1..n]_.
+-   Let num, den = 1, 1.
+-   For _li_j in li[1..n]_:
+    - If _li_j == li_ continue.
+    - _num = num * li_j_.
+    - _den = den * (li_j - li)_
+-   Return _num / den_.
+
+### Verifiable Secret Encryption
+
+#### Computing Encryption Keys
 To compute the encryption keys, the secret key of the well-known signatory and the public key of the corresponding signatory are input to the _EncryptingKeySecret_ algorithm. The algorithm returns an encryption secret and public key pair, which will be used to encrypt FROST shares during the preprocessing phase.
 
 Algorithm _EncryptionKeys(sk, PK)_:
@@ -33,7 +78,7 @@ Algorithm _EncryptionKeys(sk, PK)_:
 -   Let P = _lift_x(P')_.
 -   Return  _d, P_.
 
-### Encrypting Secret Shares
+#### Encrypting Secret Shares
 To encrypt a FROST share, the secret share produced by _SecretShareShard_ and the encryption secret key derived from _EncryptionKeys_ are input to the _ShareEncrypt_ algorithm. The algorithm returns the encrypted secret share, which can be safely transmitted over an insecure channel.
 
 Algorithm _ShareEncrypt(sh, eks)_:
@@ -44,7 +89,7 @@ Algorithm _ShareEncrypt(sh, eks)_:
 -   Fail if  _ess = 0_.
 -   Return _ess_.
 
-### Decrypting Secret Shares
+#### Decrypting Secret Shares
 To decrypt a FROST share, the encrypted secret share provided by a signatory and the encryption secret key derived from _EncryptionKeys_ are input to the _ShareDecrypt_ algorithm. The algorithm returns the original secret share, which is required for producing partial signatures.
 
 Algorithm _ShareDecrypt(en, ess)_:
@@ -65,6 +110,8 @@ Algorithm _ShareEncVerify(ess, PS, EP)_:
     -   Encryption public  _EP_: a secp point.
 -   Let  _Q = ess • G_.
 -   Return  _Q == PS + EP_.
+
+
 
 ## Pre-setup
 Before forming a quorum, the intended signatories agree on the well-known public keys of all signatories. These well-known public keys are not linked to FROST shares and are used solely to identify signatories in subsequent sessions.
