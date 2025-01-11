@@ -171,12 +171,6 @@ impl DKGDirectory {
             }
         }
 
-        if let Some(index) = self.pick_index() {
-            if session_index <= index {
-                return false;
-            }
-        }
-
         if !session.verify(&self.setup) {
             return false;
         }
