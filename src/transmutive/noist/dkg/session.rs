@@ -88,10 +88,6 @@ impl DKGSession {
 
         let package = auth_package.object();
 
-        if package.index() != self.index {
-            return false;
-        }
-
         let package_signatory = package.signatory();
 
         if package_signatory.serialize_xonly() != auth_package.key() {
@@ -145,10 +141,6 @@ impl DKGSession {
             }
 
             let package = auth_package.object();
-
-            if package.index() != self.index {
-                return false;
-            }
 
             let signatories_: Vec<Point> = self
                 .signatories
