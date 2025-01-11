@@ -13,13 +13,12 @@ use super::sharemap::DKGShareMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGPackage {
     signatory: Point,
-    index: u64,
     hiding: DKGShareMap,
     binding: DKGShareMap,
 }
 
 impl DKGPackage {
-    pub fn new(secret_key: [u8; 32], index: u64, signatories: &Vec<Point>) -> Option<Self> {
+    pub fn new(secret_key: [u8; 32], signatories: &Vec<Point>) -> Option<Self> {
         let public_key = secret_key.secret_to_public()?;
 
         let hiding = DKGShareMap::new(secret_key, public_key, &signatories)?;
@@ -27,7 +26,6 @@ impl DKGPackage {
 
         let package = DKGPackage {
             signatory: public_key.into_point().ok()?,
-            index,
             hiding,
             binding,
         };
@@ -51,10 +49,6 @@ impl DKGPackage {
 
     pub fn signatory(&self) -> Point {
         self.signatory.clone()
-    }
-
-    pub fn index(&self) -> u64 {
-        self.index
     }
 
     pub fn hiding(&self) -> DKGShareMap {
@@ -118,7 +112,6 @@ impl Sighash for DKGPackage {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
         preimage.extend(self.signatory.serialize_xonly());
-        preimage.extend(self.index.to_be_bytes());
         preimage.extend(self.hiding.sighash());
         preimage.extend(self.binding.sighash());
         preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
