@@ -1,7 +1,7 @@
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    noist::{share::secret_share_gen, setup::setup::VSESetup, vse, vss},
+    noist::{setup::setup::VSESetup, share::run_polynomial, vse, vss},
     schnorr::{generate_secret, Sighash},
 };
 use secp::{MaybeScalar, Point, Scalar};
@@ -42,7 +42,7 @@ impl DKGShareMap {
         let threshold = (num_signatories / 2) + 1;
 
         let (secret_shares, vss_points) =
-            secret_share_gen(polynomial_secret, num_signatories, threshold).ok()?;
+            run_polynomial(polynomial_secret, num_signatories, threshold).ok()?;
 
         let mut vss_commitments = Vec::<Point>::new();
         {
@@ -61,7 +61,7 @@ impl DKGShareMap {
                 let signatory_point = signatory.to_owned();
                 let self_secret_scalar = secret_key.into_scalar().ok()?;
 
-                let secret_share = secret_shares[index].1;
+                let secret_share = secret_shares[index];
                 let public_share = secret_share.base_point_mul();
 
                 let secret_share_enc = {
@@ -169,7 +169,7 @@ impl DKGShareMap {
 
             let share_i = (index_scalar, pubshare.to_owned());
 
-            if !vss::vss_verify_point(share_i, &vss_commitments) {
+            if !vss::verify_shares(share_i, &vss_commitments) {
                 return false;
             }
         }

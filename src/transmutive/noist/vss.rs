@@ -3,7 +3,7 @@ use secp::{MaybePoint, Point, Scalar};
 use crate::into::SecpError;
 
 #[allow(non_snake_case)]
-pub fn vss_commit(coeffs: &Vec<Scalar>) -> Result<Vec<Point>, SecpError> {
+pub fn commit_shares(coeffs: &Vec<Scalar>) -> Result<Vec<Point>, SecpError> {
     let mut vss_commitments = Vec::<Point>::new();
 
     for coeff in coeffs {
@@ -15,7 +15,7 @@ pub fn vss_commit(coeffs: &Vec<Scalar>) -> Result<Vec<Point>, SecpError> {
 }
 
 #[allow(non_snake_case)]
-pub fn vss_verify_point(share_i: (Scalar, Point), vss_commitments: &Vec<Point>) -> bool {
+pub fn verify_shares(share_i: (Scalar, Point), vss_commitments: &Vec<Point>) -> bool {
     let (i, P_i) = share_i;
 
     let mut P_i_computed = MaybePoint::Infinity;
@@ -25,23 +25,6 @@ pub fn vss_verify_point(share_i: (Scalar, Point), vss_commitments: &Vec<Point>) 
     }
 
     P_i == match P_i_computed {
-        MaybePoint::Infinity => return false,
-        MaybePoint::Valid(point) => point,
-    }
-}
-
-#[allow(non_snake_case)]
-pub fn vss_verify_secret(share_i: (Scalar, Scalar), vss_commitments: &Vec<Point>) -> bool {
-    let (i, sk_i) = share_i;
-    let S_i = sk_i.base_point_mul();
-
-    let mut S_i_computed = MaybePoint::Infinity;
-
-    for j in 0..vss_commitments.len() as u32 {
-        S_i_computed += vss_commitments[j as usize] * pow_scalar(i, j);
-    }
-
-    S_i == match S_i_computed {
         MaybePoint::Infinity => return false,
         MaybePoint::Valid(point) => point,
     }
