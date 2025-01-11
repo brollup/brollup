@@ -5,7 +5,7 @@ use crate::into::SecpError;
 
 use super::vss::commit_shares;
 
-pub fn run_polynomial(
+pub fn gen_polynomial(
     secret: Scalar,
     num_participants: u8,
     threshold: u8,

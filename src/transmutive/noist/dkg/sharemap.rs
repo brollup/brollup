@@ -1,7 +1,7 @@
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    noist::{setup::setup::VSESetup, share::run_polynomial, vse, vss},
+    noist::{setup::setup::VSESetup, share::gen_polynomial, vse, vss},
     schnorr::{generate_secret, Sighash},
 };
 use secp::{MaybeScalar, Point, Scalar};
@@ -42,7 +42,7 @@ impl DKGShareMap {
         let threshold = (num_signatories / 2) + 1;
 
         let (secret_shares, vss_points) =
-            run_polynomial(polynomial_secret, num_signatories, threshold).ok()?;
+            gen_polynomial(polynomial_secret, num_signatories, threshold).ok()?;
 
         let mut vss_commitments = Vec::<Point>::new();
         {
