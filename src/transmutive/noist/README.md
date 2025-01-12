@@ -274,7 +274,7 @@ Algorithm _RetrievePackages(PK[1..n])_:
 
 #### Verifying DKG Packages
 
-Algorithm _CommitmentHash(PK[1..n], PKG_p[1..m])_:
+Algorithm _VerifyPackages(PK[1..n], PKG_p[1..m])_:
 -   Inputs:
     -   Signatory list _PK[1..n]_: list of secp points.
     -   DKG package list _PKG_p[1..m]_: a list of DKG packages with index _p_ and length _m_.
@@ -297,7 +297,7 @@ Algorithm _CommitmentHash(PK[1..n], PKG_p[1..m])_:
     -  ph = p;
     -  Return true.
 
-## Package Algorithms
+## Post-preprocessing
 
 ### Computing Commitment Hash
 
