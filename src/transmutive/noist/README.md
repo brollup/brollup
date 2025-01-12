@@ -92,7 +92,7 @@ Algorithm _ShareEncrypt(ss, es)_:
 #### Decrypting Secret Shares
 To decrypt a FROST share, the encrypted secret share provided by a signatory and the encryption secret key derived from _EncryptionKey_ are input to the _ShareDecrypt_ algorithm. The algorithm returns the original secret share, which is required for producing partial signatures.
 
-Algorithm _ShareDecrypt(en, ess)_:
+Algorithm _ShareDecrypt(ess, es)_:
 -   Inputs:
     -   Encrypted secret share  _ess_: a secp scalar.
     -   Encryption secret  _es_: a secp scalar.
@@ -265,10 +265,148 @@ NOIST works by periodically running Distributed Key Generation (DKG) sessions to
 
 ## Signing
 
--   Let _m_ be the message being signed, a 32-byte array.
--   
+### Computing Commitment Hash
+
+Algorithm _CommitmentHash(p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message m: a secp scalar.
+    -   Optional group key GK: a secp point.
+-   Let _BA[]_ be an empty byte array.
+-   Extend _BA[] with bytes(p)_.
+-   Extend _BA[] with bytes(m) if exists_.
+-   Extend _BA[] with cbytes(GK) if exists_.
+-   For each _pkg_i_ in _PKG_p_:
+    -   Let PK_i, _, PS_h_i[1..n], _, _, PS_b_i[1..n], _ = pkg_i_.
+        For _k = 0 .. n_:
+        -   Extend _BA[] with cbytes(PK_i)_.
+        -   Extend _BA[] with cbytes(PS_h_i[k])_.
+        -   Extend _BA[] with cbytes(PS_b_i[k])_.
+- Return _H(bytes(BA[]))_.
+
+### Computing Binding Factors
+
+Algorithm _BindingFactors(p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message m: a secp scalar.
+    -   Optional group key GK: a secp point.
+-  Let _ch = CommitmentHash(p, PKG_p, Optinal m, Optional GK)_.
+-  Let binding factors _bf[]_ be an empty list holding binding factors with length _m_.
+-  For _i = 1 .. m_:
+    -  Let _pkg_i = PKG_p[m]_.
+    -  Let _bf_i = H(bytes(i) || bytes(ch))_.
+    -  Insert _bf_i_ into _BF[]_.
+-  Return _bf[1..m]_.
+
+### Computing Hiding Group Point
+
+Algorithm _HidingGroupPoint(p, PKG_p)_:
+-   Inputs:
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+-  Let P_h be a secp point at infinity.
+-  For _i = 1 .. m_:
+    -  Let _pkg_i = PKG_p[m]_.
+    -   Let _, _, _, COM_h_i[1..t], _, _, _ = pkg_i_.
+    -   _P_h += COM_h_i[0]_.
+-  Return _P_h_.
+
+### Computing Post Binding Group Point
+
+Algorithm _PostBindingGroupPoint(p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message _m_: a secp scalar.
+    -   Optional group key _GK_: a secp point.
+-  Let binding factors _bf = BindingFactors(p, PKG_p, Optional m, Optional GK)_.
+-  Let P_b be a secp point at infinity.
+-  For _i = 1 .. m_:
+    -  Let _pkg_i = PKG_p[m]_.
+    -   Let _, _, _, _, _, _, _COM_b_i[1..t]_ = pkg_i_.
+    -   _P_b += COM_b_i[0] • bf[m]_.
+-  Return _P_b_.
+    
+### Computing Group Point
+
+Algorithm _GroupPoint(p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message _m_: a secp scalar.
+    -   Optional group key _GK_: a secp point.
+-   Let _HGP = HidingGroupPoint(p, PKG_p)_.
+-   Let _PBGP = PostBindingGroupPoint(p, PKG_p, Optional m, Optional GK)_.
+-   Let _GP = HGP + PBGP_.
+-   Fail if _GP_ is at infinity.
+-   Return _GP_.
+
+### Computing Combined Secret Share
+
+Algorithm _CombinedSecretShare(sk, PK, PK[1..n], p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   Secret key of the signatory: _sk_: a secp scalar.
+    -   Public key of the signatory: _PK_: a secp point.
+    -   Signatory list _PK[1..n]_: list of secp points.
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message _m_: a secp scalar.
+    -   Optional group key _GK_: a secp point.
+-   Let binding factors _bf[1..m] = BindingFactors(p, PKG_p, Optional m, Optional GK)_.
+-   Let _idx_ be the index of _PK_ in _PK[1..n]_.
+-   Let _hss_ be the combined hiding secret share set to 0.
+-   Let _pbss_ be the combined post binding secret share set to 0.
+-   For _i = 0 .. m_:.
+    -  Let _, _pkg_i_ = _PKG_p[i]_.
+    -  Let PK_i, ess_h_i[1..n], _, _, ess_b_i[1..n], _, _ = pkg_i_.
+    -  Let _es = EncryptionKey(sk, PK_i)_.
+    -  Let _ess_h = ess_h_i[idx]_.
+    -  _hss += ShareDecrypt(ess_h, es)_;
+    -  _pbss += ShareDecrypt(ess_b, es) * _bf[m]_.
+-   Return _hss, pbss_.
+
+### Computing Combined Public Share
+
+Algorithm _CombinedPublicShare(PK, PK[1..n], p, PKG_p, Optional m, Optional GK)_:
+-   Inputs:
+    -   Public key of the signatory: _PK_: a secp point.
+    -   Signatory list _PK[1..n]_: list of secp points.
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+    -   Optional message _m_: a secp scalar.
+    -   Optional group key _GK_: a secp point.
+-   Let binding factors _bf[1..m] = BindingFactors(p, PKG_p, Optional m, Optional GK)_.
+-   Let _idx_ be the index of _PK_ in _PK[1..n]_.
+-   Let combined hiding public share _HPS_ = a point at infinity.
+-   Let combined post binding public share _PBPS_ = a point at infinity.
+-   For _i = 0 .. m_:.
+    -  Let _, _pkg_i_ = _PKG_p[i]_.
+    -  Let _, _, PS_h_i[1..n], _, _, PS_b_i[1..n], _ = pkg_i_.
+    -  _HPS += PS_h_i[idx]_;
+    -  _PBPS += PS_b_i[idx] • _bf[m]_.
+-   Return _HPS, PBPS_.
 
 ### Partial Signing
+
+Algorithm _PartialSign(sk, PK, m, PK[1..n], p, PKG_p)_:
+-   Inputs:
+    -   Message _m_: a secp scalar.
+    -   Secret key of the signatory: _sk_: a secp scalar.
+    -   Public key of the signatory: _PK_: a secp point.
+    -   Signatory list _PK[1..n]_: list of secp points.
+    -   DKG package index _p_: an integer.
+    -   DKG package list _PKG_p_: a list of DKG packages with length _m_.
+-   Let binding factors _bf[1..m] = BindingFactors(p, PKG_p, Optional m, Optional GK)_.
+-   Let group key _GK = ComputeGroupPoint(GroupPoint(0, PKG_0), -, -)_.
+-   Let group nonce _GN = ComputeGroupPoint(GroupPoint(p, PKG_p), m, GK)_.
+-   Let challenge _e = H(H("BIP0340/challenge") || H("BIP0340/challenge") + GK || GN || m)_.
+-   Let secret key share _d = CombinedSecretShare(sk, PK, PK[1..n], 0, PKG_0, -, -)_.
+-   Let secret nonce share _k = CombinedSecretShare(sk, PK, PK[1..n], p, PKG_p, m, GK)_.
+-   Let partial signature _s = k + e * d_.
+-   Return _s_.
 
 ### Partial Signature Verification
 
