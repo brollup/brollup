@@ -218,29 +218,28 @@ NOIST works by periodically running Distributed Key Generation (DKG) sessions to
 -   Let _t = (n / 2) + 1_ be the threshold.
 -   Let _p_ represent the DKG package index, incremented by one for each package. When _p_ is zero, the package is used for constructing the group key. When _p_ is one or greater, the package is used for constructing group nonces.
 -   Let _PKG_p[]_ be an empty list with the index _p_, holding DKG packages with a length of _m_, where _m ≥ t_.
--   For _p = 0.._:
-    -   For _i = 0 .. n_ retrieve packages from all signatories:
-        -   Let _ess_h_i[], ess_b_i[]_ be two empty lists for hiding and binding encrypted secret shares, respectively, each with a length of _n_.
-        -   Let _PS_h_i[], PS_b_i[]_ be two empty lists for hiding and binding public shares, respectively, each with a length of _n_.
-        -   Let _s_h, s_b_ = two secp scalars freshly generated uniformly at random.
-        -   Let _ss_h_i[1..n], COM_h_i[1..t] = GenPolynomial(s_h, t, n)_.
-        -   Let _ss_b_i[1..n], COM_b_i[1..t] = GenPolynomial(s_b, t, n)_.
-        -   For _z = 0 .. n_:
-            -  Let _PS_h_i_z = ss_h_i[z] • G_.
-            -  Insert _PS_h_i_z into PS_h_i[]_.
-            -  Let _PS_b_i_z = ss_b_i[z] • G_.
-            -  Insert _PS_b_i_z into PS_b_i[]_.
-        -   For j = 0 .. n:
-            -  _es_i_j = EncryptionKey(sk_i, PK_j)_.
-            -  _ess_h_i_j = ShareEncrypt(ss_h_i[j], es_i_j)_.
-            -  _ess_b_i_j = ShareEncrypt(ss_b_i[j], es_i_j)_.
-            -  Insert _j, ess_h_i_j_ into _ess_h_i[]_.
-            -  Insert _j, ess_b_i_j_ into _ess_b_i[]_.
-        -   Let _pkg_i = PK_i, ess_h_i[1..n], PS_h_i[1..n], COM_h_i[1..t], ess_b_i[1..n], PS_b_i[1..n], COM_b_i[1..t]_.
-        -   Let _m_i = H(bytes(p) || bytes(pkg_i))_.
-        -   Let _sig_i = SchnorrSign(m_i, sk_i)_.
-        -   Insert _sig_i_, _pkg_i_ into _PKG_p[]_.
-    -   Return _PKG_p[]_ if its length is greater than or equal to _t_.
+-   For _i = 0 .. n_ retrieve packages from all signatories:
+    -   Let _ess_h_i[], ess_b_i[]_ be two empty lists for hiding and binding encrypted secret shares, respectively, each with a length of _n_.
+    -   Let _PS_h_i[], PS_b_i[]_ be two empty lists for hiding and binding public shares, respectively, each with a length of _n_.
+    -   Let _s_h, s_b_ = two secp scalars freshly generated uniformly at random.
+    -   Let _ss_h_i[1..n], COM_h_i[1..t] = GenPolynomial(s_h, t, n)_.
+    -   Let _ss_b_i[1..n], COM_b_i[1..t] = GenPolynomial(s_b, t, n)_.
+    -   For _z = 0 .. n_:
+         -  Let _PS_h_i_z = ss_h_i[z] • G_.
+         -  Insert _PS_h_i_z into PS_h_i[]_.
+         -  Let _PS_b_i_z = ss_b_i[z] • G_.
+         -  Insert _PS_b_i_z into PS_b_i[]_.
+    -   For j = 0 .. n:
+         -  _es_i_j = EncryptionKey(sk_i, PK_j)_.
+         -  _ess_h_i_j = ShareEncrypt(ss_h_i[j], es_i_j)_.
+         -  _ess_b_i_j = ShareEncrypt(ss_b_i[j], es_i_j)_.
+         -  Insert _j, ess_h_i_j_ into _ess_h_i[]_.
+         -  Insert _j, ess_b_i_j_ into _ess_b_i[]_.
+    -   Let _pkg_i = PK_i, ess_h_i[1..n], PS_h_i[1..n], COM_h_i[1..t], ess_b_i[1..n], PS_b_i[1..n], COM_b_i[1..t]_.
+    -   Let _m_i = H(bytes(p) || bytes(pkg_i))_.
+    -   Let _sig_i = SchnorrSign(m_i, sk_i)_.
+    -   Insert _sig_i_, _pkg_i_ into _PKG_p[]_.
+-   Return _PKG_p[]_ if its length is greater than or equal to _t_.
 
 #### Verifying DKG Packages
 
