@@ -214,12 +214,12 @@ NOIST works by periodically running Distributed Key Generation (DKG) sessions to
 
 #### Retrieving DKG Packages
 
--   Let _PK[1..n]_ be the signatory list, which contains the well-known public keys of all signatories.
+-   Let _PK[1..n]_ be the signatory list, containing the well-known public keys of all signatories.
 -   Let _t = (n / 2) + 1_ be the threshold.
--   Let _p_ represent the historical DKG package index, incremented by one for each package. When _p_ is zero, the package is used for constructing the group key. When _p_ is one or greater, the package is used for constructing group nonces.
+-   Let _p_ represent the DKG package index, incremented by one for each package. When _p_ is zero, the package is used for constructing the group key. When _p_ is one or greater, the package is used for constructing group nonces.
 -   Let _PKG_p[]_ be an empty list with the index _p_, holding DKG packages with a length of _m_, where _m ≥ t_.
 -   For _p = 0.._:
-    -   At certain _p_, for _i = 0 .. n_:
+    -   For _i = 0 .. n_ retrieve packages from all signatories:
         -   Let _ess_h_i[], ess_b_i[]_ be two empty lists for hiding and binding encrypted secret shares, respectively, each with a length of _n_.
         -   Let _PS_h_i[], PS_b_i[]_ be two empty lists for hiding and binding public shares, respectively, each with a length of _n_.
         -   Let _s_h, s_b_ = two secp scalars freshly generated uniformly at random.
@@ -240,11 +240,11 @@ NOIST works by periodically running Distributed Key Generation (DKG) sessions to
         -   Let _m_i = H(bytes(p) || bytes(pkg_i))_.
         -   Let _sig_i = SchnorrSign(m_i, sk_i)_.
         -   Insert _sig_i_, _pkg_i_ into _PKG_p[]_.
-        -   Return _PKG_p[]_ if its length is greater than or equal to _t_.
+    -   Return _PKG_p[]_ if its length is greater than or equal to _t_.
 
 #### Verifying DKG Packages
 
--   Let _PK[1..n]_ be the signatory list, which contains the well-known public keys of all signatories.
+-   Let _PK[1..n]_ be the signatory list, containing the well-known public keys of all signatories.
 -   Let _t = (n / 2) + 1_ be the threshold.
 -   Let _PKG_p[0..m]_ be the package list with index _p_ containing _m_ DKG packages where _m >= t_.
 -   Let _ph_ be the historical _p_ height.
