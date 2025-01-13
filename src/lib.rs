@@ -1,21 +1,23 @@
 #![allow(non_camel_case_types)]
 
-use noist::manager::NOISTManager;
+use noist::{
+    dkg::{directory::DKGDirectory, session::DKGSession},
+    manager::NOISTManager,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-// Signatory.
-type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
 type PEER = Arc<Mutex<tcp::peer::Peer>>;
 type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
 type NOIST_MANAGER = Arc<Mutex<NOISTManager>>;
+type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
+type DKG_SESSION = Arc<Mutex<DKGSession>>;
 
 // Protocol
-#[path = "operative/protocol/vse_setup.rs"]
-pub mod vse_setup;
+#[path = "operative/protocol/noist/mod.rs"]
+pub mod noist_protocol;
 
 // Inscriptive
 #[path = "inscriptive/db.rs"]

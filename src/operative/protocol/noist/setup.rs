@@ -10,16 +10,16 @@ use crate::{
     NOIST_MANAGER, PEER, PEER_LIST,
 };
 
-pub async fn run(
+pub async fn run_setup(
     operator_list: &PEER_LIST,
     noist_manager: &NOIST_MANAGER,
-    no: u64,
+    setup_no: u64,
 ) -> Option<VSESetup> {
     // Check if the 'setup no' is already reserved.
     {
         let _noist_manager = noist_manager.lock().await;
 
-        if let Some(_) = _noist_manager.directory(no) {
+        if let Some(_) = _noist_manager.directory(setup_no) {
             eprintln!("{}", format!("Setup no is already reserved.").red());
             return None;
         }
@@ -80,7 +80,7 @@ pub async fn run(
         return None;
     }
 
-    let vse_setup = match VSESetup::new(&active_keys.into_point_vec().ok()?, no) {
+    let vse_setup = match VSESetup::new(&active_keys.into_point_vec().ok()?, setup_no) {
         Some(setup) => Arc::new(Mutex::new(setup)),
         None => return None,
     };

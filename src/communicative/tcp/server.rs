@@ -4,6 +4,7 @@ use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
+use crate::noist::dkg::package::DKGPackage;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
@@ -248,6 +249,16 @@ async fn handle_package(
                         noist_manager,
                     )
                     .await
+                }
+
+                PackageKind::RequestDKGPackages => {
+                    handle_request_dkg_packages(
+                        package.timestamp(),
+                        &package.payload(),
+                        noist_manager,
+                        keys,
+                    )
+                    .await
                 } //_ => return,
             },
             OperatingMode::Node => return,
@@ -358,7 +369,10 @@ async fn handle_retrieve_vse_setup(
     let vse_setup = {
         let _noist_manager = noist_manager.lock().await;
         match _noist_manager.directory(setup_no) {
-            Some(dir) => dir.setup().clone(),
+            Some(dir) => {
+                let _dir = dir.lock().await;
+                _dir.setup().clone()
+            }
             None => return None,
         }
     };
@@ -367,6 +381,66 @@ async fn handle_retrieve_vse_setup(
         let kind = PackageKind::RetrieveVSESetup;
         let payload = vse_setup.serialize();
 
+        TCPPackage::new(kind, timestamp, &payload)
+    };
+
+    Some(response_package)
+}
+
+async fn handle_request_dkg_packages(
+    timestamp: i64,
+    payload: &[u8],
+    noist_manager: &NOIST_MANAGER,
+    keys: &KeyHolder,
+) -> Option<TCPPackage> {
+    if payload.len() != 16 {
+        return None;
+    }
+
+    let mut setup_no_bytes = [0u8; 8];
+    setup_no_bytes.copy_from_slice(&payload[..8]);
+
+    let mut package_count_bytes = [0u8; 8];
+    package_count_bytes.copy_from_slice(&payload[8..]);
+
+    let setup_no = u64::from_be_bytes(setup_no_bytes);
+    let package_count = u64::from_be_bytes(package_count_bytes);
+
+    let vse_setup = {
+        let _noist_manager = noist_manager.lock().await;
+        match _noist_manager.directory(setup_no) {
+            Some(dir) => {
+                let _dir = dir.lock().await;
+                _dir.setup().clone()
+            }
+            None => return None,
+        }
+    };
+
+    let mut auth_packages = Vec::<Authenticable<DKGPackage>>::with_capacity(package_count as usize);
+
+    for _ in 0..package_count {
+        let package = match DKGPackage::new(keys.secret_key(), &vse_setup.signatories()) {
+            Some(package) => package,
+            None => return None,
+        };
+        let auth_package = match Authenticable::new(package, keys.secret_key()) {
+            Some(auth_package) => auth_package,
+            None => return None,
+        };
+
+        auth_packages.push(auth_package);
+    }
+
+    let mut auth_packages_bytes = Vec::<Vec<u8>>::new();
+
+    for auth_package in auth_packages {
+        auth_packages_bytes.push(auth_package.serialize());
+    }
+
+    let response_package = {
+        let kind = PackageKind::RetrieveVSESetup;
+        let payload = auth_packages_bytes.encode_list();
         TCPPackage::new(kind, timestamp, &payload)
     };
 

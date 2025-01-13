@@ -1,7 +1,8 @@
 use super::package::{PackageKind, TCPPackage};
 use super::peer::Connection;
 use super::tcp::{self, TCPError};
-use crate::list::ListCodec;
+use crate::list::{self, ListCodec};
+use crate::noist::dkg::package::DKGPackage;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
@@ -24,6 +25,12 @@ pub trait TCPClient {
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
 
     async fn retrieve_vse_setup(&self, setup_no: u64) -> Result<VSESetup, RequestError>;
+
+    async fn request_dkg_packages(
+        &self,
+        setup_no: u64,
+        count: u64,
+    ) -> Result<Vec<Authenticable<DKGPackage>>, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -183,5 +190,64 @@ impl TCPClient for PEER {
         };
 
         Ok(vse_setup)
+    }
+
+    // This is coordinator requesting operators new auth DKG packages.
+    async fn request_dkg_packages(
+        &self,
+        setup_no: u64,
+        count: u64,
+    ) -> Result<Vec<Authenticable<DKGPackage>>, RequestError> {
+        let setup_no_bytes = setup_no.to_be_bytes();
+        let count_bytes = count.to_be_bytes();
+
+        let mut payload = Vec::<u8>::with_capacity(16);
+        payload.extend(setup_no_bytes);
+        payload.extend(count_bytes);
+
+        // Build request package.
+        let request_package = {
+            let kind = PackageKind::RequestDKGPackages;
+            let timestamp = Utc::now().timestamp();
+            let payload = setup_no.to_be_bytes();
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // 3 seconds base plus 10 ms for each requested package.
+        let timeout = Duration::from_millis(3_000 + count * 10);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let package_bytes: Vec<Vec<u8>> = match list::ListCodec::decode_list(&response_payload) {
+            Some(vec) => vec,
+            None => return Err(RequestError::InvalidResponse),
+        };
+
+        if package_bytes.len() != count as usize {
+            return Err(RequestError::InvalidResponse);
+        }
+
+        let mut auth_dkg_packages = Vec::<Authenticable<DKGPackage>>::new();
+
+        for bytes in package_bytes {
+            let auth_dkg_package: Authenticable<DKGPackage> =
+                serde_json::from_slice(&bytes).map_err(|_| RequestError::InvalidResponse)?;
+            auth_dkg_packages.push(auth_dkg_package);
+        }
+
+        Ok(auth_dkg_packages)
     }
 }

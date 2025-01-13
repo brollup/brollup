@@ -1,9 +1,12 @@
-use std::collections::HashMap;
+use tokio::sync::Mutex;
+
+use crate::DKG_DIRECTORY;
 
 use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
+use std::{collections::HashMap, sync::Arc};
 
 pub struct NOISTManager {
-    directories: HashMap<u64, DKGDirectory>, // u64 setup no
+    directories: HashMap<u64, DKG_DIRECTORY>, // u64 setup no
     setup_db: sled::Db,
 }
 
@@ -11,14 +14,14 @@ impl NOISTManager {
     pub fn new() -> Option<NOISTManager> {
         let setup_db = sled::open("db/noist/setup").ok()?;
 
-        let mut directories = HashMap::<u64, DKGDirectory>::new();
+        let mut directories = HashMap::<u64, DKG_DIRECTORY>::new();
 
         for lookup in setup_db.iter() {
             if let Ok((_, setup_)) = lookup {
                 let setup: VSESetup = serde_json::from_slice(&setup_).ok()?;
                 let setup_no = setup.no();
                 let dkg_directory = DKGDirectory::new(&setup)?;
-                directories.insert(setup_no, dkg_directory);
+                directories.insert(setup_no, Arc::new(Mutex::new(dkg_directory)));
             }
         }
 
@@ -28,12 +31,12 @@ impl NOISTManager {
         })
     }
 
-    pub fn directories(&self) -> HashMap<u64, DKGDirectory> {
+    pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {
         self.directories.clone()
     }
 
-    pub fn directory(&self, setup_no: u64) -> Option<DKGDirectory> {
-        Some(self.directories.get(&setup_no)?.to_owned())
+    pub fn directory(&self, setup_no: u64) -> Option<DKG_DIRECTORY> {
+        Some(Arc::clone(self.directories.get(&setup_no)?))
     }
 
     pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
@@ -55,7 +58,10 @@ impl NOISTManager {
             None => return false,
         };
 
-        if let Some(_) = self.directories.insert(setup_no, new_directory) {
+        if let Some(_) = self
+            .directories
+            .insert(setup_no, Arc::new(Mutex::new(new_directory)))
+        {
             return false;
         }
 

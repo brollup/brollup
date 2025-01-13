@@ -10,8 +10,8 @@ mod noist_tests {
         schnorr::Authenticable,
     };
 
-    #[test]
-    fn noist_test() -> Result<(), String> {
+    #[tokio::test]
+    async fn noist_test() -> Result<(), String> {
         let signer_1_secret: [u8; 32] =
             hex::decode("396e7f3b89843e1e5610b1fdbaabf1b6a53066f43b22c529f839d69b6799ce8f")
                 .unwrap()
@@ -83,7 +83,11 @@ mod noist_tests {
         manager.insert_setup(&vse_setup);
 
         // Retrieve DKG Directory from the manager.
-        let mut dkg_directory = manager.directory(setup_no).unwrap();
+        let mut dkg_directory = {
+            let dir = manager.directory(setup_no).unwrap();
+            let _dir = dir.lock().await;
+            (*_dir).clone()
+        };
 
         // populate directory with 5 DKG sessions: the first for the group key and the remaining 4 for the group nonce.
         for _ in 0..5 {

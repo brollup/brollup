@@ -1,4 +1,4 @@
-use crate::NOIST_MANAGER;
+use crate::{DKG_DIRECTORY, NOIST_MANAGER};
 // noist setup <no> print
 // noist setups
 pub async fn command(parts: Vec<&str>, noist_manager: &mut NOIST_MANAGER) {
@@ -31,12 +31,13 @@ pub async fn command(parts: Vec<&str>, noist_manager: &mut NOIST_MANAGER) {
 async fn setup_no_print(noist_manager: &NOIST_MANAGER, no: u64) {
     let _noist_manager = noist_manager.lock().await;
 
-    let directory = match _noist_manager.directory(no) {
+    let dkg_directory: DKG_DIRECTORY = match _noist_manager.directory(no) {
         Some(directory) => directory,
         None => return eprintln!("Setup not found."),
     };
 
-    directory.setup().print();
+    let _dkg_directory = dkg_directory.lock().await;
+    _dkg_directory.setup().print();
 }
 
 async fn setup_all_print(noist_manager: &NOIST_MANAGER) {

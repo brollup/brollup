@@ -1,4 +1,4 @@
-use crate::{vse_setup, NOIST_MANAGER, PEER_LIST};
+use crate::{noist_protocol, DKG_DIRECTORY, NOIST_MANAGER, PEER_LIST};
 use colored::Colorize;
 
 // noist setup <no> run
@@ -39,16 +39,17 @@ pub async fn command(
 async fn setup_no_print(noist_manager: &NOIST_MANAGER, no: u64) {
     let _noist_manager = noist_manager.lock().await;
 
-    let directory = match _noist_manager.directory(no) {
+    let dkg_directory: DKG_DIRECTORY = match _noist_manager.directory(no) {
         Some(directory) => directory,
         None => return eprintln!("Setup not found."),
     };
 
-    directory.setup().print();
+    let _dkg_directory = dkg_directory.lock().await;
+    _dkg_directory.setup().print();
 }
 
 async fn setup_no_run(operator_list: &PEER_LIST, noist_manager: &NOIST_MANAGER, no: u64) {
-    match vse_setup::run(operator_list, noist_manager, no).await {
+    match noist_protocol::setup::run_setup(operator_list, noist_manager, no).await {
         Some(setup) => {
             println!(
                 "{}",
