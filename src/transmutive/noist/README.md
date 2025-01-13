@@ -295,7 +295,7 @@ Algorithm _VerifyPackages(PK[1..n], PKG_p[1..m])_:
        -  Let _EP_i_k_ be the encryption public key from the setup phase.
        -  Fail if _!ShareEncVerify(ess_h_i_k, PS_h_i_k, EP_i_k) || !ShareEncVerify(ess_b_i_k, PS_b_i_k, EP_i_k)_.
     -  ph = p;
-    -  Return true.
+    -  Return _true_.
 
 ## Post-preprocessing
 

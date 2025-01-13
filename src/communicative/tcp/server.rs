@@ -7,7 +7,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
-use crate::{baked, OperatingMode, SIGNATORY_DB, SOCKET, VSE_DIRECTORY};
+use crate::{baked, OperatingMode, NOIST_MANAGER, SOCKET};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -21,8 +21,7 @@ pub async fn run(
     mode: OperatingMode,
     nns_client: &NNSClient,
     keys: &KeyHolder,
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &VSE_DIRECTORY,
+    noist_manager: &NOIST_MANAGER,
 ) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
@@ -47,19 +46,10 @@ pub async fn run(
             tokio::spawn({
                 let socket = Arc::clone(&socket);
                 let keys = keys.clone();
-                let signatory_db = Arc::clone(&signatory_db);
-                let mut vse_directory = Arc::clone(&vse_directory);
+                let mut noist_manager = Arc::clone(&noist_manager);
 
                 async move {
-                    handle_socket(
-                        &socket,
-                        None,
-                        mode,
-                        &keys,
-                        &signatory_db,
-                        &mut vse_directory,
-                    )
-                    .await;
+                    handle_socket(&socket, None, mode, &keys, &mut noist_manager).await;
                 }
             });
         },
@@ -72,17 +62,15 @@ pub async fn run(
             loop {
                 match nns_client.query_address(&coordinator_npub).await {
                     Some(ip_address) => 'post_nns: loop {
-                        println!("post");
                         let (socket_, socket_addr) = match listener.accept().await {
                             Ok(conn) => (conn.0, conn.1),
                             Err(_) => continue,
                         };
-                        println!("ara");
+
                         // Operator only accepts incoming connections from the coordinator.
                         if socket_addr.ip().to_string() != ip_address {
                             continue;
                         }
-                        println!("gecti");
 
                         let socket = Arc::new(Mutex::new(socket_));
 
@@ -92,8 +80,7 @@ pub async fn run(
                             let socket = Arc::clone(&socket);
                             let socket_alive = Arc::clone(&socket_alive);
                             let keys = keys.clone();
-                            let signatory_db = Arc::clone(&signatory_db);
-                            let mut vse_directory = Arc::clone(&vse_directory);
+                            let mut noist_manager = Arc::clone(&noist_manager);
 
                             async move {
                                 handle_socket(
@@ -101,8 +88,7 @@ pub async fn run(
                                     Some(&socket_alive),
                                     mode,
                                     &keys,
-                                    &signatory_db,
-                                    &mut vse_directory,
+                                    &mut noist_manager,
                                 )
                                 .await;
                             }
@@ -136,8 +122,7 @@ async fn handle_socket(
     alive: Option<&Arc<Mutex<bool>>>,
     mode: OperatingMode,
     keys: &KeyHolder,
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &mut VSE_DIRECTORY,
+    noist_manager: &mut NOIST_MANAGER,
 ) {
     loop {
         let mut _socket = socket.lock().await;
@@ -212,15 +197,7 @@ async fn handle_socket(
         let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
-        handle_package(
-            package,
-            &mut *_socket,
-            mode,
-            keys,
-            signatory_db,
-            vse_directory,
-        )
-        .await;
+        handle_package(package, &mut *_socket, mode, keys, noist_manager).await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -237,18 +214,17 @@ async fn handle_package(
     socket: &mut tokio::net::TcpStream,
     mode: OperatingMode,
     keys: &KeyHolder,
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &mut VSE_DIRECTORY,
+    noist_manager: &mut NOIST_MANAGER,
 ) {
     let response_package_ = {
         match mode {
             OperatingMode::Coordinator => match package.kind() {
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
-                PackageKind::RetrieveVSEDirectory => {
-                    handle_retrieve_vse_directory(
+                PackageKind::RetrieveVSESetup => {
+                    handle_retrieve_vse_setup(
                         package.timestamp(),
                         &package.payload(),
-                        vse_directory,
+                        noist_manager,
                     )
                     .await
                 }
@@ -261,20 +237,15 @@ async fn handle_package(
                 }
 
                 PackageKind::DeliverVSESetup => {
-                    handle_deliver_vse_setup(
-                        package.timestamp(),
-                        &package.payload(),
-                        signatory_db,
-                        vse_directory,
-                    )
-                    .await
+                    handle_deliver_vse_setup(package.timestamp(), &package.payload(), noist_manager)
+                        .await
                 }
 
-                PackageKind::RetrieveVSEDirectory => {
-                    handle_retrieve_vse_directory(
+                PackageKind::RetrieveVSESetup => {
+                    handle_retrieve_vse_setup(
                         package.timestamp(),
                         &package.payload(),
-                        vse_directory,
+                        noist_manager,
                     )
                     .await
                 } //_ => return,
@@ -350,14 +321,13 @@ async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<TCPPackage> {
 async fn handle_deliver_vse_setup(
     timestamp: i64,
     payload: &[u8],
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &mut VSE_DIRECTORY,
+    noist_manager: &mut NOIST_MANAGER,
 ) -> Option<TCPPackage> {
     let vse_setup = VSESetup::from_slice(&payload)?;
 
     let insertion = {
-        let mut _vse_directory = vse_directory.lock().await;
-        _vse_directory.insert(&vse_setup, signatory_db).await
+        let mut _noist_manager = noist_manager.lock().await;
+        _noist_manager.insert_setup(&vse_setup)
     };
 
     let response_package = {
@@ -373,22 +343,29 @@ async fn handle_deliver_vse_setup(
     Some(response_package)
 }
 
-async fn handle_retrieve_vse_directory(
+async fn handle_retrieve_vse_setup(
     timestamp: i64,
     payload: &[u8],
-    vse_directory: &VSE_DIRECTORY,
+    noist_manager: &NOIST_MANAGER,
 ) -> Option<TCPPackage> {
-    // Expected payload: 0x00.
-    if payload != &[0x00] {
-        return None;
-    }
+    let setup_no_bytes: [u8; 8] = match payload.try_into() {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
+
+    let setup_no = u64::from_be_bytes(setup_no_bytes);
+
+    let vse_setup = {
+        let _noist_manager = noist_manager.lock().await;
+        match _noist_manager.directory(setup_no) {
+            Some(dir) => dir.setup().clone(),
+            None => return None,
+        }
+    };
 
     let response_package = {
-        let kind = PackageKind::RetrieveVSEDirectory;
-        let payload = {
-            let _vse_directory = vse_directory.lock().await;
-            _vse_directory.serialize()
-        };
+        let kind = PackageKind::RetrieveVSESetup;
+        let payload = vse_setup.serialize();
 
         TCPPackage::new(kind, timestamp, &payload)
     };

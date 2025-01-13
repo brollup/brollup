@@ -7,24 +7,23 @@ use crate::{
     into::IntoPointVec,
     noist::setup::setup::VSESetup,
     tcp::{client::TCPClient, peer::PeerListExt},
-    PEER, PEER_LIST, SIGNATORY_DB, VSE_DIRECTORY, VSE_SETUP,
+    NOIST_MANAGER, PEER, PEER_LIST,
 };
 
 pub async fn run(
     operator_list: &PEER_LIST,
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &VSE_DIRECTORY,
+    noist_manager: &NOIST_MANAGER,
     no: u64,
 ) -> Option<VSESetup> {
-    let no_reserved = {
-        let _vse_directory = vse_directory.lock().await;
-        _vse_directory.no_reserved(no)
-    };
+    // Check if the 'setup no' is already reserved.
+    {
+        let _noist_manager = noist_manager.lock().await;
 
-    if no_reserved {
-        eprintln!("{}", format!("Setup no is already reserved.").red());
-        return None;
-    }
+        if let Some(_) = _noist_manager.directory(no) {
+            eprintln!("{}", format!("Setup no is already reserved.").red());
+            return None;
+        }
+    };
 
     let (active_peer_list_, active_key_list_) = {
         let active_peer_list = Vec::<PEER>::new();
@@ -81,13 +80,9 @@ pub async fn run(
         return None;
     }
 
-    let vse_setup: VSE_SETUP = {
-        let setup_ = match VSESetup::new(&active_keys.into_point_vec().ok()?, no) {
-            Some(setup) => setup,
-            None => return None,
-        };
-
-        Arc::new(Mutex::new(setup_))
+    let vse_setup = match VSESetup::new(&active_keys.into_point_vec().ok()?, no) {
+        Some(setup) => Arc::new(Mutex::new(setup)),
+        None => return None,
     };
 
     // Phase #1: Retrieve keymaps and insert setup.
@@ -95,7 +90,7 @@ pub async fn run(
         let mut tasks = vec![];
 
         for operator in active_peers.clone() {
-            let vse_setup: VSE_SETUP = Arc::clone(&vse_setup);
+            let vse_setup = Arc::clone(&vse_setup);
             let active_keys = active_keys.clone();
 
             let operator_key = {
@@ -130,16 +125,16 @@ pub async fn run(
 
     if !vse_setup_.validate() {
         return None;
-    }
-
-    let directory_insertion = {
-        let mut _vse_directory = vse_directory.lock().await;
-        _vse_directory.insert(&vse_setup_, signatory_db).await
     };
 
-    if !directory_insertion {
-        return None;
-    }
+    // Directory insertion.
+    {
+        let mut _noist_manager = noist_manager.lock().await;
+
+        if !_noist_manager.insert_setup(&vse_setup_) {
+            return None;
+        }
+    };
 
     // Phase #2: Deliver setup to each operator.
     {

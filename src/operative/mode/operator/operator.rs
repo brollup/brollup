@@ -1,17 +1,15 @@
-use crate::db;
 use crate::nns;
 use crate::nns::client::NNSClient;
-use crate::noist::setup::directory::VSEDirectory;
+use crate::noist::manager::NOISTManager;
 use crate::ocli;
+use crate::tcp;
 use crate::tcp::peer::Peer;
 use crate::tcp::peer::PeerKind;
-use crate::tcp::server;
-use crate::tcp::tcp;
+use crate::tcp::tcp::open_port;
 use crate::Network;
 use crate::OperatingMode;
+use crate::NOIST_MANAGER;
 use crate::PEER;
-use crate::SIGNATORY_DB;
-use crate::VSE_DIRECTORY;
 use crate::{baked, key::KeyHolder};
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -33,20 +31,16 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 1. Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 2. Initialize signatory database.
-    let signatory_db: SIGNATORY_DB = match db::Signatory::new() {
-        Some(database) => Arc::new(Mutex::new(database)),
-        None => return eprintln!("{}", "Error initializing database.".red()),
-    };
+    // 2.
 
-    // 3. Initialize VSE Directory.
-    let mut vse_directory: VSE_DIRECTORY = match VSEDirectory::new(&signatory_db).await {
-        Some(directory) => Arc::new(Mutex::new(directory)),
-        None => return eprintln!("{}", "Error initializing VSE directory.".red()),
+    // 3. Initialize NOIST Manager.
+    let mut noist_manager: NOIST_MANAGER = match NOISTManager::new() {
+        Some(manager) => Arc::new(Mutex::new(manager)),
+        None => return eprintln!("{}", "Error initializing NOIST manager.".red()),
     };
 
     // 4. Open port 6272 for incoming connections.
-    match tcp::open_port().await {
+    match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
@@ -62,11 +56,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 6. Run TCP server.
     {
         let nns_client = nns_client.clone();
-        let signatory_db = Arc::clone(&signatory_db);
-        let vse_directory = Arc::clone(&vse_directory);
+        let noist_manager = Arc::clone(&noist_manager);
 
         let _ = tokio::spawn(async move {
-            let _ = server::run(mode, &nns_client, &keys, &signatory_db, &vse_directory).await;
+            let _ = tcp::server::run(mode, &nns_client, &keys, &noist_manager).await;
         });
     }
 
@@ -94,14 +87,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 8. CLI
-    cli(&signatory_db, &mut vse_directory, &coordinator).await;
+    cli(&mut noist_manager, &coordinator).await;
 }
 
-pub async fn cli(
-    signatory_db: &SIGNATORY_DB,
-    vse_directory: &mut VSE_DIRECTORY,
-    coordinator: &PEER,
-) {
+pub async fn cli(noist_manager: &mut NOIST_MANAGER, _coordinator: &PEER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -129,7 +118,7 @@ pub async fn cli(
             // Main commands:
             "exit" => break,
             "clear" => ocli::clear::command(),
-            "vse" => ocli::vse::command(parts, coordinator, signatory_db, vse_directory).await,
+            "noist" => ocli::noist::command(parts, noist_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

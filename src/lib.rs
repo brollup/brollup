@@ -1,17 +1,17 @@
 #![allow(non_camel_case_types)]
 
+use noist::manager::NOISTManager;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 // Signatory.
 type SIGNATORY_DB = Arc<Mutex<db::Signatory>>;
-type VSE_DIRECTORY = Arc<Mutex<noist::setup::directory::VSEDirectory>>;
-type VSE_SETUP = Arc<Mutex<noist::setup::setup::VSESetup>>;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
 type PEER = Arc<Mutex<tcp::peer::Peer>>;
 type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
+type NOIST_MANAGER = Arc<Mutex<NOISTManager>>;
 
 // Protocol
 #[path = "operative/protocol/vse_setup.rs"]
@@ -25,8 +25,6 @@ pub mod db;
 pub mod baked;
 
 // Crypto modules.
-#[path = "transmutive/point.rs"]
-pub mod secp_point;
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]
@@ -35,6 +33,8 @@ pub mod into;
 pub mod key;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
+#[path = "transmutive/point.rs"]
+pub mod secp_point;
 
 #[path = "transmutive/list.rs"]
 pub mod list;

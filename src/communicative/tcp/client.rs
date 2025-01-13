@@ -2,7 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use super::peer::Connection;
 use super::tcp::{self, TCPError};
 use crate::list::ListCodec;
-use crate::noist::setup::{directory::VSEDirectory, keymap::VSEKeyMap, setup::VSESetup};
+use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
 use crate::{PEER, SOCKET};
@@ -23,7 +23,7 @@ pub trait TCPClient {
 
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
 
-    async fn retrieve_vse_directory(&self) -> Result<VSEDirectory, RequestError>;
+    async fn retrieve_vse_setup(&self, setup_no: u64) -> Result<VSESetup, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -103,9 +103,7 @@ impl TCPClient for PEER {
         };
 
         let auth_keymap: Authenticable<VSEKeyMap> =
-            bincode::deserialize(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
-
-        println!("authen :{}", auth_keymap.authenticate());
+            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
         if (auth_keymap.key() != signer_key) || !auth_keymap.authenticate() {
             return Err(RequestError::InvalidResponse);
@@ -151,13 +149,13 @@ impl TCPClient for PEER {
     }
 
     // This is a coordinator or the operator asking from another peer
-    // about the vse directory in case they lost their local copy.
-    async fn retrieve_vse_directory(&self) -> Result<VSEDirectory, RequestError> {
+    // about the vse setup in case they lost their local copy.
+    async fn retrieve_vse_setup(&self, setup_no: u64) -> Result<VSESetup, RequestError> {
         // Build request package.
         let request_package = {
-            let kind = PackageKind::RetrieveVSEDirectory;
+            let kind = PackageKind::RetrieveVSESetup;
             let timestamp = Utc::now().timestamp();
-            let payload = [0x00u8];
+            let payload = setup_no.to_be_bytes();
             TCPPackage::new(kind, timestamp, &payload)
         };
 
@@ -179,11 +177,11 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let vse_directory: VSEDirectory = match bincode::deserialize(&response_payload) {
-            Ok(directory) => directory,
+        let vse_setup: VSESetup = match serde_json::from_slice(&response_payload) {
+            Ok(setup) => setup,
             Err(_) => return Err(RequestError::EmptyResponse),
         };
 
-        Ok(vse_directory)
+        Ok(vse_setup)
     }
 }
