@@ -1,6 +1,6 @@
 use crate::{
     noist::dkg::session::DKGSession, tcp::client::TCPClient, DKG_DIRECTORY, DKG_SESSION,
-    NOIST_MANAGER, PEER_MANAGER,
+    DKG_MANAGER, PEER_MANAGER,
 };
 use futures::future::join_all;
 use std::sync::Arc;
@@ -16,13 +16,13 @@ pub enum PrepeocessingError {
 
 pub async fn run_preprocessing(
     peer_manager: &PEER_MANAGER,
-    noist_manager: &NOIST_MANAGER,
+    dkg_manager: &DKG_MANAGER,
     setup_no: u64,
     signatories: &Vec<[u8; 32]>,
 ) -> Result<(), PrepeocessingError> {
     let dkg_directory: DKG_DIRECTORY = {
-        let _noist_manager = noist_manager.lock().await;
-        match _noist_manager.directory(setup_no) {
+        let _dkg_manager = dkg_manager.lock().await;
+        match _dkg_manager.directory(setup_no) {
             Some(dir) => Arc::clone(&dir),
             None => return Err(PrepeocessingError::DirectoryInitErr),
         }

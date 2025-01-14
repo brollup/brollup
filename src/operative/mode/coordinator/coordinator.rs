@@ -1,10 +1,10 @@
 use crate::nns::client::NNSClient;
-use crate::noist::manager::NOISTManager;
+use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
-use crate::{ccli, nns, tcp, Network, OperatingMode, NOIST_MANAGER, PEER_MANAGER};
+use crate::{ccli, nns, tcp, Network, OperatingMode, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
@@ -27,7 +27,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 2.
 
     // 3. Initialize NOIST Manager.
-    let mut noist_manager: NOIST_MANAGER = match NOISTManager::new() {
+    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
         Some(manager) => Arc::new(Mutex::new(manager)),
         None => return eprintln!("{}", "Error initializing NOIST manager.".red()),
     };
@@ -49,9 +49,9 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 6. Run TCP server.
     {
         let nns_client = nns_client.clone();
-        let noist_manager = Arc::clone(&noist_manager);
+        let dkg_manager = Arc::clone(&dkg_manager);
         let _ = tokio::spawn(async move {
-            let _ = tcp::server::run(mode, &nns_client, &keys, &noist_manager).await;
+            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
         });
     }
 
@@ -64,10 +64,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         };
 
     // 9. CLI
-    cli(&mut peer_manager, &mut noist_manager).await;
+    cli(&mut peer_manager, &mut dkg_manager).await;
 }
 
-pub async fn cli(peer_manager: &mut PEER_MANAGER, noist_manager: &mut NOIST_MANAGER) {
+pub async fn cli(peer_manager: &mut PEER_MANAGER, dkg_manager: &mut DKG_MANAGER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -95,7 +95,7 @@ pub async fn cli(peer_manager: &mut PEER_MANAGER, noist_manager: &mut NOIST_MANA
             // Main commands:
             "exit" => break,
             "clear" => ccli::clear::command(),
-            "noist" => ccli::noist::command(parts, peer_manager, noist_manager).await,
+            "dkg" => ccli::dkg::command(parts, peer_manager, dkg_manager).await,
             "operator" => ccli::operator::command(peer_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }

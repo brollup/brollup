@@ -1,2 +1,2 @@
 pub mod clear;
-pub mod noist;
+pub mod dkg;

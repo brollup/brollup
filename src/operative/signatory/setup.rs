@@ -1,6 +1,6 @@
 use crate::{
-    into::IntoPointVec, noist::setup::setup::VSESetup, tcp::client::TCPClient, NOIST_MANAGER, PEER,
-    PEER_MANAGER,
+    into::IntoPointVec, liquidity, noist::setup::setup::VSESetup, tcp::client::TCPClient,
+    DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use colored::Colorize;
 use futures::future::join_all;
@@ -9,15 +9,20 @@ use tokio::sync::Mutex;
 
 pub async fn run_setup(
     peer_manager: &mut PEER_MANAGER,
-    noist_manager: &NOIST_MANAGER,
-    setup_no: u64,
-    signatories: &Vec<[u8; 32]>,
+    dkg_manager: &DKG_MANAGER,
 ) -> Option<VSESetup> {
+    let setup_no = {
+        let _dkg_manager = dkg_manager.lock().await;
+        _dkg_manager.setup_height() + 1
+    };
+
+    let signatories = liquidity::provider::provider_list();
+
     // Check if the 'setup no' is already reserved.
     {
-        let _noist_manager = noist_manager.lock().await;
+        let _dkg_manager = dkg_manager.lock().await;
 
-        if let Some(_) = _noist_manager.directory(setup_no) {
+        if let Some(_) = _dkg_manager.directory(setup_no) {
             eprintln!("{}", format!("Setup no is already reserved.").red());
             return None;
         }
@@ -27,9 +32,9 @@ pub async fn run_setup(
     let operators: Vec<PEER> = {
         let mut _peer_manager = peer_manager.lock().await;
         _peer_manager
-            .add_peers(crate::peer::PeerKind::Operator, signatories)
+            .add_peers(crate::peer::PeerKind::Operator, &signatories)
             .await;
-        _peer_manager.retrieve_peers(signatories)
+        _peer_manager.retrieve_peers(&signatories)
     }?;
 
     let vse_setup = match VSESetup::new(&signatories.into_point_vec().ok()?, setup_no) {
@@ -79,9 +84,9 @@ pub async fn run_setup(
 
     // Directory insertion.
     {
-        let mut _noist_manager = noist_manager.lock().await;
+        let mut _dkg_manager = dkg_manager.lock().await;
 
-        if !_noist_manager.insert_setup(&vse_setup_) {
+        if !_dkg_manager.insert_setup(&vse_setup_) {
             return None;
         }
     };

@@ -2,7 +2,7 @@
 
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
-    manager::NOISTManager,
+    manager::DKGManager,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -11,13 +11,9 @@ use tokio::sync::Mutex;
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
 type PEER = Arc<Mutex<peer::Peer>>;
 type PEER_MANAGER = Arc<Mutex<peer_manager::PeerManager>>;
-type NOIST_MANAGER = Arc<Mutex<NOISTManager>>;
+type DKG_MANAGER = Arc<Mutex<DKGManager>>;
 type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
-
-// Protocol
-#[path = "operative/protocol/noist/mod.rs"]
-pub mod noist_protocol;
 
 // Inscriptive
 #[path = "inscriptive/db.rs"]
@@ -60,6 +56,14 @@ pub mod ccli;
 pub mod ncli;
 #[path = "operative/mode/operator/cli/mod.rs"]
 pub mod ocli;
+
+// Liquidity provision
+#[path = "operative/liquidity/mod.rs"]
+pub mod liquidity;
+
+// Signatory
+#[path = "operative/signatory/mod.rs"]
+pub mod signatory;
 
 // Networking.
 #[path = "communicative/nns/mod.rs"]

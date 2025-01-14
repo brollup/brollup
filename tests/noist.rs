@@ -3,7 +3,7 @@ mod noist_tests {
     use brollup::hash::Hash;
     use brollup::into::IntoPoint;
     use brollup::noist::dkg::package::DKGPackage;
-    use brollup::noist::manager::NOISTManager;
+    use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
@@ -52,7 +52,7 @@ mod noist_tests {
         let mut public_list = vec![signer_1_public, signer_2_public, signer_3_public];
         public_list.sort();
 
-        let mut manager = NOISTManager::new().unwrap();
+        let mut manager = DKGManager::new().unwrap();
 
         // Insert VSE setup to the manager.
         let setup_no: u64 = 0;

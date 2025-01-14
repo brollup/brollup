@@ -8,7 +8,7 @@ use crate::noist::dkg::package::DKGPackage;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
-use crate::{baked, OperatingMode, NOIST_MANAGER, SOCKET};
+use crate::{baked, OperatingMode, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -22,7 +22,7 @@ pub async fn run(
     mode: OperatingMode,
     nns_client: &NNSClient,
     keys: &KeyHolder,
-    noist_manager: &NOIST_MANAGER,
+    dkg_manager: &DKG_MANAGER,
 ) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
@@ -47,10 +47,10 @@ pub async fn run(
             tokio::spawn({
                 let socket = Arc::clone(&socket);
                 let keys = keys.clone();
-                let mut noist_manager = Arc::clone(&noist_manager);
+                let mut dkg_manager = Arc::clone(&dkg_manager);
 
                 async move {
-                    handle_socket(&socket, None, mode, &keys, &mut noist_manager).await;
+                    handle_socket(&socket, None, mode, &keys, &mut dkg_manager).await;
                 }
             });
         },
@@ -81,7 +81,7 @@ pub async fn run(
                             let socket = Arc::clone(&socket);
                             let socket_alive = Arc::clone(&socket_alive);
                             let keys = keys.clone();
-                            let mut noist_manager = Arc::clone(&noist_manager);
+                            let mut dkg_manager = Arc::clone(&dkg_manager);
 
                             async move {
                                 handle_socket(
@@ -89,7 +89,7 @@ pub async fn run(
                                     Some(&socket_alive),
                                     mode,
                                     &keys,
-                                    &mut noist_manager,
+                                    &mut dkg_manager,
                                 )
                                 .await;
                             }
@@ -123,7 +123,7 @@ async fn handle_socket(
     alive: Option<&Arc<Mutex<bool>>>,
     mode: OperatingMode,
     keys: &KeyHolder,
-    noist_manager: &mut NOIST_MANAGER,
+    dkg_manager: &mut DKG_MANAGER,
 ) {
     loop {
         let mut _socket = socket.lock().await;
@@ -198,7 +198,7 @@ async fn handle_socket(
         let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
-        handle_package(package, &mut *_socket, mode, keys, noist_manager).await;
+        handle_package(package, &mut *_socket, mode, keys, dkg_manager).await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -215,19 +215,15 @@ async fn handle_package(
     socket: &mut tokio::net::TcpStream,
     mode: OperatingMode,
     keys: &KeyHolder,
-    noist_manager: &mut NOIST_MANAGER,
+    dkg_manager: &mut DKG_MANAGER,
 ) {
     let response_package_ = {
         match mode {
             OperatingMode::Coordinator => match package.kind() {
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
                 PackageKind::RetrieveVSESetup => {
-                    handle_retrieve_vse_setup(
-                        package.timestamp(),
-                        &package.payload(),
-                        noist_manager,
-                    )
-                    .await
+                    handle_retrieve_vse_setup(package.timestamp(), &package.payload(), dkg_manager)
+                        .await
                 }
                 _ => return,
             },
@@ -238,24 +234,20 @@ async fn handle_package(
                 }
 
                 PackageKind::DeliverVSESetup => {
-                    handle_deliver_vse_setup(package.timestamp(), &package.payload(), noist_manager)
+                    handle_deliver_vse_setup(package.timestamp(), &package.payload(), dkg_manager)
                         .await
                 }
 
                 PackageKind::RetrieveVSESetup => {
-                    handle_retrieve_vse_setup(
-                        package.timestamp(),
-                        &package.payload(),
-                        noist_manager,
-                    )
-                    .await
+                    handle_retrieve_vse_setup(package.timestamp(), &package.payload(), dkg_manager)
+                        .await
                 }
 
                 PackageKind::RequestDKGPackages => {
                     handle_request_dkg_packages(
                         package.timestamp(),
                         &package.payload(),
-                        noist_manager,
+                        dkg_manager,
                         keys,
                     )
                     .await
@@ -329,13 +321,13 @@ async fn handle_ping(timestamp: i64, payload: &[u8]) -> Option<TCPPackage> {
 async fn handle_deliver_vse_setup(
     timestamp: i64,
     payload: &[u8],
-    noist_manager: &mut NOIST_MANAGER,
+    dkg_manager: &mut DKG_MANAGER,
 ) -> Option<TCPPackage> {
     let vse_setup = VSESetup::from_slice(&payload)?;
 
     let insertion = {
-        let mut _noist_manager = noist_manager.lock().await;
-        _noist_manager.insert_setup(&vse_setup)
+        let mut _dkg_manager = dkg_manager.lock().await;
+        _dkg_manager.insert_setup(&vse_setup)
     };
 
     let response_package = {
@@ -354,7 +346,7 @@ async fn handle_deliver_vse_setup(
 async fn handle_retrieve_vse_setup(
     timestamp: i64,
     payload: &[u8],
-    noist_manager: &NOIST_MANAGER,
+    dkg_manager: &DKG_MANAGER,
 ) -> Option<TCPPackage> {
     let setup_no_bytes: [u8; 8] = match payload.try_into() {
         Ok(bytes) => bytes,
@@ -364,8 +356,8 @@ async fn handle_retrieve_vse_setup(
     let setup_no = u64::from_be_bytes(setup_no_bytes);
 
     let vse_setup = {
-        let _noist_manager = noist_manager.lock().await;
-        match _noist_manager.directory(setup_no) {
+        let _dkg_manager = dkg_manager.lock().await;
+        match _dkg_manager.directory(setup_no) {
             Some(dir) => {
                 let _dir = dir.lock().await;
                 _dir.setup().clone()
@@ -387,7 +379,7 @@ async fn handle_retrieve_vse_setup(
 async fn handle_request_dkg_packages(
     timestamp: i64,
     payload: &[u8],
-    noist_manager: &NOIST_MANAGER,
+    dkg_manager: &DKG_MANAGER,
     keys: &KeyHolder,
 ) -> Option<TCPPackage> {
     if payload.len() != 16 {
@@ -404,8 +396,8 @@ async fn handle_request_dkg_packages(
     let package_count = u64::from_be_bytes(package_count_bytes);
 
     let vse_setup = {
-        let _noist_manager = noist_manager.lock().await;
-        match _noist_manager.directory(setup_no) {
+        let _dkg_manager = dkg_manager.lock().await;
+        match _dkg_manager.directory(setup_no) {
             Some(dir) => {
                 let _dir = dir.lock().await;
                 _dir.setup().clone()

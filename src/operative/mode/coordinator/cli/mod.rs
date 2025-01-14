@@ -1,3 +1,3 @@
-pub mod noist;
+pub mod dkg;
 pub mod operator;
 pub mod clear;

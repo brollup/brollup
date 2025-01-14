@@ -1,6 +1,6 @@
 use crate::nns;
 use crate::nns::client::NNSClient;
-use crate::noist::manager::NOISTManager;
+use crate::noist::manager::DKGManager;
 use crate::ocli;
 use crate::peer::Peer;
 use crate::peer::PeerKind;
@@ -8,7 +8,7 @@ use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::Network;
 use crate::OperatingMode;
-use crate::NOIST_MANAGER;
+use crate::DKG_MANAGER;
 use crate::PEER;
 use crate::{baked, key::KeyHolder};
 use colored::Colorize;
@@ -34,7 +34,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 2.
 
     // 3. Initialize NOIST Manager.
-    let mut noist_manager: NOIST_MANAGER = match NOISTManager::new() {
+    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
         Some(manager) => Arc::new(Mutex::new(manager)),
         None => return eprintln!("{}", "Error initializing NOIST manager.".red()),
     };
@@ -56,10 +56,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 6. Run TCP server.
     {
         let nns_client = nns_client.clone();
-        let noist_manager = Arc::clone(&noist_manager);
+        let dkg_manager = Arc::clone(&dkg_manager);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp::server::run(mode, &nns_client, &keys, &noist_manager).await;
+            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
         });
     }
 
@@ -87,10 +87,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 8. CLI
-    cli(&mut noist_manager, &coordinator).await;
+    cli(&mut dkg_manager, &coordinator).await;
 }
 
-pub async fn cli(noist_manager: &mut NOIST_MANAGER, _coordinator: &PEER) {
+pub async fn cli(dkg_manager: &mut DKG_MANAGER, _coordinator: &PEER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -118,7 +118,7 @@ pub async fn cli(noist_manager: &mut NOIST_MANAGER, _coordinator: &PEER) {
             // Main commands:
             "exit" => break,
             "clear" => ocli::clear::command(),
-            "noist" => ocli::noist::command(parts, noist_manager).await,
+            "dkg" => ocli::dkg::command(parts, dkg_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

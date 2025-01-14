@@ -1,17 +1,15 @@
+use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
+use crate::DKG_DIRECTORY;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
-use crate::DKG_DIRECTORY;
-
-use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
-use std::{collections::HashMap, sync::Arc};
-
-pub struct NOISTManager {
-    directories: HashMap<u64, DKG_DIRECTORY>, // u64 setup no
+pub struct DKGManager {
+    directories: HashMap<u64, DKG_DIRECTORY>,
     setup_db: sled::Db,
 }
 
-impl NOISTManager {
-    pub fn new() -> Option<NOISTManager> {
+impl DKGManager {
+    pub fn new() -> Option<DKGManager> {
         let setup_db = sled::open("db/noist/setup").ok()?;
 
         let mut directories = HashMap::<u64, DKG_DIRECTORY>::new();
@@ -25,7 +23,7 @@ impl NOISTManager {
             }
         }
 
-        Some(NOISTManager {
+        Some(DKGManager {
             directories,
             setup_db,
         })
@@ -67,8 +65,8 @@ impl NOISTManager {
 
         true
     }
-}
 
-// db/noist/setup/ key: BATCH_NO -> VSESetup
-// db/noist/batch/BATCH_NO/   key: "index_height" -> u64
-// db/noist/batch/BATCH_NO/session/   key: SESSION_INDEX -> DKGSession
+    pub fn setup_height(&self) -> u64 {
+        self.directories.keys().max().unwrap_or(&0).to_owned()
+    }
+}
