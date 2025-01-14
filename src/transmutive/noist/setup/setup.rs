@@ -1,28 +1,24 @@
-use std::collections::HashMap;
-
+use super::keymap::VSEKeyMap;
 use secp::Point;
 use serde::{Deserialize, Serialize};
-
-use crate::{into::IntoPoint, schnorr::Authenticable};
-
-use super::keymap::VSEKeyMap;
+use std::collections::HashMap;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSESetup {
-    no: u64,
+    setup_no: u64,
     signatories: Vec<Point>,
-    maps: HashMap<Point, Authenticable<VSEKeyMap>>,
+    map: HashMap<Point, VSEKeyMap>,
 }
 
 impl VSESetup {
-    pub fn new(signatories: &Vec<Point>, no: u64) -> Option<Self> {
+    pub fn new(signatories: &Vec<Point>, setup_no: u64) -> Option<Self> {
         let mut signatories = signatories.clone();
         signatories.sort();
 
         let vse_setup = VSESetup {
-            no,
+            setup_no,
             signatories,
-            maps: HashMap::<Point, Authenticable<VSEKeyMap>>::new(),
+            map: HashMap::<Point, VSEKeyMap>::new(),
         };
 
         Some(vse_setup)
@@ -42,57 +38,45 @@ impl VSESetup {
         }
     }
 
-    pub fn no(&self) -> u64 {
-        self.no
+    pub fn setup_no(&self) -> u64 {
+        self.setup_no
     }
 
     pub fn signatories(&self) -> Vec<Point> {
         self.signatories.clone()
     }
 
-    pub fn maps(&self) -> HashMap<Point, Authenticable<VSEKeyMap>> {
-        self.maps.clone()
+    pub fn map(&self) -> HashMap<Point, VSEKeyMap> {
+        self.map.clone()
     }
 
-    pub fn insert(&mut self, map: Authenticable<VSEKeyMap>) -> bool {
-        if self.signatories.contains(&map.object().signatory()) {
-            let map_key_point = match map.key().into_point() {
-                Ok(point) => point,
-                Err(_) => return false,
-            };
-
-            if let None = self.maps.get(&map_key_point) {
-                if map.object().is_complete(&self.signatories()) {
-                    let map_key_point = match map.key().into_point() {
-                        Ok(point) => point,
-                        Err(_) => return false,
-                    };
-                    self.maps.insert(map_key_point, map);
+    pub fn insert_keymap(&mut self, keymap: VSEKeyMap) -> bool {
+        if self.signatories.contains(&keymap.signatory()) {
+            if let None = self.map.get(&keymap.signatory()) {
+                if keymap.verify(&self.signatories) {
+                    if let None = self.map.insert(keymap.signatory(), keymap) {
+                        return true;
+                    }
                 }
-                return true;
             }
         }
         false
     }
 
-    pub fn auth_map(&self, correspondant: [u8; 32]) -> Option<Authenticable<VSEKeyMap>> {
-        let correspondant_point = correspondant.into_point().ok()?;
-        let map = self.maps().get(&correspondant_point)?.clone();
+    pub fn keymap(&self, correspondant: &Point) -> Option<VSEKeyMap> {
+        let map = self.map.get(correspondant)?.clone();
         Some(map)
     }
 
-    pub fn map(&self, correspondant: [u8; 32]) -> Option<VSEKeyMap> {
-        Some(self.auth_map(correspondant)?.object())
-    }
-
-    pub fn is_complete(&self) -> bool {
-        if self.maps.len() != self.signatories.len() {
+    fn remove_signatory(&mut self, signatory: &Point) -> bool {
+        if !self.signatories.contains(&signatory) {
             return false;
         }
 
-        for (_, auth_map) in self.maps.iter() {
-            let map = auth_map.object();
-            if !map.is_complete(&self.signatories()) {
+        self.signatories.retain(|&x| x != signatory.to_owned());
+
+        for (signatory, map) in self.map.iter_mut() {
+            if !map.remove_signatory(&signatory) {
                 return false;
             }
         }
@@ -100,37 +84,41 @@ impl VSESetup {
         true
     }
 
-    pub fn validate(&self) -> bool {
+    pub fn remove_missing(&mut self) {
+        let mut missing_signatories = Vec::<Point>::new();
+
+        for signatory in self.signatories.iter() {
+            if let None = self.map.get(signatory) {
+                missing_signatories.push(signatory.to_owned());
+            }
+        }
+
+        for missing_signatory in missing_signatories.iter() {
+            self.remove_signatory(missing_signatory);
+        }
+    }
+
+    pub fn verify(&self) -> bool {
         // 0. Completeness
-        if !self.is_complete() {
+        if self.map.len() != self.signatories.len() {
             return false;
         }
 
-        for (key, map) in self.maps().iter() {
+        for (_, map) in self.map.iter() {
+            if !map.verify(&self.signatories) {
+                return false;
+            }
+        }
+
+        for (key, map) in self.map.iter() {
             // 1. Auth sigs
-            {
-                if !self.signatories().contains(key) {
-                    return false;
-                }
-
-                let map_key_point = match map.key().into_point() {
-                    Ok(point) => point,
-                    Err(_) => return false,
-                };
-
-                if key != &map_key_point {
-                    return false;
-                }
-                if !map.authenticate() {
-                    return false;
-                }
+            if !self.signatories.contains(key) {
+                return false;
             }
 
             // 2. Sig matching.
             {
-                let signatories = map.object().signatories();
-
-                for signatory in signatories.iter() {
+                for signatory in map.signatories().iter() {
                     if signatory != key {
                         let vse_key_ = match self.vse_key(key.to_owned(), signatory.to_owned()) {
                             Some(key) => key,
@@ -153,9 +141,9 @@ impl VSESetup {
     }
 
     pub fn vse_point(&self, signer_1: Point, signer_2: Point) -> Option<Point> {
-        for (key, map) in self.maps.iter() {
+        for (key, map) in self.map.iter() {
             if key == &signer_1 {
-                if let Some(point) = map.object().vse_point(signer_2) {
+                if let Some(point) = map.vse_point(signer_2) {
                     return Some(point);
                 }
             }
@@ -169,23 +157,23 @@ impl VSESetup {
     }
 
     pub fn print(&self) {
-        if self.maps.len() == 0 {
+        if self.map.len() == 0 {
             println!("None.");
         }
 
-        for (key, map) in self.maps().iter() {
+        for (key, map) in self.map.iter() {
             println!("{}", hex::encode(key.serialize_xonly()));
-            for triple in map.object().map().iter() {
+            for (signatory, (vse_key, _, proof)) in map.map().iter() {
                 let proof = {
-                    match triple.1 .1.clone() {
+                    match proof.to_owned() {
                         Some(proof) => hex::encode(proof),
                         None => "None".to_owned(),
                     }
                 };
                 println!(
                     "    {} -> vse_key: {} proof: {}",
-                    hex::encode(triple.0.serialize_xonly()),
-                    hex::encode(triple.1 .0.serialize_xonly()),
+                    hex::encode(signatory.serialize_xonly()),
+                    hex::encode(vse_key.serialize_xonly()),
                     proof
                 );
             }

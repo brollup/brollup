@@ -1,34 +1,51 @@
 use crate::{
     hash::{Hash, HashTag},
-    into::{IntoPoint, IntoScalar},
+    into::{FromSigTuple, IntoPoint, IntoScalar, IntoSigTuple},
     noist::vse::encrypting_key_public,
-    schnorr::{Bytes32, Sighash},
+    schnorr::{self, Bytes32, Sighash},
 };
-use secp::Point;
+use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+type SigTuple = (Point, Scalar);
+type Proof = Option<Vec<u8>>;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSEKeyMap {
     signatory: Point,
-    map: HashMap<Point, (Point, Option<Vec<u8>>)>, // Point (correspondant key) -> Point (vse key)
+    map: HashMap<Point, (Point, SigTuple, Proof)>,
 }
 
 impl VSEKeyMap {
-    pub fn new(self_secret: [u8; 32], list: &Vec<Point>) -> Option<VSEKeyMap> {
-        let self_point = self_secret.secret_to_public()?.into_point().ok()?;
+    pub fn new(secret_key: [u8; 32], signatories: &Vec<Point>) -> Option<VSEKeyMap> {
+        let mut signatories = signatories.clone();
+        signatories.sort();
 
-        let mut map = HashMap::<Point, (Point, Option<Vec<u8>>)>::new();
+        let public_key = secret_key.secret_to_public()?.into_point().ok()?;
 
-        for to_public in list {
-            let to_vse_point =
-                encrypting_key_public(self_secret.into_scalar().ok()?, to_public.to_owned());
+        let mut map = HashMap::<Point, (Point, SigTuple, Proof)>::new();
 
-            map.insert(to_public.to_owned(), (to_vse_point, None));
+        for signatory in signatories {
+            let vse_public =
+                encrypting_key_public(secret_key.into_scalar().ok()?, signatory.to_owned());
+
+            let message = {
+                let mut preimage = Vec::<u8>::with_capacity(97);
+                preimage.extend(public_key.serialize_xonly()); // 32-byte well-known key.
+                preimage.extend(signatory.serialize_xonly()); // 32-byte well-known key.
+                preimage.extend(vse_public.serialize()); // 33-byte encryption key.
+                preimage.hash(Some(HashTag::VSEEncryptionAuth))
+            };
+
+            let auth_sig = schnorr::sign(secret_key, message, schnorr::SigningMode::Brollup)?;
+            let auth_sig_tuple = auth_sig.into_sig_tuple()?;
+
+            map.insert(signatory.to_owned(), (vse_public, auth_sig_tuple, None));
         }
 
         Some(VSEKeyMap {
-            signatory: self_point,
+            signatory: public_key,
             map,
         })
     }
@@ -47,12 +64,12 @@ impl VSEKeyMap {
         }
     }
 
-    pub fn map(&self) -> HashMap<Point, (Point, Option<Vec<u8>>)> {
-        self.map.clone()
+    pub fn signatory(&self) -> Point {
+        self.signatory.clone()
     }
 
-    pub fn signatory(&self) -> Point {
-        self.signatory
+    pub fn map(&self) -> HashMap<Point, (Point, SigTuple, Proof)> {
+        self.map.clone()
     }
 
     pub fn signatories(&self) -> Vec<Point> {
@@ -61,23 +78,42 @@ impl VSEKeyMap {
         keys
     }
 
-    pub fn is_complete(&self, expected_list: &Vec<Point>) -> bool {
-        let signatories = self.signatories();
-
-        let mut expected_list = expected_list.clone();
-        expected_list.sort();
-
-        if signatories.len() == expected_list.len() {
-            for (index, key) in signatories.iter().enumerate() {
-                if key != &expected_list[index] {
-                    return false;
-                }
-            }
-
-            return true;
+    pub fn verify(&self, signatories: &Vec<Point>) -> bool {
+        if self.signatories() != signatories.to_owned() {
+            return false;
         }
 
-        false
+        for (signatory, (encryption_key, sig_tuple, _proof)) in self.map.iter() {
+            let signature = sig_tuple.from_sig_tuple();
+
+            let message = {
+                let mut preimage = Vec::<u8>::with_capacity(97);
+                preimage.extend(self.signatory.serialize_xonly()); // 32-byte well-known key.
+                preimage.extend(signatory.serialize_xonly()); // 32-byte well-known key.
+                preimage.extend(encryption_key.serialize()); // 33-byte encryption key.
+                preimage.hash(Some(HashTag::VSEEncryptionAuth))
+            };
+
+            if !schnorr::verify(
+                self.signatory.serialize_xonly(),
+                message,
+                signature,
+                schnorr::SigningMode::Brollup,
+            ) {
+                return false;
+            }
+
+            // TODO: _proof
+        }
+
+        true
+    }
+
+    pub fn remove_signatory(&mut self, signatory: &Point) -> bool {
+        match self.map.remove(signatory) {
+            Some(_) => return true,
+            None => return false,
+        }
     }
 
     pub fn vse_point(&self, correspondant: Point) -> Option<Point> {
@@ -88,7 +124,7 @@ impl VSEKeyMap {
         Some(self.vse_point(correspondant)?.serialize_xonly())
     }
 
-    pub fn ordered_map(&self) -> Vec<(Point, (Point, Option<Vec<u8>>))> {
+    pub fn ordered_map(&self) -> Vec<(Point, (Point, SigTuple, Proof))> {
         let mut sorted_map: Vec<_> = self.map.iter().collect();
         sorted_map.sort_by(|a, b| a.0.cmp(b.0));
         sorted_map
@@ -103,7 +139,7 @@ impl VSEKeyMap {
             hex::encode(self.signatory.serialize_xonly())
         );
 
-        for map in self.map() {
+        for map in self.map.iter() {
             println!(
                 "  {} -> {}",
                 hex::encode(map.0.serialize_xonly()),
@@ -117,11 +153,13 @@ impl VSEKeyMap {
 impl Sighash for VSEKeyMap {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
-        preimage.extend(self.signatory().serialize_xonly());
+        preimage.extend(self.signatory.serialize_xonly());
 
-        for (correspondant, (vse_point, proof)) in self.ordered_map().iter() {
+        for (correspondant, (vse_point, sig_tuple, proof)) in self.ordered_map().iter() {
             preimage.extend(correspondant.serialize_xonly());
             preimage.extend(vse_point.serialize_xonly());
+            preimage.extend(sig_tuple.0.serialize_xonly());
+            preimage.extend(sig_tuple.1.serialize());
             match proof {
                 Some(proof) => {
                     preimage.push(0x01);

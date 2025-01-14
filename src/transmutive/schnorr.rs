@@ -4,6 +4,7 @@ use crate::hash::Hash;
 use crate::hash::HashTag;
 use crate::into::IntoPoint;
 use crate::into::IntoScalar;
+use crate::into::IntoSigTuple;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -61,29 +62,14 @@ pub fn verify(
         None => return false,
     };
 
-    let public_nonce: [u8; 32] = match signature[..32].try_into() {
-        Ok(bytes) => bytes,
-        Err(_) => return false,
-    };
-
-    let public_nonce_point = match public_nonce.to_even_point() {
-        Some(public_nonce_point_) => public_nonce_point_,
+    let (public_nonce_point, s_commitment_scalar) = match signature.into_sig_tuple() {
+        Some(tuple) => tuple,
         None => return false,
     };
 
     let challenge_scalar = match challenge(public_nonce_point, public_key_point, message, mode) {
         MaybeScalar::Valid(scalar) => scalar,
         MaybeScalar::Zero => return false,
-    };
-
-    let s_commitment: [u8; 32] = match signature[32..].try_into() {
-        Ok(bytes) => bytes,
-        Err(_) => return false,
-    };
-
-    let s_commitment_scalar = match Scalar::from_slice(&s_commitment) {
-        Ok(scalar) => scalar,
-        Err(_) => return false,
     };
 
     let equation_point = match (public_key_point * challenge_scalar) + public_nonce_point {

@@ -18,9 +18,8 @@ pub trait TCPClient {
     // Signatory requests.
     async fn request_vse_keymap(
         &self,
-        signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<Authenticable<VSEKeyMap>, RequestError>;
+    ) -> Result<VSEKeyMap, RequestError>;
 
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
 
@@ -81,9 +80,8 @@ impl TCPClient for PEER {
     // This is when the coordinator asks each operators to return their vse keymaps.
     async fn request_vse_keymap(
         &self,
-        signer_key: [u8; 32],
         signer_list: &Vec<[u8; 32]>,
-    ) -> Result<Authenticable<VSEKeyMap>, RequestError> {
+    ) -> Result<VSEKeyMap, RequestError> {
         // Build request package.
         let request_package = {
             let kind = PackageKind::RequestVSEKeymap;
@@ -109,14 +107,12 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let auth_keymap: Authenticable<VSEKeyMap> =
-            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+        let keymap = match VSEKeyMap::from_slice(&response_payload) {
+            Some(keymap) => keymap,
+            None => return Err(RequestError::InvalidResponse),
+        };
 
-        if (auth_keymap.key() != signer_key) || !auth_keymap.authenticate() {
-            return Err(RequestError::InvalidResponse);
-        }
-
-        Ok(auth_keymap)
+        Ok(keymap)
     }
 
     // This is when the coordinator publishes each operator the new vse directory.

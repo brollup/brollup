@@ -301,14 +301,11 @@ async fn handle_request_vse_keymap(
 
     let keymap = VSEKeyMap::new(keys.secret_key(), &signer_list)?;
 
-    let auth_keymap: Authenticable<VSEKeyMap> = Authenticable::new(keymap, keys.secret_key())?;
-
-    let serialized: Vec<u8> = match bincode::serialize(&auth_keymap) {
-        Ok(bytes) => bytes,
-        Err(_) => return None,
-    };
-
-    let package = TCPPackage::new(PackageKind::RequestVSEKeymap, timestamp, &serialized);
+    let package = TCPPackage::new(
+        PackageKind::RequestVSEKeymap,
+        timestamp,
+        &keymap.serialize(),
+    );
 
     Some(package)
 }

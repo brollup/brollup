@@ -100,7 +100,7 @@ pub async fn run_setup(
 
             tasks.push(tokio::spawn(async move {
                 let auth_keymap = match operator
-                    .request_vse_keymap(operator_key, &active_keys)
+                    .request_vse_keymap(&active_keys)
                     .await
                 {
                     Ok(auth_keymap) => auth_keymap,
@@ -110,7 +110,7 @@ pub async fn run_setup(
                 // Insertion.
                 {
                     let mut _vse_setup = vse_setup.lock().await;
-                    _vse_setup.insert(auth_keymap);
+                    _vse_setup.insert_keymap(auth_keymap);
                 }
             }));
         }
@@ -123,7 +123,7 @@ pub async fn run_setup(
         (*_vse_setup).clone()
     };
 
-    if !vse_setup_.validate() {
+    if !vse_setup_.verify() {
         return None;
     };
 

@@ -1,5 +1,7 @@
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
+use crate::schnorr::Bytes32;
+
 pub enum ParseError {
     ParseError32,
     ParseError33,
@@ -208,5 +210,48 @@ impl IntoScalar for Vec<u8> {
             .into_byte_array_32()
             .map_err(|_| SecpError::InvalidPoint)?;
         ba.into_scalar()
+    }
+}
+
+pub trait IntoSigTuple {
+    fn into_sig_tuple(&self) -> Option<(Point, Scalar)>;
+}
+
+impl IntoSigTuple for [u8; 64] {
+    fn into_sig_tuple(&self) -> Option<(Point, Scalar)> {
+        let public_nonce: [u8; 32] = match self[..32].try_into() {
+            Ok(bytes) => bytes,
+            Err(_) => return None,
+        };
+
+        let public_nonce_point = match public_nonce.to_even_point() {
+            Some(public_nonce_point_) => public_nonce_point_,
+            None => return None,
+        };
+
+        let s_commitment: [u8; 32] = match self[32..].try_into() {
+            Ok(bytes) => bytes,
+            Err(_) => return None,
+        };
+
+        let s_commitment_scalar = match Scalar::from_slice(&s_commitment) {
+            Ok(scalar) => scalar,
+            Err(_) => return None,
+        };
+
+        Some((public_nonce_point, s_commitment_scalar))
+    }
+}
+
+pub trait FromSigTuple {
+    fn from_sig_tuple(&self) -> [u8; 64];
+}
+
+impl FromSigTuple for (Point, Scalar) {
+    fn from_sig_tuple(&self) -> [u8; 64] {
+        let mut bytes = Vec::<u8>::with_capacity(64);
+        bytes.extend(self.0.serialize_xonly());
+        bytes.extend(self.1.serialize());
+        bytes.try_into().expect("Unexpected FromSigTuple failure.")
     }
 }

@@ -19,7 +19,7 @@ impl NOISTManager {
         for lookup in setup_db.iter() {
             if let Ok((_, setup_)) = lookup {
                 let setup: VSESetup = serde_json::from_slice(&setup_).ok()?;
-                let setup_no = setup.no();
+                let setup_no = setup.setup_no();
                 let dkg_directory = DKGDirectory::new(&setup)?;
                 directories.insert(setup_no, Arc::new(Mutex::new(dkg_directory)));
             }
@@ -40,7 +40,7 @@ impl NOISTManager {
     }
 
     pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
-        let setup_no = setup.no();
+        let setup_no = setup.setup_no();
 
         if self.directories.contains_key(&setup_no) {
             return false;
@@ -48,7 +48,7 @@ impl NOISTManager {
 
         if let Err(_) = self
             .setup_db
-            .insert(setup.no().to_be_bytes(), setup.serialize())
+            .insert(setup.setup_no().to_be_bytes(), setup.serialize())
         {
             return false;
         }

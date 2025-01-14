@@ -20,7 +20,7 @@ pub struct DKGDirectory {
 // 'db/signatory/dkg/batches/BATCH_NO' key:SESSION_NONCE
 impl DKGDirectory {
     pub fn new(setup: &VSESetup) -> Option<Self> {
-        let batch_no = setup.no();
+        let batch_no = setup.setup_no();
         // sessions path 'db/signatory/dkg/batches/BATCH_NO/sessions' key is SESSION_INDEX
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
         let mut index_height: u64 = 0;
@@ -82,7 +82,7 @@ impl DKGDirectory {
     }
 
     pub fn setup_no(&self) -> u64 {
-        self.setup.no()
+        self.setup.setup_no()
     }
 
     pub fn index_height(&self) -> u64 {
