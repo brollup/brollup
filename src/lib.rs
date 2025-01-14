@@ -9,8 +9,8 @@ use tokio::sync::Mutex;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
-type PEER = Arc<Mutex<tcp::peer::Peer>>;
-type PEER_LIST = Arc<Mutex<Vec<PEER>>>;
+type PEER = Arc<Mutex<peer::Peer>>;
+type PEER_MANAGER = Arc<Mutex<peer_manager::PeerManager>>;
 type NOIST_MANAGER = Arc<Mutex<NOISTManager>>;
 type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
@@ -64,6 +64,10 @@ pub mod ocli;
 // Networking.
 #[path = "communicative/nns/mod.rs"]
 pub mod nns;
+#[path = "communicative/peer/peer.rs"]
+pub mod peer;
+#[path = "communicative/peer/manager.rs"]
+pub mod peer_manager;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
 

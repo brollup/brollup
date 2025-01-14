@@ -1,13 +1,15 @@
-use crate::{nns::client::NNSClient, PEER, PEER_LIST, SOCKET};
+use crate::{
+    nns::client::NNSClient,
+    tcp::{
+        client::TCPClient,
+        tcp::{self, TCPError},
+    },
+    PEER, SOCKET,
+};
 use async_trait::async_trait;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
-
-use super::{
-    client::TCPClient,
-    tcp::{self, TCPError},
-};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum PeerKind {
@@ -29,7 +31,7 @@ impl PeerKind {
 #[derive(Clone)]
 pub struct Peer {
     kind: PeerKind,
-    nns_key: [u8; 32],
+    key: [u8; 32],
     nns_client: NNSClient,
     connection: Option<(SOCKET, SocketAddr)>,
 }
@@ -37,11 +39,11 @@ pub struct Peer {
 impl Peer {
     pub async fn connect(
         kind: PeerKind,
-        nns_key: [u8; 32],
+        key: [u8; 32],
         nns_client: &NNSClient,
     ) -> Result<PEER, TCPError> {
         let (socket_, addr) = {
-            match tcp::connect_nns(nns_key, &nns_client).await {
+            match tcp::connect_nns(key, &nns_client).await {
                 Ok(socket) => {
                     let addr = match socket.peer_addr() {
                         Ok(addr) => addr,
@@ -58,14 +60,14 @@ impl Peer {
 
         let connection = Some((socket, addr));
 
-        let peer_ = Peer {
+        let peer = Peer {
             kind,
-            nns_key,
+            key,
             connection,
             nns_client: nns_client.clone(),
         };
 
-        let peer = Arc::new(Mutex::new(peer_));
+        let peer = Arc::new(Mutex::new(peer));
 
         peer.set_uptimer().await;
 
@@ -76,8 +78,8 @@ impl Peer {
         self.kind
     }
 
-    pub fn nns_key(&self) -> [u8; 32] {
-        self.nns_key
+    pub fn key(&self) -> [u8; 32] {
+        self.key
     }
 
     pub fn nns_client(&self) -> NNSClient {
@@ -117,7 +119,7 @@ impl Peer {
 }
 
 #[async_trait]
-pub trait Connection {
+pub trait PeerConnection {
     async fn socket(&self) -> Option<SOCKET>;
     async fn disconnection(&self);
     async fn reconnect(&self);
@@ -125,7 +127,7 @@ pub trait Connection {
 }
 
 #[async_trait]
-impl Connection for PEER {
+impl PeerConnection for PEER {
     async fn socket(&self) -> Option<SOCKET> {
         let _self = self.lock().await;
         _self.socket()
@@ -162,7 +164,7 @@ impl Connection for PEER {
             loop {
                 let (nns_key, nns_client) = {
                     let _peer = self.lock().await;
-                    (_peer.nns_key(), _peer.nns_client())
+                    (_peer.key(), _peer.nns_client())
                 };
 
                 match tcp::connect_nns(nns_key, &nns_client).await {
@@ -225,34 +227,5 @@ impl Connection for PEER {
                 );
             }
         });
-    }
-}
-
-#[async_trait::async_trait]
-pub trait PeerListExt {
-    async fn connected(&self) -> Vec<PEER>;
-}
-
-#[async_trait::async_trait]
-impl PeerListExt for PEER_LIST {
-    async fn connected(&self) -> Vec<PEER> {
-        let mut list = Vec::<PEER>::new();
-
-        let peer_list_: Vec<PEER> = {
-            let peer_list_ = self.lock().await;
-            (*peer_list_).clone()
-        };
-
-        for peer in peer_list_.iter() {
-            let connected = {
-                let _peer = peer.lock().await;
-                _peer.connected()
-            };
-
-            if connected {
-                list.push(Arc::clone(&peer));
-            }
-        }
-        list
     }
 }

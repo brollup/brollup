@@ -1,4 +1,4 @@
-use crate::{noist_protocol, DKG_DIRECTORY, NOIST_MANAGER, PEER_LIST};
+use crate::{baked, noist_protocol, DKG_DIRECTORY, NOIST_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 
 // noist setup <no> run
@@ -6,7 +6,7 @@ use colored::Colorize;
 // noist setups
 pub async fn command(
     parts: Vec<&str>,
-    operator_list: &PEER_LIST,
+    peer_manager: &mut PEER_MANAGER,
     noist_manager: &mut NOIST_MANAGER,
 ) {
     if parts.len() < 3 {
@@ -27,7 +27,7 @@ pub async fn command(
 
             match parts[3] {
                 "print" => setup_no_print(noist_manager, no).await,
-                "run" => setup_no_run(operator_list, noist_manager, no).await,
+                "run" => setup_no_run(peer_manager, noist_manager, no).await,
                 _ => return eprintln!("Incorrect usage."),
             }
         }
@@ -48,16 +48,19 @@ async fn setup_no_print(noist_manager: &NOIST_MANAGER, no: u64) {
     _dkg_directory.setup().print();
 }
 
-async fn setup_no_run(operator_list: &PEER_LIST, noist_manager: &NOIST_MANAGER, no: u64) {
-    match noist_protocol::setup::run_setup(operator_list, noist_manager, no).await {
+async fn setup_no_run(peer_manager: &mut PEER_MANAGER, noist_manager: &NOIST_MANAGER, setup_no: u64) {
+    let signatory_set = baked::OPERATOR_SET.to_vec();
+    match noist_protocol::setup::run_setup(peer_manager, noist_manager, setup_no, &signatory_set)
+        .await
+    {
         Some(setup) => {
             println!(
                 "{}",
-                format!("VSE protocol #{} run with success and saved.", no).green()
+                format!("VSE protocol #{} run with success and saved.", setup_no).green()
             );
             setup.print();
         }
-        None => return eprintln!("{}", format!("VSE protocol #{} failed.", no).red()),
+        None => return eprintln!("{}", format!("VSE protocol #{} failed.", setup_no).red()),
     };
 }
 

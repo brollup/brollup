@@ -1,5 +1,5 @@
 use crate::nns::client::NNSClient;
-use crate::tcp::peer::{Peer, PeerKind};
+use crate::peer::{Peer, PeerKind};
 use crate::PEER;
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, Network};

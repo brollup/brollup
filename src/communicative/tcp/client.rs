@@ -1,9 +1,9 @@
 use super::package::{PackageKind, TCPPackage};
-use super::peer::Connection;
 use super::tcp::{self, TCPError};
 use crate::list::{self, ListCodec};
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
+use crate::peer::PeerConnection;
 use crate::schnorr::Authenticable;
 
 use crate::{PEER, SOCKET};

@@ -79,6 +79,9 @@ impl VSEKeyMap {
     }
 
     pub fn verify(&self, signatories: &Vec<Point>) -> bool {
+        let mut signatories = signatories.clone();
+        signatories.sort();
+
         if self.signatories() != signatories.to_owned() {
             return false;
         }
@@ -105,7 +108,6 @@ impl VSEKeyMap {
 
             // TODO: _proof
         }
-
         true
     }
 

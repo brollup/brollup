@@ -1,19 +1,17 @@
+use crate::{
+    into::IntoPointVec, noist::setup::setup::VSESetup, tcp::client::TCPClient, NOIST_MANAGER, PEER,
+    PEER_MANAGER,
+};
 use colored::Colorize;
 use futures::future::join_all;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::{
-    into::IntoPointVec,
-    noist::setup::setup::VSESetup,
-    tcp::{client::TCPClient, peer::PeerListExt},
-    NOIST_MANAGER, PEER, PEER_LIST,
-};
-
 pub async fn run_setup(
-    operator_list: &PEER_LIST,
+    peer_manager: &mut PEER_MANAGER,
     noist_manager: &NOIST_MANAGER,
     setup_no: u64,
+    signatories: &Vec<[u8; 32]>,
 ) -> Option<VSESetup> {
     // Check if the 'setup no' is already reserved.
     {
@@ -25,62 +23,16 @@ pub async fn run_setup(
         }
     };
 
-    let (active_peer_list_, active_key_list_) = {
-        let active_peer_list = Vec::<PEER>::new();
-        let active_key_list = Vec::<[u8; 32]>::new();
+    // Connect to peers and return:
+    let operators: Vec<PEER> = {
+        let mut _peer_manager = peer_manager.lock().await;
+        _peer_manager
+            .add_peers(crate::peer::PeerKind::Operator, signatories)
+            .await;
+        _peer_manager.retrieve_peers(signatories)
+    }?;
 
-        (
-            Arc::new(Mutex::new(active_peer_list)),
-            Arc::new(Mutex::new(active_key_list)),
-        )
-    };
-
-    // Phase #0: Ping operators to determine those who are online;
-    {
-        let mut tasks = vec![];
-
-        for operator in operator_list.connected().await.clone() {
-            let active_peer_list_ = Arc::clone(&active_peer_list_);
-            let active_key_list_ = Arc::clone(&active_key_list_);
-
-            let operator_nns_key = {
-                let _operator = operator.lock().await;
-                _operator.nns_key()
-            };
-
-            tasks.push(tokio::spawn(async move {
-                if let Ok(_) = operator.ping().await {
-                    let mut _active_peer_list_ = active_peer_list_.lock().await;
-                    _active_peer_list_.push(Arc::clone(&operator));
-
-                    let mut _active_key_list_ = active_key_list_.lock().await;
-                    _active_key_list_.push(operator_nns_key);
-                }
-            }));
-        }
-
-        join_all(tasks).await;
-    }
-
-    let (active_peers, active_keys) = {
-        let active_peer_list = {
-            let _active_peer_list_ = active_peer_list_.lock().await;
-            (*_active_peer_list_).clone()
-        };
-
-        let active_key_list = {
-            let _active_key_list_ = active_key_list_.lock().await;
-            (*_active_key_list_).clone()
-        };
-        (active_peer_list, active_key_list)
-    };
-
-    if active_keys.len() < 2 {
-        eprintln!("{}", format!("Too few active operators.").red());
-        return None;
-    }
-
-    let vse_setup = match VSESetup::new(&active_keys.into_point_vec().ok()?, setup_no) {
+    let vse_setup = match VSESetup::new(&signatories.into_point_vec().ok()?, setup_no) {
         Some(setup) => Arc::new(Mutex::new(setup)),
         None => return None,
     };
@@ -89,28 +41,24 @@ pub async fn run_setup(
     {
         let mut tasks = vec![];
 
-        for operator in active_peers.clone() {
+        for operator in operators.clone() {
             let vse_setup = Arc::clone(&vse_setup);
-            let active_keys = active_keys.clone();
+            let signatories = signatories.clone();
 
             let operator_key = {
                 let _connected_operator = operator.lock().await;
-                _connected_operator.nns_key()
+                _connected_operator.key()
             };
 
             tasks.push(tokio::spawn(async move {
-                let auth_keymap = match operator
-                    .request_vse_keymap(&active_keys)
-                    .await
-                {
-                    Ok(auth_keymap) => auth_keymap,
+                let keymap = match operator.request_vse_keymap(&signatories).await {
+                    Ok(keymap) => keymap,
                     Err(_) => return,
                 };
 
-                // Insertion.
-                {
+                if keymap.signatory().serialize_xonly() == operator_key {
                     let mut _vse_setup = vse_setup.lock().await;
-                    _vse_setup.insert_keymap(auth_keymap);
+                    _vse_setup.insert_keymap(keymap);
                 }
             }));
         }
@@ -118,10 +66,12 @@ pub async fn run_setup(
         join_all(tasks).await;
     }
 
-    let vse_setup_ = {
+    let mut vse_setup_ = {
         let _vse_setup = vse_setup.lock().await;
         (*_vse_setup).clone()
     };
+
+    vse_setup_.remove_missing();
 
     if !vse_setup_.verify() {
         return None;
@@ -140,12 +90,12 @@ pub async fn run_setup(
     {
         let mut tasks = vec![];
 
-        for operator in active_peers.clone() {
+        for operator in operators.clone() {
             let vse_setup_ = vse_setup_.clone();
 
             let operator_key = {
                 let _operator = operator.lock().await;
-                _operator.nns_key()
+                _operator.key()
             };
 
             tasks.push(tokio::spawn(async move {

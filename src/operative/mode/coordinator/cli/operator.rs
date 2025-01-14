@@ -1,14 +1,17 @@
-use crate::PEER_LIST;
+use crate::PEER_MANAGER;
 
-pub async fn command(operator_list: &PEER_LIST) {
-    let _operator_list = operator_list.lock().await;
+pub async fn command(peer_manager: &PEER_MANAGER) {
+    let peers = {
+        let _peer_manager = peer_manager.lock().await;
+        _peer_manager.peers()
+    };
 
-    for (index, peer) in _operator_list.iter().enumerate() {
+    for (index, (key, peer)) in peers.iter().enumerate() {
         let _peer = peer.lock().await;
         println!(
             "Operator #{} ({}): {}",
             index,
-            hex::encode(_peer.nns_key()),
+            hex::encode(key),
             _peer.addr()
         );
     }

@@ -1,7 +1,6 @@
 use crate::{
-    noist::dkg::session::DKGSession,
-    tcp::{client::TCPClient, peer::PeerListExt},
-    DKG_DIRECTORY, DKG_SESSION, NOIST_MANAGER, PEER_LIST,
+    noist::dkg::session::DKGSession, tcp::client::TCPClient, DKG_DIRECTORY, DKG_SESSION,
+    NOIST_MANAGER, PEER_MANAGER,
 };
 use futures::future::join_all;
 use std::sync::Arc;
@@ -12,12 +11,14 @@ const NONCE_POOL_LEN: u64 = 1000;
 pub enum PrepeocessingError {
     DirectoryInitErr,
     NewSessionToFillErr,
+    OperatorConnErr,
 }
 
 pub async fn run_preprocessing(
-    operator_list: &PEER_LIST,
+    peer_manager: &PEER_MANAGER,
     noist_manager: &NOIST_MANAGER,
     setup_no: u64,
+    signatories: &Vec<[u8; 32]>,
 ) -> Result<(), PrepeocessingError> {
     let dkg_directory: DKG_DIRECTORY = {
         let _noist_manager = noist_manager.lock().await;
@@ -30,6 +31,18 @@ pub async fn run_preprocessing(
     let vse_setup = {
         let _dkg_directory = dkg_directory.lock().await;
         _dkg_directory.setup().clone()
+    };
+
+    // Connect to peers and return:
+    let operators = match {
+        let mut _peer_manager = peer_manager.lock().await;
+        _peer_manager
+            .add_peers(crate::peer::PeerKind::Operator, signatories)
+            .await;
+        _peer_manager.retrieve_peers(signatories)
+    } {
+        Some(some) => some,
+        None => return Err(PrepeocessingError::OperatorConnErr),
     };
 
     loop {
@@ -65,7 +78,7 @@ pub async fn run_preprocessing(
         {
             let mut tasks = vec![];
 
-            for operator in operator_list.connected().await.clone() {
+            for operator in operators.clone() {
                 let vse_setup = vse_setup.clone();
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
@@ -81,7 +94,7 @@ pub async fn run_preprocessing(
 
                         let operator_key = {
                             let _operator = operator.lock().await;
-                            _operator.nns_key()
+                            _operator.key()
                         };
 
                         for (index, auth_package) in response.iter().enumerate() {

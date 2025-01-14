@@ -1,13 +1,13 @@
 use crate::nns::client::NNSClient;
 use crate::noist::manager::NOISTManager;
-use crate::tcp::peer::{Peer, PeerKind};
+use crate::peer::PeerKind;
+use crate::peer_manager::PeerManager;
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
-use crate::{ccli, nns, tcp, Network, OperatingMode, NOIST_MANAGER, PEER, PEER_LIST};
+use crate::{ccli, nns, tcp, Network, OperatingMode, NOIST_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
 
 #[tokio::main]
@@ -50,41 +50,24 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     {
         let nns_client = nns_client.clone();
         let noist_manager = Arc::clone(&noist_manager);
-
         let _ = tokio::spawn(async move {
             let _ = tcp::server::run(mode, &nns_client, &keys, &noist_manager).await;
         });
     }
 
-    // 7. Initialize operator list.
-    let operator_list: PEER_LIST = Arc::new(Mutex::new(Vec::<PEER>::new()));
-
-    // 8. Connect to operators.
-    for nns_key in baked::OPERATOR_SET.iter() {
-        let nns_client = nns_client.clone();
-        let operator_list = Arc::clone(&operator_list);
-
-        tokio::spawn(async move {
-            let operator: PEER = loop {
-                match Peer::connect(PeerKind::Operator, nns_key.to_owned(), &nns_client).await {
-                    Ok(connection) => break connection,
-                    Err(_) => {
-                        tokio::time::sleep(Duration::from_secs(5)).await;
-                        continue;
-                    }
-                }
-            };
-
-            let mut _operator_list = operator_list.lock().await;
-            _operator_list.push(operator);
-        });
-    }
+    // 7. Initialize peer manager.
+    let operator_set = baked::OPERATOR_SET.to_vec();
+    let mut peer_manager: PEER_MANAGER =
+        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set, 1).await {
+            Some(manager) => Arc::new(Mutex::new(manager)),
+            None => return eprintln!("{}", "Error initializing Peer manager.".red()),
+        };
 
     // 9. CLI
-    cli(&operator_list, &mut noist_manager).await;
+    cli(&mut peer_manager, &mut noist_manager).await;
 }
 
-pub async fn cli(operator_list: &PEER_LIST, noist_manager: &mut NOIST_MANAGER) {
+pub async fn cli(peer_manager: &mut PEER_MANAGER, noist_manager: &mut NOIST_MANAGER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -112,8 +95,8 @@ pub async fn cli(operator_list: &PEER_LIST, noist_manager: &mut NOIST_MANAGER) {
             // Main commands:
             "exit" => break,
             "clear" => ccli::clear::command(),
-            "noist" => ccli::noist::command(parts, operator_list, noist_manager).await,
-            "operator" => ccli::operator::command(operator_list).await,
+            "noist" => ccli::noist::command(parts, peer_manager, noist_manager).await,
+            "operator" => ccli::operator::command(peer_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

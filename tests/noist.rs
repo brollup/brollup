@@ -49,7 +49,8 @@ mod noist_tests {
         let signer_2_public = signer_2_public.into_point().unwrap();
         let signer_3_public = signer_3_public.into_point().unwrap();
 
-        let public_list = vec![signer_1_public, signer_2_public, signer_3_public];
+        let mut public_list = vec![signer_1_public, signer_2_public, signer_3_public];
+        public_list.sort();
 
         let mut manager = NOISTManager::new().unwrap();
 
@@ -58,27 +59,21 @@ mod noist_tests {
 
         // Signer 1 keymap.
         let signer_1_keymap = VSEKeyMap::new(signer_1_secret, &public_list).unwrap();
-        assert!(signer_1_keymap.is_complete(&public_list));
-        let signer_1_auth_keymap = Authenticable::new(signer_1_keymap, signer_1_secret).unwrap();
-        assert!(signer_1_auth_keymap.authenticate());
+        assert!(signer_1_keymap.verify(&public_list));
 
         // Signer 2 keymap.
         let signer_2_keymap = VSEKeyMap::new(signer_2_secret, &public_list).unwrap();
-        assert!(signer_2_keymap.is_complete(&public_list));
-        let signer_2_auth_keymap = Authenticable::new(signer_2_keymap, signer_2_secret).unwrap();
-        assert!(signer_2_auth_keymap.authenticate());
+        assert!(signer_2_keymap.verify(&public_list));
 
         // Signer 3 keymap.
         let signer_3_keymap = VSEKeyMap::new(signer_3_secret, &public_list).unwrap();
-        assert!(signer_3_keymap.is_complete(&public_list));
-        let signer_3_auth_keymap = Authenticable::new(signer_3_keymap, signer_3_secret).unwrap();
-        assert!(signer_3_auth_keymap.authenticate());
+        assert!(signer_3_keymap.verify(&public_list));
 
         let mut vse_setup = VSESetup::new(&public_list, setup_no).unwrap();
-        assert!(vse_setup.insert(signer_1_auth_keymap));
-        assert!(vse_setup.insert(signer_2_auth_keymap));
-        assert!(vse_setup.insert(signer_3_auth_keymap));
-        assert!(vse_setup.validate());
+        assert!(vse_setup.insert_keymap(signer_1_keymap));
+        assert!(vse_setup.insert_keymap(signer_2_keymap));
+        assert!(vse_setup.insert_keymap(signer_3_keymap));
+        assert!(vse_setup.verify());
 
         manager.insert_setup(&vse_setup);
 
