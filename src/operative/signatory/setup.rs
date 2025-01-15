@@ -19,7 +19,7 @@ pub async fn run_setup(
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &DKG_MANAGER,
 ) -> Result<VSESetup, SignatorySetupError> {
-    // #1 Decide the setup number.
+    // #1 Pick a setup number.
     let setup_no = {
         let _dkg_manager = dkg_manager.lock().await;
         _dkg_manager.setup_height() + 1
