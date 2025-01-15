@@ -20,12 +20,12 @@ pub struct DKGDirectory {
 // 'db/signatory/dkg/batches/BATCH_NO' key:SESSION_NONCE
 impl DKGDirectory {
     pub fn new(setup: &VSESetup) -> Option<Self> {
-        let batch_no = setup.setup_no();
+        let setup_height = setup.height();
         // sessions path 'db/signatory/dkg/batches/BATCH_NO/sessions' key is SESSION_INDEX
         // manager path 'db/signatory/dkg/batches/manager' key is BATCH_NO
         let mut index_height: u64 = 0;
 
-        let index_height_path = format!("{}/{}", "db/noist/dkgdir/", batch_no);
+        let index_height_path = format!("{}/{}", "db/noist/dkgdir/", setup_height);
         let index_height_db = sled::open(index_height_path).ok()?;
 
         if let Ok(lookup) = index_height_db.get(&[0x00]) {
@@ -34,7 +34,7 @@ impl DKGDirectory {
             }
         };
 
-        let sessions_path = format!("{}/{}/{}", "db/noist/dkgdir", batch_no, "dkgses");
+        let sessions_path = format!("{}/{}/{}", "db/noist/dkgdir", setup_height, "dkgses");
         let sessions_db = sled::open(sessions_path).ok()?;
 
         let mut sessions = HashMap::<u64, DKGSession>::new();
@@ -81,8 +81,8 @@ impl DKGDirectory {
         self.sessions_db.clone()
     }
 
-    pub fn setup_no(&self) -> u64 {
-        self.setup.setup_no()
+    pub fn setup_height(&self) -> u64 {
+        self.setup.height()
     }
 
     pub fn index_height(&self) -> u64 {

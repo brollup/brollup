@@ -7,18 +7,18 @@ use std::collections::HashMap;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct VSESetup {
-    setup_no: u64,
+    height: u64,
     signatories: Vec<Point>,
     map: HashMap<Point, VSEKeyMap>,
 }
 
 impl VSESetup {
-    pub fn new(signatories: &Vec<Point>, setup_no: u64) -> Option<Self> {
+    pub fn new(signatories: &Vec<Point>, height: u64) -> Option<Self> {
         let mut signatories = signatories.clone();
         signatories.sort();
 
         let vse_setup = VSESetup {
-            setup_no,
+            height,
             signatories,
             map: HashMap::<Point, VSEKeyMap>::new(),
         };
@@ -40,8 +40,8 @@ impl VSESetup {
         }
     }
 
-    pub fn setup_no(&self) -> u64 {
-        self.setup_no
+    pub fn height(&self) -> u64 {
+        self.height
     }
 
     pub fn signatories(&self) -> Vec<Point> {

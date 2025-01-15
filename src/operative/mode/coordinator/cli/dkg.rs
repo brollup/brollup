@@ -49,7 +49,7 @@ async fn setup_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
                 "{}",
                 format!(
                     "VSE protocol #{} run with success and saved.",
-                    &setup.setup_no()
+                    &setup.height()
                 )
                 .green()
             );
