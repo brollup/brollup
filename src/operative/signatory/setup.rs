@@ -6,10 +6,19 @@ use futures::future::join_all;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[derive(Debug)]
+pub enum SignatorySetupError {
+    PeerRetrievalErr,
+    InsufficientPeers,
+    PreSetupInitErr,
+    PostSetupVerifyErr,
+    ManagerInsertionErr,
+}
+
 pub async fn run_setup(
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &DKG_MANAGER,
-) -> Option<VSESetup> {
+) -> Result<VSESetup, SignatorySetupError> {
     let setup_no = {
         let _dkg_manager = dkg_manager.lock().await;
         _dkg_manager.setup_height() + 1
@@ -18,17 +27,25 @@ pub async fn run_setup(
     let lp_keys = liquidity::provider::provider_list();
 
     // Connect to peers and return:
-    let lp_peers: Vec<PEER> = {
+    let lp_peers: Vec<PEER> = match {
         let mut _peer_manager = peer_manager.lock().await;
         _peer_manager
             .add_peers(crate::peer::PeerKind::Operator, &lp_keys)
             .await;
         _peer_manager.retrieve_peers(&lp_keys)
-    }?;
+    } {
+        Some(some) => some,
+        None => return Err(SignatorySetupError::PeerRetrievalErr),
+    };
 
-    let vse_setup = match VSESetup::new(&lp_keys.into_point_vec().ok()?, setup_no) {
+    let lp_key_points = match lp_keys.into_point_vec() {
+        Ok(points) => points,
+        Err(_) => return Err(SignatorySetupError::PreSetupInitErr),
+    };
+
+    let vse_setup = match VSESetup::new(&lp_key_points, setup_no) {
         Some(setup) => Arc::new(Mutex::new(setup)),
-        None => return None,
+        None => return Err(SignatorySetupError::PreSetupInitErr),
     };
 
     // Phase #1: Retrieve keymaps and insert setup.
@@ -68,7 +85,7 @@ pub async fn run_setup(
     vse_setup_.remove_missing();
 
     if !vse_setup_.verify() {
-        return None;
+        return Err(SignatorySetupError::PostSetupVerifyErr);
     };
 
     // Phase #2: Deliver setup to each operator.
@@ -98,9 +115,9 @@ pub async fn run_setup(
         let mut _dkg_manager = dkg_manager.lock().await;
 
         if !_dkg_manager.insert_setup(&vse_setup_) {
-            return None;
+            return Err(SignatorySetupError::ManagerInsertionErr);
         }
     };
 
-    Some(vse_setup_)
+    Ok(vse_setup_)
 }

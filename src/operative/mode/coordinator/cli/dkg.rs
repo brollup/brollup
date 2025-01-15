@@ -44,7 +44,7 @@ async fn setup_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
 
 async fn setup_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
     match signatory::setup::run_setup(peer_manager, dkg_manager).await {
-        Some(setup) => {
+        Ok(setup) => {
             println!(
                 "{}",
                 format!(
@@ -55,7 +55,7 @@ async fn setup_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
             );
             setup.print();
         }
-        None => return eprintln!("{}", format!("VSE protocol failed.").red()),
+        Err(err) => return eprintln!("{}", format!("VSE protocol failed: {:?}", err).red()),
     };
 }
 
