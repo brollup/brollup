@@ -1,3 +1,5 @@
+use crate::into::IntoPoint;
+
 use super::keymap::VSEKeyMap;
 use secp::Point;
 use serde::{Deserialize, Serialize};
@@ -66,6 +68,15 @@ impl VSESetup {
     pub fn keymap(&self, correspondant: &Point) -> Option<VSEKeyMap> {
         let map = self.map.get(correspondant)?.clone();
         Some(map)
+    }
+
+    pub fn is_signatory(&self, key: [u8; 32]) -> bool {
+        let signatory = match key.into_point() {
+            Ok(point) => point,
+            Err(_) => return false,
+        };
+
+        self.signatories.contains(&signatory)
     }
 
     fn remove_signatory(&mut self, signatory: &Point) -> bool {
