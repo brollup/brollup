@@ -1,6 +1,6 @@
 use crate::{
     nns::client::NNSClient,
-    peer::{Peer, PeerKind},
+    peer::{Peer, PeerConnection, PeerKind},
     PEER, SOCKET,
 };
 use futures::{future::join_all, lock::Mutex};
@@ -29,10 +29,7 @@ impl PeerManager {
     }
 
     async fn insert_peer(&mut self, peer: PEER) -> bool {
-        let peer_key = {
-            let _peer = peer.lock().await;
-            _peer.key()
-        };
+        let peer_key = peer.key().await;
 
         if self.peers.contains_key(&peer_key) {
             return false;

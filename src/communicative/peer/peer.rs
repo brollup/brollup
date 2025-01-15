@@ -60,14 +60,14 @@ impl Peer {
 
         let connection = Some((socket, addr));
 
-        let peer = Peer {
+        let peer_ = Peer {
             kind,
             key,
             connection,
             nns_client: nns_client.clone(),
         };
 
-        let peer = Arc::new(Mutex::new(peer));
+        let peer = Arc::new(Mutex::new(peer_));
 
         peer.set_uptimer().await;
 
@@ -98,8 +98,7 @@ impl Peer {
     }
 
     pub fn socket(&self) -> Option<SOCKET> {
-        let socket = Arc::clone(&self.connection()?.0);
-        Some(socket)
+        Some(Arc::clone(&self.connection()?.0))
     }
 
     pub fn set_connection(&mut self, connection: Option<(SOCKET, SocketAddr)>) {
@@ -120,6 +119,7 @@ impl Peer {
 
 #[async_trait]
 pub trait PeerConnection {
+    async fn key(&self) -> [u8; 32];
     async fn socket(&self) -> Option<SOCKET>;
     async fn disconnection(&self);
     async fn reconnect(&self);
@@ -128,6 +128,11 @@ pub trait PeerConnection {
 
 #[async_trait]
 impl PeerConnection for PEER {
+    async fn key(&self) -> [u8; 32] {
+        let _self = self.lock().await;
+        _self.key()
+    }
+
     async fn socket(&self) -> Option<SOCKET> {
         let _self = self.lock().await;
         _self.socket()
@@ -143,7 +148,7 @@ impl PeerConnection for PEER {
                         loop {
                             if failure_iter < 3 {
                                 failure_iter += 1;
-                                tokio::time::sleep(Duration::from_secs(3)).await;
+                                tokio::time::sleep(Duration::from_secs(5)).await;
                                 continue;
                             } else {
                                 let mut _peer = self.lock().await;
