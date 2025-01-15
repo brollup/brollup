@@ -8,7 +8,7 @@ use crate::noist::dkg::package::DKGPackage;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
-use crate::{baked, OperatingMode, DKG_MANAGER, SOCKET};
+use crate::{baked, liquidity, OperatingMode, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
@@ -273,25 +273,19 @@ async fn handle_request_vse_keymap(
     payload: &[u8],
     keys: &KeyHolder,
 ) -> Option<TCPPackage> {
-    let mut signer_list = match Vec::<[u8; 32]>::decode_list(&payload.to_vec()) {
+    let mut signatory_keys = match Vec::<[u8; 32]>::decode_list(&payload.to_vec()) {
         Some(list) => list,
         None => return None,
     };
-    signer_list.sort();
+    signatory_keys.sort();
 
-    let signer_list = signer_list.into_point_vec().ok()?;
-
-    // # Security block.
-    {
-        for signer in signer_list.iter() {
-            if !baked::OPERATOR_SET.contains(&signer.serialize_xonly()) {
-                return None;
-            }
-        }
-        // TODO: Add majority check.
+    if !liquidity::provider::is_valid_subset(&signatory_keys) {
+        return None;
     }
 
-    let keymap = VSEKeyMap::new(keys.secret_key(), &signer_list)?;
+    let signatories = signatory_keys.into_point_vec().ok()?;
+
+    let keymap = VSEKeyMap::new(keys.secret_key(), &signatories)?;
 
     let package = TCPPackage::new(
         PackageKind::RequestVSEKeymap,
