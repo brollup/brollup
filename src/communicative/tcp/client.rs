@@ -18,7 +18,7 @@ pub trait TCPClient {
     // Signatory requests.
     async fn request_vse_keymap(
         &self,
-        signer_list: &Vec<[u8; 32]>,
+        signatory_keys: &Vec<[u8; 32]>,
     ) -> Result<VSEKeyMap, RequestError>;
 
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
@@ -80,13 +80,13 @@ impl TCPClient for PEER {
     // This is when the coordinator asks each operators to return their vse keymaps.
     async fn request_vse_keymap(
         &self,
-        signer_list: &Vec<[u8; 32]>,
+        signatory_keys: &Vec<[u8; 32]>,
     ) -> Result<VSEKeyMap, RequestError> {
         // Build request package.
         let request_package = {
             let kind = PackageKind::RequestVSEKeymap;
             let timestamp = Utc::now().timestamp();
-            let payload = signer_list.encode_list();
+            let payload = signatory_keys.encode_list();
             TCPPackage::new(kind, timestamp, &payload)
         };
 
