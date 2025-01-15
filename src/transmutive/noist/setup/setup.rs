@@ -86,7 +86,7 @@ impl VSESetup {
 
         self.signatories.retain(|&x| x != signatory.to_owned());
 
-        for (signatory, map) in self.map.iter_mut() {
+        for (_, map) in self.map.iter_mut() {
             if !map.remove_signatory(&signatory) {
                 return false;
             }

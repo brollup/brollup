@@ -73,6 +73,7 @@ mod noist_tests {
         assert!(vse_setup.insert_keymap(signer_1_keymap));
         assert!(vse_setup.insert_keymap(signer_2_keymap));
         assert!(vse_setup.insert_keymap(signer_3_keymap));
+
         assert!(vse_setup.verify());
 
         manager.insert_setup(&vse_setup);
