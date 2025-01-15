@@ -76,11 +76,18 @@ pub async fn run_setup(
         let mut tasks = vec![];
 
         for lp_peer in lp_peers.clone() {
-            let vse_setup_ = vse_setup_.clone();
+            let lp_key = {
+                let _lp_peer = lp_peer.lock().await;
+                _lp_peer.key()
+            };
 
-            tasks.push(tokio::spawn(async move {
-                let _ = lp_peer.deliver_vse_setup(&vse_setup_).await;
-            }));
+            if vse_setup_.is_signatory(lp_key) {
+                let vse_setup_ = vse_setup_.clone();
+
+                tasks.push(tokio::spawn(async move {
+                    let _ = lp_peer.deliver_vse_setup(&vse_setup_).await;
+                }));
+            }
         }
 
         join_all(tasks).await;
