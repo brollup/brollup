@@ -16,3 +16,8 @@ pub fn is_valid_subset(keys: &Vec<[u8; 32]>) -> bool {
 
     true
 }
+
+pub fn is_provider(key: [u8; 32]) -> bool {
+    let provider_list = provider_list();
+    provider_list.contains(&key)
+}

@@ -1,3 +1,4 @@
+use crate::liquidity::provider;
 use crate::nns;
 use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
@@ -21,17 +22,16 @@ use tokio::sync::Mutex;
 pub async fn run(keys: KeyHolder, _network: Network) {
     let mode = OperatingMode::Operator;
 
-    if !baked::OPERATOR_SET.contains(&keys.public_key()) {
+    // 1. Check if this is a liquidity provider.
+    if !provider::is_provider(keys.public_key()) {
         eprintln!("{}", "Operator <nsec> does not match.".red());
         return;
     }
 
     println!("{}", "Initializing operator..");
 
-    // 1. Initialize NNS client.
+    // 2. Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
-
-    // 2.
 
     // 3. Initialize NOIST Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {

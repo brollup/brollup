@@ -14,6 +14,7 @@ use tokio::sync::Mutex;
 pub async fn run(keys: KeyHolder, _network: Network) {
     let mode = OperatingMode::Coordinator;
 
+    // 1. Check if this is a valid coordinator.
     if keys.public_key() != baked::COORDINATOR_WELL_KNOWN {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
@@ -21,10 +22,8 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 
     println!("{}", "Initializing coordinator..");
 
-    // 1. Initialize NNS client.
+    // 2. Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
-
-    // 2.
 
     // 3. Initialize NOIST Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
