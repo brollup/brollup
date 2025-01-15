@@ -2,7 +2,6 @@ use crate::{
     into::IntoPointVec, liquidity, noist::setup::setup::VSESetup, tcp::client::TCPClient,
     DKG_MANAGER, PEER, PEER_MANAGER,
 };
-use colored::Colorize;
 use futures::future::join_all;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -16,28 +15,18 @@ pub async fn run_setup(
         _dkg_manager.setup_height() + 1
     };
 
-    let signatories = liquidity::provider::provider_list();
-
-    // Check if the 'setup no' is already reserved.
-    {
-        let _dkg_manager = dkg_manager.lock().await;
-
-        if let Some(_) = _dkg_manager.directory(setup_no) {
-            eprintln!("{}", format!("Setup no is already reserved.").red());
-            return None;
-        }
-    };
+    let lp_keys = liquidity::provider::provider_list();
 
     // Connect to peers and return:
-    let operators: Vec<PEER> = {
+    let lp_peers: Vec<PEER> = {
         let mut _peer_manager = peer_manager.lock().await;
         _peer_manager
-            .add_peers(crate::peer::PeerKind::Operator, &signatories)
+            .add_peers(crate::peer::PeerKind::Operator, &lp_keys)
             .await;
-        _peer_manager.retrieve_peers(&signatories)
+        _peer_manager.retrieve_peers(&lp_keys)
     }?;
 
-    let vse_setup = match VSESetup::new(&signatories.into_point_vec().ok()?, setup_no) {
+    let vse_setup = match VSESetup::new(&lp_keys.into_point_vec().ok()?, setup_no) {
         Some(setup) => Arc::new(Mutex::new(setup)),
         None => return None,
     };
@@ -46,22 +35,22 @@ pub async fn run_setup(
     {
         let mut tasks = vec![];
 
-        for operator in operators.clone() {
+        for lp_peer in lp_peers.clone() {
             let vse_setup = Arc::clone(&vse_setup);
-            let signatories = signatories.clone();
+            let lp_keys = lp_keys.clone();
 
-            let operator_key = {
-                let _connected_operator = operator.lock().await;
-                _connected_operator.key()
+            let lp_key = {
+                let _lp_peer = lp_peer.lock().await;
+                _lp_peer.key()
             };
 
             tasks.push(tokio::spawn(async move {
-                let keymap = match operator.request_vse_keymap(&signatories).await {
+                let keymap = match lp_peer.request_vse_keymap(&lp_keys).await {
                     Ok(keymap) => keymap,
                     Err(_) => return,
                 };
 
-                if keymap.signatory().serialize_xonly() == operator_key {
+                if keymap.signatory().serialize_xonly() == lp_key {
                     let mut _vse_setup = vse_setup.lock().await;
                     _vse_setup.insert_keymap(keymap);
                 }
@@ -82,6 +71,21 @@ pub async fn run_setup(
         return None;
     };
 
+    // Phase #2: Deliver setup to each operator.
+    {
+        let mut tasks = vec![];
+
+        for lp_peer in lp_peers.clone() {
+            let vse_setup_ = vse_setup_.clone();
+
+            tasks.push(tokio::spawn(async move {
+                let _ = lp_peer.deliver_vse_setup(&vse_setup_).await;
+            }));
+        }
+
+        join_all(tasks).await;
+    }
+
     // Directory insertion.
     {
         let mut _dkg_manager = dkg_manager.lock().await;
@@ -90,32 +94,6 @@ pub async fn run_setup(
             return None;
         }
     };
-
-    // Phase #2: Deliver setup to each operator.
-    {
-        let mut tasks = vec![];
-
-        for operator in operators.clone() {
-            let vse_setup_ = vse_setup_.clone();
-
-            let operator_key = {
-                let _operator = operator.lock().await;
-                _operator.key()
-            };
-
-            tasks.push(tokio::spawn(async move {
-                match operator.deliver_vse_setup(&vse_setup_).await {
-                    Ok(_) => (),
-                    Err(_) => eprintln!(
-                        "{}",
-                        format!("Failed to deliver: {}", hex::encode(&operator_key)).yellow()
-                    ),
-                }
-            }));
-        }
-
-        join_all(tasks).await;
-    }
 
     Some(vse_setup_)
 }
