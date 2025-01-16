@@ -1,6 +1,5 @@
-use crate::DKG_DIRECTORY;
-
 use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
+use crate::DKG_DIRECTORY;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
