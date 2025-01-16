@@ -54,7 +54,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 7. Run background preprocessing for the DKG Manager.
-    dkg_manager.coordinate_preprocess(&mut peer_manager).await;
+    dkg_manager.run_preprocessing(&mut peer_manager).await;
 
     // 8. Run TCP server.
     {

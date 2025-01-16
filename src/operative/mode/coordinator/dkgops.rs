@@ -28,19 +28,13 @@ pub enum DKGSetupError {
 
 #[async_trait]
 pub trait DKGOps {
-    async fn coordinate_new_setup(
-        &self,
-        peer_manager: &mut PEER_MANAGER,
-    ) -> Result<u64, DKGSetupError>;
-    async fn coordinate_preprocess(&self, peer_manager: &mut PEER_MANAGER);
+    async fn run_new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
+    async fn run_preprocessing(&self, peer_manager: &mut PEER_MANAGER);
 }
 
 #[async_trait]
 impl DKGOps for DKG_MANAGER {
-    async fn coordinate_new_setup(
-        &self,
-        peer_manager: &mut PEER_MANAGER,
-    ) -> Result<u64, DKGSetupError> {
+    async fn run_new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError> {
         // #1 Pick a setup number.
         let dir_height = {
             let _dkg_manager = self.lock().await;
@@ -163,7 +157,7 @@ impl DKGOps for DKG_MANAGER {
             let mut peer_manager = Arc::clone(&peer_manager);
             let dkg_directory = Arc::clone(&dkg_directory);
             tokio::spawn(async move {
-                let _ = run_preprocessing(&mut peer_manager, &dkg_directory).await;
+                let _ = preprocess(&mut peer_manager, &dkg_directory).await;
             });
         }
 
@@ -171,7 +165,7 @@ impl DKGOps for DKG_MANAGER {
         Ok(dir_height)
     }
 
-    async fn coordinate_preprocess(&self, peer_manager: &mut PEER_MANAGER) {
+    async fn run_preprocessing(&self, peer_manager: &mut PEER_MANAGER) {
         let dkg_directories = {
             let _dkg_manager = self.lock().await;
             _dkg_manager.directories()
@@ -181,13 +175,13 @@ impl DKGOps for DKG_MANAGER {
             let mut peer_manager = Arc::clone(&peer_manager);
             let dkg_directory = Arc::clone(&dkg_directory);
             tokio::spawn(async move {
-                run_preprocessing(&mut peer_manager, &dkg_directory).await;
+                preprocess(&mut peer_manager, &dkg_directory).await;
             });
         }
     }
 }
 
-pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
+pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
     println!("run_preprocessing");
     // #1 Return VSE setup.
     let setup = {

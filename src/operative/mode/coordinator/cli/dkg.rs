@@ -46,7 +46,7 @@ async fn dir_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
 }
 
 async fn dir_new_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
-    match dkg_manager.coordinate_new_setup(peer_manager).await {
+    match dkg_manager.run_new_setup(peer_manager).await {
         Ok(setup_height) => {
             println!(
                 "{}",
