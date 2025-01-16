@@ -40,7 +40,7 @@ impl SignatoryOps for DKG_MANAGER {
         peer_manager: &mut PEER_MANAGER,
     ) -> Result<u64, SignatorySetupError> {
         // #1 Pick a setup number.
-        let setup_height = {
+        let dir_height = {
             let _dkg_manager = self.lock().await;
             _dkg_manager.setup_height() + 1
         };
@@ -73,7 +73,7 @@ impl SignatoryOps for DKG_MANAGER {
         };
 
         // #6 Initialize VSE setup with the list of LP keys.
-        let vse_setup_ = match VSESetup::new(&lp_key_points, setup_height) {
+        let vse_setup_ = match VSESetup::new(&lp_key_points, dir_height) {
             Some(setup) => Arc::new(Mutex::new(setup)),
             None => return Err(SignatorySetupError::PreSetupInitErr),
         };
@@ -160,8 +160,8 @@ impl SignatoryOps for DKG_MANAGER {
             });
         }
 
-        // #14 Return the VSE setup.
-        Ok(setup_height)
+        // #14 Return the directory height.
+        Ok(dir_height)
     }
 
     async fn coordinate_preprocess(&self, peer_manager: &mut PEER_MANAGER) {
