@@ -188,7 +188,7 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
     };
 
     // #2 Return setup height.
-    let setup_height = setup.height();
+    let dir_height = setup.height();
 
     // #3 Return operator keys.
     let operator_keys = match setup.signatories().into_xpoint_vec() {
@@ -218,12 +218,21 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
         };
 
         // #2 If enough DKG sessions available skip preprocessing.
-        if num_available_sessions >= NONCE_POOL_THRESHOLD {
+        if num_available_sessions > NONCE_POOL_THRESHOLD {
             tokio::time::sleep(Duration::from_millis(100)).await;
             continue;
         }
 
-        // #3 Initialize DKG sessions to fill.
+        // #3 Determine if this is a key session.
+        let is_key_session = {
+            let _dkg_directory = dkg_directory.lock().await;
+            match _dkg_directory.group_key_session() {
+                Some(_) => true,
+                None => false,
+            }
+        };
+
+        // #4 Initialize DKG sessions to fill.
         let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(NONCE_POOL_FILL as usize);
         for _ in 0..NONCE_POOL_FILL {
             let dkg_session = {
@@ -235,10 +244,16 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             };
 
             dkg_sessions_.push(dkg_session);
+
+            // Run preprocessing only for the group key
+            match is_key_session {
+                true => break,
+                false => continue,
+            }
         }
         let dkg_sessions = Arc::new(Mutex::new(dkg_sessions_));
 
-        // #4 Fill DKG sessions with retrieved DKG packages.
+        // #5 Fill DKG sessions with retrieved DKG packages.
         {
             let mut tasks = vec![];
 
@@ -248,11 +263,15 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
                 tasks.push(tokio::spawn(async move {
-                    if let Ok(auth_packages) = peer
-                        .request_dkg_packages(setup_height, NONCE_POOL_FILL)
-                        .await
+                    let fill_count = match is_key_session {
+                        true => 1,
+                        false => NONCE_POOL_FILL,
+                    };
+
+                    if let Ok(auth_packages) =
+                        peer.request_dkg_packages(dir_height, fill_count).await
                     {
-                        if auth_packages.len() != NONCE_POOL_FILL as usize {
+                        if auth_packages.len() != fill_count as usize {
                             return;
                         }
 
@@ -284,10 +303,10 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             join_all(tasks).await;
         }
 
-        // #5 Initialize DKG sessions final list.
+        // #6 Initialize DKG sessions final list.
         let mut sessions = Vec::<DKGSession>::new();
 
-        // #6 Fill DKG sessions final list.
+        // #7 Fill DKG sessions final list.
         {
             let dkg_sessions: Vec<DKG_SESSION> = {
                 let _dkg_sessions = dkg_sessions.lock().await;
@@ -300,7 +319,7 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             }
         }
 
-        // #7 Insert DKG sessions.
+        // #8 Insert DKG sessions.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
             for session in sessions.iter() {
@@ -308,7 +327,22 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             }
         }
 
-        
+        // #9 Deliver DKG sessions.
+        {
+            let mut tasks = vec![];
+
+            for peer in operator_peers.iter() {
+                let peer = Arc::clone(&peer);
+                let dir_height = dir_height.clone();
+                let sessions = sessions.clone();
+
+                tasks.push(tokio::spawn(async move {
+                    let _ = peer.deliver_dkg_sessions(dir_height, sessions).await;
+                }));
+            }
+
+            join_all(tasks).await;
+        }
 
         tokio::time::sleep(Duration::from_millis(1_000)).await;
     }

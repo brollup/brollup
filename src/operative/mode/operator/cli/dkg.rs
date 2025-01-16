@@ -1,27 +1,27 @@
 use crate::{DKG_DIRECTORY, DKG_MANAGER};
 
-// dkg setup <no>
-// dkg setups
+// dkg dir <no>
+// dkg dirs
 pub async fn command(parts: Vec<&str>, dkg_manager: &mut DKG_MANAGER) {
     if parts.len() < 3 {
         return eprintln!("Incorrect usage.");
     }
 
     match parts[1] {
-        "setup" => {
+        "dir" => {
             let no = match parts[2].parse::<u64>() {
                 Ok(no) => no,
                 Err(_) => return eprintln!("Invalid <no>."),
             };
-            setup_no_print(dkg_manager, no).await;
+            dir_no_print(dkg_manager, no).await;
         }
 
-        "setups" => setup_all_print(dkg_manager).await,
+        "dirs" => dirs_print(dkg_manager).await,
         _ => return eprintln!("Incorrect usage."),
     }
 }
 
-async fn setup_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
+async fn dir_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
     let _dkg_manager = dkg_manager.lock().await;
 
     let dkg_directory: DKG_DIRECTORY = match _dkg_manager.directory(no) {
@@ -33,13 +33,13 @@ async fn setup_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
     _dkg_directory.setup().print();
 }
 
-async fn setup_all_print(dkg_manager: &DKG_MANAGER) {
+async fn dirs_print(dkg_manager: &DKG_MANAGER) {
     let dirs = {
         let _dkg_manager = dkg_manager.lock().await;
         _dkg_manager.directories().clone()
     };
 
-    for (setup_no, _) in dirs {
-        println!("Setup no: {}", setup_no);
+    for (dir_height, _) in dirs {
+        println!("Dir height: {}", dir_height);
     }
 }
