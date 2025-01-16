@@ -223,9 +223,8 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             continue;
         }
 
-        // #3 Initialize new DKG sessions to fill.
+        // #3 Initialize DKG sessions to fill.
         let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(NONCE_POOL_FILL as usize);
-
         for _ in 0..NONCE_POOL_FILL {
             let dkg_session = {
                 let mut _dkg_directory = dkg_directory.lock().await;
@@ -237,11 +236,9 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
 
             dkg_sessions_.push(dkg_session);
         }
-
         let dkg_sessions = Arc::new(Mutex::new(dkg_sessions_));
 
-        // Phase #0: ask operators new DKG packages.
-
+        // #4 Fill DKG sessions with retrieved DKG packages.
         {
             let mut tasks = vec![];
 
@@ -251,30 +248,33 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
                 tasks.push(tokio::spawn(async move {
-                    if let Ok(response) = peer
+                    if let Ok(auth_packages) = peer
                         .request_dkg_packages(setup_height, NONCE_POOL_FILL)
                         .await
                     {
-                        let dkg_sessions_ = {
-                            let _dkg_sessions = dkg_sessions.lock().await;
-                            (*_dkg_sessions).clone()
-                        };
+                        if auth_packages.len() != NONCE_POOL_FILL as usize {
+                            return;
+                        }
 
                         let operator_key = {
                             let _operator = peer.lock().await;
                             _operator.key()
                         };
 
-                        for (index, auth_package) in response.iter().enumerate() {
-                            if auth_package.key() == operator_key {
-                                if auth_package.authenticate() {
-                                    let dkg_session = Arc::clone(&dkg_sessions_[index]);
+                        for (index, auth_package) in auth_packages.iter().enumerate() {
+                            if (auth_package.key() != operator_key) || !auth_package.authenticate()
+                            {
+                                return;
+                            }
 
-                                    {
-                                        let mut _dkg_session = dkg_session.lock().await;
-                                        let _ = _dkg_session.insert(&auth_package, &setup);
-                                    }
-                                }
+                            let dkg_session = {
+                                let _dkg_sessions = dkg_sessions.lock().await;
+                                Arc::clone(&_dkg_sessions[index])
+                            };
+
+                            {
+                                let mut _dkg_session = dkg_session.lock().await;
+                                let _ = _dkg_session.insert(&auth_package, &setup);
                             }
                         }
                     }
@@ -284,22 +284,22 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             join_all(tasks).await;
         }
 
-        let mut sessions = Vec::<DKGSession>::new();
-
-        let _dkg_sessions = {
+        // #5 Return DKG sessions.
+        let dkg_sessions: Vec<DKG_SESSION> = {
             let _dkg_sessions = dkg_sessions.lock().await;
             (*_dkg_sessions).clone()
         };
 
-        for dkg_session in _dkg_sessions {
-            let _dkg_session = dkg_session.lock().await;
-            sessions.push((*_dkg_session).clone());
-        }
-
+        // #6 Insert DKG sessions to the directory.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
-            for session in sessions {
-                let _ = _dkg_directory.insert_session_filled(&session);
+            for dkg_session in dkg_sessions.iter() {
+                let dkg_session = {
+                    let _dkg_session = dkg_session.lock().await;
+                    (*_dkg_session).clone()
+                };
+
+                let _ = _dkg_directory.insert_session_filled(&dkg_session);
             }
         }
 
