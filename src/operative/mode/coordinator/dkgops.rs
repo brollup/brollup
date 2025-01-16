@@ -187,9 +187,6 @@ impl DKGOps for DKG_MANAGER {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum DKGPreprocessingError {}
-
 pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
     println!("run_preprocessing");
     // #1 Return VSE setup.
