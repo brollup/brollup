@@ -62,7 +62,7 @@ impl SignatoryOps for DKG_MANAGER {
         };
 
         // #4 Check if there are enough peer connections.
-        if lp_peers.len() < lp_keys.len() / 10 {
+        if lp_peers.len() <= lp_keys.len() / 10 {
             return Err(SignatorySetupError::InsufficientPeers);
         }
 
@@ -110,15 +110,20 @@ impl SignatoryOps for DKG_MANAGER {
             (*_vse_setup).clone()
         };
 
-        // #9 Remove liquidity providers that failed to connect.
+        // #9 Check if enough number of keymaps collected.
+        if vse_setup.map().len() <= lp_peers.len() / 2 {
+            return Err(SignatorySetupError::InsufficientPeers);
+        }
+
+        // #10 Remove liquidity providers that failed to connect.
         vse_setup.remove_missing();
 
-        // #10 Verify the final VSE setup.
+        // #11 Verify the final VSE setup.
         if !vse_setup.verify() {
             return Err(SignatorySetupError::PostSetupVerifyErr);
         };
 
-        // #11 Deliver VSE setup to each connected liquidity provider.
+        // #12 Deliver VSE setup to each connected liquidity provider.
         {
             let mut tasks = vec![];
 
@@ -137,7 +142,7 @@ impl SignatoryOps for DKG_MANAGER {
             join_all(tasks).await;
         }
 
-        // #12 Insert VSE setup to local DKG directory and return the directory.
+        // #13 Insert VSE setup to local DKG directory and return the directory.
         let dkg_directory = match {
             let mut _dkg_manager = self.lock().await;
 
@@ -151,7 +156,7 @@ impl SignatoryOps for DKG_MANAGER {
             None => return Err(SignatorySetupError::ManagerInsertionErr),
         };
 
-        // #13 Run preprovessing for the new directory.
+        // #14 Run preprovessing for the new directory.
         {
             let mut peer_manager = Arc::clone(&peer_manager);
             let dkg_directory = Arc::clone(&dkg_directory);
@@ -160,7 +165,7 @@ impl SignatoryOps for DKG_MANAGER {
             });
         }
 
-        // #14 Return the directory height.
+        // #15 Return the directory height.
         Ok(dir_height)
     }
 
@@ -230,8 +235,8 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
         let is_key_session = {
             let _dkg_directory = dkg_directory.lock().await;
             match _dkg_directory.group_key_session() {
-                Some(_) => true,
-                None => false,
+                Some(_) => false,
+                None => true,
             }
         };
 
@@ -305,17 +310,20 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
 
             join_all(tasks).await;
         }
+
+        let dkg_sessions: Vec<DKG_SESSION> = {
+            let _dkg_sessions = dkg_sessions.lock().await;
+            (*_dkg_sessions).clone()
+        };
+
+        println!("dkg_sessions len: {}", dkg_sessions.len());
+
         println!("ara 6");
         // #7 Initialize DKG sessions final list.
         let mut sessions = Vec::<DKGSession>::new();
         println!("ara 7");
         // #8 Fill DKG sessions final list.
         {
-            let dkg_sessions: Vec<DKG_SESSION> = {
-                let _dkg_sessions = dkg_sessions.lock().await;
-                (*_dkg_sessions).clone()
-            };
-
             for dkg_session in dkg_sessions {
                 let _dkg_session = dkg_session.lock().await;
                 sessions.push((*_dkg_session).clone());
@@ -350,6 +358,6 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             join_all(tasks).await;
         }
         println!("done");
-        tokio::time::sleep(Duration::from_millis(1_000)).await;
+        tokio::time::sleep(Duration::from_millis(10_000)).await;
     }
 }
