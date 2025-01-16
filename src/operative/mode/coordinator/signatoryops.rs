@@ -181,6 +181,7 @@ impl SignatoryOps for DKG_MANAGER {
 }
 
 pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
+    println!("run_preprocessing");
     // #1 Return VSE setup.
     let setup = {
         let _dkg_directory = dkg_directory.lock().await;
@@ -211,6 +212,8 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
     };
 
     loop {
+        println!("preprocess iter h: {}", dir_height);
+
         // #1 Return the number of available DKG sessions.
         let num_available_sessions = {
             let _dkg_directory = dkg_directory.lock().await;
@@ -232,9 +235,19 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             }
         };
 
-        // #4 Initialize DKG sessions to fill.
-        let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(NONCE_POOL_FILL as usize);
-        for _ in 0..NONCE_POOL_FILL {
+        println!("is_key_session: {}", is_key_session);
+
+        // #4 Determine number of DKG sessions to be filled.
+        let fill_count = match is_key_session {
+            true => 1,
+            false => NONCE_POOL_FILL,
+        };
+
+        println!("fill_count: {}", fill_count);
+
+        // #5 Initialize DKG sessions to fill.
+        let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(fill_count as usize);
+        for _ in 0..fill_count {
             let dkg_session = {
                 let mut _dkg_directory = dkg_directory.lock().await;
                 match _dkg_directory.new_session_to_fill() {
@@ -244,16 +257,11 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             };
 
             dkg_sessions_.push(dkg_session);
-
-            // Run preprocessing only for the group key
-            match is_key_session {
-                true => break,
-                false => continue,
-            }
         }
         let dkg_sessions = Arc::new(Mutex::new(dkg_sessions_));
+        println!("ara 5");
 
-        // #5 Fill DKG sessions with retrieved DKG packages.
+        // #6 Fill DKG sessions with retrieved DKG packages.
         {
             let mut tasks = vec![];
 
@@ -263,11 +271,6 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
                 tasks.push(tokio::spawn(async move {
-                    let fill_count = match is_key_session {
-                        true => 1,
-                        false => NONCE_POOL_FILL,
-                    };
-
                     if let Ok(auth_packages) =
                         peer.request_dkg_packages(dir_height, fill_count).await
                     {
@@ -302,11 +305,11 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
 
             join_all(tasks).await;
         }
-
-        // #6 Initialize DKG sessions final list.
+        println!("ara 6");
+        // #7 Initialize DKG sessions final list.
         let mut sessions = Vec::<DKGSession>::new();
-
-        // #7 Fill DKG sessions final list.
+        println!("ara 7");
+        // #8 Fill DKG sessions final list.
         {
             let dkg_sessions: Vec<DKG_SESSION> = {
                 let _dkg_sessions = dkg_sessions.lock().await;
@@ -318,16 +321,19 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
                 sessions.push((*_dkg_session).clone());
             }
         }
-
-        // #8 Insert DKG sessions.
+        println!("ara 8");
+        // #9 Insert DKG sessions.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
             for session in sessions.iter() {
-                let _ = _dkg_directory.insert_session_filled(session);
+                match _dkg_directory.insert_session_filled(session) {
+                    true => println!("session {} inserted", session.index()),
+                    false => println!("session {} isnertion failed", session.index()),
+                }
             }
         }
-
-        // #9 Deliver DKG sessions.
+        println!("ara 9");
+        // #10 Deliver DKG sessions.
         {
             let mut tasks = vec![];
 
@@ -343,7 +349,7 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
 
             join_all(tasks).await;
         }
-
+        println!("done");
         tokio::time::sleep(Duration::from_millis(1_000)).await;
     }
 }
