@@ -146,7 +146,7 @@ impl SignatoryOps for DKG_MANAGER {
 
             _dkg_manager.directory(vse_setup.height())
         } {
-            Some(dir) => dir,
+            Some(directory) => directory,
             None => return Err(SignatorySetupError::ManagerInsertionErr),
         };
 
@@ -200,7 +200,7 @@ pub async fn run_preprocessing(peer_manager: &PEER_MANAGER, dkg_directory: &DKG_
             .await;
         _peer_manager.retrieve_peers(&signatory_keys)
     } {
-        Some(some) => some,
+        Some(peers) => peers,
         None => return,
     };
 
