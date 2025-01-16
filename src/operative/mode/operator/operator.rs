@@ -16,7 +16,6 @@ use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
@@ -72,7 +71,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 
     // 6. Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
-        Some(manager) => Arc::new(Mutex::new(manager)),
+        Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 

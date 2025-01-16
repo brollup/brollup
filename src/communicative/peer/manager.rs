@@ -1,11 +1,14 @@
 use crate::{
     nns::client::NNSClient,
     peer::{Peer, PeerConnection, PeerKind},
-    PEER, SOCKET,
+    PEER, PEER_MANAGER, SOCKET,
 };
-use futures::{future::join_all, lock::Mutex};
+use async_trait::async_trait;
+use futures::future::join_all;
 use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
 
+#[derive(Clone)]
 pub struct PeerManager {
     peers: HashMap<[u8; 32], PEER>,
     nns_client: NNSClient,
@@ -16,15 +19,16 @@ impl PeerManager {
         nns_client: &NNSClient,
         kind: PeerKind,
         keys: &Vec<[u8; 32]>,
-        min: u64,
-    ) -> Option<Self> {
-        let mut manager = PeerManager {
+    ) -> Option<PEER_MANAGER> {
+        let manager_ = PeerManager {
             peers: HashMap::<[u8; 32], PEER>::new(),
             nns_client: nns_client.to_owned(),
         };
-        if manager.add_peers(kind, keys).await < min {
-            return None;
-        }
+
+        let mut manager = Arc::new(Mutex::new(manager_));
+
+        manager.add_peers(kind, keys).await;
+
         Some(manager)
     }
 
@@ -88,22 +92,36 @@ impl PeerManager {
             None => return false,
         }
     }
+}
 
+#[async_trait]
+pub trait PeerManagerExt {
+    async fn add_peers(&mut self, kind: PeerKind, keys: &Vec<[u8; 32]>) -> u64;
+}
+
+#[async_trait]
+impl PeerManagerExt for PEER_MANAGER {
     /// Tries to connect to a list of peers and returns the number of peers connected.
-    pub async fn add_peers(&mut self, kind: PeerKind, keys: &Vec<[u8; 32]>) -> u64 {
+    async fn add_peers(&mut self, kind: PeerKind, keys: &Vec<[u8; 32]>) -> u64 {
         let peer_list_ = Arc::new(Mutex::new(Vec::<PEER>::new()));
 
         let mut tasks = vec![];
 
         for key in keys.iter() {
-            if self.is_peer(key.to_owned()) {
-                continue;
+            {
+                let _self = self.lock().await;
+                if _self.is_peer(key.to_owned()) {
+                    continue;
+                }
             }
 
             let peer_list_ = Arc::clone(&peer_list_);
             let kind = kind.clone();
             let key = key.clone();
-            let nns_client = self.nns_client.clone();
+            let nns_client = {
+                let _self = self.lock().await;
+                _self.nns_client.clone()
+            };
 
             tasks.push(tokio::spawn(async move {
                 let peer: PEER = match Peer::connect(kind, key, &nns_client).await {
@@ -128,7 +146,10 @@ impl PeerManager {
         let peer_list_len = peer_list.len() as u64;
 
         for peer in peer_list {
-            self.insert_peer(peer).await;
+            {
+                let mut _self = self.lock().await;
+                _self.insert_peer(peer).await;
+            }
         }
 
         peer_list_len

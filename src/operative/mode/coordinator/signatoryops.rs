@@ -3,15 +3,17 @@ use crate::{
     liquidity,
     noist::{dkg::session::DKGSession, setup::setup::VSESetup},
     peer::PeerConnection,
+    peer_manager::PeerManagerExt,
     tcp::client::TCPClient,
     DKG_DIRECTORY, DKG_MANAGER, DKG_SESSION, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use futures::future::join_all;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-const NONCE_POOL_LEN: u64 = 1_000;
+const NONCE_POOL_THRESHOLD: u64 = 256;
+const NONCE_POOL_FILL: u64 = 64;
 
 #[derive(Clone, Debug)]
 pub enum SignatorySetupError {
@@ -48,12 +50,11 @@ impl SignatoryOps for DKG_MANAGER {
 
         // #3 Connect to liquidity providers (if possible).
         let lp_peers: Vec<PEER> = match {
-            let mut _peer_manager = peer_manager.lock().await;
-
-            _peer_manager
+            peer_manager
                 .add_peers(crate::peer::PeerKind::Operator, &lp_keys)
                 .await;
 
+            let mut _peer_manager = peer_manager.lock().await;
             _peer_manager.retrieve_peers(&lp_keys)
         } {
             Some(some) => some,
@@ -152,10 +153,10 @@ impl SignatoryOps for DKG_MANAGER {
 
         // #13 Run preprovessing for the new directory.
         {
-            let peer_manager = Arc::clone(&peer_manager);
+            let mut peer_manager = Arc::clone(&peer_manager);
             let dkg_directory = Arc::clone(&dkg_directory);
             tokio::spawn(async move {
-                let _ = run_preprocessing(&peer_manager, &dkg_directory).await;
+                let _ = run_preprocessing(&mut peer_manager, &dkg_directory).await;
             });
         }
 
@@ -170,55 +171,62 @@ impl SignatoryOps for DKG_MANAGER {
         };
 
         for (_, dkg_directory) in dkg_directories {
-            let peer_manager = Arc::clone(&peer_manager);
+            let mut peer_manager = Arc::clone(&peer_manager);
             let dkg_directory = Arc::clone(&dkg_directory);
             tokio::spawn(async move {
-                run_preprocessing(&peer_manager, &dkg_directory).await;
+                run_preprocessing(&mut peer_manager, &dkg_directory).await;
             });
         }
     }
 }
 
-pub async fn run_preprocessing(peer_manager: &PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
+pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
+    // #1 Return VSE setup.
     let setup = {
         let _dkg_directory = dkg_directory.lock().await;
         _dkg_directory.setup().clone()
     };
 
-    let index_height = setup.height();
+    // #2 Return setup height.
+    let setup_height = setup.height();
 
-    let signatory_keys = match setup.signatories().into_xpoint_vec() {
+    // #3 Return operator keys.
+    let operator_keys = match setup.signatories().into_xpoint_vec() {
         Ok(vec) => vec,
         Err(_) => return,
     };
 
-    // Connect to peers and return:
-    let operators = match {
-        let mut _peer_manager = peer_manager.lock().await;
-        _peer_manager
-            .add_peers(crate::peer::PeerKind::Operator, &signatory_keys)
-            .await;
-        _peer_manager.retrieve_peers(&signatory_keys)
+    // #4 Connect to operator peers.
+    peer_manager
+        .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
+        .await;
+
+    // #5 Return operator peers.
+    let operator_peers: Vec<PEER> = match {
+        let _peer_manager = peer_manager.lock().await;
+        _peer_manager.retrieve_peers(&operator_keys)
     } {
         Some(peers) => peers,
         None => return,
     };
 
     loop {
+        // #1 Return the number of available DKG sessions.
         let num_available_sessions = {
             let _dkg_directory = dkg_directory.lock().await;
             _dkg_directory.available_sessions()
         };
 
-        if num_available_sessions >= NONCE_POOL_LEN {
+        // #2 If enough DKG sessions available skip preprocessing.
+        if num_available_sessions >= NONCE_POOL_THRESHOLD {
+            tokio::time::sleep(Duration::from_millis(100)).await;
             continue;
         }
 
-        let num_sessions_to_fill: u64 = 64;
+        // #3 Initialize new DKG sessions to fill.
+        let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(NONCE_POOL_FILL as usize);
 
-        let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(num_sessions_to_fill as usize);
-
-        for _ in 0..num_sessions_to_fill {
+        for _ in 0..NONCE_POOL_FILL {
             let dkg_session = {
                 let mut _dkg_directory = dkg_directory.lock().await;
                 match _dkg_directory.new_session_to_fill() {
@@ -237,13 +245,14 @@ pub async fn run_preprocessing(peer_manager: &PEER_MANAGER, dkg_directory: &DKG_
         {
             let mut tasks = vec![];
 
-            for operator in operators.clone() {
+            for peer in operator_peers.iter() {
+                let peer = Arc::clone(&peer);
                 let setup = setup.clone();
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
                 tasks.push(tokio::spawn(async move {
-                    if let Ok(response) = operator
-                        .request_dkg_packages(index_height, num_sessions_to_fill)
+                    if let Ok(response) = peer
+                        .request_dkg_packages(setup_height, NONCE_POOL_FILL)
                         .await
                     {
                         let dkg_sessions_ = {
@@ -252,7 +261,7 @@ pub async fn run_preprocessing(peer_manager: &PEER_MANAGER, dkg_directory: &DKG_
                         };
 
                         let operator_key = {
-                            let _operator = operator.lock().await;
+                            let _operator = peer.lock().await;
                             _operator.key()
                         };
 
@@ -293,5 +302,7 @@ pub async fn run_preprocessing(peer_manager: &PEER_MANAGER, dkg_directory: &DKG_
                 let _ = _dkg_directory.insert_session_filled(&session);
             }
         }
+
+        tokio::time::sleep(Duration::from_millis(1_000)).await;
     }
 }

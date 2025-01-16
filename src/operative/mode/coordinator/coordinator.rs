@@ -9,7 +9,6 @@ use crate::{ccli, nns, tcp, Network, OperatingMode, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
@@ -43,14 +42,14 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 5. Initialize peer manager.
     let operator_set = baked::OPERATOR_SET.to_vec();
     let mut peer_manager: PEER_MANAGER =
-        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set, 1).await {
-            Some(manager) => Arc::new(Mutex::new(manager)),
+        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set).await {
+            Some(manager) => manager,
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
 
     // 6. Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
-        Some(manager) => Arc::new(Mutex::new(manager)),
+        Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 

@@ -1,5 +1,5 @@
 use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
-use crate::DKG_DIRECTORY;
+use crate::{DKG_DIRECTORY, DKG_MANAGER};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -9,7 +9,7 @@ pub struct DKGManager {
 }
 
 impl DKGManager {
-    pub fn new() -> Option<DKGManager> {
+    pub fn new() -> Option<DKG_MANAGER> {
         let setup_db = sled::open("db/noist/setup").ok()?;
 
         let mut directories = HashMap::<u64, DKG_DIRECTORY>::new();
@@ -23,10 +23,13 @@ impl DKGManager {
             }
         }
 
-        Some(DKGManager {
+        let manager_ = Some(DKGManager {
             directories,
             setup_db,
-        })
+        })?;
+
+        let manager = Arc::new(Mutex::new(manager_));
+        Some(manager)
     }
 
     pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {
