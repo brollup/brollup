@@ -110,7 +110,7 @@ impl SignatoryOps for DKG_MANAGER {
             (*_vse_setup).clone()
         };
 
-        // #9 Check if enough number of keymaps collected.
+        // #9 Check if there are enough number of keymaps.
         if vse_setup.map().len() <= lp_peers.len() / 2 {
             return Err(SignatorySetupError::InsufficientPeers);
         }
@@ -315,6 +315,12 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             let _dkg_sessions = dkg_sessions.lock().await;
             (*_dkg_sessions).clone()
         };
+
+        // #9 Check if there are enough number of keymaps.
+        if dkg_sessions.len() <= operator_peers.len() / 2 {
+            println!("not enough number of DKG sessions");
+            continue;
+        }
 
         println!("dkg_sessions len: {}", dkg_sessions.len());
 
