@@ -44,6 +44,10 @@ pub mod noist;
 // Operating modes.
 #[path = "operative/mode/coordinator/coordinator.rs"]
 pub mod coordinator;
+// Operating modes.
+#[path = "operative/mode/coordinator/signatoryops.rs"]
+pub mod signatoryops;
+
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
 #[path = "operative/mode/operator/operator.rs"]
@@ -60,10 +64,6 @@ pub mod ocli;
 // Liquidity provision
 #[path = "operative/liquidity/mod.rs"]
 pub mod liquidity;
-
-// Signatory
-#[path = "operative/signatory/mod.rs"]
-pub mod signatory;
 
 // Networking.
 #[path = "communicative/nns/mod.rs"]

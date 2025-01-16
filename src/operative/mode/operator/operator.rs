@@ -33,19 +33,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 2. Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 3. Initialize NOIST Manager.
-    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
-        Some(manager) => Arc::new(Mutex::new(manager)),
-        None => return eprintln!("{}", "Error initializing NOIST manager.".red()),
-    };
-
-    // 4. Open port 6272 for incoming connections.
+    // 3. Open port 6272 for incoming connections.
     match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
 
-    // 5. Run NNS server.
+    // 4. Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -53,17 +47,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         });
     }
 
-    // 6. Run TCP server.
-    {
-        let nns_client = nns_client.clone();
-        let dkg_manager = Arc::clone(&dkg_manager);
-
-        let _ = tokio::spawn(async move {
-            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
-        });
-    }
-
-    // 7. Connect to the coordinator.
+    // 5. Connect to the coordinator.
     let coordinator: PEER = {
         loop {
             match Peer::connect(
@@ -85,6 +69,22 @@ pub async fn run(keys: KeyHolder, _network: Network) {
             };
         }
     };
+
+    // 6. Initialize DKG Manager.
+    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
+        Some(manager) => Arc::new(Mutex::new(manager)),
+        None => return eprintln!("{}", "Error initializing DKG manager.".red()),
+    };
+
+    // 7. Run TCP server.
+    {
+        let nns_client = nns_client.clone();
+        let dkg_manager = Arc::clone(&dkg_manager);
+
+        let _ = tokio::spawn(async move {
+            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
+        });
+    }
 
     // 8. CLI
     cli(&mut dkg_manager, &coordinator).await;

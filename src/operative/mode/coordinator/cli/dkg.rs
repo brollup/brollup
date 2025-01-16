@@ -1,4 +1,4 @@
-use crate::{signatory, DKG_DIRECTORY, DKG_MANAGER, PEER_MANAGER};
+use crate::{signatoryops::SignatoryOps, DKG_DIRECTORY, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 
 // dkg setup run
@@ -43,19 +43,14 @@ async fn setup_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
 }
 
 async fn setup_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
-    match signatory::setup::run_setup(peer_manager, dkg_manager).await {
-        Ok(setup) => {
+    match dkg_manager.coordinate_new_setup(peer_manager).await {
+        Ok(setup_height) => {
             println!(
                 "{}",
-                format!(
-                    "VSE protocol #{} run with success and saved.",
-                    &setup.height()
-                )
-                .green()
+                format!("DKG protocol #{} run with success and saved.", setup_height).green()
             );
-            setup.print();
         }
-        Err(err) => return eprintln!("{}", format!("VSE protocol failed: {:?}", err).red()),
+        Err(err) => return eprintln!("{}", format!("DKG protocol failed: {:?}", err).red()),
     };
 }
 

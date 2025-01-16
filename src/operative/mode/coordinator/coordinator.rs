@@ -2,6 +2,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
+use crate::signatoryops::SignatoryOps;
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
 use crate::{ccli, nns, tcp, Network, OperatingMode, DKG_MANAGER, PEER_MANAGER};
@@ -25,19 +26,13 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 2. Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 3. Initialize NOIST Manager.
-    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
-        Some(manager) => Arc::new(Mutex::new(manager)),
-        None => return eprintln!("{}", "Error initializing NOIST manager.".red()),
-    };
-
-    // 4. Open port 6272 for incoming connections.
+    // 3. Open port 6272 for incoming connections.
     match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
 
-    // 5. Run NNS server.
+    // 4. Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -45,7 +40,24 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         });
     }
 
-    // 6. Run TCP server.
+    // 5. Initialize peer manager.
+    let operator_set = baked::OPERATOR_SET.to_vec();
+    let mut peer_manager: PEER_MANAGER =
+        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set, 1).await {
+            Some(manager) => Arc::new(Mutex::new(manager)),
+            None => return eprintln!("{}", "Error initializing Peer manager.".red()),
+        };
+
+    // 6. Initialize DKG Manager.
+    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
+        Some(manager) => Arc::new(Mutex::new(manager)),
+        None => return eprintln!("{}", "Error initializing DKG manager.".red()),
+    };
+
+    // 7. Run background preprocessing for the DKG Manager.
+    dkg_manager.coordinate_preprocess(&mut peer_manager).await;
+
+    // 8. Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -53,14 +65,6 @@ pub async fn run(keys: KeyHolder, _network: Network) {
             let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
         });
     }
-
-    // 7. Initialize peer manager.
-    let operator_set = baked::OPERATOR_SET.to_vec();
-    let mut peer_manager: PEER_MANAGER =
-        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set, 1).await {
-            Some(manager) => Arc::new(Mutex::new(manager)),
-            None => return eprintln!("{}", "Error initializing Peer manager.".red()),
-        };
 
     // 9. CLI
     cli(&mut peer_manager, &mut dkg_manager).await;
