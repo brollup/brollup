@@ -9,7 +9,7 @@ pub async fn command(
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &mut DKG_MANAGER,
 ) {
-    if parts.len() < 3 {
+    if parts.len() < 2 {
         return eprintln!("Incorrect usage.");
     }
 
@@ -63,6 +63,7 @@ async fn dirs_print(dkg_manager: &DKG_MANAGER) {
         _dkg_manager.directories().clone()
     };
 
+    println!("Printing DKG dirs..");
     for (dir_height, _) in dirs {
         println!("Dir height: {}", dir_height);
     }
