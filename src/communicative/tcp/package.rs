@@ -11,6 +11,7 @@ pub enum PackageKind {
     DeliverVSESetup,
     RetrieveVSESetup,
     RequestDKGPackages,
+    DeliverDKGSessions,
 }
 
 impl PackageKind {
@@ -21,6 +22,7 @@ impl PackageKind {
             PackageKind::DeliverVSESetup => 0x02,
             PackageKind::RetrieveVSESetup => 0x03,
             PackageKind::RequestDKGPackages => 0x04,
+            PackageKind::DeliverDKGSessions => 0x05,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -30,6 +32,7 @@ impl PackageKind {
             0x02 => Some(PackageKind::DeliverVSESetup),
             0x03 => Some(PackageKind::RetrieveVSESetup),
             0x04 => Some(PackageKind::RequestDKGPackages),
+            0x05 => Some(PackageKind::DeliverDKGSessions),
             _ => None,
         }
     }

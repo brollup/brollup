@@ -52,7 +52,8 @@ mod noist_tests {
         let mut public_list = vec![signer_1_public, signer_2_public, signer_3_public];
         public_list.sort();
 
-        let mut manager = DKGManager::new().unwrap();
+        let manager_ = DKGManager::new().unwrap();
+        let mut manager = manager_.lock().await;
 
         // Insert VSE setup to the manager.
         let setup_no: u64 = 0;

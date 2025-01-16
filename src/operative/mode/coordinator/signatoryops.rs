@@ -284,24 +284,31 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             join_all(tasks).await;
         }
 
-        // #5 Return DKG sessions.
-        let dkg_sessions: Vec<DKG_SESSION> = {
-            let _dkg_sessions = dkg_sessions.lock().await;
-            (*_dkg_sessions).clone()
-        };
+        // #5 Initialize DKG sessions final list.
+        let mut sessions = Vec::<DKGSession>::new();
 
-        // #6 Insert DKG sessions to the directory.
+        // #6 Fill DKG sessions final list.
         {
-            let mut _dkg_directory = dkg_directory.lock().await;
-            for dkg_session in dkg_sessions.iter() {
-                let dkg_session = {
-                    let _dkg_session = dkg_session.lock().await;
-                    (*_dkg_session).clone()
-                };
+            let dkg_sessions: Vec<DKG_SESSION> = {
+                let _dkg_sessions = dkg_sessions.lock().await;
+                (*_dkg_sessions).clone()
+            };
 
-                let _ = _dkg_directory.insert_session_filled(&dkg_session);
+            for dkg_session in dkg_sessions {
+                let _dkg_session = dkg_session.lock().await;
+                sessions.push((*_dkg_session).clone());
             }
         }
+
+        // #7 Insert DKG sessions.
+        {
+            let mut _dkg_directory = dkg_directory.lock().await;
+            for session in sessions.iter() {
+                let _ = _dkg_directory.insert_session_filled(session);
+            }
+        }
+
+        
 
         tokio::time::sleep(Duration::from_millis(1_000)).await;
     }

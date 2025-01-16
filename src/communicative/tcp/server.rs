@@ -5,6 +5,7 @@ use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
+use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
@@ -251,6 +252,15 @@ async fn handle_package(
                         keys,
                     )
                     .await
+                }
+
+                PackageKind::DeliverDKGSessions => {
+                    handle_deliver_dkg_sessions(
+                        package.timestamp(),
+                        &package.payload(),
+                        dkg_manager,
+                    )
+                    .await
                 } //_ => return,
             },
             OperatingMode::Node => return,
@@ -424,6 +434,53 @@ async fn handle_request_dkg_packages(
     let response_package = {
         let kind = PackageKind::RetrieveVSESetup;
         let payload = auth_packages_bytes.encode_list();
+        TCPPackage::new(kind, timestamp, &payload)
+    };
+
+    Some(response_package)
+}
+
+async fn handle_deliver_dkg_sessions(
+    timestamp: i64,
+    payload: &[u8],
+    dkg_manager: &mut DKG_MANAGER,
+) -> Option<TCPPackage> {
+    if payload.len() <= 8 {
+        return None;
+    }
+
+    let dir_height_bytes = &payload[..8];
+    let dkg_sessions_bytes = &payload[8..];
+
+    let dir_height = match dir_height_bytes.try_into() {
+        Ok(bytes) => u64::from_le_bytes(bytes),
+        Err(_) => return None,
+    };
+
+    let dkg_sessions: Vec<DKGSession> = match serde_json::from_slice(&dkg_sessions_bytes) {
+        Ok(sessions) => sessions,
+        Err(_) => return None,
+    };
+
+    let dkg_dir = {
+        let _dkg_manager = dkg_manager.lock().await;
+        _dkg_manager.directory(dir_height)
+    }?;
+
+    let mut response_code = [0x01u8];
+
+    for dkg_session in dkg_sessions.iter() {
+        let mut _dkg_dir = dkg_dir.lock().await;
+        if !_dkg_dir.insert_session_filled(dkg_session) {
+            response_code = [0x00u8]; // Failure code;
+            break;
+        }
+    }
+
+    let response_package = {
+        let kind = PackageKind::DeliverVSESetup;
+        let payload = response_code;
+
         TCPPackage::new(kind, timestamp, &payload)
     };
 

@@ -2,6 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use super::tcp::{self, TCPError};
 use crate::list::{self, ListCodec};
 use crate::noist::dkg::package::DKGPackage;
+use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::peer::PeerConnection;
 use crate::schnorr::Authenticable;
@@ -30,11 +31,18 @@ pub trait TCPClient {
         setup_no: u64,
         count: u64,
     ) -> Result<Vec<Authenticable<DKGPackage>>, RequestError>;
+
+    async fn deliver_dkg_sessions(
+        &self,
+        dir_height: u64,
+        dkg_sessions: Vec<DKGSession>,
+    ) -> Result<(), RequestError>;
 }
 
 #[derive(Copy, Clone)]
 pub enum RequestError {
     TCPErr(TCPError),
+    InvalidRequest,
     InvalidResponse,
     EmptyResponse,
     ErrorResponse,
@@ -245,5 +253,52 @@ impl TCPClient for PEER {
         }
 
         Ok(auth_dkg_packages)
+    }
+
+    async fn deliver_dkg_sessions(
+        &self,
+        dir_height: u64,
+        dkg_sessions: Vec<DKGSession>,
+    ) -> Result<(), RequestError> {
+        let dir_height_bytes = dir_height.to_be_bytes();
+
+        let dkg_sessions_bytes =
+            serde_json::to_vec(&dkg_sessions).map_err(|_| RequestError::InvalidRequest)?;
+
+        let mut payload = Vec::<u8>::with_capacity(8 + dkg_sessions_bytes.len());
+        payload.extend(dir_height_bytes);
+        payload.extend(dkg_sessions_bytes);
+
+        // Build request package.
+        let request_package = {
+            let kind = PackageKind::DeliverDKGSessions;
+            let timestamp = Utc::now().timestamp();
+            let payload = payload;
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // Timeout 3 seconds.
+        let timeout = Duration::from_millis(3_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        match response_payload.as_slice() {
+            [0x01u8] => return Ok(()),
+            [0x00u8] => return Err(RequestError::ErrorResponse),
+            _ => return Err(RequestError::InvalidResponse),
+        }
     }
 }

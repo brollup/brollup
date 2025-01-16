@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 pub struct DKGManager {
-    directories: HashMap<u64, DKG_DIRECTORY>,
+    directories: HashMap<u64, DKG_DIRECTORY>, // Dir height, Directory.
     setup_db: sled::Db,
 }
 
@@ -36,8 +36,8 @@ impl DKGManager {
         self.directories.clone()
     }
 
-    pub fn directory(&self, setup_no: u64) -> Option<DKG_DIRECTORY> {
-        Some(Arc::clone(self.directories.get(&setup_no)?))
+    pub fn directory(&self, dir_height: u64) -> Option<DKG_DIRECTORY> {
+        Some(Arc::clone(self.directories.get(&dir_height)?))
     }
 
     pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
