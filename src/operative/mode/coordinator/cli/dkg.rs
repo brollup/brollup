@@ -1,4 +1,4 @@
-use crate::{signatoryops::SignatoryOps, DKG_DIRECTORY, DKG_MANAGER, PEER_MANAGER};
+use crate::{dkgops::DKGOps, DKG_DIRECTORY, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 
 // dkg dir new

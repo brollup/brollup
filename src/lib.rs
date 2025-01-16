@@ -45,8 +45,8 @@ pub mod noist;
 #[path = "operative/mode/coordinator/coordinator.rs"]
 pub mod coordinator;
 // Operating modes.
-#[path = "operative/mode/coordinator/signatoryops.rs"]
-pub mod signatoryops;
+#[path = "operative/mode/coordinator/dkgops.rs"]
+pub mod dkgops;
 
 #[path = "operative/mode/node/node.rs"]
 pub mod node;

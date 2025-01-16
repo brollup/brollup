@@ -1,8 +1,8 @@
+use crate::dkgops::DKGOps;
 use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
-use crate::signatoryops::SignatoryOps;
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
 use crate::{ccli, nns, tcp, Network, OperatingMode, DKG_MANAGER, PEER_MANAGER};

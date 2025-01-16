@@ -12,11 +12,13 @@ use futures::future::join_all;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-const NONCE_POOL_THRESHOLD: u64 = 256;
+const NONCE_POOL_THRESHOLD: u64 = 512;
 const NONCE_POOL_FILL: u64 = 64;
 
+const MIN_PEERS: u64 = 3;
+
 #[derive(Clone, Debug)]
-pub enum SignatorySetupError {
+pub enum DKGSetupError {
     PeerRetrievalErr,
     InsufficientPeers,
     PreSetupInitErr,
@@ -25,20 +27,20 @@ pub enum SignatorySetupError {
 }
 
 #[async_trait]
-pub trait SignatoryOps {
+pub trait DKGOps {
     async fn coordinate_new_setup(
         &self,
         peer_manager: &mut PEER_MANAGER,
-    ) -> Result<u64, SignatorySetupError>;
+    ) -> Result<u64, DKGSetupError>;
     async fn coordinate_preprocess(&self, peer_manager: &mut PEER_MANAGER);
 }
 
 #[async_trait]
-impl SignatoryOps for DKG_MANAGER {
+impl DKGOps for DKG_MANAGER {
     async fn coordinate_new_setup(
         &self,
         peer_manager: &mut PEER_MANAGER,
-    ) -> Result<u64, SignatorySetupError> {
+    ) -> Result<u64, DKGSetupError> {
         // #1 Pick a setup number.
         let dir_height = {
             let _dkg_manager = self.lock().await;
@@ -58,24 +60,24 @@ impl SignatoryOps for DKG_MANAGER {
             _peer_manager.retrieve_peers(&lp_keys)
         } {
             Some(some) => some,
-            None => return Err(SignatorySetupError::PeerRetrievalErr),
+            None => return Err(DKGSetupError::PeerRetrievalErr),
         };
 
         // #4 Check if there are enough peer connections.
         if lp_peers.len() <= lp_keys.len() / 10 {
-            return Err(SignatorySetupError::InsufficientPeers);
+            return Err(DKGSetupError::InsufficientPeers);
         }
 
         // #5 Convert LP keys into secp Points.
         let lp_key_points = match lp_keys.into_point_vec() {
             Ok(points) => points,
-            Err(_) => return Err(SignatorySetupError::PreSetupInitErr),
+            Err(_) => return Err(DKGSetupError::PreSetupInitErr),
         };
 
         // #6 Initialize VSE setup with the list of LP keys.
         let vse_setup_ = match VSESetup::new(&lp_key_points, dir_height) {
             Some(setup) => Arc::new(Mutex::new(setup)),
-            None => return Err(SignatorySetupError::PreSetupInitErr),
+            None => return Err(DKGSetupError::PreSetupInitErr),
         };
 
         // #7 Retrieve VSE Keymap's from each connected LP peer.
@@ -112,7 +114,7 @@ impl SignatoryOps for DKG_MANAGER {
 
         // #9 Check if there are enough number of keymaps.
         if vse_setup.map().len() <= lp_peers.len() / 2 {
-            return Err(SignatorySetupError::InsufficientPeers);
+            return Err(DKGSetupError::InsufficientPeers);
         }
 
         // #10 Remove liquidity providers that failed to connect.
@@ -120,7 +122,7 @@ impl SignatoryOps for DKG_MANAGER {
 
         // #11 Verify the final VSE setup.
         if !vse_setup.verify() {
-            return Err(SignatorySetupError::PostSetupVerifyErr);
+            return Err(DKGSetupError::PostSetupVerifyErr);
         };
 
         // #12 Deliver VSE setup to each connected liquidity provider.
@@ -147,13 +149,13 @@ impl SignatoryOps for DKG_MANAGER {
             let mut _dkg_manager = self.lock().await;
 
             if !_dkg_manager.insert_setup(&vse_setup) {
-                return Err(SignatorySetupError::ManagerInsertionErr);
+                return Err(DKGSetupError::ManagerInsertionErr);
             }
 
             _dkg_manager.directory(vse_setup.height())
         } {
             Some(directory) => directory,
-            None => return Err(SignatorySetupError::ManagerInsertionErr),
+            None => return Err(DKGSetupError::ManagerInsertionErr),
         };
 
         // #14 Run preprovessing for the new directory.
@@ -185,6 +187,9 @@ impl SignatoryOps for DKG_MANAGER {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum DKGPreprocessingError {}
+
 pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
     println!("run_preprocessing");
     // #1 Return VSE setup.
@@ -193,30 +198,37 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
         _dkg_directory.setup().clone()
     };
 
-    // #2 Return setup height.
+    // #2 Return directory height.
     let dir_height = setup.height();
 
     // #3 Return operator keys.
     let operator_keys = match setup.signatories().into_xpoint_vec() {
         Ok(vec) => vec,
-        Err(_) => return,
+        Err(_) => panic!("signatory keys into_xpoint_vec"),
     };
 
-    // #4 Connect to operator peers.
-    peer_manager
-        .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
-        .await;
+    let operator_peers = loop {
+        // #4 Connect to operator peers.
+        peer_manager
+            .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
+            .await;
 
-    // #5 Return operator peers.
-    let operator_peers: Vec<PEER> = match {
-        let _peer_manager = peer_manager.lock().await;
-        _peer_manager.retrieve_peers(&operator_keys)
-    } {
-        Some(peers) => peers,
-        None => return,
+        // #5 Return operator peers.
+        let operator_peers: Vec<PEER> = match {
+            let _peer_manager = peer_manager.lock().await;
+            _peer_manager.retrieve_peers(&operator_keys)
+        } {
+            Some(peers) => peers,
+            None => return,
+        };
+
+        match operator_peers.len() >= MIN_PEERS as usize {
+            true => break operator_peers,
+            false => continue,
+        }
     };
 
-    loop {
+    'preprocess_iter: loop {
         println!("preprocess iter h: {}", dir_height);
 
         // #1 Return the number of available DKG sessions.
@@ -227,8 +239,8 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
 
         // #2 If enough DKG sessions available skip preprocessing.
         if num_available_sessions > NONCE_POOL_THRESHOLD {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-            continue;
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            continue 'preprocess_iter;
         }
 
         // #3 Determine if this is a key session.
@@ -251,19 +263,22 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
         println!("fill_count: {}", fill_count);
 
         // #5 Initialize DKG sessions to fill.
-        let mut dkg_sessions_ = Vec::<DKG_SESSION>::with_capacity(fill_count as usize);
-        for _ in 0..fill_count {
-            let dkg_session = {
-                let mut _dkg_directory = dkg_directory.lock().await;
-                match _dkg_directory.new_session_to_fill() {
-                    Some(session) => Arc::new(Mutex::new(session)),
-                    None => return,
-                }
-            };
+        let dkg_sessions = {
+            let mut dkg_sessions = Vec::<DKG_SESSION>::with_capacity(fill_count as usize);
+            for _ in 0..fill_count {
+                let dkg_session = {
+                    let mut _dkg_directory = dkg_directory.lock().await;
+                    match _dkg_directory.new_session_to_fill() {
+                        Some(session) => Arc::new(Mutex::new(session)),
+                        None => return,
+                    }
+                };
 
-            dkg_sessions_.push(dkg_session);
-        }
-        let dkg_sessions = Arc::new(Mutex::new(dkg_sessions_));
+                dkg_sessions.push(dkg_session);
+            }
+
+            Arc::new(Mutex::new(dkg_sessions))
+        };
         println!("ara 5");
 
         // #6 Fill DKG sessions with retrieved DKG packages.
@@ -276,33 +291,25 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
                 let dkg_sessions = Arc::clone(&dkg_sessions);
 
                 tasks.push(tokio::spawn(async move {
-                    if let Ok(auth_packages) =
-                        peer.request_dkg_packages(dir_height, fill_count).await
-                    {
-                        if auth_packages.len() != fill_count as usize {
-                            return;
-                        }
-
-                        let operator_key = {
-                            let _operator = peer.lock().await;
-                            _operator.key()
+                    let auth_packages =
+                        match peer.request_dkg_packages(dir_height, fill_count).await {
+                            Ok(packages) => packages,
+                            Err(_) => return,
                         };
 
-                        for (index, auth_package) in auth_packages.iter().enumerate() {
-                            if (auth_package.key() != operator_key) || !auth_package.authenticate()
-                            {
-                                return;
-                            }
+                    if auth_packages.len() != fill_count as usize {
+                        return;
+                    }
 
-                            let dkg_session = {
-                                let _dkg_sessions = dkg_sessions.lock().await;
-                                Arc::clone(&_dkg_sessions[index])
-                            };
+                    for (index, auth_package) in auth_packages.iter().enumerate() {
+                        let dkg_session = {
+                            let _dkg_sessions = dkg_sessions.lock().await;
+                            Arc::clone(&_dkg_sessions[index])
+                        };
 
-                            {
-                                let mut _dkg_session = dkg_session.lock().await;
-                                let _ = _dkg_session.insert(&auth_package, &setup);
-                            }
+                        {
+                            let mut _dkg_session = dkg_session.lock().await;
+                            _dkg_session.insert(&auth_package, &setup);
                         }
                     }
                 }));
@@ -311,59 +318,58 @@ pub async fn run_preprocessing(peer_manager: &mut PEER_MANAGER, dkg_directory: &
             join_all(tasks).await;
         }
 
+        // #7 Return DKG sessions.
         let dkg_sessions: Vec<DKG_SESSION> = {
             let _dkg_sessions = dkg_sessions.lock().await;
             (*_dkg_sessions).clone()
         };
 
-        // #9 Check if there are enough number of keymaps.
-        if dkg_sessions.len() <= operator_peers.len() / 2 {
-            println!("not enough number of DKG sessions");
-            continue;
-        }
+        // #8 Initialize final DKG sessions list.
+        let mut final_dkg_sessions = Vec::<DKGSession>::new();
 
-        println!("dkg_sessions len: {}", dkg_sessions.len());
-
-        println!("ara 6");
-        // #7 Initialize DKG sessions final list.
-        let mut sessions = Vec::<DKGSession>::new();
-        println!("ara 7");
-        // #8 Fill DKG sessions final list.
-        {
-            for dkg_session in dkg_sessions {
-                let _dkg_session = dkg_session.lock().await;
-                sessions.push((*_dkg_session).clone());
-            }
-        }
         println!("ara 8");
-        // #9 Insert DKG sessions.
+        // #9 Insert DKG sessions to the directory.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
-            for session in sessions.iter() {
-                match _dkg_directory.insert_session_filled(session) {
-                    true => println!("session {} inserted", session.index()),
-                    false => println!("session {} isnertion failed", session.index()),
+            for session in dkg_sessions.iter() {
+                let session = {
+                    let _session = session.lock().await;
+                    (*_session).clone()
+                };
+
+                if _dkg_directory.insert_session_filled(&session) {
+                    final_dkg_sessions.push(session);
                 }
             }
         }
+
+        println!("final_dkg_sessions len is: {}", final_dkg_sessions.len());
+
+        // #10 Check valid DKG sessions length.
+        if final_dkg_sessions.len() == 0 {
+            continue 'preprocess_iter;
+        }
+
         println!("ara 9");
-        // #10 Deliver DKG sessions.
+        // #11 Deliver DKG sessions.
         {
             let mut tasks = vec![];
 
             for peer in operator_peers.iter() {
                 let peer = Arc::clone(&peer);
                 let dir_height = dir_height.clone();
-                let sessions = sessions.clone();
+                let final_dkg_sessions = final_dkg_sessions.clone();
 
                 tasks.push(tokio::spawn(async move {
-                    let _ = peer.deliver_dkg_sessions(dir_height, sessions).await;
+                    let _ = peer
+                        .deliver_dkg_sessions(dir_height, final_dkg_sessions)
+                        .await;
                 }));
             }
 
             join_all(tasks).await;
         }
         println!("done");
-        tokio::time::sleep(Duration::from_millis(10_000)).await;
+        tokio::time::sleep(Duration::from_millis(1_000)).await;
     }
 }
