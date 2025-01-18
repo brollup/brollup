@@ -203,8 +203,10 @@ impl DKGOps for DKG_MANAGER {
         dir_height: u64,
         messages: Vec<[u8; 32]>,
     ) -> Result<Vec<[u8; 64]>, DKGSigningError> {
-        let mut signatures = Vec::<[u8; 64]>::new();
+        // #1 Initialize full signatures list.
+        let mut full_signatures = Vec::<[u8; 64]>::new();
 
+        // # 2 Initialize DKG directory.
         let dkg_directory: DKG_DIRECTORY = {
             let _dkg_manager = self.lock().await;
             match _dkg_manager.directory(dir_height) {
@@ -213,6 +215,7 @@ impl DKGOps for DKG_MANAGER {
             }
         };
 
+        // #3 Return operator keys.
         let operator_keys = {
             let _dkg_directory = dkg_directory.lock().await;
             match _dkg_directory.setup().signatories().into_xpoint_vec() {
@@ -221,8 +224,8 @@ impl DKGOps for DKG_MANAGER {
             }
         };
 
+        // #4 Return operator peers.
         let operator_peers: Vec<PEER> = {
-            // #5 Return operator peers.
             let peers: Vec<PEER> = match {
                 let _peer_manager = peer_manager.lock().await;
                 _peer_manager.retrieve_peers(&operator_keys)
@@ -237,9 +240,11 @@ impl DKGOps for DKG_MANAGER {
             }
         };
 
+        // #5 Initialize signing sessions.
         let mut signing_sessions = Vec::<SigningSession>::with_capacity(messages.len());
         let mut signing_requests = Vec::<(u64, [u8; 32])>::with_capacity(signing_sessions.len()); // Nonce index, message.
 
+        // #6 Pick fresh signing sessions to be filled.
         for message in messages.iter() {
             let mut _dkg_directory = dkg_directory.lock().await;
             let signing_session = match _dkg_directory.pick_signing_session(message.to_owned()) {
@@ -251,9 +256,10 @@ impl DKGOps for DKG_MANAGER {
             signing_sessions.push(signing_session);
         }
 
+        // #7 Guard the signing sessions list to collect partial signatures.
         let signing_sessions_ = Arc::new(Mutex::new(signing_sessions));
 
-        //
+        // #8 Request partial signatures and fill signing sessions with them.
         {
             let mut tasks = vec![];
 
@@ -296,20 +302,23 @@ impl DKGOps for DKG_MANAGER {
             join_all(tasks).await;
         }
 
+        // #9 Return signing sessions.
         let signing_sessions = {
             let _signing_sessions_ = signing_sessions_.lock().await;
             (*_signing_sessions_).clone()
         };
 
+        // #10 Fill full signatures.
         for signing_session in signing_sessions {
             let full_sig = match signing_session.full_aggregated_sig_bytes() {
                 Some(sig) => sig,
                 None => return Err(DKGSigningError::AggSigErr),
             };
-            signatures.push(full_sig);
+            full_signatures.push(full_sig);
         }
 
-        Ok(signatures)
+        // # 11 Return full signatures.
+        Ok(full_signatures)
     }
 }
 
