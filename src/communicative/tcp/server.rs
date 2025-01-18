@@ -2,13 +2,11 @@ use super::package::{PackageKind, TCPPackage};
 use super::tcp;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
-use crate::list::ListCodec;
 use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
-
 use crate::{baked, liquidity, OperatingMode, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use secp::Scalar;
@@ -294,11 +292,10 @@ async fn handle_request_vse_keymap(
     payload: &[u8],
     keys: &KeyHolder,
 ) -> Option<TCPPackage> {
-    let mut signatory_keys = match Vec::<[u8; 32]>::decode_list(&payload.to_vec()) {
-        Some(list) => list,
-        None => return None,
+    let signatory_keys: Vec<[u8; 32]> = match serde_json::from_slice(payload) {
+        Ok(no) => no,
+        Err(_) => return None,
     };
-    signatory_keys.sort();
 
     if !liquidity::provider::is_valid_subset(&signatory_keys) {
         return None;
@@ -363,12 +360,10 @@ async fn handle_retrieve_vse_setup(
     payload: &[u8],
     dkg_manager: &DKG_MANAGER,
 ) -> Option<TCPPackage> {
-    let setup_no_bytes: [u8; 8] = match payload.try_into() {
-        Ok(bytes) => bytes,
+    let setup_no = match serde_json::from_slice(payload) {
+        Ok(no) => no,
         Err(_) => return None,
     };
-
-    let setup_no = u64::from_be_bytes(setup_no_bytes);
 
     let vse_setup = {
         let _dkg_manager = dkg_manager.lock().await;
@@ -401,14 +396,10 @@ async fn handle_request_dkg_packages(
         return None;
     }
 
-    let mut setup_no_bytes = [0u8; 8];
-    setup_no_bytes.copy_from_slice(&payload[..8]);
-
-    let mut package_count_bytes = [0u8; 8];
-    package_count_bytes.copy_from_slice(&payload[8..]);
-
-    let setup_no = u64::from_be_bytes(setup_no_bytes);
-    let package_count = u64::from_be_bytes(package_count_bytes);
+    let (setup_no, package_count): (u64, u64) = match serde_json::from_slice(payload) {
+        Ok(tuple) => tuple,
+        Err(_) => return None,
+    };
 
     let vse_setup = {
         let _dkg_manager = dkg_manager.lock().await;
@@ -436,16 +427,14 @@ async fn handle_request_dkg_packages(
         auth_packages.push(auth_package);
     }
 
-    let mut auth_packages_bytes = Vec::<Vec<u8>>::new();
-
-    for auth_package in auth_packages {
-        auth_packages_bytes.push(auth_package.serialize());
-    }
+    let response_payload = match serde_json::to_vec(&auth_packages) {
+        Ok(tuple) => tuple,
+        Err(_) => return None,
+    };
 
     let response_package = {
         let kind = PackageKind::RequestDKGPackages;
-        let payload = auth_packages_bytes.encode_list();
-        TCPPackage::new(kind, timestamp, &payload)
+        TCPPackage::new(kind, timestamp, &response_payload)
     };
 
     Some(response_package)

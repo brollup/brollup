@@ -2,7 +2,9 @@ use crate::baked;
 
 pub fn provider_list() -> Vec<[u8; 32]> {
     // TODO..
-    baked::OPERATOR_SET.to_vec()
+    let mut operator_set = baked::OPERATOR_SET.to_vec();
+    operator_set.sort();
+    operator_set
 }
 
 pub fn is_valid_subset(keys: &Vec<[u8; 32]>) -> bool {
