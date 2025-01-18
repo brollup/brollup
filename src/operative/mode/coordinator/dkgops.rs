@@ -1,5 +1,5 @@
 use crate::{
-    into::{IntoPointByteVec, IntoPointVec},
+    into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     liquidity,
     noist::{
         dkg::{directory::SigningSession, session::DKGSession},
@@ -34,13 +34,14 @@ pub enum DKGSigningError {
     RetrievePeersErr,
     BelowThresholdPeers,
     PickSigningSessionErr,
+    AggSigErr,
 }
 
 #[async_trait]
 pub trait DKGOps {
-    async fn run_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
+    async fn new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
     async fn run_preprocessing(&self, peer_manager: &mut PEER_MANAGER);
-    async fn run_signing(
+    async fn sign(
         &self,
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
@@ -50,7 +51,7 @@ pub trait DKGOps {
 
 #[async_trait]
 impl DKGOps for DKG_MANAGER {
-    async fn run_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError> {
+    async fn new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError> {
         // #1 Pick a setup number.
         let dir_height = {
             let _dkg_manager = self.lock().await;
@@ -196,7 +197,7 @@ impl DKGOps for DKG_MANAGER {
         }
     }
 
-    async fn run_signing(
+    async fn sign(
         &self,
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
@@ -248,6 +249,64 @@ impl DKGOps for DKG_MANAGER {
 
             signing_requests.push((signing_session.nonce_index(), message.to_owned()));
             signing_sessions.push(signing_session);
+        }
+
+        let signing_sessions_ = Arc::new(Mutex::new(signing_sessions));
+
+        //
+        {
+            let mut tasks = vec![];
+
+            for peer in operator_peers {
+                let peer = Arc::clone(&peer);
+                let dir_height = dir_height.clone();
+                let signing_requests = signing_requests.clone();
+                let operator_key = peer.key().await;
+                let signing_sessions_ = Arc::clone(&signing_sessions_);
+
+                tasks.push(tokio::spawn(async move {
+                    let partial_sigs = match peer
+                        .request_partial_sigs(dir_height, &signing_requests)
+                        .await
+                    {
+                        Ok(partial_sigs) => partial_sigs,
+                        Err(_) => return,
+                    };
+
+                    if partial_sigs.len() != signing_requests.len() {
+                        return;
+                    }
+
+                    let operator = match operator_key.into_point() {
+                        Ok(point) => point,
+                        Err(_) => return,
+                    };
+
+                    for (index, partial_sig) in partial_sigs.iter().enumerate() {
+                        let mut _signing_sessions_ = signing_sessions_.lock().await;
+                        if !_signing_sessions_[index]
+                            .insert_partial_sig(operator, partial_sig.to_owned())
+                        {
+                            return;
+                        }
+                    }
+                }));
+            }
+
+            join_all(tasks).await;
+        }
+
+        let signing_sessions = {
+            let _signing_sessions_ = signing_sessions_.lock().await;
+            (*_signing_sessions_).clone()
+        };
+
+        for signing_session in signing_sessions {
+            let full_sig = match signing_session.full_aggregated_sig_bytes() {
+                Some(sig) => sig,
+                None => return Err(DKGSigningError::AggSigErr),
+            };
+            signatures.push(full_sig);
         }
 
         Ok(signatures)

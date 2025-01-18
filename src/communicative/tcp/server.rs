@@ -9,8 +9,9 @@ use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
 
-use crate::{baked, liquidity, OperatingMode, DKG_MANAGER, SOCKET};
+use crate::{baked, liquidity, OperatingMode, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
+use secp::Scalar;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 use tokio::{net::TcpListener, sync::Mutex};
@@ -268,6 +269,7 @@ async fn handle_package(
                         package.timestamp(),
                         &package.payload(),
                         dkg_manager,
+                        keys,
                     )
                     .await
                 } //_ => return,
@@ -441,7 +443,7 @@ async fn handle_request_dkg_packages(
     }
 
     let response_package = {
-        let kind = PackageKind::RetrieveVSESetup;
+        let kind = PackageKind::RequestDKGPackages;
         let payload = auth_packages_bytes.encode_list();
         TCPPackage::new(kind, timestamp, &payload)
     };
@@ -479,7 +481,7 @@ async fn handle_deliver_dkg_sessions(
     }
 
     let response_package = {
-        let kind = PackageKind::DeliverVSESetup;
+        let kind = PackageKind::DeliverDKGSessions;
         let payload = response_code;
 
         TCPPackage::new(kind, timestamp, &payload)
@@ -492,6 +494,7 @@ async fn handle_request_partial_sigs(
     timestamp: i64,
     payload: &[u8],
     dkg_manager: &mut DKG_MANAGER,
+    keys: &KeyHolder,
 ) -> Option<TCPPackage> {
     if payload.len() <= 8 {
         return None;
@@ -503,5 +506,40 @@ async fn handle_request_partial_sigs(
         Err(_) => return None,
     };
 
-    None
+    let dkg_directory: DKG_DIRECTORY = {
+        let _dkg_manager = dkg_manager.lock().await;
+        match _dkg_manager.directory(dir_height) {
+            Some(directory) => directory,
+            None => return None,
+        }
+    };
+
+    let mut partial_sigs = Vec::<Scalar>::with_capacity(requests.len());
+
+    for (nonce_index, message) in requests {
+        let signing_session = {
+            let mut _dkg_directory = dkg_directory.lock().await;
+            match _dkg_directory.signing_session(message, nonce_index) {
+                Some(directory) => directory,
+                None => return None,
+            }
+        };
+
+        match signing_session.partial_sign(keys.secret_key()) {
+            Some(partial_sig) => partial_sigs.push(partial_sig),
+            None => return None,
+        };
+    }
+
+    let response_payload = match serde_json::to_vec(&partial_sigs) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
+
+    let response_package = {
+        let kind = PackageKind::RequestPartialSigs;
+        TCPPackage::new(kind, timestamp, &response_payload)
+    };
+
+    Some(response_package)
 }

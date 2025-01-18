@@ -42,7 +42,7 @@ pub trait TCPClient {
     async fn request_partial_sigs(
         &self,
         dir_height: u64,
-        requests: Vec<(u64, [u8; 32])>,
+        requests: &Vec<(u64, [u8; 32])>,
     ) -> Result<Vec<Scalar>, RequestError>;
 }
 
@@ -307,9 +307,9 @@ impl TCPClient for PEER {
     async fn request_partial_sigs(
         &self,
         dir_height: u64,
-        requests: Vec<(u64, [u8; 32])>,
+        requests: &Vec<(u64, [u8; 32])>,
     ) -> Result<Vec<Scalar>, RequestError> {
-        let payload_object = (dir_height, requests);
+        let payload_object = (dir_height, requests.to_owned());
         let payload =
             serde_json::to_vec(&payload_object).map_err(|_| RequestError::InvalidRequest)?;
 
