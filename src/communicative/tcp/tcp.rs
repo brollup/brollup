@@ -40,7 +40,7 @@ pub async fn open_port() -> bool {
 
 pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
     let addr = format!("{}:{}", ip_address, baked::PORT);
-    let timeout = tokio::time::sleep(Duration::from_secs(3));
+    let timeout = tokio::time::sleep(Duration::from_millis(3_000));
     let connect = TcpStream::connect(&addr);
 
     tokio::select! {

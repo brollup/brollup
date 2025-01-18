@@ -28,8 +28,7 @@ impl DKGManager {
             setup_db,
         })?;
 
-        let manager = Arc::new(Mutex::new(manager_));
-        Some(manager)
+        Some(Arc::new(Mutex::new(manager_)))
     }
 
     pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {

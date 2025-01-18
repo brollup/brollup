@@ -25,10 +25,23 @@ pub enum DKGSetupError {
     ManagerInsertionErr,
 }
 
+#[derive(Clone, Debug)]
+pub enum DKGSigningError {
+    DirectoryNotFound,
+    RetrievePeersError,
+    BelowThresholdPeers,
+}
+
 #[async_trait]
 pub trait DKGOps {
     async fn run_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
     async fn run_preprocessing(&self, peer_manager: &mut PEER_MANAGER);
+    async fn run_signing(
+        &self,
+        peer_manager: &mut PEER_MANAGER,
+        dir_height: u64,
+        messages: Vec<[u8; 32]>,
+    ) -> Result<Vec<[u8; 64]>, DKGSigningError>;
 }
 
 #[async_trait]
@@ -178,6 +191,49 @@ impl DKGOps for DKG_MANAGER {
             });
         }
     }
+
+    async fn run_signing(
+        &self,
+        peer_manager: &mut PEER_MANAGER,
+        dir_height: u64,
+        messages: Vec<[u8; 32]>,
+    ) -> Result<Vec<[u8; 64]>, DKGSigningError> {
+        let mut signatures = Vec::<[u8; 64]>::new();
+
+        let dkg_directory: DKG_DIRECTORY = {
+            let _dkg_manager = self.lock().await;
+            match _dkg_manager.directory(dir_height) {
+                Some(directory) => directory,
+                None => return Err(DKGSigningError::DirectoryNotFound),
+            }
+        };
+
+        let operator_keys: Vec<[u8; 32]> = {
+            let _dkg_directory = dkg_directory.lock().await;
+            match _dkg_directory.setup().signatories().into_xpoint_vec() {
+                Ok(vec) => vec,
+                Err(_) => panic!("signatory keys into_xpoint_vec"),
+            }
+        };
+
+        let operator_peers: Vec<PEER> = {
+            // #5 Return operator peers.
+            let peers: Vec<PEER> = match {
+                let _peer_manager = peer_manager.lock().await;
+                _peer_manager.retrieve_peers(&operator_keys)
+            } {
+                Some(peers) => peers,
+                None => return Err(DKGSigningError::RetrievePeersError),
+            };
+
+            match peers.len() >= (operator_keys.len() / 2 + 1) {
+                true => peers,
+                false => return Err(DKGSigningError::BelowThresholdPeers),
+            }
+        };
+
+        Ok(signatures)
+    }
 }
 
 pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
@@ -192,19 +248,19 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
     let dir_height = setup.height();
 
     // #3 Return operator keys.
-    let operator_keys = match setup.signatories().into_xpoint_vec() {
+    let operator_keys: Vec<[u8; 32]> = match setup.signatories().into_xpoint_vec() {
         Ok(vec) => vec,
         Err(_) => panic!("signatory keys into_xpoint_vec"),
     };
 
-    let operator_peers = loop {
+    let operator_peers: Vec<PEER> = loop {
         // #4 Connect to operator peers.
         peer_manager
             .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
             .await;
 
         // #5 Return operator peers.
-        let operator_peers: Vec<PEER> = match {
+        let peers: Vec<PEER> = match {
             let _peer_manager = peer_manager.lock().await;
             _peer_manager.retrieve_peers(&operator_keys)
         } {
@@ -212,9 +268,12 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             None => return,
         };
 
-        match operator_peers.len() >= operator_keys.len() / 4 {
-            true => break operator_peers,
-            false => continue,
+        match peers.len() >= (operator_keys.len() / 2 + 1) {
+            true => break peers,
+            false => {
+                tokio::time::sleep(Duration::from_millis(1_000)).await;
+                continue;
+            }
         }
     };
 

@@ -33,7 +33,7 @@ impl NNSClient {
                 .fetch_events_from(
                     relay::DEFAULT_RELAY_LIST,
                     vec![filter],
-                    Some(Duration::from_secs(5)),
+                    Some(Duration::from_millis(5_000)),
                 )
                 .await
         };
