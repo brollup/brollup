@@ -1,7 +1,10 @@
 use crate::{
     into::{IntoPointByteVec, IntoPointVec},
     liquidity,
-    noist::{dkg::session::DKGSession, setup::setup::VSESetup},
+    noist::{
+        dkg::{directory::SigningSession, session::DKGSession},
+        setup::setup::VSESetup,
+    },
     peer::PeerConnection,
     peer_manager::PeerManagerExt,
     tcp::client::TCPClient,
@@ -28,8 +31,9 @@ pub enum DKGSetupError {
 #[derive(Clone, Debug)]
 pub enum DKGSigningError {
     DirectoryNotFound,
-    RetrievePeersError,
+    RetrievePeersErr,
     BelowThresholdPeers,
+    PickSigningSessionErr,
 }
 
 #[async_trait]
@@ -208,7 +212,7 @@ impl DKGOps for DKG_MANAGER {
             }
         };
 
-        let operator_keys: Vec<[u8; 32]> = {
+        let operator_keys = {
             let _dkg_directory = dkg_directory.lock().await;
             match _dkg_directory.setup().signatories().into_xpoint_vec() {
                 Ok(vec) => vec,
@@ -223,7 +227,7 @@ impl DKGOps for DKG_MANAGER {
                 _peer_manager.retrieve_peers(&operator_keys)
             } {
                 Some(peers) => peers,
-                None => return Err(DKGSigningError::RetrievePeersError),
+                None => return Err(DKGSigningError::RetrievePeersErr),
             };
 
             match peers.len() >= (operator_keys.len() / 2 + 1) {
@@ -231,6 +235,20 @@ impl DKGOps for DKG_MANAGER {
                 false => return Err(DKGSigningError::BelowThresholdPeers),
             }
         };
+
+        let mut signing_sessions = Vec::<SigningSession>::with_capacity(messages.len());
+        let mut signing_requests = Vec::<(u64, [u8; 32])>::with_capacity(signing_sessions.len()); // Nonce index, message.
+
+        for message in messages.iter() {
+            let mut _dkg_directory = dkg_directory.lock().await;
+            let signing_session = match _dkg_directory.pick_signing_session(message.to_owned()) {
+                Some(session) => session,
+                None => return Err(DKGSigningError::PickSigningSessionErr),
+            };
+
+            signing_requests.push((signing_session.nonce_index(), message.to_owned()));
+            signing_sessions.push(signing_session);
+        }
 
         Ok(signatures)
     }
@@ -248,7 +266,7 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
     let dir_height = setup.height();
 
     // #3 Return operator keys.
-    let operator_keys: Vec<[u8; 32]> = match setup.signatories().into_xpoint_vec() {
+    let operator_keys = match setup.signatories().into_xpoint_vec() {
         Ok(vec) => vec,
         Err(_) => panic!("signatory keys into_xpoint_vec"),
     };

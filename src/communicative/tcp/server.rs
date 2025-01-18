@@ -261,6 +261,15 @@ async fn handle_package(
                         dkg_manager,
                     )
                     .await
+                }
+
+                PackageKind::RequestPartialSigs => {
+                    handle_request_partial_sigs(
+                        package.timestamp(),
+                        &package.payload(),
+                        dkg_manager,
+                    )
+                    .await
                 } //_ => return,
             },
             OperatingMode::Node => return,
@@ -449,16 +458,8 @@ async fn handle_deliver_dkg_sessions(
         return None;
     }
 
-    let dir_height_bytes = &payload[..8];
-    let dkg_sessions_bytes = &payload[8..];
-
-    let dir_height = match dir_height_bytes.try_into() {
-        Ok(bytes) => u64::from_le_bytes(bytes),
-        Err(_) => return None,
-    };
-
-    let dkg_sessions: Vec<DKGSession> = match serde_json::from_slice(&dkg_sessions_bytes) {
-        Ok(sessions) => sessions,
+    let (dir_height, dkg_sessions): (u64, Vec<DKGSession>) = match serde_json::from_slice(payload) {
+        Ok(tuple) => tuple,
         Err(_) => return None,
     };
 
@@ -485,4 +486,22 @@ async fn handle_deliver_dkg_sessions(
     };
 
     Some(response_package)
+}
+
+async fn handle_request_partial_sigs(
+    timestamp: i64,
+    payload: &[u8],
+    dkg_manager: &mut DKG_MANAGER,
+) -> Option<TCPPackage> {
+    if payload.len() <= 8 {
+        return None;
+    }
+
+    let (dir_height, requests): (u64, Vec<(u64, [u8; 32])>) = match serde_json::from_slice(payload)
+    {
+        Ok(tuple) => tuple,
+        Err(_) => return None,
+    };
+
+    None
 }

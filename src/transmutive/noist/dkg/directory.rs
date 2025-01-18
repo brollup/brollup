@@ -197,13 +197,19 @@ impl DKGDirectory {
     }
 
     pub fn pick_signing_session(&mut self, message: [u8; 32]) -> Option<SigningSession> {
-        let fresh_index = self.pick_index()?;
+        self.signing_session(message, self.pick_index()?)
+    }
 
+    pub fn signing_session(
+        &mut self,
+        message: [u8; 32],
+        nonce_index: u64,
+    ) -> Option<SigningSession> {
         let group_key_session = self.group_key_session()?;
-        let group_nonce_session = self.group_nonce_session(fresh_index)?;
+        let group_nonce_session = self.group_nonce_session(nonce_index)?;
 
         let group_key = self.group_key()?;
-        let group_nonce = self.group_nonce(group_nonce_session.index(), message)?;
+        let group_nonce = self.group_nonce(nonce_index, message)?;
 
         let signing_session = SigningSession::new(
             &group_key_session,
@@ -213,7 +219,7 @@ impl DKGDirectory {
             message,
         )?;
 
-        self.remove_session(fresh_index);
+        self.remove_session(nonce_index);
 
         Some(signing_session)
     }
@@ -261,7 +267,7 @@ impl SigningSession {
         Some(session)
     }
 
-    pub fn index(&self) -> u64 {
+    pub fn nonce_index(&self) -> u64 {
         self.group_nonce_session.index()
     }
 

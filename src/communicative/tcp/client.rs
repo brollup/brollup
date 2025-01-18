@@ -10,6 +10,7 @@ use crate::schnorr::Authenticable;
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
+use secp::Scalar;
 use std::time::Duration;
 
 #[async_trait]
@@ -24,7 +25,7 @@ pub trait TCPClient {
 
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
 
-    async fn retrieve_vse_setup(&self, setup_no: u64) -> Result<VSESetup, RequestError>;
+    async fn retrieve_vse_setup(&self, dir_height: u64) -> Result<VSESetup, RequestError>;
 
     async fn request_dkg_packages(
         &self,
@@ -37,6 +38,12 @@ pub trait TCPClient {
         dir_height: u64,
         dkg_sessions: Vec<DKGSession>,
     ) -> Result<(), RequestError>;
+
+    async fn request_partial_sigs(
+        &self,
+        dir_height: u64,
+        requests: Vec<(u64, [u8; 32])>,
+    ) -> Result<Vec<Scalar>, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -161,12 +168,12 @@ impl TCPClient for PEER {
 
     // This is a coordinator or the operator asking from another peer
     // about the vse setup in case they lost their local copy.
-    async fn retrieve_vse_setup(&self, setup_no: u64) -> Result<VSESetup, RequestError> {
+    async fn retrieve_vse_setup(&self, dir_height: u64) -> Result<VSESetup, RequestError> {
         // Build request package.
         let request_package = {
             let kind = PackageKind::RetrieveVSESetup;
             let timestamp = Utc::now().timestamp();
-            let payload = setup_no.to_be_bytes();
+            let payload = dir_height.to_be_bytes();
             TCPPackage::new(kind, timestamp, &payload)
         };
 
@@ -260,14 +267,9 @@ impl TCPClient for PEER {
         dir_height: u64,
         dkg_sessions: Vec<DKGSession>,
     ) -> Result<(), RequestError> {
-        let dir_height_bytes = dir_height.to_be_bytes();
-
-        let dkg_sessions_bytes =
-            serde_json::to_vec(&dkg_sessions).map_err(|_| RequestError::InvalidRequest)?;
-
-        let mut payload = Vec::<u8>::with_capacity(8 + dkg_sessions_bytes.len());
-        payload.extend(dir_height_bytes);
-        payload.extend(dkg_sessions_bytes);
+        let payload_object = (dir_height, dkg_sessions);
+        let payload =
+            serde_json::to_vec(&payload_object).map_err(|_| RequestError::InvalidRequest)?;
 
         // Build request package.
         let request_package = {
@@ -283,8 +285,8 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Timeout 3 seconds.
-        let timeout = Duration::from_millis(3_000);
+        // Timeout 1500 milliseconds.
+        let timeout = Duration::from_millis(1_500);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
@@ -300,5 +302,46 @@ impl TCPClient for PEER {
             [0x00u8] => return Err(RequestError::ErrorResponse),
             _ => return Err(RequestError::InvalidResponse),
         }
+    }
+
+    async fn request_partial_sigs(
+        &self,
+        dir_height: u64,
+        requests: Vec<(u64, [u8; 32])>,
+    ) -> Result<Vec<Scalar>, RequestError> {
+        let payload_object = (dir_height, requests);
+        let payload =
+            serde_json::to_vec(&payload_object).map_err(|_| RequestError::InvalidRequest)?;
+
+        // Build request package.
+        let request_package = {
+            let kind = PackageKind::RequestPartialSigs;
+            let timestamp = Utc::now().timestamp();
+            let payload = payload;
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // Timeout: 1 second.
+        let timeout = Duration::from_millis(1_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let partial_sigs: Vec<Scalar> =
+            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+
+        Ok(partial_sigs)
     }
 }

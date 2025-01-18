@@ -125,7 +125,7 @@ mod noist_tests {
 
         let group_key = dkg_directory.group_key().unwrap().serialize_xonly();
 
-        // Sign 4 messahes by consuming the 4 nonce sessions.
+        // Sign 4 messages by consuming the 4 nonce sessions.
         for i in 0..4 {
             let message = format!("Signing our {}th joint message!", i)
                 .as_bytes()
