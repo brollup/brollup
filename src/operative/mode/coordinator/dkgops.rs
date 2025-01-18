@@ -15,8 +15,6 @@ use tokio::sync::Mutex;
 const NONCE_POOL_THRESHOLD: u64 = 512;
 const NONCE_POOL_FILL: u64 = 64;
 
-const MIN_PEERS: u64 = 3;
-
 #[derive(Clone, Debug)]
 pub enum DKGSetupError {
     PeerRetrievalErr,
@@ -58,7 +56,7 @@ impl DKGOps for DKG_MANAGER {
         };
 
         // #4 Check if there are enough peer connections.
-        if lp_peers.len() <= lp_keys.len() / 10 {
+        if lp_peers.len() <= lp_keys.len() / 20 {
             return Err(DKGSetupError::InsufficientPeers);
         }
 
@@ -213,7 +211,7 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             None => return,
         };
 
-        match operator_peers.len() >= MIN_PEERS as usize {
+        match operator_peers.len() >= operator_keys.len() / 4 {
             true => break operator_peers,
             false => continue,
         }
