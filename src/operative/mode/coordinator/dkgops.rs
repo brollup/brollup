@@ -19,6 +19,7 @@ const NONCE_POOL_FILL: u64 = 64;
 pub enum DKGSetupError {
     PeerRetrievalErr,
     InsufficientPeers,
+    InsufficientKeymaps,
     PreSetupInitErr,
     PostSetupVerifyErr,
     ManagerInsertionErr,
@@ -26,13 +27,13 @@ pub enum DKGSetupError {
 
 #[async_trait]
 pub trait DKGOps {
-    async fn run_new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
+    async fn run_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError>;
     async fn run_preprocessing(&self, peer_manager: &mut PEER_MANAGER);
 }
 
 #[async_trait]
 impl DKGOps for DKG_MANAGER {
-    async fn run_new_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError> {
+    async fn run_setup(&self, peer_manager: &mut PEER_MANAGER) -> Result<u64, DKGSetupError> {
         // #1 Pick a setup number.
         let dir_height = {
             let _dkg_manager = self.lock().await;
@@ -105,8 +106,8 @@ impl DKGOps for DKG_MANAGER {
         };
 
         // #9 Check if there are enough number of keymaps.
-        if vse_setup.map().len() <= lp_peers.len() / 2 {
-            return Err(DKGSetupError::InsufficientPeers);
+        if vse_setup.map_len() <= lp_peers.len() / 2 {
+            return Err(DKGSetupError::InsufficientKeymaps);
         }
 
         // #10 Remove liquidity providers that failed to connect.

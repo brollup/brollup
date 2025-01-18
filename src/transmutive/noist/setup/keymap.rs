@@ -112,7 +112,10 @@ impl VSEKeyMap {
     }
 
     pub fn remove_signatory(&mut self, signatory: &Point) -> bool {
-        println!("keymap remove_signatory: {}", hex::encode(signatory.serialize_xonly()));
+        println!(
+            "keymap remove_signatory: {}",
+            hex::encode(signatory.serialize_xonly())
+        );
         match self.map.remove(signatory) {
             Some(_) => return true,
             None => return false,

@@ -52,6 +52,10 @@ impl VSESetup {
         self.map.clone()
     }
 
+    pub fn map_len(&self) -> usize {
+        self.map.len()
+    }
+
     pub fn insert_keymap(&mut self, keymap: VSEKeyMap) -> bool {
         if self.signatories.contains(&keymap.signatory()) {
             if let None = self.map.get(&keymap.signatory()) {
