@@ -39,10 +39,23 @@ async fn dir_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
     };
 
     let _dkg_directory = dkg_directory.lock().await;
-    println!("Setup: ");
-    _dkg_directory.setup().print();
 
-    println!("Sessions count: {}", _dkg_directory.available_sessions());
+    let group_key = match _dkg_directory.group_key() {
+        Some(point) => hex::encode(point.serialize_xonly()),
+        None => "-".to_string(),
+    };
+
+    let index_pick = match _dkg_directory.pick_index() {
+        Some(pick) => pick.to_string(),
+        None => "-".to_string(),
+    };
+
+    println!("Group key    : {}", group_key);
+    println!("Avb sessions : {}", _dkg_directory.available_sessions());
+    println!("Index height : {}", _dkg_directory.index_height());
+    println!("Index pick   : {}", index_pick);
+    println!("Setup        : ");
+    _dkg_directory.setup().print();
 }
 
 async fn dir_new_run(peer_manager: &mut PEER_MANAGER, dkg_manager: &DKG_MANAGER) {
