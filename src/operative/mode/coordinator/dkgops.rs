@@ -29,7 +29,7 @@ pub enum DKGSetupError {
 }
 
 #[derive(Clone, Debug)]
-pub enum DKGSigningError {
+pub enum DKGSignError {
     DirectoryNotFound,
     RetrievePeersErr,
     BelowThresholdPeers,
@@ -46,7 +46,7 @@ pub trait DKGOps {
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
         messages: Vec<[u8; 32]>,
-    ) -> Result<Vec<[u8; 64]>, DKGSigningError>;
+    ) -> Result<Vec<[u8; 64]>, DKGSignError>;
 }
 
 #[async_trait]
@@ -202,7 +202,7 @@ impl DKGOps for DKG_MANAGER {
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
         messages: Vec<[u8; 32]>,
-    ) -> Result<Vec<[u8; 64]>, DKGSigningError> {
+    ) -> Result<Vec<[u8; 64]>, DKGSignError> {
         // #1 Initialize full signatures list.
         let mut full_signatures = Vec::<[u8; 64]>::new();
 
@@ -211,7 +211,7 @@ impl DKGOps for DKG_MANAGER {
             let _dkg_manager = self.lock().await;
             match _dkg_manager.directory(dir_height) {
                 Some(directory) => directory,
-                None => return Err(DKGSigningError::DirectoryNotFound),
+                None => return Err(DKGSignError::DirectoryNotFound),
             }
         };
 
@@ -231,12 +231,12 @@ impl DKGOps for DKG_MANAGER {
                 _peer_manager.retrieve_peers(&operator_keys)
             } {
                 Some(peers) => peers,
-                None => return Err(DKGSigningError::RetrievePeersErr),
+                None => return Err(DKGSignError::RetrievePeersErr),
             };
 
             match peers.len() >= (operator_keys.len() / 2 + 1) {
                 true => peers,
-                false => return Err(DKGSigningError::BelowThresholdPeers),
+                false => return Err(DKGSignError::BelowThresholdPeers),
             }
         };
 
@@ -249,7 +249,7 @@ impl DKGOps for DKG_MANAGER {
             let mut _dkg_directory = dkg_directory.lock().await;
             let signing_session = match _dkg_directory.pick_signing_session(message.to_owned()) {
                 Some(session) => session,
-                None => return Err(DKGSigningError::PickSigningSessionErr),
+                None => return Err(DKGSignError::PickSigningSessionErr),
             };
 
             signing_requests.push((signing_session.nonce_index(), message.to_owned()));
@@ -312,7 +312,7 @@ impl DKGOps for DKG_MANAGER {
         for signing_session in signing_sessions {
             let full_sig = match signing_session.full_aggregated_sig_bytes() {
                 Some(sig) => sig,
-                None => return Err(DKGSigningError::AggSigErr),
+                None => return Err(DKGSignError::AggSigErr),
             };
             full_signatures.push(full_sig);
         }
