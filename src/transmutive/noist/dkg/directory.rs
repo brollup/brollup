@@ -191,7 +191,7 @@ impl DKGDirectory {
         self.sessions.len() as u64
     }
 
-    fn pick_index(&mut self) -> Option<u64> {
+    pub fn pick_index(&self) -> Option<u64> {
         let index = self.sessions.keys().filter(|&&key| key != 0).min()?;
         Some(index.to_owned())
     }
