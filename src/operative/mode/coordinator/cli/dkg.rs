@@ -2,38 +2,76 @@ use crate::{dkgops::DKGOps, DKG_DIRECTORY, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 
 // dkg dir new
-// dkg dir <no>
+// dkg dir <height> info
+// dkg dir <height> sign <msg>
 // dkg dirs
 pub async fn command(
     parts: Vec<&str>,
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &mut DKG_MANAGER,
 ) {
-    if parts.len() < 2 {
-        return eprintln!("Incorrect usage.");
-    }
+    match parts.get(1) {
+        Some(part) => match part.to_owned() {
+            "dir" => match parts.get(2) {
+                Some(part) => match part.to_owned() {
+                    "new" => dir_new_run(peer_manager, dkg_manager).await,
+                    _ => {
+                        let height = match part.to_owned().parse::<u64>() {
+                            Ok(height) => height,
+                            Err(_) => return eprintln!("Invalid <height>."),
+                        };
 
-    match parts[1] {
-        "dir" => match parts[2] {
-            "new" => dir_new_run(peer_manager, dkg_manager).await,
-            _ => {
-                let no = match parts[2].parse::<u64>() {
-                    Ok(no) => no,
-                    Err(_) => return eprintln!("Invalid <no>."),
-                };
-                dir_no_print(dkg_manager, no).await;
-            }
+                        match parts.get(3) {
+                            Some(part) => match part.to_owned() {
+                                "info" => dir_height_info(dkg_manager, height).await,
+                                "sign" => match parts.get(4) {
+                                    Some(part) => {
+                                        let msg: [u8; 32] = match hex::decode(part.to_owned()) {
+                                            Ok(bytes) => match bytes.try_into() {
+                                                Ok(bytes) => bytes,
+                                                Err(_) => return eprintln!("Invalid <msg>."),
+                                            },
+                                            Err(_) => return eprintln!("Invalid <msg>."),
+                                        };
+
+                                        match dkg_manager
+                                            .sign(peer_manager, height, vec![msg])
+                                            .await
+                                        {
+                                            Ok(sig) => {
+                                                println!(
+                                                    "Signature: {}",
+                                                    hex::encode(sig[0]).green()
+                                                )
+                                            }
+
+                                            Err(err) => {
+                                                return eprintln!("Error signing: {:?}", err)
+                                            }
+                                        }
+                                    }
+                                    None => return eprintln!("Incorrect usage."),
+                                },
+                                _ => return eprintln!("Incorrect usage."),
+                            },
+                            None => return eprintln!("Incorrect usage."),
+                        }
+                    }
+                },
+                None => return eprintln!("Incorrect usage."),
+            },
+
+            "dirs" => dirs_print(dkg_manager).await,
+            _ => return eprintln!("Incorrect usage."),
         },
-
-        "dirs" => dirs_print(dkg_manager).await,
-        _ => return eprintln!("Incorrect usage."),
+        None => return eprintln!("Incorrect usage."),
     }
 }
 
-async fn dir_no_print(dkg_manager: &DKG_MANAGER, no: u64) {
+async fn dir_height_info(dkg_manager: &DKG_MANAGER, height: u64) {
     let _dkg_manager = dkg_manager.lock().await;
 
-    let dkg_directory: DKG_DIRECTORY = match _dkg_manager.directory(no) {
+    let dkg_directory: DKG_DIRECTORY = match _dkg_manager.directory(height) {
         Some(directory) => directory,
         None => return eprintln!("Setup not found."),
     };
@@ -76,8 +114,12 @@ async fn dirs_print(dkg_manager: &DKG_MANAGER) {
         _dkg_manager.directories().clone()
     };
 
-    println!("Printing DKG dirs..");
-    for (dir_height, _) in dirs {
-        println!("Dir height: {}", dir_height);
+    match dirs.len() {
+        0 => println!("None."),
+        _ => {
+            for (dir_height, _) in dirs {
+                println!("DKG dir #{}", dir_height);
+            }
+        }
     }
 }
