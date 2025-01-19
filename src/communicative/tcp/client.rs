@@ -320,7 +320,7 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // 500 ms base plus 15 ms for each requested package.
+        // 500 ms base plus 15 ms for each requested signature.
         let timeout = Duration::from_millis(500 + requests_len * 15);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))

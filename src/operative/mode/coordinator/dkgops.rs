@@ -35,6 +35,7 @@ pub enum DKGSignError {
     BelowThresholdPeers,
     PickSigningSessionErr,
     AggSigErr,
+    PartialSignTimeout,
 }
 
 #[async_trait]
@@ -298,26 +299,40 @@ impl DKGOps for DKG_MANAGER {
             }
         }
 
-        loop {
-            let all_above_threshold = {
-                let signing_sessions = signing_sessions_.lock().await;
-                signing_sessions.iter().all(|session| session.is_above_threshold())
-            };
-        
-            if all_above_threshold {
-                break;
-            }
-        
-            tokio::time::sleep(Duration::from_millis(100)).await;
+        // #9 Check if the threshold is met among all sessions.
+        tokio::select! {
+            // Timeout is 500 ms base plus 15 ms for each requested signature.
+            _ = tokio::time::sleep( Duration::from_millis(500 + (signing_requests.len() as u64) * 15)) => {
+                return Err(DKGSignError::PartialSignTimeout);
+            },
+
+            _ = async {
+                loop {
+                    let all_above_threshold = {
+                        let signing_sessions = signing_sessions_.lock().await;
+                        signing_sessions
+                            .iter()
+                            .all(|session| session.is_threshold_met())
+                    };
+
+                    if all_above_threshold {
+                        // Exit the loop if the threshold is met
+                        break;
+                    }
+
+                    // Small sleep to avoid busy-looping
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+            } => {}
         }
 
-        // #9 Return signing sessions.
+        // #10 Return signing sessions.
         let signing_sessions = {
             let _signing_sessions_ = signing_sessions_.lock().await;
             (*_signing_sessions_).clone()
         };
 
-        // #10 Fill full signatures.
+        // #11 Fill full signatures.
         for signing_session in signing_sessions {
             let full_sig = match signing_session.full_aggregated_sig_bytes() {
                 Some(sig) => sig,
@@ -326,7 +341,7 @@ impl DKGOps for DKG_MANAGER {
             full_signatures.push(full_sig);
         }
 
-        // # 11 Return full signatures.
+        // # 12 Return full signatures.
         Ok(full_signatures)
     }
 }

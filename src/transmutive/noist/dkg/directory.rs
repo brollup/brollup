@@ -385,7 +385,7 @@ impl SigningSession {
         false
     }
 
-    pub fn is_above_threshold(&self) -> bool {
+    pub fn is_threshold_met(&self) -> bool {
         let threshold = (self.group_key_session.signatories().len() / 2) + 1;
         self.partial_sigs.len() >= threshold
     }

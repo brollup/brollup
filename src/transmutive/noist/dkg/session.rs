@@ -127,7 +127,7 @@ impl DKGSession {
     }
 
     pub fn verify(&self, vse_setup: &VSESetup) -> bool {
-        if !self.is_above_threshold() {
+        if !self.is_threshold_met() {
             return false;
         }
 
@@ -170,7 +170,7 @@ impl DKGSession {
 
     /// Checks whether there are enough number of DKG packages based on the
     /// same threshold value required to produce a valid digital signature.
-    pub fn is_above_threshold(&self) -> bool {
+    pub fn is_threshold_met(&self) -> bool {
         let threshold = (self.signatories.len() / 2) + 1;
         self.packages.len() >= threshold
     }
