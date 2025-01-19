@@ -593,7 +593,5 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
                 }
             }
         }
-
-        tokio::time::sleep(Duration::from_millis(1_000)).await;
     }
 }
