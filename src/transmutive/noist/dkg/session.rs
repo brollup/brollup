@@ -439,9 +439,7 @@ impl Sighash for DKGSession {
             preimage.extend(signatory.serialize_xonly());
         }
 
-        let packages = self.ordered_packages();
-
-        for (signatory, package) in packages.iter() {
+        for (signatory, package) in self.ordered_packages().iter() {
             preimage.extend(signatory.serialize_xonly());
             preimage.extend(package.sighash());
         }

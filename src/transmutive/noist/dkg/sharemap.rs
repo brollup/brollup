@@ -225,7 +225,7 @@ impl Sighash for DKGShareMap {
             preimage.extend(vss_commitment.serialize_uncompressed());
         }
 
-        for share in self.shares.iter() {
+        for share in self.ordered_shares().iter() {
             preimage.extend(share.0.serialize_xonly());
             preimage.extend(share.1 .0.serialize_uncompressed());
             preimage.extend(share.1 .1.serialize());

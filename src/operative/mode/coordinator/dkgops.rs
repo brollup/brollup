@@ -388,8 +388,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
     };
 
     'preprocess_iter: loop {
-        println!("preprocess iter h: {}", dir_height);
-
         // #1 Return the number of available DKG sessions.
         let num_available_sessions = {
             let _dkg_directory = dkg_directory.lock().await;
@@ -411,15 +409,11 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             }
         };
 
-        println!("is_key_session: {}", is_key_session);
-
         // #4 Determine number of DKG sessions to be filled.
         let fill_count = match is_key_session {
             true => 1,
             false => NONCE_POOL_FILL,
         };
-
-        println!("fill_count: {}", fill_count);
 
         // #5 Initialize DKG sessions to fill.
         let dkg_sessions = {
@@ -439,7 +433,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
 
             Arc::new(Mutex::new(dkg_sessions))
         };
-        println!("ara 5");
 
         // #6 Fill DKG sessions with retrieved DKG packages.
         {
@@ -453,18 +446,11 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
                 tasks.push(tokio::spawn(async move {
                     let auth_packages =
                         match peer.request_dkg_packages(dir_height, fill_count).await {
-                            Ok(packages) => {
-                                println!("paketler geldi.");
-                                packages
-                            }
-                            Err(_) => {
-                                println!("paketler gelmedi.");
-                                return;
-                            }
+                            Ok(packages) => packages,
+                            Err(_) => return,
                         };
 
                     if auth_packages.len() != fill_count as usize {
-                        println!("paketlerin len ayni deilmis.");
                         return;
                     }
 
@@ -476,17 +462,7 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
 
                         {
                             let mut _dkg_session = dkg_session.lock().await;
-                            if _dkg_session.insert(&auth_package, &setup) {
-                                println!(
-                                    "package from {} insert true",
-                                    hex::encode(auth_package.key())
-                                );
-                            } else {
-                                println!(
-                                    "package from {} insert false",
-                                    hex::encode(auth_package.key())
-                                );
-                            }
+                            _dkg_session.insert(&auth_package, &setup);
                         }
                     }
                 }));
@@ -504,7 +480,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
         // #8 Initialize final DKG sessions list.
         let mut final_dkg_sessions = Vec::<DKGSession>::new();
 
-        println!("ara 8");
         // #9 Insert DKG sessions to the directory.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
@@ -522,8 +497,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             }
         }
 
-        println!("final_dkg_sessions len is: {}", final_dkg_sessions.len());
-
         // #10 Check valid DKG sessions length.
         if final_dkg_sessions.len() == 0 {
             // todo
@@ -532,7 +505,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             continue 'preprocess_iter;
         }
 
-        println!("ara 9");
         // #11 Deliver DKG sessions.
         {
             let mut tasks = vec![];
