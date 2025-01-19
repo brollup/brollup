@@ -55,6 +55,7 @@ pub enum RequestError {
 
 #[async_trait]
 impl TCPClient for PEER {
+    /// Pinging.
     async fn ping(&self) -> Result<Duration, RequestError> {
         let payload = [0x00u8];
 
@@ -91,7 +92,8 @@ impl TCPClient for PEER {
         Ok(duration)
     }
 
-    // This is when the coordinator asks each operators to return their vse keymaps.
+    /// This is during setup, the coordinator
+    /// asking the operators their VSE keymap.
     async fn request_vse_keymap(
         &self,
         signatory_keys: &Vec<[u8; 32]>,
@@ -133,8 +135,8 @@ impl TCPClient for PEER {
         Ok(keymap)
     }
 
-    // This is when the coordinator publishes each operator the new vse directory.
-    // Likely after retrieve_vse_keymap.
+    /// This is during setup, the coordinator delivering VSE setup
+    /// to the operators after collecting individual VSE keymaps from them.
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError> {
         let payload = vse_setup.serialize();
 
@@ -170,8 +172,8 @@ impl TCPClient for PEER {
         }
     }
 
-    // This is a coordinator or the operator asking from another peer
-    // about the vse setup in case they lost their local copy.
+    /// This is the coordinator or an operator asking from another peer
+    /// about the VSE setup in case they lost their local copy.
     async fn retrieve_vse_setup(&self, dir_height: u64) -> Result<VSESetup, RequestError> {
         let payload = serde_json::to_vec(&dir_height).map_err(|_| RequestError::InvalidRequest)?;
 
@@ -208,7 +210,8 @@ impl TCPClient for PEER {
         Ok(vse_setup)
     }
 
-    // This is coordinator requesting operators new auth DKG packages.
+    /// This is during preprocessing, the coordinator requesting
+    /// DKG package contributions from the operators.
     async fn request_dkg_packages(
         &self,
         setup_no: u64,
@@ -230,8 +233,8 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // 1 second base plus 10 ms for each requested package.
-        let timeout = Duration::from_millis(1_000 + package_count * 10);
+        // 1000ms base plus 15 ms for each requested package.
+        let timeout = Duration::from_millis(1_000 + package_count * 15);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
@@ -248,11 +251,15 @@ impl TCPClient for PEER {
         Ok(auth_packages)
     }
 
+    /// This is during preprocessing, the coordinator relaying DKG sessions
+    /// to the operators after collecting individual DKG packages from them.
     async fn deliver_dkg_sessions(
         &self,
         dir_height: u64,
         dkg_sessions: Vec<DKGSession>,
     ) -> Result<(), RequestError> {
+        let dkg_sessions_len = dkg_sessions.len() as u64;
+
         let payload = serde_json::to_vec(&(dir_height, dkg_sessions))
             .map_err(|_| RequestError::InvalidRequest)?;
 
@@ -269,8 +276,8 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Timeout 1500 milliseconds.
-        let timeout = Duration::from_millis(1_500);
+        // 1000ms base plus 15 ms for each requested package.
+        let timeout = Duration::from_millis(1_000 + dkg_sessions_len * 15);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
@@ -288,11 +295,15 @@ impl TCPClient for PEER {
         }
     }
 
+    /// This is during signing, the coordinator asking operators partial signatures
+    /// for a given list of messages along with their nonce indexes.
     async fn request_partial_sigs(
         &self,
         dir_height: u64,
         requests: &Vec<(u64, [u8; 32])>,
     ) -> Result<Vec<Scalar>, RequestError> {
+        let requests_len = requests.len() as u64;
+
         let payload = serde_json::to_vec(&(dir_height, requests.to_owned()))
             .map_err(|_| RequestError::InvalidRequest)?;
 
@@ -309,8 +320,8 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Timeout: 1 second.
-        let timeout = Duration::from_millis(1_000);
+        // 500 ms base plus 15 ms for each requested package.
+        let timeout = Duration::from_millis(500 + requests_len * 15);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await

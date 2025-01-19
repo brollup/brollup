@@ -261,8 +261,6 @@ impl DKGOps for DKG_MANAGER {
 
         // #8 Request partial signatures and fill signing sessions with them.
         {
-            let mut tasks = vec![];
-
             for peer in operator_peers {
                 let peer = Arc::clone(&peer);
                 let dir_height = dir_height.clone();
@@ -270,7 +268,7 @@ impl DKGOps for DKG_MANAGER {
                 let operator_key = peer.key().await;
                 let signing_sessions_ = Arc::clone(&signing_sessions_);
 
-                tasks.push(tokio::spawn(async move {
+                tokio::spawn(async move {
                     let partial_sigs = match peer
                         .request_partial_sigs(dir_height, &signing_requests)
                         .await
@@ -296,10 +294,21 @@ impl DKGOps for DKG_MANAGER {
                             return;
                         }
                     }
-                }));
+                });
             }
+        }
 
-            join_all(tasks).await;
+        loop {
+            let all_above_threshold = {
+                let signing_sessions = signing_sessions_.lock().await;
+                signing_sessions.iter().all(|session| session.is_above_threshold())
+            };
+        
+            if all_above_threshold {
+                break;
+            }
+        
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
         // #9 Return signing sessions.
