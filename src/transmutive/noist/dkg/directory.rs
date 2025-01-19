@@ -165,6 +165,10 @@ impl DKGDirectory {
 
         let session_index = session.index();
 
+        if let Some(_) = self.sessions.get(&session_index) {
+            return false;
+        }
+
         if let None = self.group_key_session() {
             if session_index != 0 {
                 return false;

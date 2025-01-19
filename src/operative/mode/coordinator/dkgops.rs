@@ -11,6 +11,7 @@ use crate::{
     DKG_DIRECTORY, DKG_MANAGER, DKG_SESSION, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
+use colored::Colorize;
 use futures::future::join_all;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
@@ -347,7 +348,6 @@ impl DKGOps for DKG_MANAGER {
 }
 
 pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIRECTORY) {
-    println!("run_preprocessing");
     // #1 Return VSE setup.
     let setup = {
         let _dkg_directory = dkg_directory.lock().await;
@@ -360,28 +360,46 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
     // #3 Return operator keys.
     let operator_keys = match setup.signatories().into_xpoint_vec() {
         Ok(vec) => vec,
-        Err(_) => panic!("signatory keys into_xpoint_vec"),
+        Err(_) => panic!("Unexpected into_xpoint_vec err."),
     };
 
+    // #4 Connect to operator peers and return the list.
     let operator_peers: Vec<PEER> = loop {
-        // #4 Connect to operator peers.
         peer_manager
             .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
             .await;
 
-        // #5 Return operator peers.
         let peers: Vec<PEER> = match {
             let _peer_manager = peer_manager.lock().await;
             _peer_manager.retrieve_peers(&operator_keys)
         } {
             Some(peers) => peers,
-            None => return,
+            None => {
+                eprintln!(
+                    "{}",
+                    format!(
+                        "DIR HEIGHT '{}' PREPROCESS LOG: Failed to retrieve peers. Re-trying in 5..",
+                        dir_height
+                    )
+                    .yellow()
+                );
+                tokio::time::sleep(Duration::from_millis(5_000)).await;
+                continue;
+            }
         };
 
         match peers.len() >= (operator_keys.len() / 2 + 1) {
             true => break peers,
             false => {
-                tokio::time::sleep(Duration::from_millis(1_000)).await;
+                eprintln!(
+                    "{}",
+                    format!(
+                        "DIR HEIGHT '{}' PREPROCESS LOG: Below threshold peers. Re-trying in 5..",
+                        dir_height
+                    )
+                    .yellow()
+                );
+                tokio::time::sleep(Duration::from_millis(5_000)).await;
                 continue;
             }
         }
@@ -415,72 +433,91 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             false => NONCE_POOL_FILL,
         };
 
-        // #5 Initialize DKG sessions to fill.
-        let dkg_sessions = {
-            let mut dkg_sessions = Vec::<DKG_SESSION>::with_capacity(fill_count as usize);
-            for _ in 0..fill_count {
-                let dkg_session = {
-                    let mut _dkg_directory = dkg_directory.lock().await;
+        // #5 Return DKG sessions filled.
+        let dkg_sessions: Vec<DKG_SESSION> = loop {
+            let dkg_sessions = {
+                let mut dkg_sessions = Vec::<DKG_SESSION>::with_capacity(fill_count as usize);
 
-                    match _dkg_directory.new_session_to_fill() {
-                        Some(session) => Arc::new(Mutex::new(session)),
-                        None => panic!("Unexpected new_session_to_fill err."),
-                    }
-                };
+                for _ in 0..fill_count {
+                    let dkg_session = {
+                        let mut _dkg_directory = dkg_directory.lock().await;
 
-                dkg_sessions.push(dkg_session);
-            }
-
-            Arc::new(Mutex::new(dkg_sessions))
-        };
-
-        // #6 Fill DKG sessions with retrieved DKG packages.
-        {
-            let mut tasks = vec![];
-
-            for peer in operator_peers.iter() {
-                let peer = Arc::clone(&peer);
-                let setup = setup.clone();
-                let dkg_sessions = Arc::clone(&dkg_sessions);
-
-                tasks.push(tokio::spawn(async move {
-                    let auth_packages =
-                        match peer.request_dkg_packages(dir_height, fill_count).await {
-                            Ok(packages) => packages,
-                            Err(_) => return,
-                        };
-
-                    if auth_packages.len() != fill_count as usize {
-                        return;
-                    }
-
-                    for (index, auth_package) in auth_packages.iter().enumerate() {
-                        let dkg_session = {
-                            let _dkg_sessions = dkg_sessions.lock().await;
-                            Arc::clone(&_dkg_sessions[index])
-                        };
-
-                        {
-                            let mut _dkg_session = dkg_session.lock().await;
-                            _dkg_session.insert(&auth_package, &setup);
+                        match _dkg_directory.new_session_to_fill() {
+                            Some(session) => Arc::new(Mutex::new(session)),
+                            None => panic!("Unexpected new_session_to_fill err."),
                         }
-                    }
-                }));
+                    };
+
+                    dkg_sessions.push(dkg_session);
+                }
+
+                Arc::new(Mutex::new(dkg_sessions))
+            };
+
+            {
+                let mut tasks = vec![];
+
+                for peer in operator_peers.iter() {
+                    let peer = Arc::clone(&peer);
+                    let setup = setup.clone();
+                    let dkg_sessions = Arc::clone(&dkg_sessions);
+
+                    tasks.push(tokio::spawn(async move {
+                        let auth_packages =
+                            match peer.request_dkg_packages(dir_height, fill_count).await {
+                                Ok(packages) => packages,
+                                Err(_) => return,
+                            };
+
+                        if auth_packages.len() != fill_count as usize {
+                            return;
+                        }
+
+                        for (index, auth_package) in auth_packages.iter().enumerate() {
+                            let dkg_session = {
+                                let _dkg_sessions = dkg_sessions.lock().await;
+                                Arc::clone(&_dkg_sessions[index])
+                            };
+
+                            {
+                                let mut _dkg_session = dkg_session.lock().await;
+                                _dkg_session.insert(&auth_package, &setup);
+                            }
+                        }
+                    }));
+                }
+
+                join_all(tasks).await;
             }
 
-            join_all(tasks).await;
-        }
+            let dkg_sessions: Vec<DKG_SESSION> = {
+                let _dkg_sessions = dkg_sessions.lock().await;
+                (*_dkg_sessions).clone()
+            };
 
-        // #7 Return DKG sessions.
-        let dkg_sessions: Vec<DKG_SESSION> = {
-            let _dkg_sessions = dkg_sessions.lock().await;
-            (*_dkg_sessions).clone()
+            for dkg_session in dkg_sessions.iter() {
+                let _dkg_session = dkg_session.lock().await;
+                if !_dkg_session.is_threshold_met() {
+                    eprintln!(
+                        "{}",
+                        format!(
+                            "DIR HEIGHT '{}' PREPROCESS LOG: DKG Session '{}' threshold not met. Re-trying in 5..",
+                            dir_height, _dkg_session.index()
+                        )
+                        .yellow()
+                    );
+                    tokio::time::sleep(Duration::from_millis(5_000)).await;
+                    continue;
+                }
+            }
+
+            break dkg_sessions;
         };
 
-        // #8 Initialize final DKG sessions list.
-        let mut final_dkg_sessions = Vec::<DKGSession>::new();
+        // #6 Initialize inserted DKG sessions list.
+        let mut inserted_dkg_sessions = Vec::<DKGSession>::new();
 
-        // #9 Insert DKG sessions to the directory.
+        // #7 Insert DKG sessions to the directory.
         {
             let mut _dkg_directory = dkg_directory.lock().await;
             for session in dkg_sessions.iter() {
@@ -489,41 +526,74 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
                     (*_session).clone()
                 };
 
-                if _dkg_directory.insert_session_filled(&session) {
-                    final_dkg_sessions.push(session);
-                } else {
-                    println!("dkg_directory.insert_session_filled err");
+                match _dkg_directory.insert_session_filled(&session) {
+                    true => inserted_dkg_sessions.push(session),
+                    false => {
+                        eprintln!(
+                            "{}",
+                            format!(
+                                "DIR HEIGHT '{}' PREPROCESS LOG: DKG Session '{}' insertion error. Re-iterating.",
+                                dir_height, session.index()
+                            )
+                            .yellow()
+                        );
+                        continue 'preprocess_iter;
+                    }
                 }
             }
         }
 
-        // #10 Check valid DKG sessions length.
-        if final_dkg_sessions.len() == 0 {
-            // todo
-            println!("Check valid DKG sessions length err.");
-            tokio::time::sleep(Duration::from_millis(10_000)).await;
-            continue 'preprocess_iter;
-        }
+        let num_deliveries = Arc::new(Mutex::new(0u64));
 
-        // #11 Deliver DKG sessions.
-        {
-            let mut tasks = vec![];
+        // #8 Deliver DKG sessions.
+        loop {
+            {
+                let mut tasks = vec![];
 
-            for peer in operator_peers.iter() {
-                let peer = Arc::clone(&peer);
-                let dir_height = dir_height.clone();
-                let final_dkg_sessions = final_dkg_sessions.clone();
+                for peer in operator_peers.iter() {
+                    let peer = Arc::clone(&peer);
+                    let dir_height = dir_height.clone();
+                    let final_dkg_sessions = inserted_dkg_sessions.clone();
+                    let num_deliveries = Arc::clone(&num_deliveries);
 
-                tasks.push(tokio::spawn(async move {
-                    let _ = peer
-                        .deliver_dkg_sessions(dir_height, final_dkg_sessions)
-                        .await;
-                }));
+                    tasks.push(tokio::spawn(async move {
+                        if let Ok(_) = peer
+                            .deliver_dkg_sessions(dir_height, final_dkg_sessions)
+                            .await
+                        {
+                            let mut _num_deliveries = num_deliveries.lock().await;
+                            *_num_deliveries += 1;
+                        }
+                    }));
+                }
+
+                join_all(tasks).await;
             }
 
-            join_all(tasks).await;
+            let num_deliveries = {
+                let _num_deliveries = num_deliveries.lock().await;
+                *_num_deliveries
+            };
+
+            let min_deliveries = (operator_keys.len() / 2 + 1) as u64;
+
+            match num_deliveries >= min_deliveries {
+                true => break,
+                false => {
+                    eprintln!(
+                        "{}",
+                        format!(
+                            "DIR HEIGHT '{}' PREPROCESS LOG: Delivered '{}'. MIN '{}'. Re-trying in 1..",
+                            dir_height, num_deliveries, min_deliveries
+                        )
+                        .yellow()
+                    );
+                    tokio::time::sleep(Duration::from_millis(1_000)).await;
+                    continue;
+                }
+            }
         }
-        println!("done");
-        tokio::time::sleep(Duration::from_millis(5_000)).await;
+
+        tokio::time::sleep(Duration::from_millis(1_000)).await;
     }
 }
