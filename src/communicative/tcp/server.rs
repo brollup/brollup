@@ -392,10 +392,6 @@ async fn handle_request_dkg_packages(
     dkg_manager: &DKG_MANAGER,
     keys: &KeyHolder,
 ) -> Option<TCPPackage> {
-    if payload.len() != 16 {
-        return None;
-    }
-
     let (setup_no, package_count): (u64, u64) = match serde_json::from_slice(payload) {
         Ok(tuple) => tuple,
         Err(_) => return None,

@@ -241,9 +241,17 @@ impl TCPClient for PEER {
             .map_err(|err| RequestError::TCPErr(err))?;
 
         let response_payload = match response_package.payload_len() {
-            0 => return Err(RequestError::EmptyResponse),
+            0 => {
+                println!("RequestDKGPackages returned empty response.");
+                return Err(RequestError::EmptyResponse);
+            }
             _ => response_package.payload(),
         };
+
+        println!(
+            "RequestDKGPackages response_payload len {}",
+            response_payload.len()
+        );
 
         let auth_packages: Vec<Authenticable<DKGPackage>> =
             serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;

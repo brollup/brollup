@@ -427,9 +427,10 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             for _ in 0..fill_count {
                 let dkg_session = {
                     let mut _dkg_directory = dkg_directory.lock().await;
+
                     match _dkg_directory.new_session_to_fill() {
                         Some(session) => Arc::new(Mutex::new(session)),
-                        None => return,
+                        None => panic!("Unexpected new_session_to_fill err."),
                     }
                 };
 
@@ -452,11 +453,18 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
                 tasks.push(tokio::spawn(async move {
                     let auth_packages =
                         match peer.request_dkg_packages(dir_height, fill_count).await {
-                            Ok(packages) => packages,
-                            Err(_) => return,
+                            Ok(packages) => {
+                                println!("paketler geldi.");
+                                packages
+                            }
+                            Err(_) => {
+                                println!("paketler gelmedi.");
+                                return;
+                            }
                         };
 
                     if auth_packages.len() != fill_count as usize {
+                        println!("paketlerin len ayni deilmis.");
                         return;
                     }
 
@@ -468,7 +476,17 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
 
                         {
                             let mut _dkg_session = dkg_session.lock().await;
-                            _dkg_session.insert(&auth_package, &setup);
+                            if _dkg_session.insert(&auth_package, &setup) {
+                                println!(
+                                    "package from {} insert true",
+                                    hex::encode(auth_package.key())
+                                );
+                            } else {
+                                println!(
+                                    "package from {} insert false",
+                                    hex::encode(auth_package.key())
+                                );
+                            }
                         }
                     }
                 }));
@@ -498,6 +516,8 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
 
                 if _dkg_directory.insert_session_filled(&session) {
                     final_dkg_sessions.push(session);
+                } else {
+                    println!("dkg_directory.insert_session_filled err");
                 }
             }
         }
@@ -506,6 +526,9 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
 
         // #10 Check valid DKG sessions length.
         if final_dkg_sessions.len() == 0 {
+            // todo
+            println!("Check valid DKG sessions length err.");
+            tokio::time::sleep(Duration::from_millis(10_000)).await;
             continue 'preprocess_iter;
         }
 
@@ -529,6 +552,6 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
             join_all(tasks).await;
         }
         println!("done");
-        tokio::time::sleep(Duration::from_millis(1_000)).await;
+        tokio::time::sleep(Duration::from_millis(5_000)).await;
     }
 }
