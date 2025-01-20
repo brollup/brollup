@@ -65,7 +65,7 @@ async fn dir_height_sync(coordinator: &PEER, dkg_manager: &DKG_MANAGER, height: 
         }
     };
 
-    for (_, session) in sessions {
+    for session in sessions {
         let mut _dkg_directory = dkg_directory.lock().await;
         if !_dkg_directory.insert_session_filled(&session) {
             return eprintln!("insert_session_filled err.");

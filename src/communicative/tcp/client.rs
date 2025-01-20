@@ -45,7 +45,7 @@ pub trait TCPClient {
     async fn sync_dkg_dir(
         &self,
         dir_height: u64,
-    ) -> Result<(VSESetup, HashMap<u64, DKGSession>), RequestError>;
+    ) -> Result<(VSESetup, Vec<DKGSession>), RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -309,7 +309,7 @@ impl TCPClient for PEER {
     async fn sync_dkg_dir(
         &self,
         dir_height: u64,
-    ) -> Result<(VSESetup, HashMap<u64, DKGSession>), RequestError> {
+    ) -> Result<(VSESetup, Vec<DKGSession>), RequestError> {
         let payload = serde_json::to_vec(&dir_height).map_err(|_| RequestError::InvalidRequest)?;
 
         // Build request package.
@@ -343,6 +343,14 @@ impl TCPClient for PEER {
                 Err(_) => return Err(RequestError::EmptyResponse),
             };
 
-        Ok((setup, sessions))
+        let mut sorted_vec: Vec<(u64, DKGSession)> =
+            sessions.into_iter().collect::<Vec<(u64, DKGSession)>>();
+
+        sorted_vec.sort_by_key(|k| k.0);
+
+        let sorted_sessions: Vec<DKGSession> =
+            sorted_vec.into_iter().map(|(_, session)| session).collect();
+
+        Ok((setup, sorted_sessions))
     }
 }
