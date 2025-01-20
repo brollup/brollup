@@ -9,6 +9,7 @@ use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
 use secp::Scalar;
+use std::collections::HashMap;
 use std::time::Duration;
 
 #[async_trait]
@@ -22,8 +23,6 @@ pub trait TCPClient {
     ) -> Result<VSEKeyMap, RequestError>;
 
     async fn deliver_vse_setup(&self, vse_setup: &VSESetup) -> Result<(), RequestError>;
-
-    async fn retrieve_vse_setup(&self, dir_height: u64) -> Result<VSESetup, RequestError>;
 
     async fn request_dkg_packages(
         &self,
@@ -42,6 +41,11 @@ pub trait TCPClient {
         dir_height: u64,
         requests: &Vec<(u64, [u8; 32])>,
     ) -> Result<Vec<Scalar>, RequestError>;
+
+    async fn sync_dkg_dir(
+        &self,
+        dir_height: u64,
+    ) -> Result<(VSESetup, HashMap<u64, DKGSession>), RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -170,44 +174,6 @@ impl TCPClient for PEER {
             [0x00u8] => return Err(RequestError::ErrorResponse),
             _ => return Err(RequestError::InvalidResponse),
         }
-    }
-
-    /// This is the coordinator or an operator asking from another peer
-    /// about the VSE setup in case they lost their local copy.
-    async fn retrieve_vse_setup(&self, dir_height: u64) -> Result<VSESetup, RequestError> {
-        let payload = serde_json::to_vec(&dir_height).map_err(|_| RequestError::InvalidRequest)?;
-
-        // Build request package.
-        let request_package = {
-            let kind = PackageKind::RetrieveVSESetup;
-            let timestamp = Utc::now().timestamp();
-            TCPPackage::new(kind, timestamp, &payload)
-        };
-
-        // Return the TCP socket.
-        let socket: SOCKET = self
-            .socket()
-            .await
-            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
-
-        // Timeout 3 seconds.
-        let timeout = Duration::from_millis(3_000);
-
-        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
-            .await
-            .map_err(|err| RequestError::TCPErr(err))?;
-
-        let response_payload = match response_package.payload_len() {
-            0 => return Err(RequestError::EmptyResponse),
-            _ => response_package.payload(),
-        };
-
-        let vse_setup: VSESetup = match serde_json::from_slice(&response_payload) {
-            Ok(setup) => setup,
-            Err(_) => return Err(RequestError::EmptyResponse),
-        };
-
-        Ok(vse_setup)
     }
 
     /// This is during preprocessing, the coordinator requesting
@@ -344,5 +310,47 @@ impl TCPClient for PEER {
             serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
         Ok(partial_sigs)
+    }
+
+    /// This is the coordinator or an operator syncing with another peer
+    /// the DKG directory in case they lost their local copy.
+    async fn sync_dkg_dir(
+        &self,
+        dir_height: u64,
+    ) -> Result<(VSESetup, HashMap<u64, DKGSession>), RequestError> {
+        let payload = serde_json::to_vec(&dir_height).map_err(|_| RequestError::InvalidRequest)?;
+
+        // Build request package.
+        let request_package = {
+            let kind = PackageKind::SyncDKGDir;
+            let timestamp = Utc::now().timestamp();
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        // Return the TCP socket.
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        // Timeout 5 seconds.
+        let timeout = Duration::from_millis(5_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let (setup, sessions): (VSESetup, HashMap<u64, DKGSession>) =
+            match serde_json::from_slice(&response_payload) {
+                Ok(tuple) => tuple,
+                Err(_) => return Err(RequestError::EmptyResponse),
+            };
+
+        Ok((setup, sessions))
     }
 }

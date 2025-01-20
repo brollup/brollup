@@ -221,9 +221,8 @@ async fn handle_package(
         match mode {
             OperatingMode::Coordinator => match package.kind() {
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
-                PackageKind::RetrieveVSESetup => {
-                    handle_retrieve_vse_setup(package.timestamp(), &package.payload(), dkg_manager)
-                        .await
+                PackageKind::SyncDKGDir => {
+                    handle_sync_dkg_dir(package.timestamp(), &package.payload(), dkg_manager).await
                 }
                 _ => return,
             },
@@ -238,9 +237,8 @@ async fn handle_package(
                         .await
                 }
 
-                PackageKind::RetrieveVSESetup => {
-                    handle_retrieve_vse_setup(package.timestamp(), &package.payload(), dkg_manager)
-                        .await
+                PackageKind::SyncDKGDir => {
+                    handle_sync_dkg_dir(package.timestamp(), &package.payload(), dkg_manager).await
                 }
 
                 PackageKind::RequestDKGPackages => {
@@ -355,31 +353,34 @@ async fn handle_deliver_vse_setup(
     Some(response_package)
 }
 
-async fn handle_retrieve_vse_setup(
+async fn handle_sync_dkg_dir(
     timestamp: i64,
     payload: &[u8],
     dkg_manager: &DKG_MANAGER,
 ) -> Option<TCPPackage> {
-    let setup_no = match serde_json::from_slice(payload) {
+    let dir_height: u64 = match serde_json::from_slice(payload) {
         Ok(no) => no,
         Err(_) => return None,
     };
 
-    let vse_setup = {
+    let (setup, sessions) = {
         let _dkg_manager = dkg_manager.lock().await;
-        match _dkg_manager.directory(setup_no) {
+        match _dkg_manager.directory(dir_height) {
             Some(dir) => {
                 let _dir = dir.lock().await;
-                _dir.setup().clone()
+                (_dir.setup(), _dir.sessions())
             }
             None => return None,
         }
     };
 
-    let response_package = {
-        let kind = PackageKind::RetrieveVSESetup;
-        let payload = vse_setup.serialize();
+    let payload = match serde_json::to_vec(&(setup, sessions)) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
 
+    let response_package = {
+        let kind = PackageKind::SyncDKGDir;
         TCPPackage::new(kind, timestamp, &payload)
     };
 
@@ -424,7 +425,7 @@ async fn handle_request_dkg_packages(
     }
 
     let response_payload = match serde_json::to_vec(&auth_packages) {
-        Ok(tuple) => tuple,
+        Ok(bytes) => bytes,
         Err(_) => return None,
     };
 

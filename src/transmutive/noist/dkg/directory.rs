@@ -69,8 +69,8 @@ impl DKGDirectory {
         }
     }
 
-    pub fn setup(&self) -> &VSESetup {
-        &self.setup
+    pub fn setup(&self) -> VSESetup {
+        self.setup.clone()
     }
 
     pub fn sessions(&self) -> HashMap<u64, DKGSession> {

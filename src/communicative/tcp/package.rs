@@ -9,10 +9,10 @@ pub enum PackageKind {
     Ping,
     RequestVSEKeymap,
     DeliverVSESetup,
-    RetrieveVSESetup,
     RequestDKGPackages,
     DeliverDKGSessions,
     RequestPartialSigs,
+    SyncDKGDir,
 }
 
 impl PackageKind {
@@ -21,10 +21,10 @@ impl PackageKind {
             PackageKind::Ping => 0x00,
             PackageKind::RequestVSEKeymap => 0x01,
             PackageKind::DeliverVSESetup => 0x02,
-            PackageKind::RetrieveVSESetup => 0x03,
-            PackageKind::RequestDKGPackages => 0x04,
-            PackageKind::DeliverDKGSessions => 0x05,
-            PackageKind::RequestPartialSigs => 0x06,
+            PackageKind::RequestDKGPackages => 0x03,
+            PackageKind::DeliverDKGSessions => 0x04,
+            PackageKind::RequestPartialSigs => 0x05,
+            PackageKind::SyncDKGDir => 0x06,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -32,10 +32,10 @@ impl PackageKind {
             0x00 => Some(PackageKind::Ping),
             0x01 => Some(PackageKind::RequestVSEKeymap),
             0x02 => Some(PackageKind::DeliverVSESetup),
-            0x03 => Some(PackageKind::RetrieveVSESetup),
-            0x04 => Some(PackageKind::RequestDKGPackages),
-            0x05 => Some(PackageKind::DeliverDKGSessions),
-            0x06 => Some(PackageKind::RequestPartialSigs),
+            0x03 => Some(PackageKind::RequestDKGPackages),
+            0x04 => Some(PackageKind::DeliverDKGSessions),
+            0x05 => Some(PackageKind::RequestPartialSigs),
+            0x06 => Some(PackageKind::SyncDKGDir),
             _ => None,
         }
     }
