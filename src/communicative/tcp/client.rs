@@ -333,8 +333,8 @@ impl TCPClient for PEER {
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Timeout 5 seconds.
-        let timeout = Duration::from_millis(5_000);
+        // Timeout 10 seconds.
+        let timeout = Duration::from_millis(10_000);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
             .await
