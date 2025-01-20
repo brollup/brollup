@@ -1,5 +1,5 @@
 use crate::{
-    baked, dkgops::DKGOps, peer::PeerKind, peer_manager::PeerManagerExt, tcp::client::TCPClient,
+    dkgops::DKGOps, peer::PeerKind, peer_manager::PeerManagerExt, tcp::client::TCPClient,
     DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use colored::Colorize;
@@ -90,12 +90,9 @@ async fn dir_height_sync(
     }
 
     let peer: PEER = {
-        let peer_kind = match peer_key == baked::COORDINATOR_WELL_KNOWN {
-            true => PeerKind::Coordinator,
-            false => PeerKind::Operator,
-        };
-
-        peer_manager.add_peers(peer_kind, &vec![peer_key]).await;
+        peer_manager
+            .add_peers(PeerKind::Operator, &vec![peer_key])
+            .await;
 
         let _peer_manager = peer_manager.lock().await;
 

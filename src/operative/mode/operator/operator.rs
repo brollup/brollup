@@ -89,7 +89,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     cli(&mut dkg_manager, &coordinator).await;
 }
 
-pub async fn cli(dkg_manager: &mut DKG_MANAGER, _coordinator: &PEER) {
+pub async fn cli(dkg_manager: &mut DKG_MANAGER, coordinator: &PEER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -117,7 +117,7 @@ pub async fn cli(dkg_manager: &mut DKG_MANAGER, _coordinator: &PEER) {
             // Main commands:
             "exit" => break,
             "clear" => ocli::clear::command(),
-            "dkg" => ocli::dkg::command(parts, dkg_manager).await,
+            "dkg" => ocli::dkg::command(parts, coordinator, dkg_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
