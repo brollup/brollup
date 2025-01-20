@@ -1,5 +1,5 @@
 use brollup::{
-    coordinator,
+    bitcoin_rpc, coordinator,
     key::{FromNostrKeyStr, KeyHolder},
     node, operator, Network,
 };
@@ -7,6 +7,8 @@ use colored::Colorize;
 use std::{env, io::BufRead};
 
 fn main() {
+    //bitcoin_rpc::bitcoin_rpc();
+
     let args: Vec<String> = env::args().collect();
 
     // Ensure at least 3 arguments: program name, network, mode.

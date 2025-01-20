@@ -74,6 +74,8 @@ pub mod peer;
 pub mod peer_manager;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
+#[path = "communicative/rpc/bitcoin-rpc.rs"]
+pub mod bitcoin_rpc;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
