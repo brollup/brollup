@@ -1,11 +1,10 @@
-use std::{env, io::BufRead};
-
 use brollup::{
     coordinator,
     key::{FromNostrKeyStr, KeyHolder},
     node, operator, Network,
 };
 use colored::Colorize;
+use std::{env, io::BufRead};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
