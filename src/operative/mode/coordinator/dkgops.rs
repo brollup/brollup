@@ -593,5 +593,7 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
                 }
             }
         }
+
+        println!("PREPROCESS: Populating directory with 64 new DKG packages..")
     }
 }
