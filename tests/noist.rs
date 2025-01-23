@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
-    use brollup::into::IntoPoint;
+    use brollup::into::{IntoPoint, IntoScalar};
+    use brollup::musig::MusigNestingCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
@@ -198,6 +199,138 @@ mod noist_tests {
                 return Err("Invalid aggregate schnorr signature.".into());
             }
         }
+
+        // Musig test.
+
+        let message = format!("MUasdSIG!").as_bytes().hash(None);
+
+        println!("message is {}", hex::encode(&message));
+
+        let musig_signer_secret: [u8; 32] =
+            hex::decode("a9ffa44636e76ea0a8bf66816900c83764955e4e9f47bd7b43812bd9208eba3b")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer_public: [u8; 33] =
+            hex::decode("03f17025e58fecb1aaafb8b8486617e437529a41a45ca867d6c0bbaf702c2b0810")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let musig_signer_hiding_secret_nonce: [u8; 32] =
+            hex::decode("93e3e4a099d2362de02fa1d6c5cc64bbb51dc592ff52b12bd7d808346e080102")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer_hiding_public_nonce: [u8; 33] =
+            hex::decode("02c3cfdf18c34273bde4e4b6472fedc3597db2d236769f02240c05956313b79eb5")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let musig_signer_binding_secret_nonce: [u8; 32] =
+            hex::decode("320b845c8ee898fd8f53ae2eacab49f0d244e9ac0ab94f5cfb2098ec654505c2")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer_binding_public_nonce: [u8; 33] =
+            hex::decode("027923dc97eec709f6dfc56cac3eb59b5fbd47a89554202c79d9588a6dd37814ef")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let remote_keys = vec![musig_signer_public.into_point().unwrap()];
+        let remote_nonces = vec![(
+            musig_signer_hiding_public_nonce.into_point().unwrap(),
+            musig_signer_binding_public_nonce.into_point().unwrap(),
+        )];
+
+        let musig_nesting_ctx = MusigNestingCtx::new(remote_keys, remote_nonces);
+
+        let mut signing_session = dkg_directory
+            .pick_signing_session(message, Some(musig_nesting_ctx))
+            .unwrap();
+
+        let operator_key = signing_session.group_key;
+        println!("operator_key is: {}", hex::encode(operator_key.serialize()));
+
+        let agg_key = signing_session.agg_key.unwrap();
+        println!("agg_key is: {}", hex::encode(agg_key.serialize()));
+
+        let operator_hiding_public_nonce = signing_session.hiding_group_nonce;
+        println!(
+            "operator_hiding_public_nonce is: {}",
+            hex::encode(operator_hiding_public_nonce.serialize())
+        );
+
+        let operator_post_binding_public_nonce = signing_session.post_binding_group_nonce;
+        println!(
+            "operator_post_binding_public_nonce is: {}",
+            hex::encode(operator_post_binding_public_nonce.serialize())
+        );
+
+        let musig_binding_coef = signing_session.musig_binding_coef.unwrap();
+        println!(
+            "musig_binding_coef is: {}",
+            hex::encode(musig_binding_coef.serialize())
+        );
+
+        let agg_nonce = signing_session.agg_nonce.unwrap();
+        println!("agg_nonce is: {}", hex::encode(agg_nonce.serialize()));
+
+        let e = signing_session.challenge();
+
+        println!("challenge is: {}", hex::encode(e.serialize()));
+
+        let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
+        let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
+
+        if !signing_session.partial_sig_verify(signer_1_public, s1_partial_sig) {
+            return Err("s1_partial_sig verify err.".into());
+        };
+        if !signing_session.partial_sig_verify(signer_2_public, s2_partial_sig) {
+            return Err("s2_partial_sig verify err.".into());
+        };
+
+        if !signing_session.insert_partial_sig(signer_1_public, s1_partial_sig) {
+            return Err("s1_partial_sig insertion err.".into());
+        };
+        if !signing_session.insert_partial_sig(signer_2_public, s2_partial_sig) {
+            return Err("s2_partial_sig insertion err.".into());
+        };
+
+        let op_partial_sig = signing_session.aggregated_sig().unwrap();
+        println!(
+            "op_partial_sig is {}",
+            hex::encode(op_partial_sig.serialize())
+        );
+
+        let user_partial_sig = {
+            let secret = musig_signer_secret
+                .into_scalar()
+                .unwrap()
+                .negate_if(agg_key.parity());
+            let hiding = musig_signer_hiding_secret_nonce
+                .into_scalar()
+                .unwrap()
+                .negate_if(agg_nonce.parity());
+            let mut binding =
+                musig_signer_binding_secret_nonce.into_scalar().unwrap() * musig_binding_coef;
+            binding = binding.negate_if(agg_nonce.parity());
+
+            let s = hiding + binding + (secret * e);
+
+            s.unwrap()
+        };
+
+        println!(
+            "user_partial_sig: {}",
+            hex::encode(user_partial_sig.serialize())
+        );
+
+        let full_sig = (op_partial_sig + user_partial_sig).unwrap();
+
+        println!("full_sig: {}", hex::encode(full_sig.serialize()));
 
         Ok(())
     }

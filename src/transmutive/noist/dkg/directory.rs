@@ -245,17 +245,17 @@ impl DKGDirectory {
 
 #[derive(Clone)]
 pub struct SigningSession {
-    group_key_session: DKGSession,
-    group_nonce_session: DKGSession,
-    group_key: Point,
-    hiding_group_nonce: Point,
-    post_binding_group_nonce: Point,
-    group_nonce: Point,
-    message: [u8; 32],
-    challenge: Scalar,
-    agg_key: Option<Point>,
-    agg_nonce: Option<Point>,
-    musig_binding_coef: Option<Scalar>,
+    pub group_key_session: DKGSession,
+    pub group_nonce_session: DKGSession,
+    pub group_key: Point,
+    pub hiding_group_nonce: Point,
+    pub post_binding_group_nonce: Point,
+    pub group_nonce: Point,
+    pub message: [u8; 32],
+    pub challenge: Scalar,
+    pub agg_key: Option<Point>,
+    pub agg_nonce: Option<Point>,
+    pub musig_binding_coef: Option<Scalar>,
     partial_sigs: HashMap<Point, Scalar>,
 }
 
