@@ -1,5 +1,6 @@
 use super::session::DKGSession;
 use crate::{
+    musig::{MusigCtx, MusigNestingCtx},
     noist::{
         lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
         setup::setup::VSESetup,
@@ -200,27 +201,40 @@ impl DKGDirectory {
         Some(index.to_owned())
     }
 
-    pub fn pick_signing_session(&mut self, message: [u8; 32]) -> Option<SigningSession> {
-        self.signing_session(message, self.pick_index()?)
+    pub fn pick_signing_session(
+        &mut self,
+        message: [u8; 32],
+        musig_nesting_ctx: Option<MusigNestingCtx>,
+    ) -> Option<SigningSession> {
+        self.signing_session(message, self.pick_index()?, musig_nesting_ctx)
     }
 
     pub fn signing_session(
         &mut self,
         message: [u8; 32],
         nonce_index: u64,
+        musig_nesting_ctx: Option<MusigNestingCtx>,
     ) -> Option<SigningSession> {
         let group_key_session = self.group_key_session()?;
         let group_nonce_session = self.group_nonce_session(nonce_index)?;
 
         let group_key = self.group_key()?;
+
+        let hiding_group_nonce = group_nonce_session.group_combined_hiding_point()?;
+        let post_binding_group_nonce = group_nonce_session
+            .group_combined_post_binding_point(Some(group_key.serialize_xonly()), Some(message))?;
+
         let group_nonce = self.group_nonce(nonce_index, message)?;
 
         let signing_session = SigningSession::new(
             &group_key_session,
             &group_nonce_session,
             group_key,
+            hiding_group_nonce,
+            post_binding_group_nonce,
             group_nonce,
             message,
+            musig_nesting_ctx,
         )?;
 
         self.remove_session(nonce_index);
@@ -234,9 +248,14 @@ pub struct SigningSession {
     group_key_session: DKGSession,
     group_nonce_session: DKGSession,
     group_key: Point,
+    hiding_group_nonce: Point,
+    post_binding_group_nonce: Point,
     group_nonce: Point,
     message: [u8; 32],
     challenge: Scalar,
+    agg_key: Option<Point>,
+    agg_nonce: Option<Point>,
+    musig_binding_coef: Option<Scalar>,
     partial_sigs: HashMap<Point, Scalar>,
 }
 
@@ -245,26 +264,66 @@ impl SigningSession {
         group_key_session: &DKGSession,
         group_nonce_session: &DKGSession,
         group_key: Point,
+        hiding_group_nonce: Point,
+        post_binding_group_nonce: Point,
         group_nonce: Point,
         message: [u8; 32],
+        musig_nesting_ctx: Option<MusigNestingCtx>,
     ) -> Option<SigningSession> {
-        let challenge = match challenge(
-            group_nonce,
-            group_key,
-            message,
-            crate::schnorr::SigningMode::BIP340,
-        ) {
-            MaybeScalar::Valid(scalar) => scalar,
-            MaybeScalar::Zero => return None,
+        let musig_ctx = match musig_nesting_ctx {
+            Some(ctx) => {
+                let musig_ctx = ctx.musig_ctx(
+                    group_key,
+                    hiding_group_nonce,
+                    post_binding_group_nonce,
+                    message,
+                );
+
+                Some(musig_ctx)
+            }
+            None => None,
+        };
+
+        let challenge = match &musig_ctx {
+            Some(ctx) => ctx.challenge()?,
+            None => match challenge(
+                group_nonce,
+                group_key,
+                message,
+                crate::schnorr::SigningMode::BIP340,
+            ) {
+                MaybeScalar::Valid(scalar) => scalar,
+                MaybeScalar::Zero => return None,
+            },
+        };
+
+        let agg_key = match &musig_ctx {
+            Some(ctx) => Some(ctx.agg_key()?),
+            None => None,
+        };
+
+        let agg_nonce = match &musig_ctx {
+            Some(ctx) => Some(ctx.agg_nonce()?),
+            None => None,
+        };
+
+        let musig_binding_coef = match &musig_ctx {
+            Some(ctx) => Some(ctx.binding_coef()?),
+            None => None,
         };
 
         let session = SigningSession {
             group_key_session: group_key_session.to_owned(),
             group_nonce_session: group_nonce_session.to_owned(),
             group_key,
+            hiding_group_nonce,
+            post_binding_group_nonce,
             group_nonce,
             message,
             challenge,
+            agg_key,
+            agg_nonce,
+            musig_binding_coef,
             partial_sigs: HashMap::<Point, Scalar>::new(),
         };
 
@@ -284,21 +343,36 @@ impl SigningSession {
         let message_bytes = self.message;
         let challenge = self.challenge;
 
+        let compare_key = match self.agg_key {
+            Some(key) => key,
+            None => self.group_key,
+        };
+
+        let compare_nonce = match self.agg_nonce {
+            Some(nonce) => nonce,
+            None => self.group_nonce,
+        };
+
+        let musig_binding_coef = match self.musig_binding_coef {
+            Some(coef) => coef,
+            None => Scalar::one(),
+        };
+
         // (k + ed) + (k + ed)
         let hiding_secret_key_ = self
             .group_key_session
             .signatory_combined_hiding_secret(secret_key)?;
-        let hiding_secret_key = hiding_secret_key_.negate_if(self.group_key.parity());
+        let hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
 
         let post_binding_secret_key_ = self
             .group_key_session
             .signatory_combined_post_binding_secret(secret_key, None, None)?;
-        let post_binding_secret_key = post_binding_secret_key_.negate_if(self.group_key.parity());
+        let post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
 
         let hiding_secret_nonce_ = self
             .group_nonce_session
             .signatory_combined_hiding_secret(secret_key)?;
-        let hiding_secret_nonce = hiding_secret_nonce_.negate_if(self.group_nonce.parity());
+        let hiding_secret_nonce = hiding_secret_nonce_.negate_if(compare_nonce.parity());
 
         let post_binding_secret_nonce_ = self
             .group_nonce_session
@@ -306,9 +380,11 @@ impl SigningSession {
                 secret_key,
                 Some(group_key_bytes),
                 Some(message_bytes),
-            )?;
+            )?
+            * musig_binding_coef;
+
         let post_binding_secret_nonce =
-            post_binding_secret_nonce_.negate_if(self.group_nonce.parity());
+            post_binding_secret_nonce_.negate_if(compare_nonce.parity());
 
         let partial_sig = (hiding_secret_nonce + (challenge * hiding_secret_key))
             + (post_binding_secret_nonce + (challenge * post_binding_secret_key));
@@ -324,6 +400,21 @@ impl SigningSession {
         let message_bytes = self.message;
         let challenge = self.challenge;
 
+        let compare_key = match self.agg_key {
+            Some(key) => key,
+            None => self.group_key,
+        };
+
+        let compare_nonce = match self.agg_nonce {
+            Some(nonce) => nonce,
+            None => self.group_nonce,
+        };
+
+        let musig_binding_coef = match self.musig_binding_coef {
+            Some(coef) => coef,
+            None => Scalar::one(),
+        };
+
         // (R + eP) + (R + eP)
         let hiding_public_key_ = match self
             .group_key_session
@@ -333,7 +424,7 @@ impl SigningSession {
             None => return false,
         };
 
-        let hiding_public_key = hiding_public_key_.negate_if(self.group_key.parity());
+        let hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
 
         let post_binding_public_key_ = match self
             .group_key_session
@@ -343,7 +434,7 @@ impl SigningSession {
             None => return false,
         };
 
-        let post_binding_public_key = post_binding_public_key_.negate_if(self.group_key.parity());
+        let post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
 
         let hiding_public_nonce_ = match self
             .group_nonce_session
@@ -353,7 +444,7 @@ impl SigningSession {
             None => return false,
         };
 
-        let hiding_public_nonce = hiding_public_nonce_.negate_if(self.group_nonce.parity());
+        let hiding_public_nonce = hiding_public_nonce_.negate_if(compare_nonce.parity());
 
         let post_binding_public_nonce_ = match self
             .group_nonce_session
@@ -364,10 +455,10 @@ impl SigningSession {
             ) {
             Some(point) => point,
             None => return false,
-        };
+        } * musig_binding_coef;
 
         let post_binding_public_nonce =
-            post_binding_public_nonce_.negate_if(self.group_nonce.parity());
+            post_binding_public_nonce_.negate_if(compare_nonce.parity());
 
         let equation = (hiding_public_nonce + (challenge * hiding_public_key))
             + (post_binding_public_nonce + (challenge * post_binding_public_key));

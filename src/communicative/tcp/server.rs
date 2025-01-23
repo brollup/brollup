@@ -505,7 +505,7 @@ async fn handle_request_partial_sigs(
     for (nonce_index, message) in requests {
         let signing_session = {
             let mut _dkg_directory = dkg_directory.lock().await;
-            match _dkg_directory.signing_session(message, nonce_index) {
+            match _dkg_directory.signing_session(message, nonce_index, None) {
                 Some(directory) => directory,
                 None => return None,
             }

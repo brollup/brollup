@@ -131,7 +131,7 @@ mod noist_tests {
                 .as_bytes()
                 .hash(None);
 
-            let mut signing_session = dkg_directory.pick_signing_session(message).unwrap();
+            let mut signing_session = dkg_directory.pick_signing_session(message, None).unwrap();
 
             let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
             let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();

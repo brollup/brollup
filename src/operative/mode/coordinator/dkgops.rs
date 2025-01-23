@@ -249,10 +249,11 @@ impl DKGOps for DKG_MANAGER {
         // #6 Pick fresh signing sessions to be filled.
         for message in messages.iter() {
             let mut _dkg_directory = dkg_directory.lock().await;
-            let signing_session = match _dkg_directory.pick_signing_session(message.to_owned()) {
-                Some(session) => session,
-                None => return Err(DKGSignError::PickSigningSessionErr),
-            };
+            let signing_session =
+                match _dkg_directory.pick_signing_session(message.to_owned(), None) {
+                    Some(session) => session,
+                    None => return Err(DKGSignError::PickSigningSessionErr),
+                };
 
             signing_requests.push((signing_session.nonce_index(), message.to_owned()));
             signing_sessions.push(signing_session);
