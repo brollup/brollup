@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod noist_tests {
-    use std::collections::HashMap;
-
     use brollup::hash::Hash;
     use brollup::into::{IntoPoint, IntoScalar};
     use brollup::musig::MusigNestingCtx;
@@ -13,6 +11,7 @@ mod noist_tests {
         schnorr::Authenticable,
     };
     use secp::Point;
+    use std::collections::HashMap;
 
     #[tokio::test]
     async fn noist_test() -> Result<(), String> {
@@ -207,26 +206,24 @@ mod noist_tests {
 
         let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
-        println!("message is {}", hex::encode(&message));
-
         let musig_signer_secret: [u8; 32] =
-            hex::decode("c14b2438463770050f0a88b8f670a57b05c9917d6b126c5d44a0726572c5ce4a")
+            hex::decode("4be582bd74bf9476c69cddf5194163af0c8fe279eb9e6d6af66086faedc31884")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("028f91382d1f1b02519221b2588c57ac59cc189ff070bdcd3795be7ba422bc401d")
+            hex::decode("023d0039ced44834b836653c3d53427d2bc3b5cd226b7e7ff63cc070add55393e3")
                 .unwrap()
                 .try_into()
                 .unwrap();
 
         let musig_signer_hiding_secret_nonce: [u8; 32] =
-            hex::decode("93e3e4a099d2362de02fa1d6c5cc64bbb51dc592ff52b12bd7d808346e080102")
+            hex::decode("78b42446eb3a7fdf4be310ef8b3ace676d83d6b1edd618ddab0b58f0ab939f92")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_hiding_public_nonce: [u8; 33] =
-            hex::decode("02c3cfdf18c34273bde4e4b6472fedc3597db2d236769f02240c05956313b79eb5")
+            hex::decode("03b7618454cf9a380d59f758b3b554cf8cbfaf5328dc1b46b2eb6f10644467fa1d")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -242,12 +239,53 @@ mod noist_tests {
                 .try_into()
                 .unwrap();
 
+        let musig_signer2_secret: [u8; 32] =
+            hex::decode("609d4ccf1f15f8b4b9a4a77a9a55550e47036a32babf1cd138f3411a52b10b67")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer2_public: [u8; 33] =
+            hex::decode("02fd6520c13244fb8c412fca4b02a2d9a8a6062855c0dbf8123519180c9f271702")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let musig_signer2_hiding_secret_nonce: [u8; 32] =
+            hex::decode("e0f530415cecfdae3105218d5c153c14e20a5faa2e24eb5ae11051015a48f77b")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer2_hiding_public_nonce: [u8; 33] =
+            hex::decode("023206ce056a69d097b3bf511ee15689babb11586518f78e29b33b48986c78e1c1")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
+        let musig_signer2_binding_secret_nonce: [u8; 32] =
+            hex::decode("e87330abaeb33e6c7f757aae7267c5e666c7d2d38ca09e27db6371aa13b2c54b")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let musig_signer2_binding_public_nonce: [u8; 33] =
+            hex::decode("02571a8ceb8799f3a72685dd91d620336b2c0fe29d6e026de68257f67b539f15f0")
+                .unwrap()
+                .try_into()
+                .unwrap();
+
         let mut signers = HashMap::<Point, (Point, Point)>::new();
         signers.insert(
             musig_signer_public.into_point().unwrap(),
             (
                 musig_signer_hiding_public_nonce.into_point().unwrap(),
                 musig_signer_binding_public_nonce.into_point().unwrap(),
+            ),
+        );
+
+        signers.insert(
+            musig_signer2_public.into_point().unwrap(),
+            (
+                musig_signer2_hiding_public_nonce.into_point().unwrap(),
+                musig_signer2_binding_public_nonce.into_point().unwrap(),
             ),
         );
 
@@ -258,18 +296,10 @@ mod noist_tests {
             .unwrap();
 
         let operator_key = signing_session.group_key;
-        println!("operator_key is: {}", hex::encode(operator_key.serialize()));
 
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 
         let agg_key = musig_ctx.agg_key;
-        println!("agg_key is: {}", hex::encode(agg_key.serialize()));
-
-        let agg_nonce = musig_ctx.agg_nonce;
-        println!("agg_nonce is: {}", hex::encode(agg_nonce.serialize()));
-
-        let challenge = musig_ctx.challenge;
-        println!("challenge is: {}", hex::encode(challenge.serialize()));
 
         let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
@@ -282,16 +312,12 @@ mod noist_tests {
         };
 
         let op_partial_sig = signing_session.aggregated_sig().unwrap();
-        println!(
-            "op_partial_sig is {}",
-            hex::encode(op_partial_sig.serialize())
-        );
 
         if !musig_ctx.insert_partial_sig(operator_key, op_partial_sig) {
             println!("musig_ctx op sig insert err.");
         }
 
-        let client_partial_sig = musig_ctx
+        let client1_partial_sig = musig_ctx
             .partial_sign(
                 musig_signer_public.into_point().unwrap(),
                 musig_signer_secret.into_scalar().unwrap(),
@@ -300,21 +326,37 @@ mod noist_tests {
             )
             .unwrap();
 
-        println!(
-            "client_partial_sig is {}",
-            hex::encode(client_partial_sig.serialize())
-        );
-
         if !musig_ctx.insert_partial_sig(
             musig_signer_public.into_point().unwrap(),
-            client_partial_sig,
+            client1_partial_sig,
+        ) {
+            println!("client op sig insert err.");
+        }
+
+        let client2_partial_sig = musig_ctx
+            .partial_sign(
+                musig_signer2_public.into_point().unwrap(),
+                musig_signer2_secret.into_scalar().unwrap(),
+                musig_signer2_hiding_secret_nonce.into_scalar().unwrap(),
+                musig_signer2_binding_secret_nonce.into_scalar().unwrap(),
+            )
+            .unwrap();
+
+        if !musig_ctx.insert_partial_sig(
+            musig_signer2_public.into_point().unwrap(),
+            client2_partial_sig,
         ) {
             println!("client op sig insert err.");
         }
 
         let agg_sig = musig_ctx.full_agg_sig().unwrap();
 
-        println!("agg_sig is {}", hex::encode(agg_sig));
+        assert!(schnorr::verify(
+            agg_key.serialize_xonly(),
+            message,
+            agg_sig,
+            schnorr::SigningMode::BIP340
+        ));
 
         Ok(())
     }

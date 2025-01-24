@@ -338,20 +338,27 @@ impl SigningSession {
             None => self.group_nonce,
         };
 
-        let musig_binding_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.binding_coef,
+        let musig_nonce_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.nonce_coef,
+            None => Scalar::one(),
+        };
+
+        let musig_key_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.key_coef,
             None => Scalar::one(),
         };
 
         // (k + ed) + (k + ed)
         let hiding_secret_key_ = self
             .group_key_session
-            .signatory_combined_hiding_secret(secret_key)?;
+            .signatory_combined_hiding_secret(secret_key)? * musig_key_coef;
+
         let hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
 
         let post_binding_secret_key_ = self
             .group_key_session
-            .signatory_combined_post_binding_secret(secret_key, None, None)?;
+            .signatory_combined_post_binding_secret(secret_key, None, None)? * musig_key_coef;
+
         let post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
 
         let hiding_secret_nonce_ = self
@@ -366,7 +373,7 @@ impl SigningSession {
                 Some(group_key_bytes),
                 Some(message_bytes),
             )?
-            * musig_binding_coef;
+            * musig_nonce_coef;
 
         let post_binding_secret_nonce =
             post_binding_secret_nonce_.negate_if(compare_nonce.parity());
@@ -395,8 +402,13 @@ impl SigningSession {
             None => self.group_nonce,
         };
 
-        let musig_binding_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.binding_coef,
+        let musig_nonce_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.nonce_coef,
+            None => Scalar::one(),
+        };
+
+        let musig_key_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.key_coef,
             None => Scalar::one(),
         };
 
@@ -407,7 +419,7 @@ impl SigningSession {
         {
             Some(point) => point,
             None => return false,
-        };
+        } * musig_key_coef;
 
         let hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
 
@@ -417,7 +429,7 @@ impl SigningSession {
         {
             Some(point) => point,
             None => return false,
-        };
+        } * musig_key_coef;
 
         let post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
 
@@ -440,7 +452,7 @@ impl SigningSession {
             ) {
             Some(point) => point,
             None => return false,
-        } * musig_binding_coef;
+        } * musig_nonce_coef;
 
         let post_binding_public_nonce =
             post_binding_public_nonce_.negate_if(compare_nonce.parity());
