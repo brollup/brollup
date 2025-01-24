@@ -253,9 +253,7 @@ pub struct SigningSession {
     pub group_nonce: Point,
     pub message: [u8; 32],
     pub challenge: Scalar,
-    pub agg_key: Option<Point>,
-    pub agg_nonce: Option<Point>,
-    pub musig_binding_coef: Option<Scalar>,
+    pub musig_ctx: Option<MusigCtx>,
     partial_sigs: HashMap<Point, Scalar>,
 }
 
@@ -277,7 +275,7 @@ impl SigningSession {
                     hiding_group_nonce,
                     post_binding_group_nonce,
                     message,
-                );
+                )?;
 
                 Some(musig_ctx)
             }
@@ -285,7 +283,7 @@ impl SigningSession {
         };
 
         let challenge = match &musig_ctx {
-            Some(ctx) => ctx.challenge()?,
+            Some(ctx) => ctx.challenge,
             None => match challenge(
                 group_nonce,
                 group_key,
@@ -297,21 +295,6 @@ impl SigningSession {
             },
         };
 
-        let agg_key = match &musig_ctx {
-            Some(ctx) => Some(ctx.agg_key()?),
-            None => None,
-        };
-
-        let agg_nonce = match &musig_ctx {
-            Some(ctx) => Some(ctx.agg_nonce()?),
-            None => None,
-        };
-
-        let musig_binding_coef = match &musig_ctx {
-            Some(ctx) => Some(ctx.binding_coef()?),
-            None => None,
-        };
-
         let session = SigningSession {
             group_key_session: group_key_session.to_owned(),
             group_nonce_session: group_nonce_session.to_owned(),
@@ -321,13 +304,15 @@ impl SigningSession {
             group_nonce,
             message,
             challenge,
-            agg_key,
-            agg_nonce,
-            musig_binding_coef,
+            musig_ctx,
             partial_sigs: HashMap::<Point, Scalar>::new(),
         };
 
         Some(session)
+    }
+
+    pub fn musig_ctx(&self) -> Option<MusigCtx> {
+        self.musig_ctx.clone()
     }
 
     pub fn nonce_index(&self) -> u64 {
@@ -343,18 +328,18 @@ impl SigningSession {
         let message_bytes = self.message;
         let challenge = self.challenge;
 
-        let compare_key = match self.agg_key {
-            Some(key) => key,
+        let compare_key = match &self.musig_ctx {
+            Some(ctx) => ctx.agg_key,
             None => self.group_key,
         };
 
-        let compare_nonce = match self.agg_nonce {
-            Some(nonce) => nonce,
+        let compare_nonce = match &self.musig_ctx {
+            Some(ctx) => ctx.agg_nonce,
             None => self.group_nonce,
         };
 
-        let musig_binding_coef = match self.musig_binding_coef {
-            Some(coef) => coef,
+        let musig_binding_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.binding_coef,
             None => Scalar::one(),
         };
 
@@ -400,18 +385,18 @@ impl SigningSession {
         let message_bytes = self.message;
         let challenge = self.challenge;
 
-        let compare_key = match self.agg_key {
-            Some(key) => key,
+        let compare_key = match &self.musig_ctx {
+            Some(ctx) => ctx.agg_key,
             None => self.group_key,
         };
 
-        let compare_nonce = match self.agg_nonce {
-            Some(nonce) => nonce,
+        let compare_nonce = match &self.musig_ctx {
+            Some(ctx) => ctx.agg_nonce,
             None => self.group_nonce,
         };
 
-        let musig_binding_coef = match self.musig_binding_coef {
-            Some(coef) => coef,
+        let musig_binding_coef = match &self.musig_ctx {
+            Some(ctx) => ctx.binding_coef,
             None => Scalar::one(),
         };
 
