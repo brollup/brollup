@@ -3,7 +3,7 @@ use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MusigCtx {
     pub signers: HashMap<Point, (Point, Point)>,
     pub key_coef: Scalar,
@@ -50,6 +50,14 @@ impl MusigCtx {
         };
 
         Some(musig_ctx)
+    }
+
+    pub fn agg_key(&self) -> Point {
+        self.agg_key.clone()
+    }
+
+    pub fn agg_nonce(&self) -> Point {
+        self.agg_nonce.clone()
     }
 
     pub fn keys(&self) -> Vec<Point> {

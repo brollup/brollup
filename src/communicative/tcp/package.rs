@@ -13,6 +13,8 @@ pub enum PackageKind {
     DeliverDKGSessions,
     RequestPartialSigs,
     SyncDKGDir,
+    CovSessionJoin,
+    CovSessionSubmit,
 }
 
 impl PackageKind {
@@ -25,6 +27,8 @@ impl PackageKind {
             PackageKind::DeliverDKGSessions => 0x04,
             PackageKind::RequestPartialSigs => 0x05,
             PackageKind::SyncDKGDir => 0x06,
+            PackageKind::CovSessionJoin => 0x07,
+            PackageKind::CovSessionSubmit => 0x08,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -36,6 +40,8 @@ impl PackageKind {
             0x04 => Some(PackageKind::DeliverDKGSessions),
             0x05 => Some(PackageKind::RequestPartialSigs),
             0x06 => Some(PackageKind::SyncDKGDir),
+            0x07 => Some(PackageKind::CovSessionJoin),
+            0x08 => Some(PackageKind::CovSessionSubmit),
             _ => None,
         }
     }

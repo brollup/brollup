@@ -1,7 +1,7 @@
 use crate::{
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     liquidity,
-    musig::MusigNestingCtx,
+    musig::{MusigCtx, MusigNestingCtx},
     noist::{
         dkg::{directory::SigningSession, session::DKGSession},
         setup::setup::VSESetup,
@@ -48,8 +48,8 @@ pub trait DKGOps {
         &self,
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
-        messages: Vec<[u8; 32]>,
-    ) -> Result<Vec<[u8; 64]>, DKGSignError>;
+        messages: Vec<([u8; 32], Option<MusigNestingCtx>)>,
+    ) -> Result<Vec<([u8; 64], Option<MusigCtx>)>, DKGSignError>;
 }
 
 #[async_trait]
@@ -204,10 +204,10 @@ impl DKGOps for DKG_MANAGER {
         &self,
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
-        messages: Vec<[u8; 32]>,
-    ) -> Result<Vec<[u8; 64]>, DKGSignError> {
+        messages: Vec<([u8; 32], Option<MusigNestingCtx>)>,
+    ) -> Result<Vec<([u8; 64], Option<MusigCtx>)>, DKGSignError> {
         // #1 Initialize full signatures list.
-        let mut full_signatures = Vec::<[u8; 64]>::new();
+        let mut full_signatures = Vec::<([u8; 64], Option<MusigCtx>)>::new();
 
         // # 2 Initialize DKG directory.
         let dkg_directory: DKG_DIRECTORY = {
@@ -249,13 +249,14 @@ impl DKGOps for DKG_MANAGER {
             Vec::<(u64, [u8; 32], Option<MusigNestingCtx>)>::with_capacity(signing_sessions.len()); // Nonce index, message.
 
         // #6 Pick fresh signing sessions to be filled.
-        for message in messages.iter() {
+        for (message, musig_nesting_ctx) in messages.iter() {
             let mut _dkg_directory = dkg_directory.lock().await;
-            let signing_session =
-                match _dkg_directory.pick_signing_session(message.to_owned(), None) {
-                    Some(session) => session,
-                    None => return Err(DKGSignError::PickSigningSessionErr),
-                };
+            let signing_session = match _dkg_directory
+                .pick_signing_session(message.to_owned(), musig_nesting_ctx.to_owned())
+            {
+                Some(session) => session,
+                None => return Err(DKGSignError::PickSigningSessionErr),
+            };
 
             signing_requests.push((signing_session.nonce_index(), message.to_owned(), None));
             signing_sessions.push(signing_session);
@@ -342,7 +343,7 @@ impl DKGOps for DKG_MANAGER {
                 Some(sig) => sig,
                 None => return Err(DKGSignError::AggSigErr),
             };
-            full_signatures.push(full_sig);
+            full_signatures.push((full_sig, signing_session.musig_ctx()));
         }
 
         // # 12 Return full signatures.

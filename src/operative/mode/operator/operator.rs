@@ -81,7 +81,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
         let dkg_manager = Arc::clone(&dkg_manager);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager).await;
+            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager, None).await;
         });
     }
 

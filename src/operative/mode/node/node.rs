@@ -37,10 +37,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     };
 
     // 3. CLI
-    cli(&coordinator).await;
+    cli(&coordinator, &keys).await;
 }
 
-pub async fn cli(coordinator_conn: &PEER) {
+pub async fn cli(coordinator_conn: &PEER, keys: &KeyHolder) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -70,6 +70,7 @@ pub async fn cli(coordinator_conn: &PEER) {
             "clear" => ncli::clear::command(),
             "conn" => ncli::conn::command(coordinator_conn).await,
             "ping" => ncli::ping::command(coordinator_conn).await,
+            "covj" => ncli::covj::command(coordinator_conn, keys.secret_key(), keys.public_key()).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
