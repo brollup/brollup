@@ -35,13 +35,11 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
         .await
     {
         Ok(musig_ctx) => {
-            println!("musig ctx returned.");
-
             let agg_key = musig_ctx.agg_key();
             let agg_nonce = musig_ctx.agg_nonce();
 
-            println!("agg_key: {}", hex::encode(agg_key.serialize_xonly()));
-            println!("agg_nonce: {}", hex::encode(agg_nonce.serialize_xonly()));
+            println!("Agg key: {}", hex::encode(agg_key.serialize_xonly()));
+            println!("Agg nonce: {}", hex::encode(agg_nonce.serialize_xonly()));
 
             let partial_sig =
                 match musig_ctx.partial_sign(pk_point, sk_scalar, hiding_secret, binding_secret) {
@@ -55,21 +53,14 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
             partial_sig
         }
         Err(_) => {
-            eprintln!("error joining signing session.");
+            eprintln!("Error joining signing session.");
             return;
         }
     };
 
-    println!("partial_sig: {}", hex::encode(partial_sig.serialize()));
+    println!("Partial sig: {}", hex::encode(partial_sig.serialize()));
 
-    match coordinator.cov_session_submit(pk, partial_sig).await {
-        Ok(_) => {
-            println!("sumitted partial sig. done :)");
-            return;
-        }
-        Err(_) => {
-            println!("could not submit partial sig. :/");
-            return;
-        }
+    if let Err(_) = coordinator.cov_session_submit(pk, partial_sig).await {
+        eprintln!("Error submitting partial sig.");
     }
 }
