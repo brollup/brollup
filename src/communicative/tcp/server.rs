@@ -2,6 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use super::tcp;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
+use crate::musig::MusigNestingCtx;
 use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
@@ -486,11 +487,11 @@ async fn handle_request_partial_sigs(
         return None;
     }
 
-    let (dir_height, requests): (u64, Vec<(u64, [u8; 32])>) = match serde_json::from_slice(payload)
-    {
-        Ok(tuple) => tuple,
-        Err(_) => return None,
-    };
+    let (dir_height, requests): (u64, Vec<(u64, [u8; 32], Option<MusigNestingCtx>)>) =
+        match serde_json::from_slice(payload) {
+            Ok(triple) => triple,
+            Err(_) => return None,
+        };
 
     let dkg_directory: DKG_DIRECTORY = {
         let _dkg_manager = dkg_manager.lock().await;
@@ -502,10 +503,10 @@ async fn handle_request_partial_sigs(
 
     let mut partial_sigs = Vec::<Scalar>::with_capacity(requests.len());
 
-    for (nonce_index, message) in requests {
+    for (nonce_index, message, musig_nesting_ctx) in requests {
         let signing_session = {
             let mut _dkg_directory = dkg_directory.lock().await;
-            match _dkg_directory.signing_session(message, nonce_index, None) {
+            match _dkg_directory.signing_session(message, nonce_index, musig_nesting_ctx) {
                 Some(directory) => directory,
                 None => return None,
             }

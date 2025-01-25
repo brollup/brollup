@@ -1,6 +1,7 @@
 use crate::{
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     liquidity,
+    musig::MusigNestingCtx,
     noist::{
         dkg::{directory::SigningSession, session::DKGSession},
         setup::setup::VSESetup,
@@ -244,7 +245,8 @@ impl DKGOps for DKG_MANAGER {
 
         // #5 Initialize signing sessions.
         let mut signing_sessions = Vec::<SigningSession>::with_capacity(messages.len());
-        let mut signing_requests = Vec::<(u64, [u8; 32])>::with_capacity(signing_sessions.len()); // Nonce index, message.
+        let mut signing_requests =
+            Vec::<(u64, [u8; 32], Option<MusigNestingCtx>)>::with_capacity(signing_sessions.len()); // Nonce index, message.
 
         // #6 Pick fresh signing sessions to be filled.
         for message in messages.iter() {
@@ -255,7 +257,7 @@ impl DKGOps for DKG_MANAGER {
                     None => return Err(DKGSignError::PickSigningSessionErr),
                 };
 
-            signing_requests.push((signing_session.nonce_index(), message.to_owned()));
+            signing_requests.push((signing_session.nonce_index(), message.to_owned(), None));
             signing_sessions.push(signing_session);
         }
 

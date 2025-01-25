@@ -1,5 +1,6 @@
 use crate::{hash::Hash, into::IntoScalar, schnorr::challenge};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -168,7 +169,7 @@ impl MusigCtx {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MusigNestingCtx {
     remote: HashMap<Point, (Point, Point)>,
 }
