@@ -1,18 +1,16 @@
+use colored::Colorize;
+
+use crate::{dkgops::DKGOps, into::IntoScalar, COV_SESSION, DKG_MANAGER, PEER_MANAGER};
 use std::time::Duration;
 
-use crate::{
-    covsession::CovSessionStage, dkgops::DKGOps, into::IntoScalar, COV_SESSION, DKG_DIRECTORY,
-    DKG_MANAGER, PEER_MANAGER,
-};
-
-// cov <height>
+// covr <height> <msg>
 pub async fn command(
     parts: Vec<&str>,
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &DKG_MANAGER,
     cov_session: &mut COV_SESSION,
 ) {
-    if parts.len() != 2 {
+    if parts.len() != 3 {
         eprintln!("Invalid usage.");
         return;
     }
@@ -20,6 +18,14 @@ pub async fn command(
     let dir_height = match parts[1].to_owned().parse::<u64>() {
         Ok(height) => height,
         Err(_) => return eprintln!("Invalid <height>."),
+    };
+
+    let msg: [u8; 32] = match hex::decode(parts[2]) {
+        Ok(bytes) => match bytes.try_into() {
+            Ok(msg) => msg,
+            Err(_) => return eprintln!("Invalid <msg>."),
+        },
+        Err(_) => return eprintln!("Invalid <msg>."),
     };
 
     let dkg_dir = {
@@ -38,21 +44,15 @@ pub async fn command(
         }
     };
 
-    println!("covsession started.");
-
     // open session
     {
         let mut _cov_session = cov_session.lock().await;
         _cov_session.on();
     }
 
-    println!("covsession is on.");
-
-    // Wait 10 seconds
-    println!("Waiting 10 secs for session participants.");
+    println!("Session started. Awaiting signers..");
     tokio::time::sleep(Duration::from_secs(10)).await;
-    println!("Waiting is over.");
-    // see
+
     let remote = {
         let mut _cov_session = cov_session.lock().await;
         _cov_session.remote()
@@ -61,8 +61,6 @@ pub async fn command(
     if remote.len() == 0 {
         println!("No remote joined the session.");
         return;
-    } else {
-        println!("remote len: {}", remote.len());
     }
 
     for (index, (key, (hiding, binding))) in remote.iter().enumerate() {
@@ -90,8 +88,6 @@ pub async fn command(
         _cov_session.lock();
     }
 
-    println!("Session is locked.");
-
     let musig_nesting_ctx = match {
         let mut _cov_session = cov_session.lock().await;
         _cov_session.musig_nesting_ctx()
@@ -103,22 +99,23 @@ pub async fn command(
         }
     };
 
-    let msg = [0xffu8; 32];
     let messages = vec![(msg, Some(musig_nesting_ctx))];
 
     let operator_partial_sig_ = match dkg_manager.sign(peer_manager, dir_height, messages).await {
         Ok(sig) => sig,
-        Err(_) => {
-            eprintln!("Error operator_partial_sig.");
+        Err(err) => {
+            eprintln!("Error operator_partial_sig: {:?}", err);
+
+            {
+                let mut _cov_session = cov_session.lock().await;
+                _cov_session.reset();
+            }
+
             return;
         }
     };
 
     let (operator_partial_sig, musig_ctx) = operator_partial_sig_[0].clone();
-    println!(
-        "operator_partial_sig: {}",
-        hex::encode(operator_partial_sig)
-    );
 
     let mut musig_ctx = match musig_ctx {
         Some(ctx) => ctx,
@@ -134,7 +131,7 @@ pub async fn command(
     };
 
     if !musig_ctx.insert_partial_sig(operator_key, partial_sig_scalar) {
-        eprintln!("error insertirng operator partial sig.")
+        eprintln!("Error insertirng operator partial sig.")
     }
 
     {
@@ -142,19 +139,15 @@ pub async fn command(
         _cov_session.ready(&musig_ctx);
     }
 
-    println!("musig ctx is set and ready");
-
     println!(
-        "agg key: {}",
+        "Agg key: {}",
         hex::encode(musig_ctx.agg_key().serialize_xonly())
     );
 
     println!(
-        "agg nonce: {}",
+        "Agg nonce: {}",
         hex::encode(musig_ctx.agg_nonce().serialize_xonly())
     );
-
-    println!("waiting for full agg sig..");
 
     loop {
         let full_agg_sig = match {
@@ -172,6 +165,10 @@ pub async fn command(
             let mut _cov_session = cov_session.lock().await;
             _cov_session.finalized();
         }
-        println!("full_agg_sig: {}", hex::encode(full_agg_sig));
+        println!(
+            "{}",
+            format!("Agg sig: {}", hex::encode(full_agg_sig)).green()
+        );
+        break;
     }
 }

@@ -109,7 +109,7 @@ pub async fn cli(
             "clear" => ccli::clear::command(),
             "dkg" => ccli::dkg::command(parts, peer_manager, dkg_manager).await,
             "ops" => ccli::ops::command(peer_manager).await,
-            "cov" => ccli::cov::command(parts, peer_manager, dkg_manager, cov_session).await,
+            "covr" => ccli::covr::command(parts, peer_manager, dkg_manager, cov_session).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

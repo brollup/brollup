@@ -38,6 +38,10 @@ impl CovSession {
         self.stage
     }
 
+    pub fn remote_len(&self) -> usize {
+        self.remote.len()
+    }
+
     pub fn remote(&self) -> HashMap<Point, (Point, Point)> {
         self.remote.clone()
     }
@@ -88,6 +92,10 @@ impl CovSession {
     }
 
     pub fn insert_partial_sig(&mut self, key: [u8; 32], partial_sig: Scalar) -> bool {
+        if self.stage != CovSessionStage::Ready {
+            return false;
+        };
+
         let key_point = match key.into_point() {
             Ok(point) => point,
             Err(_) => return false,
@@ -114,6 +122,13 @@ impl CovSession {
 
     pub fn finalized(&mut self) {
         self.stage = CovSessionStage::Finalized;
+    }
+
+    pub fn reset(&mut self) {
+        self.stage = CovSessionStage::Close;
+        self.remote = HashMap::<Point, (Point, Point)>::new();
+        self.musig_nesting_ctx = None;
+        self.musig_ctx = None;
     }
 }
 

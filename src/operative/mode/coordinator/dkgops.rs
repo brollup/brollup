@@ -258,7 +258,7 @@ impl DKGOps for DKG_MANAGER {
                 None => return Err(DKGSignError::PickSigningSessionErr),
             };
 
-            signing_requests.push((signing_session.nonce_index(), message.to_owned(), None));
+            signing_requests.push((signing_session.nonce_index(), message.to_owned(), musig_nesting_ctx.to_owned()));
             signing_sessions.push(signing_session);
         }
 

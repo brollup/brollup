@@ -1,4 +1,4 @@
 pub mod dkg;
 pub mod ops;
 pub mod clear;
-pub mod cov;
+pub mod covr;
