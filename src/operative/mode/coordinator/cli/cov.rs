@@ -61,6 +61,8 @@ pub async fn command(
     if remote.len() == 0 {
         println!("No remote joined the session.");
         return;
+    } else {
+        println!("remote len: {}", remote.len());
     }
 
     for (index, (key, (hiding, binding))) in remote.iter().enumerate() {
@@ -151,6 +153,8 @@ pub async fn command(
         "agg nonce: {}",
         hex::encode(musig_ctx.agg_nonce().serialize_xonly())
     );
+
+    println!("waiting for full agg sig..");
 
     loop {
         let full_agg_sig = match {

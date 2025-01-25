@@ -582,7 +582,7 @@ async fn handle_cov_session_join(
         };
 
         match stage {
-            CovSessionStage::Locked => {
+            CovSessionStage::Ready => {
                 let mut _cov_session = cov_session.lock().await;
                 let musig_ctx = match _cov_session.musig_ctx() {
                     Some(ctx) => ctx,
@@ -591,7 +591,10 @@ async fn handle_cov_session_join(
 
                 break musig_ctx;
             }
-            _ => tokio::time::sleep(Duration::from_millis(50)).await,
+            _ => {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                continue;
+            }
         }
     };
 
