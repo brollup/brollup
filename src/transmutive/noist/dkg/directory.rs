@@ -268,13 +268,14 @@ impl SigningSession {
         message: [u8; 32],
         musig_nesting_ctx: Option<MusigNestingCtx>,
     ) -> Option<SigningSession> {
-        let musig_ctx = match musig_nesting_ctx {
+        let musig_ctx = match &musig_nesting_ctx {
             Some(ctx) => {
                 let musig_ctx = ctx.musig_ctx(
                     group_key,
                     hiding_group_nonce,
                     post_binding_group_nonce,
                     message,
+                    ctx.tap_branch(),
                 )?;
 
                 Some(musig_ctx)
@@ -349,17 +350,32 @@ impl SigningSession {
         };
 
         // (k + ed) + (k + ed)
+
         let hiding_secret_key_ = self
             .group_key_session
-            .signatory_combined_hiding_secret(secret_key)? * musig_key_coef;
+            .signatory_combined_hiding_secret(secret_key)?
+            * musig_key_coef;
 
-        let hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
+        let mut hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
+
+        if let Some(ctx) = &self.musig_ctx {
+            if let Some(key) = ctx.tweaked_agg_key {
+                hiding_secret_key = hiding_secret_key.negate_if(key.parity())
+            }
+        }
 
         let post_binding_secret_key_ = self
             .group_key_session
-            .signatory_combined_post_binding_secret(secret_key, None, None)? * musig_key_coef;
+            .signatory_combined_post_binding_secret(secret_key, None, None)?
+            * musig_key_coef;
 
-        let post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
+        let mut post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
+
+        if let Some(ctx) = &self.musig_ctx {
+            if let Some(key) = ctx.tweaked_agg_key {
+                post_binding_secret_key = post_binding_secret_key.negate_if(key.parity())
+            }
+        }
 
         let hiding_secret_nonce_ = self
             .group_nonce_session
@@ -413,6 +429,7 @@ impl SigningSession {
         };
 
         // (R + eP) + (R + eP)
+
         let hiding_public_key_ = match self
             .group_key_session
             .signatory_combined_hiding_public(signatory)
@@ -421,7 +438,13 @@ impl SigningSession {
             None => return false,
         } * musig_key_coef;
 
-        let hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
+        let mut hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
+
+        if let Some(ctx) = &self.musig_ctx {
+            if let Some(key) = ctx.tweaked_agg_key {
+                hiding_public_key = hiding_public_key.negate_if(key.parity())
+            }
+        }
 
         let post_binding_public_key_ = match self
             .group_key_session
@@ -431,7 +454,13 @@ impl SigningSession {
             None => return false,
         } * musig_key_coef;
 
-        let post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
+        let mut post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
+
+        if let Some(ctx) = &self.musig_ctx {
+            if let Some(key) = ctx.tweaked_agg_key {
+                post_binding_public_key = post_binding_public_key.negate_if(key.parity())
+            }
+        }
 
         let hiding_public_nonce_ = match self
             .group_nonce_session

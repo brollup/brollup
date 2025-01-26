@@ -79,7 +79,8 @@ impl CovSession {
     pub fn lock(&mut self) -> bool {
         self.stage = CovSessionStage::Locked;
 
-        let musig_nesting_ctx = MusigNestingCtx::new(self.remote.clone());
+        let tap_branch = [0xfe; 32];
+        let musig_nesting_ctx = MusigNestingCtx::new(self.remote.clone(), Some(tap_branch));
         self.musig_nesting_ctx = Some(musig_nesting_ctx);
 
         true

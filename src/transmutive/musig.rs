@@ -1,4 +1,4 @@
-use crate::{hash::Hash, into::IntoScalar, schnorr::challenge};
+use crate::{hash::Hash, into::IntoScalar, schnorr::challenge, taproot};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -6,6 +6,8 @@ use std::collections::HashMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MusigCtx {
     pub signers: HashMap<Point, (Point, Point)>,
+    pub tweak: Option<Scalar>,
+    pub tweaked_agg_key: Option<Point>,
     pub key_coef: Scalar,
     pub nonce_coef: Scalar,
     pub agg_key: Point,
@@ -16,7 +18,11 @@ pub struct MusigCtx {
 }
 
 impl MusigCtx {
-    pub fn new(signers: HashMap<Point, (Point, Point)>, message: [u8; 32]) -> Option<Self> {
+    pub fn new(
+        signers: HashMap<Point, (Point, Point)>,
+        message: [u8; 32],
+        tap_branch: Option<[u8; 32]>,
+    ) -> Option<Self> {
         let keys: Vec<Point> = {
             let mut keys: Vec<Point> = signers.keys().cloned().collect();
             keys.sort();
@@ -34,12 +40,43 @@ impl MusigCtx {
 
         let key_coef = key_coef(&keys)?;
         let agg_key = agg_key(key_coef, &keys)?;
+
+        let tweak = match tap_branch {
+            Some(tap_branch) => {
+                let tap_branch_scalar = tap_branch.into_scalar().ok()?;
+                let tweak = taproot::hash_tap_tweak(
+                    agg_key.serialize_xonly(),
+                    tap_branch_scalar.serialize(),
+                );
+                let tweak_scalar = tweak.into_scalar().ok()?;
+                Some(tweak_scalar)
+            }
+            None => None,
+        };
+
+        //   let tap_tweak = taproot::hash_tap_tweak(agg_key.serialize_xonly(), tweak_bytes)
+
+        let tweaked_agg_key = match tweak {
+            Some(tweak) => match agg_key.negate_if(agg_key.parity()) + tweak.base_point_mul() {
+                MaybePoint::Valid(point) => Some(point),
+                MaybePoint::Infinity => None,
+            },
+            None => None,
+        };
+
+        let challenge_key = match tweaked_agg_key {
+            Some(key) => key.clone(),
+            _ => agg_key.clone(),
+        };
+
         let nonce_coef = nonce_coef(&keys, &nonces, message)?;
         let agg_nonce = agg_nonce(nonce_coef, &nonces)?;
-        let challenge = compute_challenge(agg_nonce, agg_key, message)?;
+        let challenge = compute_challenge(agg_nonce, challenge_key, message)?;
 
         let musig_ctx = MusigCtx {
             signers,
+            tweak,
+            tweaked_agg_key,
             key_coef,
             nonce_coef,
             agg_key,
@@ -50,6 +87,10 @@ impl MusigCtx {
         };
 
         Some(musig_ctx)
+    }
+
+    pub fn tweaked_agg_key(&self) -> Option<Point> {
+        self.tweaked_agg_key.clone()
     }
 
     pub fn agg_key(&self) -> Point {
@@ -99,7 +140,12 @@ impl MusigCtx {
             return None;
         };
 
-        let secret_key = secret_key.negate_if(self.agg_key.parity());
+        let mut secret_key = secret_key.negate_if(self.agg_key.parity());
+
+        if let Some(key) = self.tweaked_agg_key {
+            secret_key = secret_key.negate_if(key.parity())
+        }
+
         let secret_hiding_nonce = secret_hiding_nonce.negate_if(self.agg_nonce.parity());
         let secet_binding_nonce = secet_binding_nonce.negate_if(self.agg_nonce.parity());
         // k + k + ed
@@ -125,7 +171,12 @@ impl MusigCtx {
             None => return false,
         };
 
-        let signatory = signatory.negate_if(self.agg_key.parity());
+        let mut signatory = signatory.negate_if(self.agg_key.parity());
+
+        if let Some(key) = self.tweaked_agg_key {
+            signatory = signatory.negate_if(key.parity())
+        }
+
         let hiding_nonce = hiding_nonce.negate_if(self.agg_nonce.parity());
         let binding_nonce = binding_nonce.negate_if(self.agg_nonce.parity());
 
@@ -157,6 +208,16 @@ impl MusigCtx {
             agg_sig = agg_sig + partial_sig.to_owned();
         }
 
+        if let Some(tweak) = self.tweak {
+            let parity: bool = self.tweaked_agg_key.unwrap().parity().into();
+
+            if parity {
+                agg_sig = agg_sig + (self.challenge * tweak) * Scalar::max()
+            } else {
+                agg_sig = agg_sig + (self.challenge * tweak)
+            }
+        }
+
         match agg_sig {
             MaybeScalar::Valid(scalar) => return Some(scalar),
             MaybeScalar::Zero => return None,
@@ -180,11 +241,16 @@ impl MusigCtx {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MusigNestingCtx {
     remote: HashMap<Point, (Point, Point)>,
+    tap_branch: Option<[u8; 32]>,
 }
 
 impl MusigNestingCtx {
-    pub fn new(remote: HashMap<Point, (Point, Point)>) -> Self {
-        MusigNestingCtx { remote }
+    pub fn new(remote: HashMap<Point, (Point, Point)>, tap_branch: Option<[u8; 32]>) -> Self {
+        MusigNestingCtx { remote, tap_branch }
+    }
+
+    pub fn tap_branch(&self) -> Option<[u8; 32]> {
+        self.tap_branch.clone()
     }
 
     pub fn musig_ctx(
@@ -193,6 +259,7 @@ impl MusigNestingCtx {
         operator_hiding_nonce: Point,
         operator_post_binding_nonce: Point,
         message: [u8; 32],
+        tap_branch: Option<[u8; 32]>,
     ) -> Option<MusigCtx> {
         let mut signers = self.remote.clone();
         signers.insert(
@@ -200,7 +267,7 @@ impl MusigNestingCtx {
             (operator_hiding_nonce, operator_post_binding_nonce),
         );
 
-        MusigCtx::new(signers, message)
+        MusigCtx::new(signers, message, tap_branch)
     }
 }
 

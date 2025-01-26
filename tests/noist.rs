@@ -207,23 +207,23 @@ mod noist_tests {
         let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
         let musig_signer_secret: [u8; 32] =
-            hex::decode("4be582bd74bf9476c69cddf5194163af0c8fe279eb9e6d6af66086faedc31884")
+            hex::decode("c0e10f188b0e93b67a5c1ec9fe15389997e2ea000555725cd74bd61af6faec4e")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("023d0039ced44834b836653c3d53427d2bc3b5cd226b7e7ff63cc070add55393e3")
+            hex::decode("0209d9f274df52d894d64a3360bb0d42cbc8783a60c1a719d5d8f5974918c01e16")
                 .unwrap()
                 .try_into()
                 .unwrap();
 
         let musig_signer_hiding_secret_nonce: [u8; 32] =
-            hex::decode("78b42446eb3a7fdf4be310ef8b3ace676d83d6b1edd618ddab0b58f0ab939f92")
+            hex::decode("2bf1ce5c2e57b5080e3d67e77b0a015919dc55fd44e30d65f7817d8afd6995c6")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_hiding_public_nonce: [u8; 33] =
-            hex::decode("03b7618454cf9a380d59f758b3b554cf8cbfaf5328dc1b46b2eb6f10644467fa1d")
+            hex::decode("02b8e828457c6ab70e3f8a9cfdd5c21172fa69fccfeb74ec5e7a784f272ed094d6")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -289,7 +289,9 @@ mod noist_tests {
             ),
         );
 
-        let musig_nesting_ctx = MusigNestingCtx::new(signers);
+        let tap_branch = [0xfe; 32];
+
+        let musig_nesting_ctx = MusigNestingCtx::new(signers, Some(tap_branch));
 
         let mut signing_session = dkg_directory
             .pick_signing_session(message, Some(musig_nesting_ctx))
@@ -305,10 +307,10 @@ mod noist_tests {
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
 
         if !signing_session.insert_partial_sig(signer_1_public, s1_partial_sig) {
-            return Err("s1_partial_sig insertion err.".into());
+            return Err("m s1_partial_sig insertion err.".into());
         };
         if !signing_session.insert_partial_sig(signer_2_public, s2_partial_sig) {
-            return Err("s2_partial_sig insertion err.".into());
+            return Err("m s2_partial_sig insertion err.".into());
         };
 
         let op_partial_sig = signing_session.aggregated_sig().unwrap();
@@ -351,8 +353,13 @@ mod noist_tests {
 
         let agg_sig = musig_ctx.full_agg_sig().unwrap();
 
+        let verify_key = match musig_ctx.tweaked_agg_key {
+            Some(key) => key,
+            None => agg_key,
+        };
+
         assert!(schnorr::verify(
-            agg_key.serialize_xonly(),
+            verify_key.serialize_xonly(),
             message,
             agg_sig,
             schnorr::SigningMode::BIP340
