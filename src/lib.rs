@@ -18,8 +18,9 @@ type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type COV_SESSION = Arc<Mutex<CovSession>>;
 
 // Inscriptive
-#[path = "inscriptive/db.rs"]
-pub mod db;
+
+#[path = "inscriptive/prefix.rs"]
+pub mod prefix;
 
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
@@ -84,6 +85,10 @@ pub mod peer;
 pub mod peer_manager;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
+
+// Constructive
+#[path = "constructive/taproot.rs"]
+pub mod p2tr;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {

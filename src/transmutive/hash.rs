@@ -13,6 +13,9 @@ pub enum HashTag {
     SharedSecret,
     SecretNonce,
     SecretKey,
+    TapLeaf,
+    TapBranch,
+    TapTweak,
 }
 
 impl HashTag {
@@ -27,6 +30,9 @@ impl HashTag {
             HashTag::SharedSecret => format!("{}/{}", baked::PROJECT_TAG, "sharedsecret"),
             HashTag::SecretNonce => format!("{}/{}", baked::PROJECT_TAG, "secretnonce"),
             HashTag::SecretKey => format!("{}/{}", baked::PROJECT_TAG, "secretkey"),
+            HashTag::TapLeaf => format!("TapLeaf"),
+            HashTag::TapBranch => format!("TapBranch"),
+            HashTag::TapTweak => format!("TapTweak"),
         }
     }
 }
