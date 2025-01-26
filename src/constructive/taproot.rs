@@ -5,10 +5,10 @@ use std::cmp::Ordering;
 use std::vec;
 
 const LEAF_VERSION: u8 = 0xc0;
-
-const POINT_WITH_UNKNOWN_DISCRETE_LOGARITHM: [u8; 32] = [
-    0x50, 0x92, 0x9b, 0x74, 0xc1, 0xa0, 0x49, 0x54, 0xb7, 0x8b, 0x4b, 0x60, 0x35, 0xe9, 0x7a, 0x5e,
-    0x07, 0x8a, 0x5a, 0x0f, 0x28, 0xec, 0x96, 0xd5, 0x47, 0xbf, 0xee, 0x9a, 0xce, 0x80, 0x3a, 0xc0,
+const POINT_WITH_UNKNOWN_DISCRETE_LOGARITHM: [u8; 33] = [
+    0x02, 0x50, 0x92, 0x9b, 0x74, 0xc1, 0xa0, 0x49, 0x54, 0xb7, 0x8b, 0x4b, 0x60, 0x35, 0xe9, 0x7a,
+    0x5e, 0x07, 0x8a, 0x5a, 0x0f, 0x28, 0xec, 0x96, 0xd5, 0x47, 0xbf, 0xee, 0x9a, 0xce, 0x80, 0x3a,
+    0xc0,
 ];
 
 pub trait P2TR {
@@ -153,6 +153,10 @@ impl TapRoot {
         self.inner_key
     }
 
+    pub fn inner_key_parity(&self) -> bool {
+        self.inner_key.parity().into()
+    }
+
     pub fn inner_key_lifted(&self) -> Point {
         self.inner_key.negate_if(self.inner_key.parity())
     }
@@ -189,6 +193,11 @@ impl TapRoot {
         }
     }
 
+    pub fn tweaked_key_parity(&self) -> Option<bool> {
+        let tweaked_key = self.tweaked_key()?;
+        Some(tweaked_key.parity().into())
+    }
+
     pub fn spk(&self) -> Option<Vec<u8>> {
         let mut spk = vec![0x51, 0x20];
         let tweaked_key = self.tweaked_key()?;
@@ -203,7 +212,7 @@ impl TapRoot {
         };
 
         let inner_key = self.inner_key();
-        let parity: bool = self.tweaked_key()?.parity().into();
+        let parity: bool = self.tweaked_key_parity()?;
 
         Some(ControlBlock::new(inner_key, parity, path))
     }
@@ -393,7 +402,7 @@ impl ControlBlock {
             true => vec.push(self.leaf_version + 1), // odd parity
         };
 
-        vec.extend(self.inner_key.serialize().to_vec());
+        vec.extend(self.inner_key.serialize_xonly().to_vec());
         vec.extend(self.path.clone());
         vec
     }

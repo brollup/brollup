@@ -88,7 +88,7 @@ pub mod tcp;
 
 // Constructive
 #[path = "constructive/taproot.rs"]
-pub mod p2tr;
+pub mod taproot;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
