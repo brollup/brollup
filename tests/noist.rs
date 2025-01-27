@@ -2,7 +2,7 @@
 mod noist_tests {
     use brollup::hash::Hash;
     use brollup::into::{IntoPoint, IntoPointVec, IntoScalar};
-    use brollup::musig::MusigNestingCtx;
+    use brollup::musig::{MusigCtx, MusigNestingCtx};
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
@@ -208,6 +208,8 @@ mod noist_tests {
 
         let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
+        println!("message: {}", hex::encode(message));
+
         let musig_signer_secret: [u8; 32] =
             hex::decode("73d6e1fdbc478ae5789dfa32eecd5a1dc08314587cf32b170afa38a65560ae11")
                 .unwrap()
@@ -282,6 +284,13 @@ mod noist_tests {
         let projector = Projector::new(remote_keys, operator_key, ProjectorTag::VTXOProjector);
         let projector_txo = projector.taproot().unwrap();
 
+        println!(
+            "inner: {}",
+            hex::encode(projector_txo.inner_key().serialize())
+        );
+        println!("tweak: {}", hex::encode(projector_txo.tap_tweak()));
+        println!("spk: {}", hex::encode(projector_txo.spk().unwrap()));
+
         let mut signers = HashMap::<Point, (Point, Point)>::new();
         signers.insert(
             musig_signer_public.into_point().unwrap(),
@@ -307,7 +316,17 @@ mod noist_tests {
             .pick_signing_session(message, Some(musig_nesting_ctx))
             .unwrap();
 
-        let mut musig_ctx = signing_session.musig_ctx().unwrap();
+        let mut musig_ctx: MusigCtx = signing_session.musig_ctx().unwrap();
+
+        println!(
+            "musig_ctx inner: {}",
+            hex::encode(musig_ctx.agg_inner_key().serialize())
+        );
+
+        println!(
+            "musig_ctx agg: {}",
+            hex::encode(musig_ctx.agg_key().serialize())
+        );
 
         let _agg_key = musig_ctx.agg_key();
 
@@ -360,6 +379,8 @@ mod noist_tests {
         }
 
         let agg_sig = musig_ctx.full_agg_sig().unwrap();
+
+        println!("agg_sig: {}", hex::encode(agg_sig));
 
         assert!(schnorr::verify(
             musig_ctx.agg_key().serialize_xonly(),

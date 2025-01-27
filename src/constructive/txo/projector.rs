@@ -66,6 +66,9 @@ impl P2TR for Projector {
         sweep_path_script.push(0x20); // OP_PUSHDATA_32
         sweep_path_script.extend(self.operator_key().serialize_xonly()); // Operator Key 32-bytes
         sweep_path_script.push(0xac); // OP_CHECKSIG
+
+        println!("sweep_path_script: {}", hex::encode(&sweep_path_script));
+
         let sweep_path = TapLeaf::new(sweep_path_script);
 
         Some(TapRoot::key_and_script_path_single(inner_key, sweep_path))
