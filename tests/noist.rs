@@ -282,8 +282,6 @@ mod noist_tests {
         let projector = Projector::new(remote_keys, operator_key, ProjectorTag::VTXOProjector);
         let projector_txo = projector.taproot().unwrap();
 
-        println!("operator_key: {}", hex::encode(operator_key.serialize()));
-
         let mut signers = HashMap::<Point, (Point, Point)>::new();
         signers.insert(
             musig_signer_public.into_point().unwrap(),
@@ -312,8 +310,6 @@ mod noist_tests {
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 
         let agg_key = musig_ctx.agg_key();
-
-        println!("agg_key: {}", hex::encode(agg_key.serialize()));
 
         let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
