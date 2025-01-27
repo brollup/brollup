@@ -309,7 +309,7 @@ mod noist_tests {
 
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 
-        let agg_key = musig_ctx.agg_key();
+        let _agg_key = musig_ctx.agg_key();
 
         let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
