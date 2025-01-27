@@ -21,7 +21,8 @@ type COV_SESSION = Arc<Mutex<CovSession>>;
 
 #[path = "inscriptive/prefix.rs"]
 pub mod prefix;
-
+#[path = "inscriptive/csv.rs"]
+pub mod csv;
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
 
@@ -89,6 +90,10 @@ pub mod tcp;
 // Constructive
 #[path = "constructive/taproot.rs"]
 pub mod taproot;
+
+// Constructive
+#[path = "constructive/txo/mod.rs"]
+pub mod txo;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
