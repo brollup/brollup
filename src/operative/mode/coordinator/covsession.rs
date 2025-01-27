@@ -1,5 +1,5 @@
 use crate::{
-    into::IntoPoint,
+    into::{IntoPoint, IntoScalar},
     musig::{MusigCtx, MusigNestingCtx},
     COV_SESSION,
 };
@@ -79,8 +79,9 @@ impl CovSession {
     pub fn lock(&mut self) -> bool {
         self.stage = CovSessionStage::Locked;
 
-        let tap_branch = [0xfe; 32];
-        let musig_nesting_ctx = MusigNestingCtx::new(self.remote.clone(), Some(tap_branch));
+        let tweak = [0xfeu8; 32].into_scalar().unwrap();
+
+        let musig_nesting_ctx = MusigNestingCtx::new(self.remote.clone(), Some(tweak));
         self.musig_nesting_ctx = Some(musig_nesting_ctx);
 
         true

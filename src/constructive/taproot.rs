@@ -161,22 +161,19 @@ impl TapRoot {
         self.inner_key.negate_if(self.inner_key.parity())
     }
 
-    pub fn uppermost_branch(&self) -> [u8; 32] {
+    pub fn tap_branch(&self) -> [u8; 32] {
         let uppermost_branch = match &self.tree {
-            Some(tree) => match &tree.root {
-                Branch::Leaf(leaf) => leaf.hash(),
-                Branch::Branch(branch) => branch.hash(),
-            },
-            None => [0u8; 32],
+            Some(tree) => tree.tap_branch(),
+            None => [0x00u8; 32],
         };
         uppermost_branch
     }
 
     pub fn tap_tweak(&self) -> [u8; 32] {
         let inner_key_bytes = self.inner_key.serialize_xonly();
-        let uppermost_branch = self.uppermost_branch();
+        let tap_branch_bytes = self.tap_branch();
 
-        hash_tap_tweak(inner_key_bytes, uppermost_branch)
+        hash_tap_tweak(inner_key_bytes, tap_branch_bytes)
     }
 
     pub fn tweaked_key(&self) -> Option<Point> {
@@ -224,22 +221,30 @@ impl TapRoot {
 #[derive(Clone)]
 pub struct TapTree {
     leaves: Vec<TapLeaf>,
-    root: Branch,
+    tap_branch: [u8; 32],
 }
 
 impl TapTree {
     pub fn new(leaves: Vec<TapLeaf>) -> TapTree {
+        let uppermost_branch = tree_builder(&leaves, None).0;
+
+        let tap_branch = match &uppermost_branch {
+            Branch::Leaf(leaf) => leaf.hash(),
+            Branch::Branch(branch) => branch.hash(),
+        };
+
         TapTree {
             leaves: leaves.clone(),
-            root: tree_builder(&leaves, None).0,
+            tap_branch,
         }
     }
 
-    pub fn root(&self) -> [u8; 32] {
-        match &self.root {
-            Branch::Leaf(leaf) => leaf.hash(),
-            Branch::Branch(branch) => branch.hash(),
-        }
+    pub fn leaves(&self) -> Vec<TapLeaf> {
+        self.leaves.clone()
+    }
+
+    pub fn tap_branch(&self) -> [u8; 32] {
+        self.tap_branch
     }
 
     pub fn path(&self, index: usize) -> Vec<u8> {
@@ -250,9 +255,6 @@ impl TapTree {
             None => panic!(),
         };
         path_vec
-    }
-    pub fn leaves(&self) -> Vec<TapLeaf> {
-        self.leaves.clone()
     }
 }
 

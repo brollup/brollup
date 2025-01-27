@@ -36,7 +36,13 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
     {
         Ok(musig_ctx) => {
             let agg_key = musig_ctx.agg_key();
-            let agg_nonce = musig_ctx.agg_nonce();
+            let agg_nonce = match musig_ctx.agg_nonce() {
+                Some(nonce) => nonce,
+                None => {
+                    println!("agg_nonce not found.");
+                    return;
+                }
+            };
 
             println!("Agg key: {}", hex::encode(agg_key.serialize_xonly()));
             println!("Agg nonce: {}", hex::encode(agg_nonce.serialize_xonly()));

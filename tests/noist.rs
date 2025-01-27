@@ -207,12 +207,12 @@ mod noist_tests {
         let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
         let musig_signer_secret: [u8; 32] =
-            hex::decode("c0e10f188b0e93b67a5c1ec9fe15389997e2ea000555725cd74bd61af6faec4e")
+            hex::decode("a8b5b00e90a3b8c674f291fa06aca20526959d856517e3e3856653ea6a1f0960")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("0209d9f274df52d894d64a3360bb0d42cbc8783a60c1a719d5d8f5974918c01e16")
+            hex::decode("02fb561acefc511320861ecb1611d94f5546b9ba08ad0ca9bafacb8a0f93fab834")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -272,6 +272,8 @@ mod noist_tests {
                 .try_into()
                 .unwrap();
 
+        let operator_key = dkg_directory.group_key().unwrap();
+
         let mut signers = HashMap::<Point, (Point, Point)>::new();
         signers.insert(
             musig_signer_public.into_point().unwrap(),
@@ -289,9 +291,9 @@ mod noist_tests {
             ),
         );
 
-        let tap_branch = [0xfe; 32];
+        let tweak = [0xfeu8; 32].into_scalar().unwrap();
 
-        let musig_nesting_ctx = MusigNestingCtx::new(signers, Some(tap_branch));
+        let musig_nesting_ctx = MusigNestingCtx::new(signers, Some(tweak));
 
         let mut signing_session = dkg_directory
             .pick_signing_session(message, Some(musig_nesting_ctx))
@@ -299,9 +301,13 @@ mod noist_tests {
 
         let operator_key = signing_session.group_key;
 
+        println!("operator_key: {}", hex::encode(operator_key.serialize()));
+
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 
-        let agg_key = musig_ctx.agg_key;
+        let agg_key = musig_ctx.agg_key();
+
+        println!("agg_key: {}", hex::encode(agg_key.serialize()));
 
         let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
@@ -332,7 +338,7 @@ mod noist_tests {
             musig_signer_public.into_point().unwrap(),
             client1_partial_sig,
         ) {
-            println!("client op sig insert err.");
+            println!("client1 op sig insert err.");
         }
 
         let client2_partial_sig = musig_ctx
@@ -348,18 +354,13 @@ mod noist_tests {
             musig_signer2_public.into_point().unwrap(),
             client2_partial_sig,
         ) {
-            println!("client op sig insert err.");
+            println!("client2 op sig insert err.");
         }
 
         let agg_sig = musig_ctx.full_agg_sig().unwrap();
 
-        let verify_key = match musig_ctx.tweaked_agg_key {
-            Some(key) => key,
-            None => agg_key,
-        };
-
         assert!(schnorr::verify(
-            verify_key.serialize_xonly(),
+            musig_ctx.agg_key().serialize_xonly(),
             message,
             agg_sig,
             schnorr::SigningMode::BIP340

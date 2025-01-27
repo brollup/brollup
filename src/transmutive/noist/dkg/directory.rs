@@ -275,7 +275,6 @@ impl SigningSession {
                     hiding_group_nonce,
                     post_binding_group_nonce,
                     message,
-                    ctx.tap_branch(),
                 )?;
 
                 Some(musig_ctx)
@@ -284,7 +283,7 @@ impl SigningSession {
         };
 
         let challenge = match &musig_ctx {
-            Some(ctx) => ctx.challenge,
+            Some(ctx) => ctx.challenge()?,
             None => match challenge(
                 group_nonce,
                 group_key,
@@ -330,22 +329,22 @@ impl SigningSession {
         let challenge = self.challenge;
 
         let compare_key = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_key,
+            Some(ctx) => ctx.agg_inner_key(),
             None => self.group_key,
         };
 
         let compare_nonce = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_nonce,
+            Some(ctx) => ctx.agg_nonce()?,
             None => self.group_nonce,
         };
 
         let musig_nonce_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.nonce_coef,
+            Some(ctx) => ctx.nonce_coef()?,
             None => Scalar::one(),
         };
 
         let musig_key_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.key_coef,
+            Some(ctx) => ctx.key_coef(),
             None => Scalar::one(),
         };
 
@@ -359,8 +358,8 @@ impl SigningSession {
         let mut hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(key) = ctx.tweaked_agg_key {
-                hiding_secret_key = hiding_secret_key.negate_if(key.parity())
+            if let Some(_) = ctx.tweak() {
+                hiding_secret_key = hiding_secret_key.negate_if(ctx.agg_key().parity())
             }
         }
 
@@ -372,8 +371,8 @@ impl SigningSession {
         let mut post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(key) = ctx.tweaked_agg_key {
-                post_binding_secret_key = post_binding_secret_key.negate_if(key.parity())
+            if let Some(_) = ctx.tweak() {
+                post_binding_secret_key = post_binding_secret_key.negate_if(ctx.agg_key().parity())
             }
         }
 
@@ -409,22 +408,28 @@ impl SigningSession {
         let challenge = self.challenge;
 
         let compare_key = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_key,
+            Some(ctx) => ctx.agg_inner_key(),
             None => self.group_key,
         };
 
         let compare_nonce = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_nonce,
+            Some(ctx) => match ctx.agg_nonce() {
+                Some(nonce) => nonce,
+                None => return false,
+            },
             None => self.group_nonce,
         };
 
         let musig_nonce_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.nonce_coef,
+            Some(ctx) => match ctx.nonce_coef() {
+                Some(coef) => coef,
+                None => return false,
+            },
             None => Scalar::one(),
         };
 
         let musig_key_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.key_coef,
+            Some(ctx) => ctx.key_coef(),
             None => Scalar::one(),
         };
 
@@ -441,8 +446,8 @@ impl SigningSession {
         let mut hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(key) = ctx.tweaked_agg_key {
-                hiding_public_key = hiding_public_key.negate_if(key.parity())
+            if let Some(_) = ctx.tweak() {
+                hiding_public_key = hiding_public_key.negate_if(ctx.agg_key().parity())
             }
         }
 
@@ -457,8 +462,8 @@ impl SigningSession {
         let mut post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(key) = ctx.tweaked_agg_key {
-                post_binding_public_key = post_binding_public_key.negate_if(key.parity())
+            if let Some(_) = ctx.tweak() {
+                post_binding_public_key = post_binding_public_key.negate_if(ctx.agg_key().parity())
             }
         }
 

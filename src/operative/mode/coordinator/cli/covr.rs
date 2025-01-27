@@ -144,10 +144,15 @@ pub async fn command(
         hex::encode(musig_ctx.agg_key().serialize_xonly())
     );
 
-    println!(
-        "Agg nonce: {}",
-        hex::encode(musig_ctx.agg_nonce().serialize_xonly())
-    );
+    let agg_nonce = match musig_ctx.agg_nonce() {
+        Some(nonce) => nonce,
+        None => {
+            println!("agg nonce not found");
+            return;
+        }
+    };
+
+    println!("Agg nonce: {}", hex::encode(agg_nonce.serialize_xonly()));
 
     loop {
         let full_agg_sig = match {

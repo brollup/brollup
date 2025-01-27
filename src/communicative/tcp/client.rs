@@ -413,7 +413,7 @@ impl TCPClient for PEER {
             Err(_) => return Err(RequestError::InvalidResponse),
         };
 
-        if let None = musig_ctx.signers.get(&key_point) {
+        if !musig_ctx.keys().contains(&key_point) {
             return Err(RequestError::InvalidResponse);
         };
 

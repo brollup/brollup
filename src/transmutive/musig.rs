@@ -1,133 +1,129 @@
-use crate::{hash::Hash, into::IntoScalar, schnorr::challenge, taproot};
+use crate::{hash::Hash, into::IntoScalar, schnorr::challenge};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MusigCtx {
-    pub signers: HashMap<Point, (Point, Point)>,
-    pub tweak: Option<Scalar>,
-    pub tweaked_agg_key: Option<Point>,
-    pub key_coef: Scalar,
-    pub nonce_coef: Scalar,
-    pub agg_key: Point,
-    pub agg_nonce: Point,
-    pub message: [u8; 32],
-    pub challenge: Scalar,
-    partial_sigs: Vec<Scalar>,
+    // Initialization
+    keys: Vec<Point>,
+    key_coef: Scalar,
+    agg_inner_key: Point,
+    tweak: Option<Scalar>,
+    agg_key: Point,
+    // Set message
+    message: Option<[u8; 32]>,
+    // Insert nonces
+    nonces: HashMap<Point, (Point, Point)>, // Hiding and binding nonces.
+    // Fill sigs
+    partial_sigs: HashMap<Point, Scalar>,
 }
 
 impl MusigCtx {
-    pub fn new(
-        signers: HashMap<Point, (Point, Point)>,
-        message: [u8; 32],
-        tap_branch: Option<[u8; 32]>,
-    ) -> Option<Self> {
-        let keys: Vec<Point> = {
-            let mut keys: Vec<Point> = signers.keys().cloned().collect();
-            keys.sort();
-            keys
-        };
-
-        let nonces: Vec<(Point, Point)> = {
-            let mut key_value_pairs: Vec<_> = signers.iter().collect();
-            key_value_pairs.sort_by_key(|(key, _)| *key); // Sort by the keys
-            key_value_pairs
-                .into_iter()
-                .map(|(_, value)| value.clone())
-                .collect()
-        };
+    pub fn new(keys: &Vec<Point>, tweak: Option<Scalar>) -> Option<Self> {
+        let mut keys = keys.clone();
+        keys.sort();
 
         let key_coef = key_coef(&keys)?;
-        let agg_key = agg_key(key_coef, &keys)?;
+        let agg_inner_key = agg_key(key_coef, &keys)?;
 
-        let tweak = match tap_branch {
-            Some(tap_branch) => {
-                let tap_branch_scalar = tap_branch.into_scalar().ok()?;
-                let tweak = taproot::hash_tap_tweak(
-                    agg_key.serialize_xonly(),
-                    tap_branch_scalar.serialize(),
-                );
-                let tweak_scalar = tweak.into_scalar().ok()?;
-                Some(tweak_scalar)
+        let agg_key = match tweak {
+            Some(tweak) => {
+                match agg_inner_key.negate_if(agg_inner_key.parity()) + tweak.base_point_mul() {
+                    MaybePoint::Valid(point) => point,
+                    MaybePoint::Infinity => return None,
+                }
             }
-            None => None,
+            None => agg_inner_key.clone(),
         };
 
-        //   let tap_tweak = taproot::hash_tap_tweak(agg_key.serialize_xonly(), tweak_bytes)
-
-        let tweaked_agg_key = match tweak {
-            Some(tweak) => match agg_key.negate_if(agg_key.parity()) + tweak.base_point_mul() {
-                MaybePoint::Valid(point) => Some(point),
-                MaybePoint::Infinity => None,
-            },
-            None => None,
-        };
-
-        let challenge_key = match tweaked_agg_key {
-            Some(key) => key.clone(),
-            _ => agg_key.clone(),
-        };
-
-        let nonce_coef = nonce_coef(&keys, &nonces, message)?;
-        let agg_nonce = agg_nonce(nonce_coef, &nonces)?;
-        let challenge = compute_challenge(agg_nonce, challenge_key, message)?;
-
-        let musig_ctx = MusigCtx {
-            signers,
-            tweak,
-            tweaked_agg_key,
+        let ctx = MusigCtx {
+            keys: keys.clone(),
             key_coef,
-            nonce_coef,
+            agg_inner_key,
+            tweak,
             agg_key,
-            agg_nonce,
-            message,
-            challenge,
-            partial_sigs: Vec::<Scalar>::new(),
+            message: None,
+            nonces: HashMap::<Point, (Point, Point)>::new(),
+            partial_sigs: HashMap::<Point, Scalar>::new(),
         };
 
-        Some(musig_ctx)
+        Some(ctx)
     }
 
-    pub fn tweaked_agg_key(&self) -> Option<Point> {
-        self.tweaked_agg_key.clone()
+    pub fn keys(&self) -> Vec<Point> {
+        self.keys.clone()
+    }
+
+    pub fn tweak(&self) -> Option<Scalar> {
+        self.tweak.clone()
+    }
+
+    pub fn key_coef(&self) -> Scalar {
+        self.key_coef
+    }
+
+    pub fn agg_inner_key(&self) -> Point {
+        self.agg_inner_key.clone()
     }
 
     pub fn agg_key(&self) -> Point {
         self.agg_key.clone()
     }
 
-    pub fn agg_nonce(&self) -> Point {
-        self.agg_nonce.clone()
+    pub fn set_message(&mut self, message: [u8; 32]) {
+        self.message = Some(message);
     }
 
-    pub fn keys(&self) -> Vec<Point> {
-        let mut keys: Vec<Point> = self.signers.keys().cloned().collect();
-        keys.sort();
-        keys
+    pub fn insert_nonce(&mut self, key: Point, hiding_nonce: Point, binding_nonce: Point) -> bool {
+        if !self.keys.contains(&key) {
+            return false;
+        }
+
+        if let Some(_) = self.nonces.insert(key, (hiding_nonce, binding_nonce)) {
+            return false;
+        }
+
+        true
     }
 
-    pub fn nonces(&self) -> Vec<(Point, Point)> {
-        let mut key_value_pairs: Vec<_> = self.signers.iter().collect();
-        key_value_pairs.sort_by_key(|(key, _)| *key); // Sort by the keys
-        key_value_pairs
-            .into_iter()
-            .map(|(_, value)| value.clone())
-            .collect()
+    pub fn nonces_ready(&self) -> bool {
+        self.keys.len() == self.nonces.len()
+    }
+
+    pub fn nonce_coef(&self) -> Option<Scalar> {
+        if !self.nonces_ready() {
+            return None;
+        }
+        let message = self.message?;
+        nonce_coef(&self.nonces, message)
+    }
+
+    pub fn agg_nonce(&self) -> Option<Point> {
+        let nonce_coef = self.nonce_coef()?;
+        agg_nonce(nonce_coef, &self.nonces)
+    }
+
+    pub fn challenge(&self) -> Option<Scalar> {
+        let message = self.message?;
+        let agg_key = self.agg_key();
+        let agg_nonce = self.agg_nonce()?;
+
+        compute_challenge(agg_nonce, agg_key, message)
     }
 
     pub fn partial_sign(
         &self,
-        signatory: Point,
+        key: Point,
         secret_key: Scalar,
         secret_hiding_nonce: Scalar,
         secet_binding_nonce: Scalar,
     ) -> Option<Scalar> {
-        if secret_key.base_point_mul() != signatory {
+        if secret_key.base_point_mul() != key {
             return None;
         };
 
-        let (hiding_public_nonce, binding_public_nonce) = match self.signers.get(&signatory) {
+        let (hiding_public_nonce, binding_public_nonce) = match self.nonces.get(&key) {
             Some(tuple) => tuple,
             None => return None,
         };
@@ -140,19 +136,27 @@ impl MusigCtx {
             return None;
         };
 
-        let mut secret_key = secret_key.negate_if(self.agg_key.parity());
+        let mut secret_key = secret_key.negate_if(self.agg_inner_key.parity());
 
-        if let Some(key) = self.tweaked_agg_key {
-            secret_key = secret_key.negate_if(key.parity())
+        if let Some(_) = self.tweak {
+            secret_key = secret_key.negate_if(self.agg_key.parity());
         }
 
-        let secret_hiding_nonce = secret_hiding_nonce.negate_if(self.agg_nonce.parity());
-        let secet_binding_nonce = secet_binding_nonce.negate_if(self.agg_nonce.parity());
+        let challenge = match self.challenge() {
+            Some(challenge) => challenge,
+            None => return None,
+        };
+
+        let nonce_coef = self.nonce_coef()?;
+        let agg_nonce = self.agg_nonce()?;
+
+        let secret_hiding_nonce = secret_hiding_nonce.negate_if(agg_nonce.parity());
+        let secet_binding_nonce = secet_binding_nonce.negate_if(agg_nonce.parity());
         // k + k + ed
 
         let partial_sig = match secret_hiding_nonce
-            + (secet_binding_nonce * self.nonce_coef)
-            + (secret_key * self.key_coef * self.challenge)
+            + (secet_binding_nonce * nonce_coef)
+            + (secret_key * self.key_coef * challenge)
         {
             MaybeScalar::Valid(scalar) => scalar,
             MaybeScalar::Zero => return None,
@@ -161,28 +165,43 @@ impl MusigCtx {
         Some(partial_sig)
     }
 
-    pub fn insert_partial_sig(&mut self, signatory: Point, partial_sig: Scalar) -> bool {
-        if self.partial_sigs.contains(&partial_sig) {
+    pub fn insert_partial_sig(&mut self, key: Point, partial_sig: Scalar) -> bool {
+        if let Some(_) = self.partial_sigs.get(&key) {
             return false;
         }
 
-        let (hiding_nonce, binding_nonce) = match self.signers.get(&signatory) {
+        let (hiding_public_nonce, binding_public_nonce) = match self.nonces.get(&key) {
             Some(tuple) => tuple,
             None => return false,
         };
 
-        let mut signatory = signatory.negate_if(self.agg_key.parity());
+        let mut key = key.negate_if(self.agg_inner_key.parity());
 
-        if let Some(key) = self.tweaked_agg_key {
-            signatory = signatory.negate_if(key.parity())
+        if let Some(_) = self.tweak {
+            key = key.negate_if(self.agg_key.parity());
         }
 
-        let hiding_nonce = hiding_nonce.negate_if(self.agg_nonce.parity());
-        let binding_nonce = binding_nonce.negate_if(self.agg_nonce.parity());
+        let nonce_coef = match self.nonce_coef() {
+            Some(coef) => coef,
+            None => return false,
+        };
 
-        let eq = match hiding_nonce.to_owned()
-            + (binding_nonce.to_owned() * self.nonce_coef)
-            + signatory * self.key_coef * self.challenge
+        let agg_nonce = match self.agg_nonce() {
+            Some(nonce) => nonce,
+            None => return false,
+        };
+
+        let hiding_public_nonce = hiding_public_nonce.negate_if(agg_nonce.parity());
+        let binding_public_nonce = binding_public_nonce.negate_if(agg_nonce.parity());
+
+        let challenge = match self.challenge() {
+            Some(challenge) => challenge,
+            None => return false,
+        };
+
+        let eq = match hiding_public_nonce.to_owned()
+            + (binding_public_nonce.to_owned() * nonce_coef)
+            + key * self.key_coef * challenge
         {
             MaybePoint::Valid(point) => point,
             MaybePoint::Infinity => return false,
@@ -192,29 +211,31 @@ impl MusigCtx {
             return false;
         };
 
-        self.partial_sigs.push(partial_sig);
+        self.partial_sigs.insert(key, partial_sig);
 
         true
     }
 
     pub fn agg_sig(&self) -> Option<Scalar> {
-        if self.partial_sigs.len() != self.signers.len() {
+        if self.partial_sigs.len() != self.keys.len() {
             return None;
         };
 
         let mut agg_sig = MaybeScalar::Zero;
 
-        for partial_sig in self.partial_sigs.iter() {
+        for (_, partial_sig) in self.partial_sigs.iter() {
             agg_sig = agg_sig + partial_sig.to_owned();
         }
 
+        let challenge = self.challenge()?;
+
         if let Some(tweak) = self.tweak {
-            let parity: bool = self.tweaked_agg_key.unwrap().parity().into();
+            let parity: bool = self.agg_key.parity().into();
 
             if parity {
-                agg_sig = agg_sig + (self.challenge * tweak) * Scalar::max()
+                agg_sig = agg_sig + (challenge * tweak) * Scalar::max()
             } else {
-                agg_sig = agg_sig + (self.challenge * tweak)
+                agg_sig = agg_sig + (challenge * tweak)
             }
         }
 
@@ -225,8 +246,10 @@ impl MusigCtx {
     }
 
     pub fn full_agg_sig(&self) -> Option<[u8; 64]> {
+        let agg_nonce = self.agg_nonce()?;
+
         let mut full_agg_sig = Vec::<u8>::with_capacity(64);
-        full_agg_sig.extend(self.agg_nonce.serialize_xonly());
+        full_agg_sig.extend(agg_nonce.serialize_xonly());
         full_agg_sig.extend(self.agg_sig()?.serialize());
 
         let sig: [u8; 64] = match full_agg_sig.try_into() {
@@ -241,16 +264,16 @@ impl MusigCtx {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MusigNestingCtx {
     remote: HashMap<Point, (Point, Point)>,
-    tap_branch: Option<[u8; 32]>,
+    tweak: Option<Scalar>,
 }
 
 impl MusigNestingCtx {
-    pub fn new(remote: HashMap<Point, (Point, Point)>, tap_branch: Option<[u8; 32]>) -> Self {
-        MusigNestingCtx { remote, tap_branch }
+    pub fn new(remote: HashMap<Point, (Point, Point)>, tweak: Option<Scalar>) -> Self {
+        MusigNestingCtx { remote, tweak }
     }
 
-    pub fn tap_branch(&self) -> Option<[u8; 32]> {
-        self.tap_branch.clone()
+    pub fn tweak(&self) -> Option<Scalar> {
+        self.tweak.clone()
     }
 
     pub fn musig_ctx(
@@ -259,15 +282,25 @@ impl MusigNestingCtx {
         operator_hiding_nonce: Point,
         operator_post_binding_nonce: Point,
         message: [u8; 32],
-        tap_branch: Option<[u8; 32]>,
     ) -> Option<MusigCtx> {
-        let mut signers = self.remote.clone();
-        signers.insert(
+        let mut nonces = self.remote.clone();
+        nonces.insert(
             operator_key,
             (operator_hiding_nonce, operator_post_binding_nonce),
         );
 
-        MusigCtx::new(signers, message, tap_branch)
+        let keys: Vec<Point> = nonces.keys().cloned().collect();
+
+        let mut musig_ctx = MusigCtx::new(&keys, self.tweak())?;
+        musig_ctx.set_message(message);
+
+        for (key, (hiding_nonce, binding_nonce)) in nonces {
+            if !musig_ctx.insert_nonce(key, hiding_nonce, binding_nonce) {
+                return None;
+            }
+        }
+
+        Some(musig_ctx)
     }
 }
 
@@ -284,19 +317,15 @@ fn agg_key(key_coef: Scalar, keys: &Vec<Point>) -> Option<Point> {
     }
 }
 
-fn nonce_coef(
-    keys: &Vec<Point>,
-    nonces: &Vec<(Point, Point)>,
-    message: [u8; 32],
-) -> Option<Scalar> {
+fn nonce_coef(nonces: &HashMap<Point, (Point, Point)>, message: [u8; 32]) -> Option<Scalar> {
     let mut coef_preimage = Vec::<u8>::new();
     coef_preimage.extend(message);
 
-    for key in keys {
-        coef_preimage.extend(key.serialize());
-    }
+    let mut nonces_sorted: Vec<(&Point, &(Point, Point))> = nonces.iter().collect();
+    nonces_sorted.sort_by_key(|(key, _)| *key);
 
-    for (hiding, binding) in nonces {
+    for (key, (hiding, binding)) in nonces_sorted {
+        coef_preimage.extend(key.serialize());
         coef_preimage.extend(hiding.serialize());
         coef_preimage.extend(binding.serialize());
     }
@@ -314,11 +343,11 @@ fn key_coef(keys: &Vec<Point>) -> Option<Scalar> {
     coef_preimage.hash(None).into_scalar().ok()
 }
 
-fn agg_nonce(nonce_coef: Scalar, nonces: &Vec<(Point, Point)>) -> Option<Point> {
+fn agg_nonce(nonce_coef: Scalar, nonces: &HashMap<Point, (Point, Point)>) -> Option<Point> {
     let mut agg_hiding_point = MaybePoint::Infinity;
     let mut agg_binding_point = MaybePoint::Infinity;
 
-    for (hiding, binding) in nonces {
+    for (_, (hiding, binding)) in nonces {
         agg_hiding_point = agg_hiding_point + hiding.to_owned();
         agg_binding_point = agg_binding_point + (binding.to_owned() * nonce_coef);
     }
