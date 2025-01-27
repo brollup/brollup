@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
-    use brollup::into::{IntoPoint, IntoScalar};
+    use brollup::into::{IntoPoint, IntoPointVec, IntoScalar};
     use brollup::musig::MusigNestingCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
+    use brollup::taproot::P2TR;
+    use brollup::txo::projector::{Projector, ProjectorTag};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
@@ -207,12 +209,12 @@ mod noist_tests {
         let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
         let musig_signer_secret: [u8; 32] =
-            hex::decode("a8b5b00e90a3b8c674f291fa06aca20526959d856517e3e3856653ea6a1f0960")
+            hex::decode("73d6e1fdbc478ae5789dfa32eecd5a1dc08314587cf32b170afa38a65560ae11")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("02fb561acefc511320861ecb1611d94f5546b9ba08ad0ca9bafacb8a0f93fab834")
+            hex::decode("02e4db06ed42ff913bc47bf5e57646e8aaa9bec602557782a949bdd298232f92f9")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -240,12 +242,12 @@ mod noist_tests {
                 .unwrap();
 
         let musig_signer2_secret: [u8; 32] =
-            hex::decode("609d4ccf1f15f8b4b9a4a77a9a55550e47036a32babf1cd138f3411a52b10b67")
+            hex::decode("5a788716adc0bc641d79ce0ab90295bcdc5027c5d87cc29f8be02651b60e4cc1")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer2_public: [u8; 33] =
-            hex::decode("02fd6520c13244fb8c412fca4b02a2d9a8a6062855c0dbf8123519180c9f271702")
+            hex::decode("03b63e209e5ddd84e402ec6833100a2c59f72fb7dd17df4a9616d39f25a060dd36")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -272,7 +274,15 @@ mod noist_tests {
                 .try_into()
                 .unwrap();
 
+        let remote_keys = vec![musig_signer_public, musig_signer2_public]
+            .into_point_vec()
+            .unwrap();
         let operator_key = dkg_directory.group_key().unwrap();
+
+        let projector = Projector::new(remote_keys, operator_key, ProjectorTag::VTXOProjector);
+        let projector_txo = projector.taproot().unwrap();
+
+        println!("operator_key: {}", hex::encode(operator_key.serialize()));
 
         let mut signers = HashMap::<Point, (Point, Point)>::new();
         signers.insert(
@@ -291,17 +301,13 @@ mod noist_tests {
             ),
         );
 
-        let tweak = [0xfeu8; 32].into_scalar().unwrap();
+        let tweak = projector_txo.tap_tweak().into_scalar().unwrap();
 
         let musig_nesting_ctx = MusigNestingCtx::new(signers, Some(tweak));
 
         let mut signing_session = dkg_directory
             .pick_signing_session(message, Some(musig_nesting_ctx))
             .unwrap();
-
-        let operator_key = signing_session.group_key;
-
-        println!("operator_key: {}", hex::encode(operator_key.serialize()));
 
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 

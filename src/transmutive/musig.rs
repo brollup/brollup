@@ -304,6 +304,11 @@ impl MusigNestingCtx {
     }
 }
 
+pub fn keyagg(keys: &Vec<Point>) -> Option<Point> {
+    let key_coef = key_coef(&keys)?;
+    agg_key(key_coef, &keys)
+}
+
 fn agg_key(key_coef: Scalar, keys: &Vec<Point>) -> Option<Point> {
     let mut agg_point = MaybePoint::Infinity;
 
