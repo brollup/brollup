@@ -60,6 +60,8 @@ impl P2TR for Projector {
         //// Inner Key: (Self + Operator)
         let inner_key = self.agg_inner_key()?;
 
+        println!("projector p2tr inner_key: {}", hex::encode(inner_key.serialize()));
+
         //// Sweep Path: (Operator after 3 months)
         let mut sweep_path_script = Vec::<u8>::new();
         sweep_path_script.extend(Bytes::csv_script(CSVFlag::CSVThreeMonths)); // Relative Timelock

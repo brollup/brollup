@@ -90,6 +90,8 @@ pub mod tcp;
 // Constructive
 #[path = "constructive/taproot.rs"]
 pub mod taproot;
+#[path = "constructive/txn.rs"]
+pub mod txn;
 
 // Constructive
 #[path = "constructive/txo/mod.rs"]

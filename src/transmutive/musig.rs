@@ -309,19 +309,6 @@ pub fn keyagg(keys: &Vec<Point>) -> Option<Point> {
     agg_key(key_coef, &keys)
 }
 
-fn key_coef(keys: &Vec<Point>) -> Option<Scalar> {
-    let mut keys = keys.clone();
-    keys.sort();
-
-    let mut coef_preimage = Vec::<u8>::new();
-
-    for key in keys {
-        coef_preimage.extend(key.serialize());
-    }
-
-    coef_preimage.hash(None).into_scalar().ok()
-}
-
 fn agg_key(key_coef: Scalar, keys: &Vec<Point>) -> Option<Point> {
     let mut agg_point = MaybePoint::Infinity;
 
@@ -346,6 +333,19 @@ fn nonce_coef(nonces: &HashMap<Point, (Point, Point)>, message: [u8; 32]) -> Opt
         coef_preimage.extend(key.serialize());
         coef_preimage.extend(hiding.serialize());
         coef_preimage.extend(binding.serialize());
+    }
+
+    coef_preimage.hash(None).into_scalar().ok()
+}
+
+fn key_coef(keys: &Vec<Point>) -> Option<Scalar> {
+    let mut keys = keys.clone();
+    keys.sort();
+
+    let mut coef_preimage = Vec::<u8>::new();
+
+    for key in keys {
+        coef_preimage.extend(key.serialize());
     }
 
     coef_preimage.hash(None).into_scalar().ok()

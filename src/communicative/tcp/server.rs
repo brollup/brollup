@@ -620,23 +620,20 @@ async fn handle_cov_session_submit(
     payload: &[u8],
     cov_session: &Option<COV_SESSION>,
 ) -> Option<TCPPackage> {
-    println!("handle_cov_session_submit ara 0");
     let (key, partial_sig): ([u8; 32], Scalar) = match serde_json::from_slice(payload) {
         Ok(tuple) => tuple,
         Err(_) => return None,
     };
-    println!("handle_cov_session_submit ara 1");
+
     let cov_session = match cov_session {
         Some(session) => session,
         None => return None,
     };
-    println!("handle_cov_session_submit ara 2");
+
     let insertion = {
         let mut _cov_session = cov_session.lock().await;
         _cov_session.insert_partial_sig(key, partial_sig)
     };
-
-    println!("insertion: {}", insertion);
 
     let response_bytecode: u8 = match insertion {
         true => 0x01,

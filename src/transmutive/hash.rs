@@ -16,6 +16,7 @@ pub enum HashTag {
     TapLeaf,
     TapBranch,
     TapTweak,
+    TapSighash,
 }
 
 impl HashTag {
@@ -33,11 +34,12 @@ impl HashTag {
             HashTag::TapLeaf => format!("TapLeaf"),
             HashTag::TapBranch => format!("TapBranch"),
             HashTag::TapTweak => format!("TapTweak"),
+            HashTag::TapSighash => format!("TapSighash"),
         }
     }
 }
 
-fn sha256(preimage: &[u8]) -> [u8; 32] {
+pub fn sha256(preimage: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(preimage);
     let result = hasher.finalize();
