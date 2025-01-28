@@ -210,12 +210,12 @@ mod noist_tests {
         //let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
         let musig_signer_secret: [u8; 32] =
-            hex::decode("c010e9eb7ccfbd1c6e742f85100936c9996e5e0d6255ec1162a8e85653e286d9")
+            hex::decode("5514cb8f26db617b1cf96f06ca2218f4851b8b188e3db798f5cfb0fe355c22ca")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("031b7e3d01a7dcbab38d722b003e4aea1f8d3889469848230cb9b1ad51f91cb598")
+            hex::decode("02731ceefe3587a4d86474e42d2e3621e8615c3e72ab69edacd46d5fcc009b6286")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -243,12 +243,12 @@ mod noist_tests {
                 .unwrap();
 
         let musig_signer2_secret: [u8; 32] =
-            hex::decode("5a788716adc0bc641d79ce0ab90295bcdc5027c5d87cc29f8be02651b60e4cc1")
+            hex::decode("059c96997ffd9a48caf8c5e83267cc72d692abeb4b4d93bb4c98b8e2ff75e75e")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer2_public: [u8; 33] =
-            hex::decode("03b63e209e5ddd84e402ec6833100a2c59f72fb7dd17df4a9616d39f25a060dd36")
+            hex::decode("020d1ed23d3a2b909fd928e7f46d41d5878746aeac587deae1049d5e9fc72e2583")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -276,12 +276,12 @@ mod noist_tests {
                 .unwrap();
 
         let musig_signer3_secret: [u8; 32] =
-            hex::decode("40a2a99efa892c287d7aa0b2ba4eb005e05e5fd51980fd1ff35a3d375f379dec")
+            hex::decode("d45a29fc831431cd086a5c44b9ec74a3121a266655cc26e6e6074cef9184519e")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer3_public: [u8; 33] =
-            hex::decode("035dc1e9abecc4623bbe4571d7a584280a84b19a59ebdae52cd51dfeeac774a5c8")
+            hex::decode("0265e886012bd2afc676110adf8a3ad5cd39b7c210dc0abee5ee5d43f48bb73d82")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -326,25 +326,25 @@ mod noist_tests {
         );
 
         let spender_secret_key: [u8; 32] =
-            hex::decode("09bc6b39594512478a62382cf64b2e8b7e5c0521b8d227b6430c61ca98449dd7")
+            hex::decode("74c06aed2018edacedfe126a8901de57adbc00f622ab4d7ad7edd05c06ba9e1a")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let spender_public_key: [u8; 33] =
-            hex::decode("0251d04ada8c0fb417581ab37da02e8e9439b51f0eb2300b722d532a73b7485e0e")
+            hex::decode("02bf0504a35c94ca0abb79e853d5e58932a4f5f81d95e17441120814524cd8b674")
                 .unwrap()
                 .try_into()
                 .unwrap();
-        //bc1p28gy4k5vp76pwkq6kd76qt5wjsum28cwkgcqku3d2v488d6gtc8qyxtx4j
+        //bc1phuzsfg6ujn9q4wmeapfatevfx2j0t7qajhshgsgjpq29ynxcke6qxqq779
 
         // outpoint
 
         let prev_spk =
-            hex::decode("512051d04ada8c0fb417581ab37da02e8e9439b51f0eb2300b722d532a73b7485e0e")
+            hex::decode("5120bf0504a35c94ca0abb79e853d5e58932a4f5f81d95e17441120814524cd8b674")
                 .unwrap();
 
         let outpoint: [u8; 36] =
-            hex::decode("f7a9b4a09e6b3dee941ced4a2e4855c8f5cd46a680b243d516bc570d071c06de00000000")
+            hex::decode("787ce87c7832cc4e524450a4d246c8022ca704beb349a59a1232ae0441f559e100000000")
                 .unwrap()
                 .try_into()
                 .unwrap();

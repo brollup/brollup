@@ -46,6 +46,10 @@ impl CovSession {
         self.remote.clone()
     }
 
+    pub fn remote_keys(&self) -> Vec<Point> {
+        self.remote.keys().cloned().collect()
+    }
+
     pub fn musig_nesting_ctx(&self) -> Option<MusigNestingCtx> {
         self.musig_nesting_ctx.clone()
     }
