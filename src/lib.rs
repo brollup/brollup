@@ -41,7 +41,7 @@ pub mod secp_point;
 #[path = "transmutive/list.rs"]
 pub mod list;
 
-#[path = "transmutive/musig.rs"]
+#[path = "transmutive/musig/mod.rs"]
 pub mod musig;
 
 // NOIST.

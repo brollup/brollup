@@ -17,6 +17,10 @@ pub enum HashTag {
     TapBranch,
     TapTweak,
     TapSighash,
+    // MuSig
+    KeyAggList,
+    KeyAggCoef,
+    MusigNonceCoef,
 }
 
 impl HashTag {
@@ -35,6 +39,9 @@ impl HashTag {
             HashTag::TapBranch => format!("TapBranch"),
             HashTag::TapTweak => format!("TapTweak"),
             HashTag::TapSighash => format!("TapSighash"),
+            HashTag::KeyAggList => format!("KeyAgg list"),
+            HashTag::KeyAggCoef => format!("KeyAgg coefficient"),
+            HashTag::MusigNonceCoef => format!("MuSig/noncecoef"),
         }
     }
 }

@@ -111,6 +111,7 @@ pub trait IntoPoint {
 
 pub trait IntoScalar {
     fn into_scalar(&self) -> Result<Scalar, SecpError>;
+    fn into_reduced_scalar(&self) -> Result<Scalar, SecpError>;
 }
 
 impl IntoPoint for [u8; 32] {
@@ -180,7 +181,7 @@ impl IntoPoint for Vec<u8> {
 
 impl IntoScalar for [u8; 32] {
     fn into_scalar(&self) -> Result<Scalar, SecpError> {
-        let mut scalar_bytes = Vec::with_capacity(32);
+        let mut scalar_bytes = Vec::<u8>::with_capacity(32);
         scalar_bytes.extend(self);
 
         let scalar = match MaybeScalar::from_slice(&scalar_bytes) {
@@ -191,6 +192,15 @@ impl IntoScalar for [u8; 32] {
                 MaybeScalar::Valid(point) => point,
             },
             Err(_) => return Err(SecpError::InvalidScalar),
+        };
+
+        Ok(scalar)
+    }
+
+    fn into_reduced_scalar(&self) -> Result<Scalar, SecpError> {
+        let scalar = match MaybeScalar::reduce_from(&self) {
+            MaybeScalar::Zero => Scalar::reduce_from(&self),
+            MaybeScalar::Valid(point) => point,
         };
 
         Ok(scalar)
@@ -210,6 +220,20 @@ impl IntoScalar for Vec<u8> {
             .into_byte_array_32()
             .map_err(|_| SecpError::InvalidPoint)?;
         ba.into_scalar()
+    }
+
+    fn into_reduced_scalar(&self) -> Result<Scalar, SecpError> {
+        let bytes: [u8; 32] = match self.clone().try_into() {
+            Ok(bytes) => bytes,
+            Err(_) => return Err(SecpError::InvalidScalar),
+        };
+
+        let scalar = match MaybeScalar::reduce_from(&bytes) {
+            MaybeScalar::Zero => Scalar::reduce_from(&bytes),
+            MaybeScalar::Valid(point) => point,
+        };
+
+        Ok(scalar)
     }
 }
 
