@@ -6,7 +6,7 @@ use secp::{MaybePoint, Point, Scalar};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct KeyAggCtx {
+pub struct MusigKeyAggCtx {
     keys: Vec<Point>,
     key_coefs: Vec<Scalar>,
     agg_inner_key: Point,
@@ -14,7 +14,7 @@ pub struct KeyAggCtx {
     agg_key: Point,
 }
 
-impl KeyAggCtx {
+impl MusigKeyAggCtx {
     pub fn new(keys: &Vec<Point>, tweak: Option<Scalar>) -> Option<Self> {
         let keys = sort_keys(keys);
         let key_coefs = key_coefs(&keys)?;
@@ -30,7 +30,7 @@ impl KeyAggCtx {
             None => agg_inner_key.clone(),
         };
 
-        let ctx = KeyAggCtx {
+        let ctx = MusigKeyAggCtx {
             keys,
             key_coefs,
             agg_inner_key,
@@ -39,6 +39,10 @@ impl KeyAggCtx {
         };
 
         Some(ctx)
+    }
+
+    pub fn keys(&self) -> Vec<Point> {
+        self.keys.clone()
     }
 
     pub fn num_keys(&self) -> usize {

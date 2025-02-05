@@ -11,11 +11,6 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
         Err(_) => return,
     };
 
-    let pk_point = match pk.into_point() {
-        Ok(point) => point,
-        Err(_) => return,
-    };
-
     let hiding_secret = match schnorr::generate_secret().into_scalar() {
         Ok(scalar) => scalar,
         Err(_) => return,
@@ -35,7 +30,7 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
         .await
     {
         Ok(musig_ctx) => {
-            let agg_key = musig_ctx.agg_key();
+            let agg_key = musig_ctx.key_agg_ctx().agg_key();
             let agg_nonce = match musig_ctx.agg_nonce() {
                 Some(nonce) => nonce,
                 None => {
@@ -47,14 +42,14 @@ pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
             println!("Agg key: {}", hex::encode(agg_key.serialize_xonly()));
             println!("Agg nonce: {}", hex::encode(agg_nonce.serialize_xonly()));
 
-            let partial_sig =
-                match musig_ctx.partial_sign(pk_point, sk_scalar, hiding_secret, binding_secret) {
-                    Some(sig) => sig,
-                    None => {
-                        println!("Error producing partial sig");
-                        return;
-                    }
-                };
+            let partial_sig = match musig_ctx.partial_sign(sk_scalar, hiding_secret, binding_secret)
+            {
+                Some(sig) => sig,
+                None => {
+                    println!("Error producing partial sig");
+                    return;
+                }
+            };
 
             partial_sig
         }

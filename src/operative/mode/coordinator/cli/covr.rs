@@ -137,7 +137,7 @@ pub async fn command(
 
     println!(
         "Agg key: {}",
-        hex::encode(musig_ctx.agg_key().serialize_xonly())
+        hex::encode(musig_ctx.key_agg_ctx().agg_key().serialize_xonly())
     );
 
     //

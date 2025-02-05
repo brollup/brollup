@@ -1,6 +1,7 @@
 use super::session::DKGSession;
 use crate::{
-    musig::{MusigCtx, MusigNestingCtx},
+    into::IntoScalar,
+    musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
     noist::{
         lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
         setup::setup::VSESetup,
@@ -216,6 +217,7 @@ impl DKGDirectory {
         musig_nesting_ctx: Option<MusigNestingCtx>,
     ) -> Option<SigningSession> {
         let group_key_session = self.group_key_session()?;
+
         let group_nonce_session = self.group_nonce_session(nonce_index)?;
 
         let group_key = self.group_key()?;
@@ -253,7 +255,7 @@ pub struct SigningSession {
     pub group_nonce: Point,
     pub message: [u8; 32],
     pub challenge: Scalar,
-    pub musig_ctx: Option<MusigCtx>,
+    pub musig_ctx: Option<MusigSessionCtx>,
     partial_sigs: HashMap<Point, Scalar>,
 }
 
@@ -270,12 +272,16 @@ impl SigningSession {
     ) -> Option<SigningSession> {
         let musig_ctx = match &musig_nesting_ctx {
             Some(ctx) => {
-                let musig_ctx = ctx.musig_ctx(
+                let mut musig_ctx = ctx.musig_ctx(
                     group_key,
                     hiding_group_nonce,
                     post_binding_group_nonce,
                     message,
                 )?;
+
+                if !musig_ctx.ready() {
+                    return None;
+                }
 
                 Some(musig_ctx)
             }
@@ -311,7 +317,7 @@ impl SigningSession {
         Some(session)
     }
 
-    pub fn musig_ctx(&self) -> Option<MusigCtx> {
+    pub fn musig_ctx(&self) -> Option<MusigSessionCtx> {
         self.musig_ctx.clone()
     }
 
@@ -324,12 +330,14 @@ impl SigningSession {
     }
 
     pub fn partial_sign(&self, secret_key: [u8; 32]) -> Option<Scalar> {
+        let public_key = secret_key.into_scalar().ok()?.base_point_mul();
+
         let group_key_bytes = self.group_key.serialize_xonly();
         let message_bytes = self.message;
         let challenge = self.challenge;
 
         let compare_key = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_inner_key(),
+            Some(ctx) => ctx.key_agg_ctx().agg_inner_key(),
             None => self.group_key,
         };
 
@@ -344,7 +352,7 @@ impl SigningSession {
         };
 
         let musig_key_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.key_coef(),
+            Some(ctx) => ctx.key_agg_ctx().key_coef(self.group_key)?,
             None => Scalar::one(),
         };
 
@@ -358,8 +366,9 @@ impl SigningSession {
         let mut hiding_secret_key = hiding_secret_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(_) = ctx.tweak() {
-                hiding_secret_key = hiding_secret_key.negate_if(ctx.agg_key().parity())
+            if let Some(_) = ctx.key_agg_ctx().tweak() {
+                hiding_secret_key =
+                    hiding_secret_key.negate_if(ctx.key_agg_ctx().agg_key().parity())
             }
         }
 
@@ -371,8 +380,9 @@ impl SigningSession {
         let mut post_binding_secret_key = post_binding_secret_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(_) = ctx.tweak() {
-                post_binding_secret_key = post_binding_secret_key.negate_if(ctx.agg_key().parity())
+            if let Some(_) = ctx.key_agg_ctx().tweak() {
+                post_binding_secret_key =
+                    post_binding_secret_key.negate_if(ctx.key_agg_ctx().agg_key().parity())
             }
         }
 
@@ -408,7 +418,7 @@ impl SigningSession {
         let challenge = self.challenge;
 
         let compare_key = match &self.musig_ctx {
-            Some(ctx) => ctx.agg_inner_key(),
+            Some(ctx) => ctx.key_agg_ctx().agg_inner_key(),
             None => self.group_key,
         };
 
@@ -429,7 +439,10 @@ impl SigningSession {
         };
 
         let musig_key_coef = match &self.musig_ctx {
-            Some(ctx) => ctx.key_coef(),
+            Some(ctx) => match ctx.key_agg_ctx().key_coef(self.group_key) {
+                Some(coef) => coef,
+                None => return false,
+            },
             None => Scalar::one(),
         };
 
@@ -446,8 +459,9 @@ impl SigningSession {
         let mut hiding_public_key = hiding_public_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(_) = ctx.tweak() {
-                hiding_public_key = hiding_public_key.negate_if(ctx.agg_key().parity())
+            if let Some(_) = ctx.key_agg_ctx().tweak() {
+                hiding_public_key =
+                    hiding_public_key.negate_if(ctx.key_agg_ctx().agg_key().parity())
             }
         }
 
@@ -462,8 +476,9 @@ impl SigningSession {
         let mut post_binding_public_key = post_binding_public_key_.negate_if(compare_key.parity());
 
         if let Some(ctx) = &self.musig_ctx {
-            if let Some(_) = ctx.tweak() {
-                post_binding_public_key = post_binding_public_key.negate_if(ctx.agg_key().parity())
+            if let Some(_) = ctx.key_agg_ctx().tweak() {
+                post_binding_public_key =
+                    post_binding_public_key.negate_if(ctx.key_agg_ctx().agg_key().parity())
             }
         }
 

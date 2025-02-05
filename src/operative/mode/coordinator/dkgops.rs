@@ -1,7 +1,7 @@
 use crate::{
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     liquidity,
-    musig::{MusigCtx, MusigNestingCtx},
+    musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
     noist::{
         dkg::{directory::SigningSession, session::DKGSession},
         setup::setup::VSESetup,
@@ -49,7 +49,7 @@ pub trait DKGOps {
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
         messages: Vec<([u8; 32], Option<MusigNestingCtx>)>,
-    ) -> Result<Vec<([u8; 64], Option<MusigCtx>)>, DKGSignError>;
+    ) -> Result<Vec<([u8; 64], Option<MusigSessionCtx>)>, DKGSignError>;
 }
 
 #[async_trait]
@@ -205,9 +205,9 @@ impl DKGOps for DKG_MANAGER {
         peer_manager: &mut PEER_MANAGER,
         dir_height: u64,
         messages: Vec<([u8; 32], Option<MusigNestingCtx>)>,
-    ) -> Result<Vec<([u8; 64], Option<MusigCtx>)>, DKGSignError> {
+    ) -> Result<Vec<([u8; 64], Option<MusigSessionCtx>)>, DKGSignError> {
         // #1 Initialize full signatures list.
-        let mut full_signatures = Vec::<([u8; 64], Option<MusigCtx>)>::new();
+        let mut full_signatures = Vec::<([u8; 64], Option<MusigSessionCtx>)>::new();
 
         // # 2 Initialize DKG directory.
         let dkg_directory: DKG_DIRECTORY = {
@@ -258,7 +258,11 @@ impl DKGOps for DKG_MANAGER {
                 None => return Err(DKGSignError::PickSigningSessionErr),
             };
 
-            signing_requests.push((signing_session.nonce_index(), message.to_owned(), musig_nesting_ctx.to_owned()));
+            signing_requests.push((
+                signing_session.nonce_index(),
+                message.to_owned(),
+                musig_nesting_ctx.to_owned(),
+            ));
             signing_sessions.push(signing_session);
         }
 

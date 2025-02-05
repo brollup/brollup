@@ -1,7 +1,8 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp::{self, TCPError};
 use crate::into::IntoPoint;
-use crate::musig::{MusigCtx, MusigNestingCtx};
+use crate::musig::nesting::MusigNestingCtx;
+use crate::musig::session::MusigSessionCtx;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
@@ -54,7 +55,7 @@ pub trait TCPClient {
         key: [u8; 32],
         hiding_nonce: Point,
         binding_nonce: Point,
-    ) -> Result<MusigCtx, RequestError>;
+    ) -> Result<MusigSessionCtx, RequestError>;
 
     async fn cov_session_submit(
         &self,
@@ -374,7 +375,7 @@ impl TCPClient for PEER {
         key: [u8; 32],
         hiding_nonce: Point,
         binding_nonce: Point,
-    ) -> Result<MusigCtx, RequestError> {
+    ) -> Result<MusigSessionCtx, RequestError> {
         let key_point = match key.into_point() {
             Ok(point) => point,
             Err(_) => return Err(RequestError::InvalidRequest),
@@ -408,12 +409,12 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let musig_ctx: MusigCtx = match serde_json::from_slice(&response_payload) {
+        let musig_ctx: MusigSessionCtx = match serde_json::from_slice(&response_payload) {
             Ok(ctx) => ctx,
             Err(_) => return Err(RequestError::InvalidResponse),
         };
 
-        if !musig_ctx.keys().contains(&key_point) {
+        if !musig_ctx.key_agg_ctx().keys().contains(&key_point) {
             return Err(RequestError::InvalidResponse);
         };
 

@@ -1,7 +1,7 @@
 use crate::csv::CSVEncode;
+use crate::musig::keyagg::MusigKeyAggCtx;
 use crate::{
     csv::CSVFlag,
-    musig::keyagg,
     taproot::{TapLeaf, TapRoot, P2TR},
 };
 use secp::Point;
@@ -47,7 +47,8 @@ impl Projector {
 
     pub fn agg_inner_key(&self) -> Option<Point> {
         let keys = self.keys();
-        keyagg(&keys)
+        let key_agg_ctx = MusigKeyAggCtx::new(&keys, None)?;
+        Some(key_agg_ctx.agg_inner_key())
     }
 
     pub fn tag(&self) -> ProjectorTag {
@@ -60,7 +61,10 @@ impl P2TR for Projector {
         //// Inner Key: (Self + Operator)
         let inner_key = self.agg_inner_key()?;
 
-        println!("projector p2tr inner_key: {}", hex::encode(inner_key.serialize()));
+        println!(
+            "projector p2tr inner_key: {}",
+            hex::encode(inner_key.serialize())
+        );
 
         //// Sweep Path: (Operator after 3 months)
         let mut sweep_path_script = Vec::<u8>::new();

@@ -2,7 +2,7 @@
 mod noist_tests {
     use brollup::hash::Hash;
     use brollup::into::{IntoPoint, IntoPointVec, IntoScalar};
-    use brollup::musig::MusigNestingCtx;
+    use brollup::musig::nesting::MusigNestingCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
@@ -210,12 +210,12 @@ mod noist_tests {
         //let message = format!("MUassdfdSIG!").as_bytes().hash(None);
 
         let musig_signer_secret: [u8; 32] =
-            hex::decode("5514cb8f26db617b1cf96f06ca2218f4851b8b188e3db798f5cfb0fe355c22ca")
+            hex::decode("77012837ab8d458df376ff778ef30575f2bb955bafe4051319aa0e7bf051a722")
                 .unwrap()
                 .try_into()
                 .unwrap();
         let musig_signer_public: [u8; 33] =
-            hex::decode("02731ceefe3587a4d86474e42d2e3621e8615c3e72ab69edacd46d5fcc009b6286")
+            hex::decode("02a04a08b82ea11ec8102168e3049b82270c19750fdbc2dc09e3c70af75020ab12")
                 .unwrap()
                 .try_into()
                 .unwrap();
@@ -330,7 +330,7 @@ mod noist_tests {
                 .unwrap()
                 .try_into()
                 .unwrap();
-        let spender_public_key: [u8; 33] =
+        let _spender_public_key: [u8; 33] =
             hex::decode("02bf0504a35c94ca0abb79e853d5e58932a4f5f81d95e17441120814524cd8b674")
                 .unwrap()
                 .try_into()
@@ -417,9 +417,11 @@ mod noist_tests {
 
         let mut musig_ctx = signing_session.musig_ctx().unwrap();
 
-        let agg_key = musig_ctx.agg_key();
+        let agg_key = musig_ctx.key_agg_ctx().agg_key();
 
         println!("agg_key: {}", hex::encode(agg_key.serialize()));
+
+        println!("readiness: {}", musig_ctx.ready());
 
         let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
         let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
@@ -439,7 +441,6 @@ mod noist_tests {
 
         let client1_partial_sig = musig_ctx
             .partial_sign(
-                musig_signer_public.into_point().unwrap(),
                 musig_signer_secret.into_scalar().unwrap(),
                 musig_signer_hiding_secret_nonce.into_scalar().unwrap(),
                 musig_signer_binding_secret_nonce.into_scalar().unwrap(),
@@ -455,7 +456,6 @@ mod noist_tests {
 
         let client2_partial_sig = musig_ctx
             .partial_sign(
-                musig_signer2_public.into_point().unwrap(),
                 musig_signer2_secret.into_scalar().unwrap(),
                 musig_signer2_hiding_secret_nonce.into_scalar().unwrap(),
                 musig_signer2_binding_secret_nonce.into_scalar().unwrap(),
@@ -471,7 +471,6 @@ mod noist_tests {
 
         let client3_partial_sig = musig_ctx
             .partial_sign(
-                musig_signer3_public.into_point().unwrap(),
                 musig_signer3_secret.into_scalar().unwrap(),
                 musig_signer3_hiding_secret_nonce.into_scalar().unwrap(),
                 musig_signer3_binding_secret_nonce.into_scalar().unwrap(),
@@ -488,7 +487,7 @@ mod noist_tests {
         let agg_sig = musig_ctx.full_agg_sig().unwrap();
 
         assert!(schnorr::verify(
-            musig_ctx.agg_key().serialize_xonly(),
+            musig_ctx.key_agg_ctx().agg_key().serialize_xonly(),
             txn_2_sigmsg,
             agg_sig,
             schnorr::SigningMode::BIP340

@@ -1,6 +1,6 @@
 use crate::{
     into::{IntoPoint, IntoScalar},
-    musig::{MusigCtx, MusigNestingCtx},
+    musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
     COV_SESSION,
 };
 use secp::{Point, Scalar};
@@ -20,7 +20,7 @@ pub struct CovSession {
     stage: CovSessionStage,
     remote: HashMap<Point, (Point, Point)>,
     musig_nesting_ctx: Option<MusigNestingCtx>,
-    musig_ctx: Option<MusigCtx>,
+    musig_ctx: Option<MusigSessionCtx>,
 }
 
 impl CovSession {
@@ -54,7 +54,7 @@ impl CovSession {
         self.musig_nesting_ctx.clone()
     }
 
-    pub fn musig_ctx(&self) -> Option<MusigCtx> {
+    pub fn musig_ctx(&self) -> Option<MusigSessionCtx> {
         self.musig_ctx.clone()
     }
 
@@ -91,7 +91,7 @@ impl CovSession {
         true
     }
 
-    pub fn ready(&mut self, musig_ctx: &MusigCtx) {
+    pub fn ready(&mut self, musig_ctx: &MusigSessionCtx) {
         self.stage = CovSessionStage::Ready;
         self.musig_nesting_ctx = None; // save space.
         self.musig_ctx = Some(musig_ctx.to_owned());

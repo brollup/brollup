@@ -3,7 +3,8 @@ use super::tcp;
 use crate::covsession::CovSessionStage;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
-use crate::musig::MusigNestingCtx;
+
+use crate::musig::nesting::MusigNestingCtx;
 use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
