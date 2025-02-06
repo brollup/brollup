@@ -1,9 +1,4 @@
-use crate::{
-    into::{IntoPoint, IntoScalar},
-    schnorr,
-    tcp::client::TCPClient,
-    PEER,
-};
+use crate::{into::IntoScalar, schnorr, tcp::client::TCPClient, PEER};
 
 pub async fn command(coordinator: &PEER, sk: [u8; 32], pk: [u8; 32]) {
     let sk_scalar = match sk.into_scalar() {

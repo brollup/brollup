@@ -1,6 +1,5 @@
 use super::session::DKGSession;
 use crate::{
-    into::IntoScalar,
     musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
     noist::{
         lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
@@ -272,16 +271,12 @@ impl SigningSession {
     ) -> Option<SigningSession> {
         let musig_ctx = match &musig_nesting_ctx {
             Some(ctx) => {
-                let mut musig_ctx = ctx.musig_ctx(
+                let musig_ctx = ctx.musig_ctx(
                     group_key,
                     hiding_group_nonce,
                     post_binding_group_nonce,
                     message,
                 )?;
-
-                if !musig_ctx.ready() {
-                    return None;
-                }
 
                 Some(musig_ctx)
             }
@@ -330,8 +325,6 @@ impl SigningSession {
     }
 
     pub fn partial_sign(&self, secret_key: [u8; 32]) -> Option<Scalar> {
-        let public_key = secret_key.into_scalar().ok()?.base_point_mul();
-
         let group_key_bytes = self.group_key.serialize_xonly();
         let message_bytes = self.message;
         let challenge = self.challenge;

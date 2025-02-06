@@ -1,12 +1,4 @@
-use colored::Colorize;
-
-use crate::{
-    dkgops::DKGOps,
-    into::IntoScalar,
-    taproot::P2TR,
-    txo::projector::{Projector, ProjectorTag},
-    COV_SESSION, DKG_MANAGER, PEER_MANAGER,
-};
+use crate::{dkgops::DKGOps, into::IntoScalar, COV_SESSION, DKG_MANAGER, PEER_MANAGER};
 use std::time::Duration;
 
 // covr <height> <msg>
@@ -156,24 +148,8 @@ pub async fn command(
         _cov_session.ready(&musig_ctx);
     }
 
-    let agg_nonce = match musig_ctx.agg_nonce() {
-        Some(nonce) => nonce,
-        None => {
-            println!("agg nonce not found");
-            return;
-        }
-    };
-
-    println!(
-        "{}",
-        "Agg Key: 7ccdc2b4144c17465e2fe82b5c328071ccfe8b495df9799ce57a0dbf3bd4d8ae: ".magenta()
-    );
-    println!(
-        "{}",
-        "Agg Nonce: 8253be62ab11ae5dbb3a18deb0ecbdcf513e20b1965d5076e97dbc06f15ed0dd: ".magenta()
-    );
     loop {
-        let full_agg_sig = match {
+        let _full_agg_sig = match {
             let _cov_session = cov_session.lock().await;
             _cov_session.full_agg_sig()
         } {
@@ -188,9 +164,6 @@ pub async fn command(
             let mut _cov_session = cov_session.lock().await;
             _cov_session.finalized();
         }
-
-        println!("{}", "Pool Txn: 01000000000101787ce87c7832cc4e524450a4d246c8022ca704beb349a59a1232ae0441f559e10000000000ffffffff02d0070000000000002251207ccdc2b4144c17465e2fe82b5c328071ccfe8b495df9799ce57a0dbf3bd4d8aef4010000000000002251207ccdc2b4144c17465e2fe82b5c328071ccfe8b495df9799ce57a0dbf3bd4d8ae0140151e25ab70032523a1209ded5f4c19e59dcb04f07f9d07f7efa190b8323031753763ef6e09990cd3a3141d1bf230de76db2579f456a09f78cda3861637b76c6500000000".green());
-        println!("{}", "Virtual Txn: 0100000000010126ad2a629af7be7d38ffad73dc5c06f209de72aac629453de2506883ed3aa0d90000000000ffffffff03f401000000000000225120731ceefe3587a4d86474e42d2e3621e8615c3e72ab69edacd46d5fcc009b6286f4010000000000002251200d1ed23d3a2b909fd928e7f46d41d5878746aeac587deae1049d5e9fc72e2583f40100000000000022512065e886012bd2afc676110adf8a3ad5cd39b7c210dc0abee5ee5d43f48bb73d8201408253be62ab11ae5dbb3a18deb0ecbdcf513e20b1965d5076e97dbc06f15ed0ddebbf2819c1351ffb6b6e9fa420ee8f731b9f62b1a420f9b77d231184592d4d9100000000".green());
 
         break;
     }

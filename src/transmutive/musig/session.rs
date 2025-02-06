@@ -43,7 +43,51 @@ impl MusigSessionCtx {
             return false;
         }
 
+        if self.key_agg_ctx.num_keys() == self.nonces.len() {
+            self.set_values();
+        }
+
         true
+    }
+
+    fn set_values(&mut self) {
+        let (hiding_agg_nonce, binding_agg_nonce) = match pre_nonce_agg(&self.nonces) {
+            Some(nonce) => nonce,
+            None => return,
+        };
+
+        let nonce_coef = match nonce_coef(
+            hiding_agg_nonce,
+            binding_agg_nonce,
+            self.key_agg_ctx.agg_key(),
+            self.message,
+        ) {
+            Some(coef) => coef,
+            None => return,
+        };
+
+        if let None = self.nonce_coef {
+            self.nonce_coef = Some(nonce_coef)
+        };
+
+        let agg_nonce = match hiding_agg_nonce + (binding_agg_nonce * nonce_coef) {
+            MaybePoint::Valid(point) => point,
+            MaybePoint::Infinity => return,
+        };
+
+        if let None = self.agg_nonce {
+            self.agg_nonce = Some(agg_nonce)
+        };
+
+        let challenge = match compute_challenge(agg_nonce, self.key_agg_ctx.agg_key(), self.message)
+        {
+            Some(challenge) => challenge,
+            None => return,
+        };
+
+        if let None = self.challenge {
+            self.challenge = Some(challenge)
+        };
     }
 
     pub fn key_agg_ctx(&self) -> MusigKeyAggCtx {
@@ -59,50 +103,7 @@ impl MusigSessionCtx {
     }
 
     pub fn ready(&mut self) -> bool {
-        match self.key_agg_ctx.num_keys() == self.nonces.len() {
-            false => false,
-            true => {
-                let (hiding_agg_nonce, binding_agg_nonce) = match pre_nonce_agg(&self.nonces) {
-                    Some(nonce) => nonce,
-                    None => return false,
-                };
-
-                let nonce_coef = match nonce_coef(
-                    hiding_agg_nonce,
-                    binding_agg_nonce,
-                    self.key_agg_ctx.agg_key(),
-                    self.message,
-                ) {
-                    Some(coef) => coef,
-                    None => return false,
-                };
-
-                if let None = self.nonce_coef {
-                    self.nonce_coef = Some(nonce_coef)
-                };
-
-                let agg_nonce = match hiding_agg_nonce + (binding_agg_nonce * nonce_coef) {
-                    MaybePoint::Valid(point) => point,
-                    MaybePoint::Infinity => return false,
-                };
-
-                if let None = self.agg_nonce {
-                    self.agg_nonce = Some(agg_nonce)
-                };
-
-                let challenge =
-                    match compute_challenge(agg_nonce, self.key_agg_ctx.agg_key(), self.message) {
-                        Some(challenge) => challenge,
-                        None => return false,
-                    };
-
-                if let None = self.challenge {
-                    self.challenge = Some(challenge)
-                };
-
-                true
-            }
-        }
+        self.key_agg_ctx.num_keys() == self.nonces.len()
     }
 
     pub fn agg_nonce(&self) -> Option<Point> {
@@ -297,22 +298,6 @@ fn nonce_coef(
         .ok()?;
 
     Some(coef)
-}
-
-fn nonce_agg(
-    nonces: &HashMap<Point, (Point, Point)>,
-    agg_key: Point,
-    message: [u8; 32],
-) -> Option<Point> {
-    let (hiding_agg_nonce, binding_agg_nonce) = pre_nonce_agg(nonces)?;
-    let nonce_coef = nonce_coef(hiding_agg_nonce, binding_agg_nonce, agg_key, message)?;
-
-    let agg_nonce = match hiding_agg_nonce + (binding_agg_nonce * nonce_coef) {
-        MaybePoint::Valid(point) => point,
-        MaybePoint::Infinity => return None,
-    };
-
-    Some(agg_nonce)
 }
 
 fn pre_nonce_agg(nonces: &HashMap<Point, (Point, Point)>) -> Option<(Point, Point)> {
