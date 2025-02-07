@@ -1,6 +1,6 @@
 use super::session::DKGSession;
 use crate::{
-    musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
+    musig::session::MusigSessionCtx,
     noist::{
         lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
         setup::setup::VSESetup,
@@ -204,16 +204,19 @@ impl DKGDirectory {
     pub fn pick_signing_session(
         &mut self,
         message: [u8; 32],
-        musig_nesting_ctx: Option<MusigNestingCtx>,
+        musig_ctx: Option<MusigSessionCtx>,
+        toxic: bool,
     ) -> Option<SigningSession> {
-        self.signing_session(message, self.pick_index()?, musig_nesting_ctx)
+        let index_pick = self.pick_index()?;
+        self.signing_session(message, index_pick, musig_ctx, toxic)
     }
 
     pub fn signing_session(
         &mut self,
         message: [u8; 32],
         nonce_index: u64,
-        musig_nesting_ctx: Option<MusigNestingCtx>,
+        musig_ctx: Option<MusigSessionCtx>,
+        toxic: bool,
     ) -> Option<SigningSession> {
         let group_key_session = self.group_key_session()?;
 
@@ -235,10 +238,12 @@ impl DKGDirectory {
             post_binding_group_nonce,
             group_nonce,
             message,
-            musig_nesting_ctx,
+            musig_ctx,
         )?;
 
-        self.remove_session(nonce_index);
+        if toxic {
+            self.remove_session(nonce_index);
+        }
 
         Some(signing_session)
     }
@@ -246,15 +251,15 @@ impl DKGDirectory {
 
 #[derive(Clone)]
 pub struct SigningSession {
-    pub group_key_session: DKGSession,
-    pub group_nonce_session: DKGSession,
-    pub group_key: Point,
-    pub hiding_group_nonce: Point,
-    pub post_binding_group_nonce: Point,
-    pub group_nonce: Point,
-    pub message: [u8; 32],
-    pub challenge: Scalar,
-    pub musig_ctx: Option<MusigSessionCtx>,
+    group_key_session: DKGSession,
+    group_nonce_session: DKGSession,
+    group_key: Point,
+    hiding_group_nonce: Point,
+    post_binding_group_nonce: Point,
+    group_nonce: Point,
+    message: [u8; 32],
+    challenge: Scalar,
+    musig_ctx: Option<MusigSessionCtx>,
     partial_sigs: HashMap<Point, Scalar>,
 }
 
@@ -267,33 +272,21 @@ impl SigningSession {
         post_binding_group_nonce: Point,
         group_nonce: Point,
         message: [u8; 32],
-        musig_nesting_ctx: Option<MusigNestingCtx>,
+        musig_ctx: Option<MusigSessionCtx>,
     ) -> Option<SigningSession> {
-        let musig_ctx = match &musig_nesting_ctx {
-            Some(ctx) => {
-                let musig_ctx = ctx.musig_ctx(
-                    group_key,
-                    hiding_group_nonce,
-                    post_binding_group_nonce,
-                    message,
-                )?;
-
-                Some(musig_ctx)
-            }
-            None => None,
+        let (challenge_nonce, challenge_key) = match &musig_ctx {
+            Some(ctx) => (ctx.agg_nonce()?, ctx.key_agg_ctx().agg_key()),
+            None => (group_nonce, group_key),
         };
 
-        let challenge = match &musig_ctx {
-            Some(ctx) => ctx.challenge()?,
-            None => match challenge(
-                group_nonce,
-                group_key,
-                message,
-                crate::schnorr::SigningMode::BIP340,
-            ) {
-                MaybeScalar::Valid(scalar) => scalar,
-                MaybeScalar::Zero => return None,
-            },
+        let challenge = match challenge(
+            challenge_nonce,
+            challenge_key,
+            message,
+            crate::schnorr::SigningMode::BIP340,
+        ) {
+            MaybeScalar::Valid(scalar) => scalar,
+            MaybeScalar::Zero => return None,
         };
 
         let session = SigningSession {
@@ -312,8 +305,47 @@ impl SigningSession {
         Some(session)
     }
 
-    pub fn musig_ctx(&self) -> Option<MusigSessionCtx> {
-        self.musig_ctx.clone()
+    pub fn set_musig_ctx(&mut self, musig_ctx: &MusigSessionCtx) -> bool {
+        self.musig_ctx = Some(musig_ctx.to_owned());
+
+        let challenge_nonce = match musig_ctx.agg_nonce() {
+            Some(nonce) => nonce,
+            None => return false,
+        };
+
+        let challenge_key = musig_ctx.key_agg_ctx().agg_key();
+
+        let message = self.message;
+
+        let challenge = match challenge(
+            challenge_nonce,
+            challenge_key,
+            message,
+            crate::schnorr::SigningMode::BIP340,
+        ) {
+            MaybeScalar::Valid(scalar) => scalar,
+            MaybeScalar::Zero => return false,
+        };
+
+        self.challenge = challenge;
+
+        true
+    }
+
+    pub fn group_key(&self) -> Point {
+        self.group_key
+    }
+
+    pub fn hiding_group_nonce(&self) -> Point {
+        self.hiding_group_nonce
+    }
+
+    pub fn post_binding_group_nonce(&self) -> Point {
+        self.post_binding_group_nonce
+    }
+
+    pub fn group_nonce(&self) -> Point {
+        self.group_nonce
     }
 
     pub fn nonce_index(&self) -> u64 {

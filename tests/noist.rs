@@ -1,20 +1,17 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
-    use brollup::into::{IntoPoint, IntoPointVec, IntoScalar};
-    use brollup::musig::nesting::MusigNestingCtx;
+    use brollup::into::IntoPoint;
+    use brollup::musig::session::MusigSessionCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
     use brollup::schnorr;
-    use brollup::taproot::P2TR;
-    use brollup::txn::{sigmsg_txn_1, sigmsg_txn_2, tx_1_build, tx_1_id, tx_2_build};
     use brollup::txo::projector::{Projector, ProjectorTag};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
     };
-    use secp::Point;
-    use std::collections::HashMap;
+    use secp::{Point, Scalar};
 
     #[tokio::test]
     async fn noist_test() -> Result<(), String> {
@@ -137,7 +134,9 @@ mod noist_tests {
                 .as_bytes()
                 .hash(None);
 
-            let mut signing_session = dkg_directory.pick_signing_session(message, None).unwrap();
+            let mut signing_session = dkg_directory
+                .pick_signing_session(message, None, true)
+                .unwrap();
 
             let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
             let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
@@ -207,296 +206,203 @@ mod noist_tests {
 
         // Musig test.
 
-        //let message = format!("MUassdfdSIG!").as_bytes().hash(None);
+        println!("ara 0");
 
-        let musig_signer_secret: [u8; 32] =
-            hex::decode("77012837ab8d458df376ff778ef30575f2bb955bafe4051319aa0e7bf051a722")
-                .unwrap()
-                .try_into()
+        // Musig signer #1
+        let musig_signer_1_secret =
+            Scalar::from_hex("77012837ab8d458df376ff778ef30575f2bb955bafe4051319aa0e7bf051a722")
                 .unwrap();
-        let musig_signer_public: [u8; 33] =
-            hex::decode("02a04a08b82ea11ec8102168e3049b82270c19750fdbc2dc09e3c70af75020ab12")
-                .unwrap()
-                .try_into()
+        let musig_signer_1_public =
+            Point::from_hex("02a04a08b82ea11ec8102168e3049b82270c19750fdbc2dc09e3c70af75020ab12")
                 .unwrap();
 
-        let musig_signer_hiding_secret_nonce: [u8; 32] =
-            hex::decode("2bf1ce5c2e57b5080e3d67e77b0a015919dc55fd44e30d65f7817d8afd6995c6")
-                .unwrap()
-                .try_into()
+        let musig_signer_1_hiding_secret_nonce =
+            Scalar::from_hex("2bf1ce5c2e57b5080e3d67e77b0a015919dc55fd44e30d65f7817d8afd6995c6")
                 .unwrap();
-        let musig_signer_hiding_public_nonce: [u8; 33] =
-            hex::decode("02b8e828457c6ab70e3f8a9cfdd5c21172fa69fccfeb74ec5e7a784f272ed094d6")
-                .unwrap()
-                .try_into()
+        let musig_signer_1_hiding_public_nonce =
+            Point::from_hex("02b8e828457c6ab70e3f8a9cfdd5c21172fa69fccfeb74ec5e7a784f272ed094d6")
                 .unwrap();
 
-        let musig_signer_binding_secret_nonce: [u8; 32] =
-            hex::decode("320b845c8ee898fd8f53ae2eacab49f0d244e9ac0ab94f5cfb2098ec654505c2")
-                .unwrap()
-                .try_into()
+        let musig_signer_1_binding_secret_nonce =
+            Scalar::from_hex("320b845c8ee898fd8f53ae2eacab49f0d244e9ac0ab94f5cfb2098ec654505c2")
                 .unwrap();
-        let musig_signer_binding_public_nonce: [u8; 33] =
-            hex::decode("027923dc97eec709f6dfc56cac3eb59b5fbd47a89554202c79d9588a6dd37814ef")
-                .unwrap()
-                .try_into()
+        let musig_signer_1_binding_public_nonce =
+            Point::from_hex("027923dc97eec709f6dfc56cac3eb59b5fbd47a89554202c79d9588a6dd37814ef")
                 .unwrap();
 
-        let musig_signer2_secret: [u8; 32] =
-            hex::decode("059c96997ffd9a48caf8c5e83267cc72d692abeb4b4d93bb4c98b8e2ff75e75e")
-                .unwrap()
-                .try_into()
+        // Musig signer #2
+        let musig_signer_2_secret =
+            Scalar::from_hex("059c96997ffd9a48caf8c5e83267cc72d692abeb4b4d93bb4c98b8e2ff75e75e")
                 .unwrap();
-        let musig_signer2_public: [u8; 33] =
-            hex::decode("020d1ed23d3a2b909fd928e7f46d41d5878746aeac587deae1049d5e9fc72e2583")
-                .unwrap()
-                .try_into()
+        let musig_signer_2_public =
+            Point::from_hex("020d1ed23d3a2b909fd928e7f46d41d5878746aeac587deae1049d5e9fc72e2583")
                 .unwrap();
 
-        let musig_signer2_hiding_secret_nonce: [u8; 32] =
-            hex::decode("e0f530415cecfdae3105218d5c153c14e20a5faa2e24eb5ae11051015a48f77b")
-                .unwrap()
-                .try_into()
+        let musig_signer_2_hiding_secret_nonce =
+            Scalar::from_hex("e0f530415cecfdae3105218d5c153c14e20a5faa2e24eb5ae11051015a48f77b")
                 .unwrap();
-        let musig_signer2_hiding_public_nonce: [u8; 33] =
-            hex::decode("023206ce056a69d097b3bf511ee15689babb11586518f78e29b33b48986c78e1c1")
-                .unwrap()
-                .try_into()
+        let musig_signer_2_hiding_public_nonce =
+            Point::from_hex("023206ce056a69d097b3bf511ee15689babb11586518f78e29b33b48986c78e1c1")
                 .unwrap();
 
-        let musig_signer2_binding_secret_nonce: [u8; 32] =
-            hex::decode("e87330abaeb33e6c7f757aae7267c5e666c7d2d38ca09e27db6371aa13b2c54b")
-                .unwrap()
-                .try_into()
+        let musig_signer_2_binding_secret_nonce =
+            Scalar::from_hex("e87330abaeb33e6c7f757aae7267c5e666c7d2d38ca09e27db6371aa13b2c54b")
                 .unwrap();
-        let musig_signer2_binding_public_nonce: [u8; 33] =
-            hex::decode("02571a8ceb8799f3a72685dd91d620336b2c0fe29d6e026de68257f67b539f15f0")
-                .unwrap()
-                .try_into()
+        let musig_signer_2_binding_public_nonce =
+            Point::from_hex("02571a8ceb8799f3a72685dd91d620336b2c0fe29d6e026de68257f67b539f15f0")
                 .unwrap();
 
-        let musig_signer3_secret: [u8; 32] =
-            hex::decode("d45a29fc831431cd086a5c44b9ec74a3121a266655cc26e6e6074cef9184519e")
-                .unwrap()
-                .try_into()
+        // Musig signer #3
+        let musig_signer_3_secret =
+            Scalar::from_hex("d45a29fc831431cd086a5c44b9ec74a3121a266655cc26e6e6074cef9184519e")
                 .unwrap();
-        let musig_signer3_public: [u8; 33] =
-            hex::decode("0265e886012bd2afc676110adf8a3ad5cd39b7c210dc0abee5ee5d43f48bb73d82")
-                .unwrap()
-                .try_into()
+        let musig_signer_3_public =
+            Point::from_hex("0265e886012bd2afc676110adf8a3ad5cd39b7c210dc0abee5ee5d43f48bb73d82")
                 .unwrap();
 
-        let musig_signer3_hiding_secret_nonce: [u8; 32] =
-            hex::decode("d339d0fd55e80a656676a2b9798367762f82e36fd5c71dd8bbcde9b5c3fb923d")
-                .unwrap()
-                .try_into()
+        let musig_signer_3_hiding_secret_nonce =
+            Scalar::from_hex("d339d0fd55e80a656676a2b9798367762f82e36fd5c71dd8bbcde9b5c3fb923d")
                 .unwrap();
-        let musig_signer3_hiding_public_nonce: [u8; 33] =
-            hex::decode("03b8c8f30aef38216eed131e2aa37a060e18945e3372d3b85d7c548f02879fa1f6")
-                .unwrap()
-                .try_into()
+        let musig_signer_3_hiding_public_nonce =
+            Point::from_hex("03b8c8f30aef38216eed131e2aa37a060e18945e3372d3b85d7c548f02879fa1f6")
                 .unwrap();
 
-        let musig_signer3_binding_secret_nonce: [u8; 32] =
-            hex::decode("0e95284da81c53594cef642da41eb8d81637f4f1e854cef7d578ffa2ba32b9e6")
-                .unwrap()
-                .try_into()
+        let musig_signer_3_binding_secret_nonce =
+            Scalar::from_hex("0e95284da81c53594cef642da41eb8d81637f4f1e854cef7d578ffa2ba32b9e6")
                 .unwrap();
-        let musig_signer3_binding_public_nonce: [u8; 33] =
-            hex::decode("03792a087c86671ebd5e52e3c64cd992a7f4f43bead3aa8177fe3324af49e51a51")
-                .unwrap()
-                .try_into()
+        let musig_signer_3_binding_public_nonce =
+            Point::from_hex("03792a087c86671ebd5e52e3c64cd992a7f4f43bead3aa8177fe3324af49e51a51")
                 .unwrap();
 
         let remote_keys = vec![
-            musig_signer_public,
-            musig_signer2_public,
-            musig_signer3_public,
-        ]
-        .into_point_vec()
-        .unwrap();
-        let operator_key = dkg_directory.group_key().unwrap();
+            musig_signer_1_public,
+            musig_signer_2_public,
+            musig_signer_3_public,
+        ];
+
+        let message = [0xffu8; 32];
+
+        let mut noist_signing_session = dkg_directory
+            .pick_signing_session(message, None, true)
+            .unwrap();
+
+        let _nonce_index = noist_signing_session.nonce_index();
+
+        let operator_key = noist_signing_session.group_key();
+        let operator_hiding_nonce = noist_signing_session.hiding_group_nonce();
+        let operator_binding_nonce = noist_signing_session.post_binding_group_nonce();
 
         let projector = Projector::new(remote_keys, operator_key, ProjectorTag::VTXOProjector);
-        let projector_txo = projector.taproot().unwrap();
 
-        println!(
-            "projector_txo spk: {}",
-            hex::encode(projector_txo.spk().unwrap())
-        );
+        let key_agg_ctx = projector.key_agg_ctx().expect("leyn");
 
-        let spender_secret_key: [u8; 32] =
-            hex::decode("74c06aed2018edacedfe126a8901de57adbc00f622ab4d7ad7edd05c06ba9e1a")
-                .unwrap()
-                .try_into()
-                .unwrap();
-        let _spender_public_key: [u8; 33] =
-            hex::decode("02bf0504a35c94ca0abb79e853d5e58932a4f5f81d95e17441120814524cd8b674")
-                .unwrap()
-                .try_into()
-                .unwrap();
-        //bc1phuzsfg6ujn9q4wmeapfatevfx2j0t7qajhshgsgjpq29ynxcke6qxqq779
+        let agg_key = key_agg_ctx.agg_key();
 
-        // outpoint
+        let mut musig_ctx = MusigSessionCtx::new(&key_agg_ctx, message).unwrap();
 
-        let prev_spk =
-            hex::decode("5120bf0504a35c94ca0abb79e853d5e58932a4f5f81d95e17441120814524cd8b674")
-                .unwrap();
-
-        let outpoint: [u8; 36] =
-            hex::decode("787ce87c7832cc4e524450a4d246c8022ca704beb349a59a1232ae0441f559e100000000")
-                .unwrap()
-                .try_into()
-                .unwrap();
-
-        let txn_1_sigmsg = sigmsg_txn_1(outpoint, prev_spk, projector.clone()).unwrap();
-
-        println!("txn_1_sigmsg : {}", hex::encode(txn_1_sigmsg));
-
-        let sig = schnorr::sign(
-            spender_secret_key,
-            txn_1_sigmsg,
-            schnorr::SigningMode::BIP340,
-        )
-        .unwrap();
-
-        println!("sig : {}", hex::encode(sig));
-
-        let txn_1 = tx_1_build(outpoint, projector.clone(), sig).unwrap();
-
-        println!("txn_1 : {}", hex::encode(txn_1));
-
-        let tx_1_id = tx_1_id(outpoint, projector.clone()).unwrap();
-
-        println!("tx_1_id: {}", hex::encode(tx_1_id));
-
-        let prev_spk = projector_txo.spk().unwrap();
-
-        let key_1 = musig_signer_public.into_point().unwrap().serialize_xonly();
-        let key_2 = musig_signer2_public.into_point().unwrap().serialize_xonly();
-        let key_3 = musig_signer3_public.into_point().unwrap().serialize_xonly();
-
-        let txn_2_sigmsg = sigmsg_txn_2(tx_1_id, prev_spk, key_1, key_2, key_3).unwrap();
-
-        println!("txn_2_sigmsg : {}", hex::encode(txn_2_sigmsg));
-
-        println!("operator_key: {}", hex::encode(operator_key.serialize()));
-
-        let mut signers = HashMap::<Point, (Point, Point)>::new();
-        signers.insert(
-            musig_signer_public.into_point().unwrap(),
-            (
-                musig_signer_hiding_public_nonce.into_point().unwrap(),
-                musig_signer_binding_public_nonce.into_point().unwrap(),
-            ),
-        );
-
-        signers.insert(
-            musig_signer2_public.into_point().unwrap(),
-            (
-                musig_signer2_hiding_public_nonce.into_point().unwrap(),
-                musig_signer2_binding_public_nonce.into_point().unwrap(),
-            ),
-        );
-
-        signers.insert(
-            musig_signer3_public.into_point().unwrap(),
-            (
-                musig_signer3_hiding_public_nonce.into_point().unwrap(),
-                musig_signer3_binding_public_nonce.into_point().unwrap(),
-            ),
-        );
-
-        let tweak = projector_txo.tap_tweak().into_scalar().unwrap();
-
-        let musig_nesting_ctx = MusigNestingCtx::new(signers, Some(tweak));
-
-        let mut signing_session = dkg_directory
-            .pick_signing_session(txn_2_sigmsg, Some(musig_nesting_ctx))
-            .unwrap();
-
-        let mut musig_ctx = signing_session.musig_ctx().unwrap();
-
-        let agg_key = musig_ctx.key_agg_ctx().agg_key();
-
-        println!("agg_key: {}", hex::encode(agg_key.serialize()));
-
-        println!("readiness: {}", musig_ctx.ready());
-
-        let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
-        let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
-
-        if !signing_session.insert_partial_sig(signer_1_public, s1_partial_sig) {
-            return Err("m s1_partial_sig insertion err.".into());
-        };
-        if !signing_session.insert_partial_sig(signer_2_public, s2_partial_sig) {
-            return Err("m s2_partial_sig insertion err.".into());
-        };
-
-        let op_partial_sig = signing_session.aggregated_sig().unwrap();
-
-        if !musig_ctx.insert_partial_sig(operator_key, op_partial_sig) {
-            println!("musig_ctx op sig insert err.");
-        }
-
-        let client1_partial_sig = musig_ctx
-            .partial_sign(
-                musig_signer_secret.into_scalar().unwrap(),
-                musig_signer_hiding_secret_nonce.into_scalar().unwrap(),
-                musig_signer_binding_secret_nonce.into_scalar().unwrap(),
-            )
-            .unwrap();
-
-        if !musig_ctx.insert_partial_sig(
-            musig_signer_public.into_point().unwrap(),
-            client1_partial_sig,
-        ) {
-            println!("client1 op sig insert err.");
-        }
-
-        let client2_partial_sig = musig_ctx
-            .partial_sign(
-                musig_signer2_secret.into_scalar().unwrap(),
-                musig_signer2_hiding_secret_nonce.into_scalar().unwrap(),
-                musig_signer2_binding_secret_nonce.into_scalar().unwrap(),
-            )
-            .unwrap();
-
-        if !musig_ctx.insert_partial_sig(
-            musig_signer2_public.into_point().unwrap(),
-            client2_partial_sig,
-        ) {
-            println!("client2 op sig insert err.");
-        }
-
-        let client3_partial_sig = musig_ctx
-            .partial_sign(
-                musig_signer3_secret.into_scalar().unwrap(),
-                musig_signer3_hiding_secret_nonce.into_scalar().unwrap(),
-                musig_signer3_binding_secret_nonce.into_scalar().unwrap(),
-            )
-            .unwrap();
-
-        if !musig_ctx.insert_partial_sig(
-            musig_signer3_public.into_point().unwrap(),
-            client3_partial_sig,
-        ) {
-            println!("client3 op sig insert err.");
-        }
-
-        let agg_sig = musig_ctx.full_agg_sig().unwrap();
-
-        assert!(schnorr::verify(
-            musig_ctx.key_agg_ctx().agg_key().serialize_xonly(),
-            txn_2_sigmsg,
-            agg_sig,
-            schnorr::SigningMode::BIP340
+        // Insert operator nonces:
+        assert!(musig_ctx.insert_nonce(
+            operator_key,
+            operator_hiding_nonce,
+            operator_binding_nonce
         ));
 
-        println!("agg_sig: {}", hex::encode(agg_sig));
-        let txn_2 = tx_2_build(tx_1_id, key_1, key_2, key_3, agg_sig).unwrap();
+        // Insert remote nonces:
+        {
+            assert!(musig_ctx.insert_nonce(
+                musig_signer_1_public,
+                musig_signer_1_hiding_public_nonce,
+                musig_signer_1_binding_public_nonce
+            ));
 
-        println!("txn_2: {}", hex::encode(txn_2));
+            assert!(musig_ctx.insert_nonce(
+                musig_signer_2_public,
+                musig_signer_2_hiding_public_nonce,
+                musig_signer_2_binding_public_nonce
+            ));
+
+            assert!(musig_ctx.insert_nonce(
+                musig_signer_3_public,
+                musig_signer_3_hiding_public_nonce,
+                musig_signer_3_binding_public_nonce
+            ));
+        }
+
+        // Musig ctx should be ready.
+        assert!(musig_ctx.ready());
+
+        assert!(noist_signing_session.set_musig_ctx(&musig_ctx));
+
+        // Await for partial signatures ..
+
+        // Insert operator partial signatures:
+        {
+            // Singatory #1
+            let signatory_1_partial_sig =
+                noist_signing_session.partial_sign(signer_1_secret).unwrap();
+
+            assert!(
+                noist_signing_session.insert_partial_sig(signer_1_public, signatory_1_partial_sig)
+            );
+
+            // Singatory #2
+            let signatory_2_partial_sig =
+                noist_signing_session.partial_sign(signer_2_secret).unwrap();
+
+            assert!(
+                noist_signing_session.insert_partial_sig(signer_2_public, signatory_2_partial_sig)
+            );
+        }
+
+        let operator_musig_partial_sig = noist_signing_session.aggregated_sig().unwrap();
+        // Insert operator musig partial sig.
+        assert!(musig_ctx.insert_partial_sig(operator_key, operator_musig_partial_sig));
+
+        // Insert remote partial signatures:
+        {
+            // Musig remote signer #1
+            let musig_signer_1_partial_sig = musig_ctx
+                .partial_sign(
+                    musig_signer_1_secret,
+                    musig_signer_1_hiding_secret_nonce,
+                    musig_signer_1_binding_secret_nonce,
+                )
+                .unwrap();
+
+            assert!(musig_ctx.insert_partial_sig(musig_signer_1_public, musig_signer_1_partial_sig));
+
+            // Musig remote signer #2
+            let musig_signer_2_partial_sig = musig_ctx
+                .partial_sign(
+                    musig_signer_2_secret,
+                    musig_signer_2_hiding_secret_nonce,
+                    musig_signer_2_binding_secret_nonce,
+                )
+                .unwrap();
+
+            assert!(musig_ctx.insert_partial_sig(musig_signer_2_public, musig_signer_2_partial_sig));
+
+            // Musig remote signer #3
+            let musig_signer_3_partial_sig = musig_ctx
+                .partial_sign(
+                    musig_signer_3_secret,
+                    musig_signer_3_hiding_secret_nonce,
+                    musig_signer_3_binding_secret_nonce,
+                )
+                .unwrap();
+
+            assert!(musig_ctx.insert_partial_sig(musig_signer_3_public, musig_signer_3_partial_sig));
+        }
+
+        // Full musig aggregate signature:
+        let musig_agg_sig = musig_ctx.full_agg_sig().unwrap();
+
+        assert!(schnorr::verify(
+            agg_key.serialize_xonly(),
+            message,
+            musig_agg_sig,
+            schnorr::SigningMode::BIP340
+        ));
 
         Ok(())
     }

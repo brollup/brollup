@@ -144,11 +144,11 @@ async fn dir_height_sign(
     let start = Instant::now();
 
     match dkg_manager
-        .sign(peer_manager, height, vec![(msg, None)])
+        .sign(peer_manager, height, vec![(None, msg, None)])
         .await
     {
         Ok(sig) => {
-            println!("Sig: {}", hex::encode(sig[0].0).green());
+            println!("Sig: {}", hex::encode(sig[0]).green());
 
             let elapsed: Duration = start.elapsed();
             println!("{}ms", elapsed.as_millis());

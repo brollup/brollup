@@ -3,8 +3,7 @@ use super::tcp;
 use crate::covsession::CovSessionStage;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
-
-use crate::musig::nesting::MusigNestingCtx;
+use crate::musig::session::MusigSessionCtx;
 use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
@@ -508,7 +507,7 @@ async fn handle_request_partial_sigs(
     dkg_manager: &mut DKG_MANAGER,
     keys: &KeyHolder,
 ) -> Option<TCPPackage> {
-    let (dir_height, requests): (u64, Vec<(u64, [u8; 32], Option<MusigNestingCtx>)>) =
+    let (dir_height, requests): (u64, Vec<(u64, [u8; 32], Option<MusigSessionCtx>)>) =
         match serde_json::from_slice(payload) {
             Ok(triple) => triple,
             Err(_) => return None,
@@ -527,7 +526,7 @@ async fn handle_request_partial_sigs(
     for (nonce_index, message, musig_nesting_ctx) in requests {
         let signing_session = {
             let mut _dkg_directory = dkg_directory.lock().await;
-            match _dkg_directory.signing_session(message, nonce_index, musig_nesting_ctx) {
+            match _dkg_directory.signing_session(message, nonce_index, musig_nesting_ctx, true) {
                 Some(directory) => directory,
                 None => return None,
             }

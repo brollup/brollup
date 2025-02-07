@@ -8,6 +8,8 @@ pub async fn command(
     dkg_manager: &DKG_MANAGER,
     cov_session: &mut COV_SESSION,
 ) {
+    let message = [0xffu8; 32];
+
     if parts.len() != 3 {
         eprintln!("Invalid usage.");
         return;
@@ -88,9 +90,20 @@ pub async fn command(
         _cov_session.lock();
     }
 
-    let musig_nesting_ctx = match {
+    let noist_signing_session = {
+        let mut dkg_dir_ = dkg_dir.lock().await;
+        dkg_dir_.pick_signing_session(message, None, false).unwrap()
+    };
+
+    let nonce_index = noist_signing_session.nonce_index();
+
+    let operator_key = noist_signing_session.group_key();
+    let operator_hiding_nonce = noist_signing_session.hiding_group_nonce();
+    let operator_binding_nonce = noist_signing_session.post_binding_group_nonce();
+
+    let mut musig_ctx = match {
         let mut _cov_session = cov_session.lock().await;
-        _cov_session.musig_nesting_ctx()
+        _cov_session.set_musig_ctx(operator_key, operator_hiding_nonce, operator_binding_nonce)
     } {
         Some(ctx) => ctx,
         None => {
@@ -101,7 +114,7 @@ pub async fn command(
 
     //
 
-    let messages = vec![(msg, Some(musig_nesting_ctx))];
+    let messages = vec![(Some(nonce_index), msg, Some(musig_ctx.clone()))];
 
     let operator_partial_sig_ = match dkg_manager.sign(peer_manager, dir_height, messages).await {
         Ok(sig) => sig,
@@ -117,15 +130,7 @@ pub async fn command(
         }
     };
 
-    let (operator_partial_sig, musig_ctx) = operator_partial_sig_[0].clone();
-
-    let mut musig_ctx = match musig_ctx {
-        Some(ctx) => ctx,
-        None => {
-            eprintln!("Error musig_ctx.");
-            return;
-        }
-    };
+    let operator_partial_sig = operator_partial_sig_[0].clone();
 
     println!(
         "Agg key: {}",

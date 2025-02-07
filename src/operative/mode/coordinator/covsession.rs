@@ -1,6 +1,6 @@
 use crate::{
     into::{IntoPoint, IntoScalar},
-    musig::{nesting::MusigNestingCtx, session::MusigSessionCtx},
+    musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     COV_SESSION,
 };
 use secp::{Point, Scalar};
@@ -19,7 +19,6 @@ pub enum CovSessionStage {
 pub struct CovSession {
     stage: CovSessionStage,
     remote: HashMap<Point, (Point, Point)>,
-    musig_nesting_ctx: Option<MusigNestingCtx>,
     musig_ctx: Option<MusigSessionCtx>,
 }
 
@@ -28,7 +27,6 @@ impl CovSession {
         let session = CovSession {
             stage: CovSessionStage::Close,
             remote: HashMap::<Point, (Point, Point)>::new(),
-            musig_nesting_ctx: None,
             musig_ctx: None,
         };
         Arc::new(Mutex::new(session))
@@ -50,8 +48,40 @@ impl CovSession {
         self.remote.keys().cloned().collect()
     }
 
-    pub fn musig_nesting_ctx(&self) -> Option<MusigNestingCtx> {
-        self.musig_nesting_ctx.clone()
+    fn tweak(&self) -> Scalar {
+        Scalar::one()
+    }
+
+    fn message(&self) -> [u8; 32] {
+        [0xffu8; 32]
+    }
+
+    pub fn set_musig_ctx(
+        &mut self,
+        operator_key: Point,
+        operator_hiding_nonce: Point,
+        operator_binding_nonce: Point,
+    ) -> Option<MusigSessionCtx> {
+        let mut keys = Vec::<Point>::new();
+        keys.extend(&self.remote_keys());
+        keys.push(operator_key);
+
+        let key_agg_ctx = MusigKeyAggCtx::new(&self.remote_keys(), Some(self.tweak()))?;
+        let mut musig_ctx = MusigSessionCtx::new(&key_agg_ctx, self.message())?;
+
+        for (key, (hiding_nonce, binding_nonce)) in self.remote() {
+            if !musig_ctx.insert_nonce(key, hiding_nonce, binding_nonce) {
+                return None;
+            }
+        }
+
+        if !musig_ctx.insert_nonce(operator_key, operator_hiding_nonce, operator_binding_nonce) {
+            return None;
+        }
+
+        self.musig_ctx = Some(musig_ctx.clone());
+
+        Some(musig_ctx)
     }
 
     pub fn musig_ctx(&self) -> Option<MusigSessionCtx> {
@@ -61,7 +91,6 @@ impl CovSession {
     pub fn on(&mut self) {
         self.stage = CovSessionStage::On;
         self.remote = HashMap::<Point, (Point, Point)>::new();
-        self.musig_nesting_ctx = None;
     }
 
     pub fn add_remote(&mut self, key: [u8; 32], hiding_nonce: Point, binding_nonce: Point) -> bool {
@@ -85,15 +114,12 @@ impl CovSession {
 
         let tweak = [0xfeu8; 32].into_scalar().unwrap();
 
-        let musig_nesting_ctx = MusigNestingCtx::new(self.remote.clone(), Some(tweak));
-        self.musig_nesting_ctx = Some(musig_nesting_ctx);
-
         true
     }
 
     pub fn ready(&mut self, musig_ctx: &MusigSessionCtx) {
         self.stage = CovSessionStage::Ready;
-        self.musig_nesting_ctx = None; // save space.
+
         self.musig_ctx = Some(musig_ctx.to_owned());
     }
 
@@ -133,7 +159,6 @@ impl CovSession {
     pub fn reset(&mut self) {
         self.stage = CovSessionStage::Close;
         self.remote = HashMap::<Point, (Point, Point)>::new();
-        self.musig_nesting_ctx = None;
         self.musig_ctx = None;
     }
 }

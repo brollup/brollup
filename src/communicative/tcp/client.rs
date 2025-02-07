@@ -1,7 +1,6 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp::{self, TCPError};
 use crate::into::IntoPoint;
-use crate::musig::nesting::MusigNestingCtx;
 use crate::musig::session::MusigSessionCtx;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
@@ -42,7 +41,7 @@ pub trait TCPClient {
     async fn request_partial_sigs(
         &self,
         dir_height: u64,
-        requests: &Vec<(u64, [u8; 32], Option<MusigNestingCtx>)>,
+        requests: &Vec<(u64, [u8; 32], Option<MusigSessionCtx>)>,
     ) -> Result<Vec<Scalar>, RequestError>;
 
     async fn sync_dkg_dir(
@@ -282,7 +281,7 @@ impl TCPClient for PEER {
     async fn request_partial_sigs(
         &self,
         dir_height: u64,
-        requests: &Vec<(u64, [u8; 32], Option<MusigNestingCtx>)>,
+        requests: &Vec<(u64, [u8; 32], Option<MusigSessionCtx>)>,
     ) -> Result<Vec<Scalar>, RequestError> {
         let requests_len = requests.len() as u64;
 
