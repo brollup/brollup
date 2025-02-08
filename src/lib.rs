@@ -19,12 +19,12 @@ type COV_SESSION = Arc<Mutex<CovSession>>;
 
 // Inscriptive
 
-#[path = "inscriptive/prefix.rs"]
-pub mod prefix;
-#[path = "inscriptive/csv.rs"]
-pub mod csv;
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
+#[path = "inscriptive/csv.rs"]
+pub mod csv;
+#[path = "inscriptive/prefix.rs"]
+pub mod prefix;
 
 // Crypto modules.
 #[path = "transmutive/hash.rs"]
@@ -35,11 +35,6 @@ pub mod into;
 pub mod key;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
-#[path = "transmutive/point.rs"]
-pub mod secp_point;
-
-#[path = "transmutive/list.rs"]
-pub mod list;
 
 #[path = "transmutive/musig/mod.rs"]
 pub mod musig;
