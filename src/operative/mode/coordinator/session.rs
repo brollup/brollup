@@ -1,14 +1,14 @@
 use crate::{
     into::{IntoPoint, IntoScalar},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-    COV_SESSION,
+    SESSION_CTX,
 };
 use secp::{Point, Scalar};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum CovSessionStage {
+pub enum SessionStage {
     Close,
     On,        // collect keys, hiding and binding nonces.
     Locked,    // no longer accepting remote. MusigNestingCtx ready.
@@ -16,23 +16,23 @@ pub enum CovSessionStage {
     Finalized, // collected all partial sigs.
 }
 
-pub struct CovSession {
-    stage: CovSessionStage,
+pub struct SessionCtx {
+    stage: SessionStage,
     remote: HashMap<Point, (Point, Point)>,
     musig_ctx: Option<MusigSessionCtx>,
 }
 
-impl CovSession {
-    pub fn construct() -> COV_SESSION {
-        let session = CovSession {
-            stage: CovSessionStage::Close,
+impl SessionCtx {
+    pub fn construct() -> SESSION_CTX {
+        let session = SessionCtx {
+            stage: SessionStage::Close,
             remote: HashMap::<Point, (Point, Point)>::new(),
             musig_ctx: None,
         };
         Arc::new(Mutex::new(session))
     }
 
-    pub fn stage(&self) -> CovSessionStage {
+    pub fn stage(&self) -> SessionStage {
         self.stage
     }
 
@@ -89,12 +89,12 @@ impl CovSession {
     }
 
     pub fn on(&mut self) {
-        self.stage = CovSessionStage::On;
+        self.stage = SessionStage::On;
         self.remote = HashMap::<Point, (Point, Point)>::new();
     }
 
     pub fn add_remote(&mut self, key: [u8; 32], hiding_nonce: Point, binding_nonce: Point) -> bool {
-        if self.stage != CovSessionStage::On {
+        if self.stage != SessionStage::On {
             return false;
         };
 
@@ -110,7 +110,7 @@ impl CovSession {
     }
 
     pub fn lock(&mut self) -> bool {
-        self.stage = CovSessionStage::Locked;
+        self.stage = SessionStage::Locked;
 
         let tweak = [0xfeu8; 32].into_scalar().unwrap();
 
@@ -118,13 +118,13 @@ impl CovSession {
     }
 
     pub fn ready(&mut self, musig_ctx: &MusigSessionCtx) {
-        self.stage = CovSessionStage::Ready;
+        self.stage = SessionStage::Ready;
 
         self.musig_ctx = Some(musig_ctx.to_owned());
     }
 
     pub fn insert_partial_sig(&mut self, key: [u8; 32], partial_sig: Scalar) -> bool {
-        if self.stage != CovSessionStage::Ready {
+        if self.stage != SessionStage::Ready {
             return false;
         };
 
@@ -153,11 +153,11 @@ impl CovSession {
     }
 
     pub fn finalized(&mut self) {
-        self.stage = CovSessionStage::Finalized;
+        self.stage = SessionStage::Finalized;
     }
 
     pub fn reset(&mut self) {
-        self.stage = CovSessionStage::Close;
+        self.stage = SessionStage::Close;
         self.remote = HashMap::<Point, (Point, Point)>::new();
         self.musig_ctx = None;
     }

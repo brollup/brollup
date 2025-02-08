@@ -1,4 +1,4 @@
-use crate::{dkgops::DKGOps, into::IntoScalar, COV_SESSION, DKG_MANAGER, PEER_MANAGER};
+use crate::{dkgops::DKGOps, into::IntoScalar, DKG_MANAGER, PEER_MANAGER, SESSION_CTX};
 use std::time::Duration;
 
 // covr <height> <msg>
@@ -6,7 +6,7 @@ pub async fn command(
     parts: Vec<&str>,
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &DKG_MANAGER,
-    cov_session: &mut COV_SESSION,
+    session_ctx: &mut SESSION_CTX,
 ) {
     let message = [0xffu8; 32];
 
@@ -46,7 +46,7 @@ pub async fn command(
 
     // open session
     {
-        let mut _cov_session = cov_session.lock().await;
+        let mut _cov_session = session_ctx.lock().await;
         _cov_session.on();
     }
 
@@ -56,8 +56,8 @@ pub async fn command(
     // After
 
     let remote = {
-        let mut _cov_session = cov_session.lock().await;
-        _cov_session.remote()
+        let mut _session_ctx = session_ctx.lock().await;
+        _session_ctx.remote()
     };
 
     if remote.len() == 0 {
@@ -86,8 +86,8 @@ pub async fn command(
 
     // lock session
     {
-        let mut _cov_session = cov_session.lock().await;
-        _cov_session.lock();
+        let mut _session_ctx = session_ctx.lock().await;
+        _session_ctx.lock();
     }
 
     let noist_signing_session = {
@@ -102,8 +102,8 @@ pub async fn command(
     let operator_binding_nonce = noist_signing_session.post_binding_group_nonce();
 
     let mut musig_ctx = match {
-        let mut _cov_session = cov_session.lock().await;
-        _cov_session.set_musig_ctx(operator_key, operator_hiding_nonce, operator_binding_nonce)
+        let mut _session_ctx = session_ctx.lock().await;
+        _session_ctx.set_musig_ctx(operator_key, operator_hiding_nonce, operator_binding_nonce)
     } {
         Some(ctx) => ctx,
         None => {
@@ -122,8 +122,8 @@ pub async fn command(
             eprintln!("Error operator_partial_sig: {:?}", err);
 
             {
-                let mut _cov_session = cov_session.lock().await;
-                _cov_session.reset();
+                let mut _session_ctx = session_ctx.lock().await;
+                _session_ctx.reset();
             }
 
             return;
@@ -149,14 +149,14 @@ pub async fn command(
     }
 
     {
-        let mut _cov_session = cov_session.lock().await;
-        _cov_session.ready(&musig_ctx);
+        let mut _session_ctx = session_ctx.lock().await;
+        _session_ctx.ready(&musig_ctx);
     }
 
     loop {
         let _full_agg_sig = match {
-            let _cov_session = cov_session.lock().await;
-            _cov_session.full_agg_sig()
+            let _session_ctx = session_ctx.lock().await;
+            _session_ctx.full_agg_sig()
         } {
             Some(sig) => sig,
             None => {
@@ -166,8 +166,8 @@ pub async fn command(
         };
 
         {
-            let mut _cov_session = cov_session.lock().await;
-            _cov_session.finalized();
+            let mut _session_ctx = session_ctx.lock().await;
+            _session_ctx.finalized();
         }
 
         break;
