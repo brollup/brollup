@@ -420,7 +420,7 @@ Algorithm _CombinedPublicShare(PK, PK[1..n], p, PKG_p[1..m], Optional m, Optiona
     -  Let _, _pkg_i_ = _PKG_p[i]_.
     -  Let _, _, PS_h_i[1..n], _, _, PS_b_i[1..n], _ = pkg_i_.
     -  _HPS += PS_h_i[idx]_;
-    -  _PBPS += PS_b_i[idx] • _bf[m]_.
+    -  _PBPS += PS_b_i[idx] • bf[m]_.
 -   Return _HPS, PBPS_.
 
 ## Signing
@@ -435,8 +435,8 @@ Algorithm _PartialSign(sk, PK, m, PK[1..n], p, PKG_p[1..m])_:
     -   Signatory list _PK[1..n]_: list of secp points.
     -   DKG package index _p_: an integer.
     -   DKG package list _PKG_p[1..m]_: a list of DKG packages with length _m_.
--   Let group key _GK = ComputeGroupPoint(GroupPoint(0, PKG_0), -, -)_.
--   Let group nonce _GN = ComputeGroupPoint(GroupPoint(p, PKG_p), m, GK)_.
+-   Let group key _GK = GroupPoint(0, PKG_0)_.
+-   Let group nonce _GN = GroupPoint(p, PKG_p)_.
 -   Let challenge _e = H(H("BIP0340/challenge") || H("BIP0340/challenge") + GN || GK || m)_.
 -   Let secret key share _d = CombinedSecretShare(sk, PK, PK[1..n], 0, PKG_0, -, -)_.
 -   Let secret nonce share _k = CombinedSecretShare(sk, PK, PK[1..n], p, PKG_p, m, GK)_.
