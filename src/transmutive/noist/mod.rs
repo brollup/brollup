@@ -1,7 +1,5 @@
-pub mod lagrance;
-pub mod share;
-pub mod setup;
-pub mod vse;
-pub mod vss;
+pub mod core;
 pub mod dkg;
 pub mod manager;
+pub mod session;
+pub mod setup;

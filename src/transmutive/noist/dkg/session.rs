@@ -2,7 +2,7 @@ use super::package::DKGPackage;
 use crate::{
     hash::Hash,
     into::IntoScalar,
-    noist::{setup::setup::VSESetup, vse},
+    noist::{core::vse, setup::setup::VSESetup},
     schnorr::{Authenticable, LiftScalar, Sighash},
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};

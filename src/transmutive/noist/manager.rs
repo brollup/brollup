@@ -1,10 +1,10 @@
-use super::{dkg::directory::DKGDirectory, setup::setup::VSESetup};
-use crate::{DKG_DIRECTORY, DKG_MANAGER};
+use super::{dkg::directory::DKGDirectory, session::SessionCtx, setup::setup::VSESetup};
+use crate::{musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 pub struct DKGManager {
-    directories: HashMap<u64, DKG_DIRECTORY>, // Dir height, Directory.
+    directories: HashMap<u64, DKG_DIRECTORY>,
     setup_db: sled::Db,
 }
 
@@ -70,5 +70,33 @@ impl DKGManager {
 
     pub fn setup_height(&self) -> u64 {
         self.directories.keys().max().unwrap_or(&0).to_owned()
+    }
+
+    pub async fn pick_signing_session(
+        &self,
+        dir_height: u64,
+        message: [u8; 32],
+        musig_ctx: Option<MusigSessionCtx>,
+        toxic: bool,
+    ) -> Option<SessionCtx> {
+        let dkg_dir: DKG_DIRECTORY = self.directory(dir_height)?;
+        let mut dkg_dir_ = dkg_dir.lock().await;
+        let nonce_height = dkg_dir_.pick_index()?;
+        dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)
+    }
+
+    pub async fn signing_session(
+        &self,
+        dir_height: u64,
+        message: [u8; 32],
+        nonce_height: u64,
+        musig_ctx: Option<MusigSessionCtx>,
+        toxic: bool,
+    ) -> Option<SessionCtx> {
+        let dkg_dir: DKG_DIRECTORY = self.directory(dir_height)?;
+        let mut dkg_dir_ = dkg_dir.lock().await;
+        let session = dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)?;
+
+        Some(session)
     }
 }

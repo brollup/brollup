@@ -181,7 +181,7 @@ async fn dir_height_info(dkg_manager: &DKG_MANAGER, height: u64) {
     println!("Group key    : {}", group_key);
     println!("Signatories  : {}", "999");
     println!("DKG packages : {}", _dkg_directory.available_sessions());
-    println!("Index height : {}", _dkg_directory.index_height());
+    println!("Nonce height : {}", _dkg_directory.nonce_height());
     println!("Index pick   : {}", index_pick);
     println!("Setup        : ");
     _dkg_directory.setup().print();

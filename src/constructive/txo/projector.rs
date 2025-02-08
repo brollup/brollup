@@ -54,16 +54,14 @@ impl Projector {
         let keys = self.keys();
         let key_agg_ctx = MusigKeyAggCtx::new(&keys, None)?;
         let agg_inner_key = key_agg_ctx.agg_inner_key();
+        
         Some(agg_inner_key)
     }
 
     pub fn key_agg_ctx(&self) -> Option<MusigKeyAggCtx> {
         let taproot = self.taproot()?;
-
         let tweak = taproot.tap_tweak().into_scalar().ok()?;
-
         let keys = self.keys();
-
         let key_agg_ctx = MusigKeyAggCtx::new(&keys, Some(tweak))?;
 
         Some(key_agg_ctx)

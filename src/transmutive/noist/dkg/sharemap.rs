@@ -1,7 +1,10 @@
 use crate::{
     hash::Hash,
     into::{IntoPoint, IntoScalar},
-    noist::{setup::setup::VSESetup, share::gen_polynomial, vse, vss},
+    noist::{
+        core::{share::gen_polynomial, vse, vss},
+        setup::setup::VSESetup,
+    },
     schnorr::{generate_secret, Sighash},
 };
 use secp::{MaybeScalar, Point, Scalar};

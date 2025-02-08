@@ -1,7 +1,7 @@
 use crate::{
     hash::{Hash, HashTag},
     into::{FromSigTuple, IntoPoint, IntoScalar, IntoSigTuple},
-    noist::vse::encrypting_key_public,
+    noist::core::vse::encrypting_key_public,
     schnorr::{self, Bytes32, Sighash},
 };
 use secp::{Point, Scalar};
