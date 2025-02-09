@@ -1,4 +1,4 @@
-use crate::{dkgops::DKGOps, into::IntoScalar, DKG_MANAGER, PEER_MANAGER, SESSION_CTX};
+use crate::{dkgops::DKGOps, into::IntoScalar, CSESSION_CTX, DKG_MANAGER, PEER_MANAGER};
 use std::time::Duration;
 
 // covr <height> <msg>
@@ -6,7 +6,7 @@ pub async fn command(
     parts: Vec<&str>,
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &DKG_MANAGER,
-    session_ctx: &mut SESSION_CTX,
+    session_ctx: &mut CSESSION_CTX,
 ) {
     let message = [0xffu8; 32];
 
@@ -57,7 +57,7 @@ pub async fn command(
 
     let remote = {
         let mut _session_ctx = session_ctx.lock().await;
-        _session_ctx.remote()
+        _session_ctx.payload_auth_nonces()
     };
 
     if remote.len() == 0 {
@@ -103,7 +103,7 @@ pub async fn command(
 
     let mut musig_ctx = match {
         let mut _session_ctx = session_ctx.lock().await;
-        _session_ctx.set_musig_ctx(operator_key, operator_hiding_nonce, operator_binding_nonce)
+        _session_ctx.payload_auth_musig_ctx()
     } {
         Some(ctx) => ctx,
         None => {

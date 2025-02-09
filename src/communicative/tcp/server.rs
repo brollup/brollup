@@ -1,5 +1,6 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp;
+use crate::csession::stage::CSessionStage;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::musig::session::MusigSessionCtx;
@@ -8,8 +9,7 @@ use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
-use crate::session::SessionStage;
-use crate::{baked, liquidity, OperatingMode, DKG_DIRECTORY, DKG_MANAGER, SESSION_CTX, SOCKET};
+use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use secp::{Point, Scalar};
 use std::{sync::Arc, time::Duration};
@@ -25,7 +25,7 @@ pub async fn run(
     nns_client: &NNSClient,
     keys: &KeyHolder,
     dkg_manager: &DKG_MANAGER,
-    session_ctx: Option<SESSION_CTX>,
+    csession_ctx: Option<CSESSION_CTX>,
 ) {
     let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
 
@@ -40,7 +40,7 @@ pub async fn run(
 
     match mode {
         OperatingMode::Coordinator => {
-            if let None = session_ctx {
+            if let None = csession_ctx {
                 return; // This is only a coordinator job.
             }
 
@@ -56,7 +56,7 @@ pub async fn run(
                     let socket = Arc::clone(&socket);
                     let keys = keys.clone();
                     let mut dkg_manager = Arc::clone(&dkg_manager);
-                    let session_ctx = session_ctx.clone();
+                    let session_ctx = csession_ctx.clone();
 
                     async move {
                         handle_socket(&socket, None, mode, &keys, &mut dkg_manager, &session_ctx)
@@ -66,7 +66,7 @@ pub async fn run(
             }
         }
         OperatingMode::Operator => {
-            if let Some(_) = session_ctx {
+            if let Some(_) = csession_ctx {
                 return; // This is not an operator job.
             }
 
@@ -97,7 +97,7 @@ pub async fn run(
                             let socket_alive = Arc::clone(&socket_alive);
                             let keys = keys.clone();
                             let mut dkg_manager = Arc::clone(&dkg_manager);
-                            let session_ctx = session_ctx.clone();
+                            let csession_ctx = csession_ctx.clone();
 
                             async move {
                                 handle_socket(
@@ -106,7 +106,7 @@ pub async fn run(
                                     mode,
                                     &keys,
                                     &mut dkg_manager,
-                                    &session_ctx,
+                                    &csession_ctx,
                                 )
                                 .await;
                             }
@@ -141,7 +141,7 @@ async fn handle_socket(
     mode: OperatingMode,
     keys: &KeyHolder,
     dkg_manager: &mut DKG_MANAGER,
-    session_ctx: &Option<SESSION_CTX>,
+    csession_ctx: &Option<CSESSION_CTX>,
 ) {
     loop {
         let mut _socket = socket.lock().await;
@@ -216,7 +216,15 @@ async fn handle_socket(
         let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
-        handle_package(package, &mut *_socket, mode, keys, dkg_manager, session_ctx).await;
+        handle_package(
+            package,
+            &mut *_socket,
+            mode,
+            keys,
+            dkg_manager,
+            csession_ctx,
+        )
+        .await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -234,7 +242,7 @@ async fn handle_package(
     mode: OperatingMode,
     keys: &KeyHolder,
     dkg_manager: &mut DKG_MANAGER,
-    session_ctx: &Option<SESSION_CTX>,
+    csession_ctx: &Option<CSESSION_CTX>,
 ) {
     let response_package_ = {
         match mode {
@@ -244,11 +252,11 @@ async fn handle_package(
                     handle_sync_dkg_dir(package.timestamp(), &package.payload(), dkg_manager).await
                 }
                 PackageKind::CovSessionJoin => {
-                    handle_cov_session_join(package.timestamp(), &package.payload(), session_ctx)
+                    handle_cov_session_join(package.timestamp(), &package.payload(), csession_ctx)
                         .await
                 }
                 PackageKind::CovSessionSubmit => {
-                    handle_cov_session_submit(package.timestamp(), &package.payload(), session_ctx)
+                    handle_cov_session_submit(package.timestamp(), &package.payload(), csession_ctx)
                         .await
                 }
 
@@ -554,7 +562,7 @@ async fn handle_request_partial_sigs(
 async fn handle_cov_session_join(
     timestamp: i64,
     payload: &[u8],
-    session_ctx: &Option<SESSION_CTX>,
+    csession_ctx: &Option<CSESSION_CTX>,
 ) -> Option<TCPPackage> {
     let (key, hiding_nonce, binding_nonce): ([u8; 32], Point, Point) =
         match serde_json::from_slice(payload) {
@@ -562,16 +570,16 @@ async fn handle_cov_session_join(
             Err(_) => return None,
         };
 
-    let session_ctx = match session_ctx {
+    let csession_ctx = match csession_ctx {
         Some(session) => session,
         None => return None,
     };
 
     {
-        let mut _session_ctx = session_ctx.lock().await;
-        match _session_ctx.stage() {
-            SessionStage::On => {
-                if !_session_ctx.add_remote(key, hiding_nonce, binding_nonce) {
+        let mut _csession_ctx = csession_ctx.lock().await;
+        match _csession_ctx.stage() {
+            CSessionStage::On => {
+                if !_csession_ctx.add_remote(key, hiding_nonce, binding_nonce) {
                     return None;
                 }
             }
@@ -581,14 +589,14 @@ async fn handle_cov_session_join(
 
     let musig_ctx = loop {
         let stage = {
-            let mut _session_ctx = session_ctx.lock().await;
-            _session_ctx.stage()
+            let mut _csession_ctx = csession_ctx.lock().await;
+            _csession_ctx.stage()
         };
 
         match stage {
-            SessionStage::Ready => {
-                let mut _session_ctx = session_ctx.lock().await;
-                let musig_ctx = match _session_ctx.musig_ctx() {
+            CSessionStage::Ready => {
+                let mut _csession_ctx = csession_ctx.lock().await;
+                let musig_ctx = match _csession_ctx.payload_auth_musig_ctx() {
                     Some(ctx) => ctx,
                     None => return None,
                 };
@@ -618,7 +626,7 @@ async fn handle_cov_session_join(
 async fn handle_cov_session_submit(
     timestamp: i64,
     payload: &[u8],
-    session_ctx: &Option<SESSION_CTX>,
+    session_ctx: &Option<CSESSION_CTX>,
 ) -> Option<TCPPackage> {
     let (key, partial_sig): ([u8; 32], Scalar) = match serde_json::from_slice(payload) {
         Ok(tuple) => tuple,

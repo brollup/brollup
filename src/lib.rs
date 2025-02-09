@@ -1,10 +1,10 @@
 #![allow(non_camel_case_types)]
 
+use csession::context::CSessionCtx;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
 };
-use session::SessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -15,7 +15,7 @@ type PEER_MANAGER = Arc<Mutex<peer_manager::PeerManager>>;
 type DKG_MANAGER = Arc<Mutex<DKGManager>>;
 type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
-type SESSION_CTX = Arc<Mutex<SessionCtx>>;
+type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
 // Inscriptive
 
@@ -50,8 +50,10 @@ pub mod coordinator;
 #[path = "operative/mode/coordinator/dkgops.rs"]
 pub mod dkgops;
 
-#[path = "operative/mode/coordinator/session.rs"]
-pub mod session;
+#[path = "operative/mode/coordinator/session/mod.rs"]
+pub mod csession;
+#[path = "operative/mode/node/session/mod.rs"]
+pub mod nsession;
 
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
@@ -86,9 +88,11 @@ pub mod tcp;
 #[path = "constructive/taproot.rs"]
 pub mod taproot;
 #[path = "constructive/txn.rs"]
-pub mod txn;
+pub mod txn_old;
 
 // Constructive
+#[path = "constructive/txn/mod.rs"]
+pub mod txn;
 #[path = "constructive/txo/mod.rs"]
 pub mod txo;
 

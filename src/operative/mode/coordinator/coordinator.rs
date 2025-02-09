@@ -1,12 +1,12 @@
+use crate::csession::context::CSessionCtx;
 use crate::dkgops::DKGOps;
 use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
-use crate::session::SessionCtx;
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
-use crate::{ccli, nns, tcp, Network, OperatingMode, DKG_MANAGER, PEER_MANAGER, SESSION_CTX};
+use crate::{ccli, nns, tcp, Network, OperatingMode, CSESSION_CTX, DKG_MANAGER, PEER_MANAGER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
@@ -57,7 +57,8 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 7. Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    let mut cov_session: SESSION_CTX = SessionCtx::construct();
+    // Construct cov session..
+    let mut cov_session: CSESSION_CTX = CSessionCtx::construct(&dkg_manager);
 
     // 8. Run TCP server.
     {
@@ -78,7 +79,7 @@ pub async fn run(keys: KeyHolder, _network: Network) {
 pub async fn cli(
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &mut DKG_MANAGER,
-    cov_session: &mut SESSION_CTX,
+    cov_session: &mut CSESSION_CTX,
 ) {
     println!(
         "{}",
