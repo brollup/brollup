@@ -486,8 +486,9 @@ impl CSessionCtx {
         true
     }
 
-    pub fn lock(&mut self) {
+    pub async fn lock(&mut self) -> bool {
         self.stage = CSessionStage::Locked;
+        self.set_musig_ctxes().await
     }
 
     pub fn finalized(&mut self) {
