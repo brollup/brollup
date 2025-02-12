@@ -8,10 +8,11 @@ use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
+use crate::nsession::request::NSessionRequest;
 use crate::schnorr::Authenticable;
 use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
-use secp::{Point, Scalar};
+use secp::Scalar;
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 use tokio::{net::TcpListener, sync::Mutex};
@@ -564,11 +565,10 @@ async fn handle_cov_session_join(
     payload: &[u8],
     csession_ctx: &Option<CSESSION_CTX>,
 ) -> Option<TCPPackage> {
-    let (key, hiding_nonce, binding_nonce): ([u8; 32], Point, Point) =
-        match serde_json::from_slice(payload) {
-            Ok(triple) => triple,
-            Err(_) => return None,
-        };
+    let nsession_request: NSessionRequest = match serde_json::from_slice(payload) {
+        Ok(nsession) => nsession,
+        Err(_) => return None,
+    };
 
     let csession_ctx = match csession_ctx {
         Some(session) => session,
@@ -579,7 +579,7 @@ async fn handle_cov_session_join(
         let mut _csession_ctx = csession_ctx.lock().await;
         match _csession_ctx.stage() {
             CSessionStage::On => {
-                if !_csession_ctx.add_remote(key, hiding_nonce, binding_nonce) {
+                if !_csession_ctx.insert(&nsession_request) {
                     return None;
                 }
             }

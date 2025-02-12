@@ -1,9 +1,10 @@
 use crate::txn::outpoint::Outpoint;
 use secp::Point;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone)]
-pub struct SessionNonces {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NSessionNonces {
     // Payload auth nonces (hiding & binding):
     payload_auth_nonces: (Point, Point),
     // VTXO projector nonces (hiding & binding):
@@ -13,12 +14,12 @@ pub struct SessionNonces {
     // ZKP contingent nonces (hiding & binding):
     zkp_contingent_nonces: (Point, Point),
     // Lift prevtxo nonces (outpoint -> hiding & binding):
-    lift_txo_nonces: HashMap<Outpoint, (Point, Point)>,
+    lift_prevtxo_nonces: HashMap<Outpoint, (Point, Point)>,
     // Connector txo nonces (hiding & binding):
     connector_txo_nonces: Vec<(Point, Point)>,
 }
 
-impl SessionNonces {
+impl NSessionNonces {
     pub fn new(
         // Payload auth nonces
         payload_auth_hiding_nonce: Point,
@@ -33,10 +34,10 @@ impl SessionNonces {
         zkp_contingent_hiding_nonce: Point,
         zkp_contingent_binding_nonce: Point,
         // Lift prevtxo nonces
-        lift_txo_nonces: &HashMap<Outpoint, (Point, Point)>,
+        lift_prevtxo_nonces: &HashMap<Outpoint, (Point, Point)>,
         connector_txo_nonces: &Vec<(Point, Point)>,
-    ) -> SessionNonces {
-        SessionNonces {
+    ) -> NSessionNonces {
+        NSessionNonces {
             payload_auth_nonces: (payload_auth_hiding_nonce, payload_auth_binding_nonce),
             vtxo_projector_nonces: (vtxo_projector_hiding_nonce, vtxo_projector_binding_nonce),
             connector_projector_nonces: (
@@ -44,8 +45,32 @@ impl SessionNonces {
                 connector_projector_binding_nonce,
             ),
             zkp_contingent_nonces: (zkp_contingent_hiding_nonce, zkp_contingent_binding_nonce),
-            lift_txo_nonces: lift_txo_nonces.to_owned(),
+            lift_prevtxo_nonces: lift_prevtxo_nonces.to_owned(),
             connector_txo_nonces: connector_txo_nonces.to_owned(),
         }
+    }
+
+    pub fn payload_auth_nonces(&self) -> (Point, Point) {
+        self.payload_auth_nonces.clone()
+    }
+
+    pub fn vtxo_projector_nonces(&self) -> (Point, Point) {
+        self.vtxo_projector_nonces.clone()
+    }
+
+    pub fn connector_projector_nonces(&self) -> (Point, Point) {
+        self.connector_projector_nonces.clone()
+    }
+
+    pub fn zkp_contingent_nonces(&self) -> (Point, Point) {
+        self.zkp_contingent_nonces.clone()
+    }
+
+    pub fn lift_prevtxo_nonces(&self) -> HashMap<Outpoint, (Point, Point)> {
+        self.lift_prevtxo_nonces.clone()
+    }
+
+    pub fn connector_txo_nonces(&self) -> Vec<(Point, Point)> {
+        self.connector_txo_nonces.clone()
     }
 }

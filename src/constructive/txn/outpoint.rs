@@ -1,4 +1,6 @@
-#[derive(Copy, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Outpoint {
     prev: [u8; 32],
     vout: u32,

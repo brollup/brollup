@@ -1,17 +1,26 @@
-use super::nonces::SessionNonces;
+use super::nonces::NSessionNonces;
 use secp::Point;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct SessionRequest {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NSessionRequest {
     msg_sender: Point,
-    nonces: SessionNonces,
+    nonces: NSessionNonces,
 }
 
-impl SessionRequest {
-    pub fn new(key: Point, nonces: &SessionNonces) -> SessionRequest {
-        SessionRequest {
+impl NSessionRequest {
+    pub fn new(key: Point, nonces: &NSessionNonces) -> NSessionRequest {
+        NSessionRequest {
             msg_sender: key,
             nonces: nonces.to_owned(),
         }
+    }
+
+    pub fn msg_sender(&self) -> Point {
+        self.msg_sender
+    }
+
+    pub fn nonces(&self) -> NSessionNonces {
+        self.nonces.clone()
     }
 }

@@ -31,6 +31,13 @@ impl DKGManager {
         Some(Arc::new(Mutex::new(manager_)))
     }
 
+    pub fn active_directory(&self) -> Option<DKG_DIRECTORY> {
+        match self.directories.iter().max_by_key(|(&k, _)| k) {
+            Some((_, dir)) => Some(Arc::clone(&dir)),
+            None => None,
+        }
+    }
+
     pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {
         self.directories.clone()
     }

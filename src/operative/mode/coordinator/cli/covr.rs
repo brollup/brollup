@@ -95,13 +95,13 @@ pub async fn command(
         dkg_dir_.pick_signing_session(message, None, false).unwrap()
     };
 
-    let nonce_index = noist_signing_session.nonce_index();
+    //let nonce_index = noist_signing_session.nonce_index();
 
     let operator_key = noist_signing_session.group_key();
     let operator_hiding_nonce = noist_signing_session.hiding_group_nonce();
     let operator_binding_nonce = noist_signing_session.post_binding_group_nonce();
 
-    let mut musig_ctx = match {
+    let (nonce_index, mut musig_ctx) = match {
         let mut _session_ctx = session_ctx.lock().await;
         _session_ctx.payload_auth_musig_ctx()
     } {
@@ -150,7 +150,7 @@ pub async fn command(
 
     {
         let mut _session_ctx = session_ctx.lock().await;
-        _session_ctx.ready(&musig_ctx);
+        _session_ctx.ready();
     }
 
     loop {
