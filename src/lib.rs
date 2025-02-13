@@ -92,6 +92,8 @@ pub mod txn_old;
 pub mod txn;
 #[path = "constructive/txo/mod.rs"]
 pub mod txo;
+#[path = "constructive/valtype/mod.rs"]
+pub mod valtype;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
