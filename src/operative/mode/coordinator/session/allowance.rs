@@ -1,7 +1,7 @@
-use secp::Point;
+use crate::valtype::account::Account;
 
-pub fn allowance(_msg_sender: Point) -> bool {
-    let is_even: bool = _msg_sender.parity().into();
+pub fn allowance(_msg_sender: Account) -> bool {
+    let is_even: bool = _msg_sender.key().parity().into();
     if !is_even {
         return false;
     }
@@ -18,11 +18,11 @@ pub fn allowance(_msg_sender: Point) -> bool {
 }
 
 // TODO: check for blacklist
-pub fn is_blacklisted(_msg_sender: Point) -> bool {
+pub fn is_blacklisted(_msg_sender: Account) -> bool {
     false
 }
 
 // TODO: freemium & CUBICs
-pub fn entry(_msg_sender: Point) -> bool {
+pub fn entry(_msg_sender: Account) -> bool {
     true
 }

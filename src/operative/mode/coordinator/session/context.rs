@@ -8,6 +8,7 @@ use crate::{
         lift::Lift,
         projector::{self, Projector},
     },
+    valtype::account::Account,
     CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER,
 };
 use secp::Point;
@@ -19,25 +20,25 @@ pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     stage: CSessionStage,
     // Remote keys:
-    msg_senders: Vec<(Point, Option<u32>)>,
+    msg_senders: Vec<Account>,
     // Payload Auth:
-    payload_auth_nonces: HashMap<Point, (Point, Point)>,
+    payload_auth_nonces: HashMap<Account, (Point, Point)>,
     payload_auth_musig_ctx: Option<(u64, MusigSessionCtx)>,
     // VTXO projector:
-    vtxo_projector_nonces: HashMap<Point, (Point, Point)>,
+    vtxo_projector_nonces: HashMap<Account, (Point, Point)>,
     vtxo_projector_musig_ctx: Option<(u64, MusigSessionCtx)>,
     // Connector projector:
-    connector_projector_nonces: HashMap<Point, (Point, Point)>,
+    connector_projector_nonces: HashMap<Account, (Point, Point)>,
     connector_projector_musig_ctx: Option<(u64, MusigSessionCtx)>,
     // ZKP contingent:
-    zkp_contingent_nonces: HashMap<Point, (Point, Point)>,
+    zkp_contingent_nonces: HashMap<Account, (Point, Point)>,
     zkp_contingent_musig_ctx: Option<(u64, MusigSessionCtx)>,
     // Lift txos:
-    lift_prevtxo_nonces: HashMap<Point, HashMap<Lift, (Point, Point)>>,
-    lift_prevtxo_musig_ctxes: HashMap<Point, HashMap<Lift, (u64, u64, MusigSessionCtx)>>,
+    lift_prevtxo_nonces: HashMap<Account, HashMap<Lift, (Point, Point)>>,
+    lift_prevtxo_musig_ctxes: HashMap<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>,
     // Connectors:
-    connector_txo_nonces: HashMap<Point, Vec<(Point, Point)>>,
-    connector_txo_musig_ctxes: HashMap<Point, Vec<(u64, MusigSessionCtx)>>,
+    connector_txo_nonces: HashMap<Account, Vec<(Point, Point)>>,
+    connector_txo_musig_ctxes: HashMap<Account, Vec<(u64, MusigSessionCtx)>>,
 }
 
 impl CSessionCtx {
@@ -45,25 +46,25 @@ impl CSessionCtx {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             stage: CSessionStage::Off,
-            msg_senders: Vec::<(Point, Option<u32>)>::new(),
-            payload_auth_nonces: HashMap::<Point, (Point, Point)>::new(),
+            msg_senders: Vec::<Account>::new(),
+            payload_auth_nonces: HashMap::<Account, (Point, Point)>::new(),
             payload_auth_musig_ctx: None,
-            vtxo_projector_nonces: HashMap::<Point, (Point, Point)>::new(),
+            vtxo_projector_nonces: HashMap::<Account, (Point, Point)>::new(),
             vtxo_projector_musig_ctx: None,
-            connector_projector_nonces: HashMap::<Point, (Point, Point)>::new(),
+            connector_projector_nonces: HashMap::<Account, (Point, Point)>::new(),
             connector_projector_musig_ctx: None,
-            zkp_contingent_nonces: HashMap::<Point, (Point, Point)>::new(),
+            zkp_contingent_nonces: HashMap::<Account, (Point, Point)>::new(),
             zkp_contingent_musig_ctx: None,
-            lift_prevtxo_nonces: HashMap::<Point, HashMap<Lift, (Point, Point)>>::new(),
+            lift_prevtxo_nonces: HashMap::<Account, HashMap<Lift, (Point, Point)>>::new(),
             lift_prevtxo_musig_ctxes:
-                HashMap::<Point, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new(),
-            connector_txo_nonces: HashMap::<Point, Vec<(Point, Point)>>::new(),
-            connector_txo_musig_ctxes: HashMap::<Point, Vec<(u64, MusigSessionCtx)>>::new(),
+                HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new(),
+            connector_txo_nonces: HashMap::<Account, Vec<(Point, Point)>>::new(),
+            connector_txo_musig_ctxes: HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new(),
         };
         Arc::new(Mutex::new(session))
     }
 
-    pub fn payload_auth_nonces(&self) -> HashMap<Point, (Point, Point)> {
+    pub fn payload_auth_nonces(&self) -> HashMap<Account, (Point, Point)> {
         self.payload_auth_nonces.clone()
     }
 
@@ -79,14 +80,8 @@ impl CSessionCtx {
         self.msg_senders.len()
     }
 
-    pub fn msg_senders(&self) -> Vec<(Point, Option<u32>)> {
+    pub fn msg_senders(&self) -> Vec<Account> {
         self.msg_senders.clone()
-    }
-
-    pub fn msg_sender_overlap(&self, msg_sender: Point) -> bool {
-        self.msg_senders
-            .iter()
-            .any(|(point, _)| point == &msg_sender)
     }
 
     pub fn on(&mut self) {
@@ -98,10 +93,11 @@ impl CSessionCtx {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
         let msg_sender = request.msg_sender();
+        let msg_sender_key = msg_sender.key();
         let request_nonces = request.nonces();
 
         // #1 Overlap check
-        if self.msg_sender_overlap(msg_sender) {
+        if self.msg_senders.contains(&msg_sender) {
             return false;
         }
 
@@ -117,7 +113,7 @@ impl CSessionCtx {
                 let lift_operator_key = lift.operator_key();
                 let lift_remote_key = lift.remote_key();
 
-                if lift_remote_key != msg_sender {
+                if lift_remote_key != msg_sender_key {
                     return false;
                 }
 
@@ -147,7 +143,7 @@ impl CSessionCtx {
     }
 
     pub async fn insert(&mut self, request: &NSessionRequest) -> bool {
-        let msg_sender = request.msg_sender();
+        let mut msg_sender = request.msg_sender();
         let nonces = request.nonces();
 
         // #1 Check request validity.
@@ -156,10 +152,12 @@ impl CSessionCtx {
         };
 
         // #2 Registery info
-        let registery_index = key_registery_index(msg_sender);
+        if let Some(registery_index) = key_registery_index(msg_sender.key()) {
+            msg_sender.set_registery_index(registery_index);
+        }
 
         // Insert into msg_senders:
-        self.msg_senders.push((msg_sender, registery_index));
+        self.msg_senders.push(msg_sender);
 
         // Insert into payload_auth_nonces:
         let payload_auth_nonces = nonces.payload_auth_nonces();
@@ -218,7 +216,12 @@ impl CSessionCtx {
                 };
 
             let nonce_index = noist_signing_session.nonce_index();
-            let mut keys: Vec<Point> = self.payload_auth_nonces.keys().cloned().collect();
+            let mut keys: Vec<Point> = self
+                .payload_auth_nonces
+                .iter()
+                .map(|(account, _)| account.key().clone())
+                .collect();
+
             keys.push(noist_signing_session.group_key());
 
             let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
@@ -232,11 +235,8 @@ impl CSessionCtx {
             };
 
             for (msg_sender, (hiding, binding)) in self.payload_auth_nonces.iter() {
-                if !musig_ctx.insert_nonce(
-                    msg_sender.to_owned(),
-                    hiding.to_owned(),
-                    binding.to_owned(),
-                ) {
+                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
+                {
                     return false;
                 }
             }
@@ -265,7 +265,13 @@ impl CSessionCtx {
                 };
 
             let nonce_index = noist_signing_session.nonce_index();
-            let remote_keys: Vec<Point> = self.vtxo_projector_nonces.keys().cloned().collect();
+
+            let remote_keys: Vec<Point> = self
+                .vtxo_projector_nonces
+                .iter()
+                .map(|(account, _)| account.key().clone())
+                .collect();
+
             let operator_key = noist_signing_session.group_key();
 
             let vtxo_projector = Projector::new(
@@ -285,11 +291,8 @@ impl CSessionCtx {
             };
 
             for (msg_sender, (hiding, binding)) in self.vtxo_projector_nonces.iter() {
-                if !musig_ctx.insert_nonce(
-                    msg_sender.to_owned(),
-                    hiding.to_owned(),
-                    binding.to_owned(),
-                ) {
+                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
+                {
                     return false;
                 }
             }
@@ -318,7 +321,12 @@ impl CSessionCtx {
                 };
 
             let nonce_index = noist_signing_session.nonce_index();
-            let remote_keys: Vec<Point> = self.connector_projector_nonces.keys().cloned().collect();
+            let remote_keys: Vec<Point> = self
+                .connector_projector_nonces
+                .iter()
+                .map(|(account, _)| account.key().clone())
+                .collect();
+
             let operator_key = noist_signing_session.group_key();
 
             let connector_projector = Projector::new(
@@ -339,11 +347,8 @@ impl CSessionCtx {
                 };
 
             for (msg_sender, (hiding, binding)) in self.connector_projector_nonces.iter() {
-                if !musig_ctx.insert_nonce(
-                    msg_sender.to_owned(),
-                    hiding.to_owned(),
-                    binding.to_owned(),
-                ) {
+                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
+                {
                     return false;
                 }
             }
@@ -373,7 +378,12 @@ impl CSessionCtx {
 
             let nonce_index = noist_signing_session.nonce_index();
 
-            let mut keys: Vec<Point> = self.zkp_contingent_nonces.keys().cloned().collect();
+            let mut keys: Vec<Point> = self
+                .zkp_contingent_nonces
+                .iter()
+                .map(|(account, _)| account.key().clone())
+                .collect();
+
             keys.push(noist_signing_session.group_key());
 
             let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
@@ -387,11 +397,8 @@ impl CSessionCtx {
             };
 
             for (msg_sender, (hiding, binding)) in self.zkp_contingent_nonces.iter() {
-                if !musig_ctx.insert_nonce(
-                    msg_sender.to_owned(),
-                    hiding.to_owned(),
-                    binding.to_owned(),
-                ) {
+                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
+                {
                     return false;
                 }
             }
@@ -410,7 +417,7 @@ impl CSessionCtx {
         // Lift prevtxos:
 
         let mut lift_prevtxo_musig_ctxes =
-            HashMap::<Point, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
+            HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
 
         for (msg_sender, lift_prevtxos) in self.lift_prevtxo_nonces.iter() {
             let mut musig_ctxes = HashMap::<Lift, (u64, u64, MusigSessionCtx)>::new();
@@ -444,7 +451,7 @@ impl CSessionCtx {
                         };
 
                     let nonce_index = noist_signing_session.nonce_index();
-                    let remote_key = msg_sender.to_owned();
+                    let remote_key = msg_sender.key();
 
                     let key_agg_ctx = match lift.key_agg_ctx() {
                         Some(ctx) => ctx,
@@ -485,7 +492,7 @@ impl CSessionCtx {
 
         // Connector TXOs:
 
-        let mut connector_txo_musig_ctxes = HashMap::<Point, Vec<(u64, MusigSessionCtx)>>::new();
+        let mut connector_txo_musig_ctxes = HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new();
 
         for (msg_sender, connector_txos) in self.connector_txo_nonces.iter() {
             let mut musig_ctxes = Vec::<(u64, MusigSessionCtx)>::new();
@@ -504,7 +511,7 @@ impl CSessionCtx {
                         };
 
                     let nonce_index = noist_signing_session.nonce_index();
-                    let remote_key = msg_sender.to_owned();
+                    let remote_key = msg_sender.key();
                     let operator_key = noist_signing_session.group_key();
 
                     let connector = Connector::new(remote_key, operator_key);
@@ -573,19 +580,19 @@ impl CSessionCtx {
     }
 
     pub fn reset(&mut self) {
-        self.msg_senders = Vec::<(Point, Option<u32>)>::new();
-        self.payload_auth_nonces = HashMap::<Point, (Point, Point)>::new();
+        self.msg_senders = Vec::<Account>::new();
+        self.payload_auth_nonces = HashMap::<Account, (Point, Point)>::new();
         self.payload_auth_musig_ctx = None;
-        self.vtxo_projector_nonces = HashMap::<Point, (Point, Point)>::new();
+        self.vtxo_projector_nonces = HashMap::<Account, (Point, Point)>::new();
         self.vtxo_projector_musig_ctx = None;
-        self.connector_projector_nonces = HashMap::<Point, (Point, Point)>::new();
+        self.connector_projector_nonces = HashMap::<Account, (Point, Point)>::new();
         self.connector_projector_musig_ctx = None;
-        self.zkp_contingent_nonces = HashMap::<Point, (Point, Point)>::new();
+        self.zkp_contingent_nonces = HashMap::<Account, (Point, Point)>::new();
         self.zkp_contingent_musig_ctx = None;
-        self.lift_prevtxo_nonces = HashMap::<Point, HashMap<Lift, (Point, Point)>>::new();
+        self.lift_prevtxo_nonces = HashMap::<Account, HashMap<Lift, (Point, Point)>>::new();
         self.lift_prevtxo_musig_ctxes =
-            HashMap::<Point, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
-        self.connector_txo_nonces = HashMap::<Point, Vec<(Point, Point)>>::new();
-        self.connector_txo_musig_ctxes = HashMap::<Point, Vec<(u64, MusigSessionCtx)>>::new();
+            HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
+        self.connector_txo_nonces = HashMap::<Account, Vec<(Point, Point)>>::new();
+        self.connector_txo_musig_ctxes = HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new();
     }
 }
