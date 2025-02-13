@@ -78,7 +78,7 @@ impl DKGDirectory {
         self.sessions_db.clone()
     }
 
-    pub fn setup_height(&self) -> u64 {
+    pub fn dir_height(&self) -> u64 {
         self.setup.height()
     }
 

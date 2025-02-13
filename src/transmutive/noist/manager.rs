@@ -1,5 +1,6 @@
 use super::{dkg::directory::DKGDirectory, session::SessionCtx, setup::setup::VSESetup};
 use crate::{musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
+use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -31,6 +32,10 @@ impl DKGManager {
         Some(Arc::new(Mutex::new(manager_)))
     }
 
+    pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {
+        self.directories.clone()
+    }
+
     pub fn active_directory(&self) -> Option<DKG_DIRECTORY> {
         match self.directories.iter().max_by_key(|(&k, _)| k) {
             Some((_, dir)) => Some(Arc::clone(&dir)),
@@ -38,12 +43,22 @@ impl DKGManager {
         }
     }
 
-    pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {
-        self.directories.clone()
+    pub fn directory_by_height(&self, dir_height: u64) -> Option<DKG_DIRECTORY> {
+        Some(Arc::clone(self.directories.get(&dir_height)?))
     }
 
-    pub fn directory(&self, dir_height: u64) -> Option<DKG_DIRECTORY> {
-        Some(Arc::clone(self.directories.get(&dir_height)?))
+    pub async fn directory_by_key(&self, group_key: Point) -> Option<DKG_DIRECTORY> {
+        for (_, dir) in self.directories.iter() {
+            let dir_group_key = {
+                let dir_ = dir.lock().await;
+                dir_.group_key()
+            }?;
+
+            if dir_group_key == group_key {
+                return Some(Arc::clone(&dir));
+            }
+        }
+        None
     }
 
     pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
@@ -86,7 +101,7 @@ impl DKGManager {
         musig_ctx: Option<MusigSessionCtx>,
         toxic: bool,
     ) -> Option<SessionCtx> {
-        let dkg_dir: DKG_DIRECTORY = self.directory(dir_height)?;
+        let dkg_dir: DKG_DIRECTORY = self.directory_by_height(dir_height)?;
         let mut dkg_dir_ = dkg_dir.lock().await;
         let nonce_height = dkg_dir_.pick_index()?;
         dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)
@@ -100,7 +115,7 @@ impl DKGManager {
         musig_ctx: Option<MusigSessionCtx>,
         toxic: bool,
     ) -> Option<SessionCtx> {
-        let dkg_dir: DKG_DIRECTORY = self.directory(dir_height)?;
+        let dkg_dir: DKG_DIRECTORY = self.directory_by_height(dir_height)?;
         let mut dkg_dir_ = dkg_dir.lock().await;
         let session = dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)?;
 
