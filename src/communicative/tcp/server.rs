@@ -403,7 +403,7 @@ async fn handle_sync_dkg_dir(
 
     let (setup, sessions) = {
         let _dkg_manager = dkg_manager.lock().await;
-        match _dkg_manager.directory(dir_height) {
+        match _dkg_manager.directory_by_height(dir_height) {
             Some(dir) => {
                 let _dir = dir.lock().await;
                 (_dir.setup(), _dir.sessions())
@@ -438,7 +438,7 @@ async fn handle_request_dkg_packages(
 
     let vse_setup = {
         let _dkg_manager = dkg_manager.lock().await;
-        match _dkg_manager.directory(setup_no) {
+        match _dkg_manager.directory_by_height(setup_no) {
             Some(dir) => {
                 let _dir = dir.lock().await;
                 _dir.setup().clone()
@@ -487,7 +487,7 @@ async fn handle_deliver_dkg_sessions(
 
     let dkg_dir = {
         let _dkg_manager = dkg_manager.lock().await;
-        _dkg_manager.directory(dir_height)
+        _dkg_manager.directory_by_height(dir_height)
     }?;
 
     let mut response_code = [0x01u8];
@@ -524,7 +524,7 @@ async fn handle_request_partial_sigs(
 
     let dkg_directory: DKG_DIRECTORY = {
         let _dkg_manager = dkg_manager.lock().await;
-        match _dkg_manager.directory(dir_height) {
+        match _dkg_manager.directory_by_height(dir_height) {
             Some(directory) => directory,
             None => return None,
         }
@@ -579,7 +579,7 @@ async fn handle_cov_session_join(
         let mut _csession_ctx = csession_ctx.lock().await;
         match _csession_ctx.stage() {
             CSessionStage::On => {
-                if !_csession_ctx.insert(&nsession_request) {
+                if !_csession_ctx.insert(&nsession_request).await {
                     return None;
                 }
             }
@@ -594,7 +594,7 @@ async fn handle_cov_session_join(
         };
 
         match stage {
-            CSessionStage::Ready => {
+            CSessionStage::Locked => {
                 let mut _csession_ctx = csession_ctx.lock().await;
                 let musig_ctx = match _csession_ctx.payload_auth_musig_ctx() {
                     Some(ctx) => ctx,

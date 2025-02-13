@@ -1,23 +1,28 @@
-use crate::csv::CSVEncode;
-use crate::into::IntoScalar;
+use crate::encoding::csv::CSVEncode;
+use crate::encoding::csv::CSVFlag;
 use crate::musig::keyagg::MusigKeyAggCtx;
-use crate::{
-    csv::CSVFlag,
-    taproot::{TapLeaf, TapRoot, P2TR},
-};
+use crate::taproot::{TapLeaf, TapRoot};
+use crate::txn::outpoint::Outpoint;
+use crate::{into::IntoScalar, taproot::P2TR};
 use secp::Point;
+use serde::{Deserialize, Serialize};
 
 type Bytes = Vec<u8>;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Lift {
     remote: Point,
     operator: Point,
+    outpoint: Option<Outpoint>,
 }
 
 impl Lift {
-    pub fn new(remote: Point, operator: Point) -> Lift {
-        Lift { remote, operator }
+    pub fn new(remote: Point, operator: Point, outpoint: Option<Outpoint>) -> Lift {
+        Lift {
+            remote,
+            operator,
+            outpoint,
+        }
     }
 
     pub fn operator_key(&self) -> Point {
@@ -26,6 +31,10 @@ impl Lift {
 
     pub fn remote_key(&self) -> Point {
         self.remote.clone()
+    }
+
+    pub fn outpoint(&self) -> Option<Outpoint> {
+        self.outpoint
     }
 
     pub fn keys(&self) -> Vec<Point> {

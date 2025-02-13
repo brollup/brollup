@@ -1,5 +1,5 @@
+use crate::encoding::prefix::Prefix;
 use crate::hash::{Hash, HashTag};
-use crate::prefix::Prefix;
 use secp::{MaybePoint, Point, Scalar};
 use std::cmp::Ordering;
 use std::vec;

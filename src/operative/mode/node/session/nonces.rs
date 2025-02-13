@@ -1,4 +1,4 @@
-use crate::txn::outpoint::Outpoint;
+use crate::txo::lift::Lift;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -13,8 +13,8 @@ pub struct NSessionNonces {
     connector_projector_nonces: (Point, Point),
     // ZKP contingent nonces (hiding & binding):
     zkp_contingent_nonces: (Point, Point),
-    // Lift prevtxo nonces (outpoint -> hiding & binding):
-    lift_prevtxo_nonces: HashMap<Outpoint, (Point, Point)>,
+    // Lift prevtxo nonces (Lift -> hiding & binding):
+    lift_prevtxo_nonces: HashMap<Lift, (Point, Point)>,
     // Connector txo nonces (hiding & binding):
     connector_txo_nonces: Vec<(Point, Point)>,
 }
@@ -34,7 +34,7 @@ impl NSessionNonces {
         zkp_contingent_hiding_nonce: Point,
         zkp_contingent_binding_nonce: Point,
         // Lift prevtxo nonces
-        lift_prevtxo_nonces: &HashMap<Outpoint, (Point, Point)>,
+        lift_prevtxo_nonces: &HashMap<Lift, (Point, Point)>,
         connector_txo_nonces: &Vec<(Point, Point)>,
     ) -> NSessionNonces {
         NSessionNonces {
@@ -66,7 +66,7 @@ impl NSessionNonces {
         self.zkp_contingent_nonces.clone()
     }
 
-    pub fn lift_prevtxo_nonces(&self) -> HashMap<Outpoint, (Point, Point)> {
+    pub fn lift_prevtxo_nonces(&self) -> HashMap<Lift, (Point, Point)> {
         self.lift_prevtxo_nonces.clone()
     }
 

@@ -21,27 +21,24 @@ type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
-#[path = "inscriptive/csv.rs"]
-pub mod csv;
-#[path = "inscriptive/prefix.rs"]
-pub mod prefix;
+#[path = "inscriptive/registery.rs"]
+pub mod registery;
 
 // Crypto modules.
+#[path = "transmutive/encoding/mod.rs"]
+pub mod encoding;
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]
 pub mod into;
 #[path = "transmutive/key.rs"]
 pub mod key;
-#[path = "transmutive/schnorr.rs"]
-pub mod schnorr;
-
 #[path = "transmutive/musig/mod.rs"]
 pub mod musig;
-
-// NOIST.
 #[path = "transmutive/noist/mod.rs"]
 pub mod noist;
+#[path = "transmutive/schnorr.rs"]
+pub mod schnorr;
 
 // Operating modes.
 #[path = "operative/mode/coordinator/coordinator.rs"]

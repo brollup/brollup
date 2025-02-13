@@ -1,10 +1,10 @@
-use crate::csv::CSVEncode;
+use crate::encoding::csv::CSVEncode;
+use crate::encoding::csv::CSVFlag;
 use crate::into::IntoScalar;
 use crate::musig::keyagg::MusigKeyAggCtx;
-use crate::{
-    csv::CSVFlag,
-    taproot::{TapLeaf, TapRoot, P2TR},
-};
+use crate::taproot::TapLeaf;
+use crate::taproot::TapRoot;
+use crate::taproot::P2TR;
 use secp::Point;
 
 type Bytes = Vec<u8>;

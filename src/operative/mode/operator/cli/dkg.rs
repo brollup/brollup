@@ -44,7 +44,7 @@ pub async fn command(parts: Vec<&str>, coordinator: &PEER, dkg_manager: &mut DKG
 async fn dir_height_sync(coordinator: &PEER, dkg_manager: &DKG_MANAGER, height: u64) {
     {
         let _dkg_manager = dkg_manager.lock().await;
-        if let Some(_) = _dkg_manager.directory(height) {
+        if let Some(_) = _dkg_manager.directory_by_height(height) {
             return eprintln!("Directory already exists.");
         }
     }
@@ -59,7 +59,7 @@ async fn dir_height_sync(coordinator: &PEER, dkg_manager: &DKG_MANAGER, height: 
         if !_dkg_manager.insert_setup(&setup) {
             return eprintln!("Failed to initialize new directory.");
         }
-        match _dkg_manager.directory(height) {
+        match _dkg_manager.directory_by_height(height) {
             Some(dir) => dir,
             None => return eprintln!("Failed to return the new directory."),
         }
@@ -85,7 +85,7 @@ async fn dir_height_sync(coordinator: &PEER, dkg_manager: &DKG_MANAGER, height: 
 async fn dir_height_info(dkg_manager: &DKG_MANAGER, height: u64) {
     let _dkg_manager = dkg_manager.lock().await;
 
-    let dkg_directory: DKG_DIRECTORY = match _dkg_manager.directory(height) {
+    let dkg_directory: DKG_DIRECTORY = match _dkg_manager.directory_by_height(height) {
         Some(directory) => directory,
         None => return eprintln!("Setup not found."),
     };

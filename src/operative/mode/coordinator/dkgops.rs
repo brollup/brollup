@@ -163,7 +163,7 @@ impl DKGOps for DKG_MANAGER {
                 return Err(DKGSetupError::ManagerInsertionErr);
             }
 
-            _dkg_manager.directory(vse_setup.height())
+            _dkg_manager.directory_by_height(vse_setup.height())
         } {
             Some(directory) => directory,
             None => return Err(DKGSetupError::ManagerInsertionErr),
@@ -209,7 +209,7 @@ impl DKGOps for DKG_MANAGER {
         // # 2 Initialize DKG directory.
         let dkg_directory: DKG_DIRECTORY = {
             let _dkg_manager = self.lock().await;
-            match _dkg_manager.directory(dir_height) {
+            match _dkg_manager.directory_by_height(dir_height) {
                 Some(directory) => directory,
                 None => return Err(DKGSignError::DirectoryNotFound),
             }
