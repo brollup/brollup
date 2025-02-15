@@ -1,5 +1,5 @@
 # Entries
-`Brollup` employs of 4 types of entries:
+`Brollup` employs of 5 types of entries:
 
 | Entry Type       |  Description                                                                                  |
 |:-----------------|:----------------------------------------------------------------------------------------------|
@@ -7,3 +7,4 @@
 | Recharge 🔋      | Refreshes `Channel` liquidity into a fresh, new `VTXO`.                                       |
 | Transfer 💸      | Transfers sats.                                                                               |
 | Call 📡          | Calls a smart contract. This may internally involve `Transfer`.                               |
+| Reserved 📁      | Fails the entry. Reserved for future upgrades.                                                |
