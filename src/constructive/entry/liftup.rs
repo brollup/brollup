@@ -25,4 +25,8 @@ impl Liftup {
     pub fn lifts(&self) -> Vec<Lift> {
         self.lift_prevtxos.clone()
     }
+
+    pub fn len(&self) -> usize {
+        self.lift_prevtxos.len()
+    }
 }
