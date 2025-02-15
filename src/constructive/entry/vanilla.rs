@@ -2,15 +2,15 @@ use crate::valtype::account::Account;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Transfer {
+pub struct Vanilla {
     from: Account,
     to: Account,
     amount: u32,
 }
 
-impl Transfer {
-    pub fn new(from: Account, to: Account, amount: u32) -> Transfer {
-        Transfer { from, to, amount }
+impl Vanilla {
+    pub fn new(from: Account, to: Account, amount: u32) -> Vanilla {
+        Vanilla { from, to, amount }
     }
 
     pub fn from(&self) -> Account {
