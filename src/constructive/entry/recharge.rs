@@ -25,4 +25,8 @@ impl Recharge {
     pub fn vtxos(&self) -> Vec<VTXO> {
         self.recharge_vtxos.clone()
     }
+
+    pub fn len(&self) -> usize {
+        self.recharge_vtxos.len()
+    }
 }
