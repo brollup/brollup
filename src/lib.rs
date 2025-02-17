@@ -1,10 +1,10 @@
 #![allow(non_camel_case_types)]
 
-use csession::context::CSessionCtx;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
 };
+use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -47,10 +47,8 @@ pub mod coordinator;
 #[path = "operative/mode/coordinator/dkgops.rs"]
 pub mod dkgops;
 
-#[path = "operative/mode/coordinator/session/mod.rs"]
-pub mod csession;
-#[path = "operative/mode/node/session/mod.rs"]
-pub mod nsession;
+#[path = "operative/session/mod.rs"]
+pub mod session;
 
 #[path = "operative/mode/node/node.rs"]
 pub mod node;

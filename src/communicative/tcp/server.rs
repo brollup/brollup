@@ -8,7 +8,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
-use crate::nsession::request::NSessionRequest;
+use crate::nsession::commit::NSessionRequest;
 use crate::schnorr::Authenticable;
 use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;

@@ -1,8 +1,7 @@
-use super::{allowance::allowance, commitack::CSessionCommitAck};
+use super::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck};
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-    nsession::commit::NSessionCommit,
     registery::key_registery_index,
     schnorr::Authenticable,
     txo::{
