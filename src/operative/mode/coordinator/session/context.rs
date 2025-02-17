@@ -1,4 +1,4 @@
-use super::allowance::allowance;
+use super::{allowance::allowance, commitack::CSessionCommitAck};
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
@@ -650,9 +650,69 @@ impl CSessionCtx {
         self.set_musig_ctxes().await
     }
 
-    //pub fn musig_ctxes_for_msg_sender(&self) -> {
+    pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+        let msg_senders = self.msg_senders();
+        let liftups = self.liftups.clone();
+        let recharges = self.recharges.clone();
+        let vanillas = self.vanillas.clone();
+        let calls = self.calls.clone();
+        let reserveds = self.reserveds.clone();
 
-    //}
+        let payload_auth_musig_ctx = self.payload_auth_musig_ctx()?.1;
+
+        let vtxo_projector_musig_ctx = match &self.vtxo_projector_musig_ctx {
+            Some((_, ctx)) => Some(ctx.to_owned()),
+            None => return None,
+        };
+
+        let connector_projector_musig_ctx = match &self.connector_projector_musig_ctx {
+            Some((_, ctx)) => Some(ctx.to_owned()),
+            None => return None,
+        };
+
+        let zkp_contingent_musig_ctx = match &self.zkp_contingent_musig_ctx {
+            Some((_, ctx)) => Some(ctx.to_owned()),
+            None => return None,
+        };
+
+        let mut lift_prevtxo_musig_ctxes = HashMap::<Lift, MusigSessionCtx>::new();
+
+        for (account, lift_map) in self.lift_prevtxo_musig_ctxes.iter() {
+            if account.key() == account.key() {
+                for (lift, (_, _, ctx)) in lift_map.iter() {
+                    lift_prevtxo_musig_ctxes.insert(lift.to_owned(), ctx.to_owned());
+                }
+            }
+        }
+
+        let mut connector_txo_musig_ctxes = Vec::<MusigSessionCtx>::new();
+
+        for (account, ctxes) in self.connector_txo_musig_ctxes.iter() {
+            if account.key() == account.key() {
+                for (_, ctx) in ctxes {
+                    connector_txo_musig_ctxes.push(ctx.to_owned());
+                }
+            }
+        }
+
+        let commitack = CSessionCommitAck::new(
+            account,
+            msg_senders,
+            liftups,
+            recharges,
+            vanillas,
+            calls,
+            reserveds,
+            payload_auth_musig_ctx,
+            vtxo_projector_musig_ctx,
+            connector_projector_musig_ctx,
+            zkp_contingent_musig_ctx,
+            lift_prevtxo_musig_ctxes,
+            connector_txo_musig_ctxes,
+        );
+
+        Some(commitack)
+    }
 
     pub fn finalized(&mut self) {
         self.stage = CSessionStage::Finalized;
