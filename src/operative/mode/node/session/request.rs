@@ -1,3 +1,5 @@
+use crate::hash::{Hash, HashTag};
+use crate::schnorr::Sighash;
 use crate::txo::lift::Lift;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
@@ -119,5 +121,46 @@ impl NSessionRequest {
 
     pub fn connector_txo_nonces(&self) -> Vec<(Point, Point)> {
         self.connector_txo_nonces.clone()
+    }
+}
+
+impl Sighash for NSessionRequest {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage: Vec<u8> = Vec::<u8>::new();
+
+        // Account
+        preimage.extend(self.account.key().serialize_xonly());
+
+        // Liftup
+        match self.liftup() {
+            Some(liftup) => preimage.extend(liftup.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // Recharge
+        match self.recharge() {
+            Some(recharge) => preimage.extend(recharge.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // Vanilla
+        match self.vanilla() {
+            Some(vanilla) => preimage.extend(vanilla.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // Call
+        match self.call() {
+            Some(call) => preimage.extend(call.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // Reserved
+        match self.reserved() {
+            Some(reserved) => preimage.extend(reserved.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        preimage.hash(Some(HashTag::SighashAuthenticable))
     }
 }
