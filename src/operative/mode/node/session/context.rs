@@ -4,7 +4,7 @@ use super::request::NSessionRequest;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
-    schnorr,
+    schnorr::{self, Authenticable},
     txo::lift::Lift,
     valtype::account::Account,
 };
@@ -115,8 +115,8 @@ impl NSessionCtx {
         self.reserved.clone()
     }
 
-    pub fn session_request(&self) -> NSessionRequest {
-        NSessionRequest::new(
+    pub fn into_request(&self) -> Option<Authenticable<NSessionRequest>> {
+        let session_request = NSessionRequest::new(
             self.account(),
             self.liftup(),
             self.recharge(),
@@ -133,7 +133,12 @@ impl NSessionCtx {
             self.zkp_contingent_public_nonces.1,
             &self.lift_prevtxo_public_nonces,
             &self.connector_txo_public_nonces,
-        )
+        );
+
+        let auth_session_request =
+            Authenticable::new(session_request, self.secret_key.serialize())?;
+
+        Some(auth_session_request)
     }
 }
 
