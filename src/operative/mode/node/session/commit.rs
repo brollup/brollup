@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct NSessionRequest {
+pub struct NSessionCommit {
     account: Account,
     // Entries
     liftup: Option<Liftup>,
@@ -32,7 +32,7 @@ pub struct NSessionRequest {
     connector_txo_nonces: Vec<(Point, Point)>,
 }
 
-impl NSessionRequest {
+impl NSessionCommit {
     pub fn new(
         account: Account,
         liftup: Option<Liftup>,
@@ -55,8 +55,8 @@ impl NSessionRequest {
         // Lift prevtxo nonces
         lift_prevtxo_nonces: &HashMap<Lift, (Point, Point)>,
         connector_txo_nonces: &Vec<(Point, Point)>,
-    ) -> NSessionRequest {
-        NSessionRequest {
+    ) -> NSessionCommit {
+        NSessionCommit {
             account,
             liftup,
             recharge,
@@ -124,7 +124,7 @@ impl NSessionRequest {
     }
 }
 
-impl Sighash for NSessionRequest {
+impl Sighash for NSessionCommit {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 

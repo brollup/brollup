@@ -1,7 +1,8 @@
-use super::{allowance::allowance, stage::CSessionStage};
+use super::allowance::allowance;
 use crate::{
+    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-    nsession::request::NSessionRequest,
+    nsession::commit::NSessionCommit,
     registery::key_registery_index,
     schnorr::Authenticable,
     txo::{
@@ -16,12 +17,30 @@ use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum CSessionStage {
+    On,        // collect keys, hiding and binding nonces.
+    Locked,    // no longer accepting remote. MusigNestingCtx ready.
+    Finalized, // collected all partial sigs.
+    Off,
+}
+
 #[derive(Clone)]
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     stage: CSessionStage,
-    // Remote keys:
+    // Remote keys
     msg_senders: Vec<Account>,
+    // Liftups
+    liftups: Vec<Liftup>,
+    // Recharges
+    recharges: Vec<Recharge>,
+    // Vanillas
+    vanillas: Vec<Vanilla>,
+    // Calls
+    calls: Vec<Call>,
+    // Reserveds:
+    reserveds: Vec<Reserved>,
     // Payload Auth:
     payload_auth_nonces: HashMap<Account, (Point, Point)>,
     payload_auth_musig_ctx: Option<(u64, MusigSessionCtx)>,
@@ -48,6 +67,11 @@ impl CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             stage: CSessionStage::Off,
             msg_senders: Vec::<Account>::new(),
+            liftups: Vec::<Liftup>::new(),
+            recharges: Vec::<Recharge>::new(),
+            vanillas: Vec::<Vanilla>::new(),
+            calls: Vec::<Call>::new(),
+            reserveds: Vec::<Reserved>::new(),
             payload_auth_nonces: HashMap::<Account, (Point, Point)>::new(),
             payload_auth_musig_ctx: None,
             vtxo_projector_nonces: HashMap::<Account, (Point, Point)>::new(),
@@ -90,10 +114,10 @@ impl CSessionCtx {
         self.stage = CSessionStage::On;
     }
 
-    async fn is_valid_request(&self, request: &NSessionRequest) -> bool {
+    async fn is_valid_commit(&self, commit: &NSessionCommit) -> bool {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
-        let msg_sender = request.account();
+        let msg_sender = commit.account();
         let msg_sender_key = msg_sender.key();
 
         // #1 Overlap check
@@ -107,7 +131,7 @@ impl CSessionCtx {
         }
 
         // #3 Lift prevtxouts validation
-        for (lift, _) in request.lift_prevtxo_nonces().iter() {
+        for (lift, _) in commit.lift_prevtxo_nonces().iter() {
             // #1 Operator key validation
             {
                 let lift_operator_key = lift.operator_key();
@@ -142,23 +166,21 @@ impl CSessionCtx {
         true
     }
 
-    pub async fn insert(&mut self, request: &Authenticable<NSessionRequest>) -> bool {
-        let auth_key = request.key();
-
-        if !request.authenticate() {
+    pub async fn insert_commit(&mut self, auth_commit: &Authenticable<NSessionCommit>) -> bool {
+        if !auth_commit.authenticate() {
             return false;
         }
 
-        let request = request.object();
+        let commit = auth_commit.object();
 
-        let mut msg_sender = request.account();
+        let mut msg_sender = commit.account();
 
-        if auth_key != msg_sender.key().serialize_xonly() {
+        if auth_commit.key() != msg_sender.key().serialize_xonly() {
             return false;
         }
 
-        // #1 Check request validity.
-        if !self.is_valid_request(&request).await {
+        // #1 Check commit validity.
+        if !self.is_valid_commit(&commit).await {
             return false;
         };
 
@@ -167,36 +189,61 @@ impl CSessionCtx {
             msg_sender.set_registery_index(registery_index);
         }
 
-        // Insert into msg_senders:
+        // Insert into msg_senders
         self.msg_senders.push(msg_sender);
 
-        // Insert into payload_auth_nonces:
-        let payload_auth_nonces = request.payload_auth_nonces();
+        // Insert liftup
+        if let Some(liftup) = commit.liftup() {
+            self.liftups.push(liftup);
+        }
+
+        // Insert recharge
+        if let Some(recharge) = commit.recharge() {
+            self.recharges.push(recharge);
+        }
+
+        // Insert vanilla
+        if let Some(vanilla) = commit.vanilla() {
+            self.vanillas.push(vanilla);
+        }
+
+        // Insert call
+        if let Some(call) = commit.call() {
+            self.calls.push(call);
+        }
+
+        // Insert reserved
+        if let Some(reserved) = commit.reserved() {
+            self.reserveds.push(reserved);
+        }
+
+        // Insert into payload_auth_nonces
+        let payload_auth_nonces = commit.payload_auth_nonces();
         self.payload_auth_nonces
             .insert(msg_sender, payload_auth_nonces);
 
-        // Insert into vtxo_projector_nonces:
-        let vtxo_projector_nonces = request.vtxo_projector_nonces();
+        // Insert into vtxo_projector_nonces
+        let vtxo_projector_nonces = commit.vtxo_projector_nonces();
         self.vtxo_projector_nonces
             .insert(msg_sender, vtxo_projector_nonces);
 
-        // Insert into connector_projector_nonces:
-        let connector_projector_nonces = request.connector_projector_nonces();
+        // Insert into connector_projector_nonces
+        let connector_projector_nonces = commit.connector_projector_nonces();
         self.connector_projector_nonces
             .insert(msg_sender, connector_projector_nonces);
 
-        // Insert into zkp_contingent_nonces:
-        let zkp_contingent_nonces = request.zkp_contingent_nonces();
+        // Insert into zkp_contingent_nonces
+        let zkp_contingent_nonces = commit.zkp_contingent_nonces();
         self.zkp_contingent_nonces
             .insert(msg_sender, zkp_contingent_nonces);
 
         // Insert to lift nonces:
-        let lift_prevtxo_nonces = request.lift_prevtxo_nonces();
+        let lift_prevtxo_nonces = commit.lift_prevtxo_nonces();
         self.lift_prevtxo_nonces
             .insert(msg_sender, lift_prevtxo_nonces);
 
-        // Insert to connector nonces:
-        let connector_txo_nonces = request.connector_txo_nonces();
+        // Insert to connector nonces
+        let connector_txo_nonces = commit.connector_txo_nonces();
         self.connector_txo_nonces
             .insert(msg_sender, connector_txo_nonces);
 
@@ -215,7 +262,7 @@ impl CSessionCtx {
         };
 
         let payload_auth_musig_tuple = match self.payload_auth_nonces.len() {
-            0 => None,
+            0 => return false,
             _ => {
                 // TODO:
                 let payload_auth_message = [0xffu8; 32];
@@ -617,6 +664,11 @@ impl CSessionCtx {
 
     pub fn reset(&mut self) {
         self.msg_senders = Vec::<Account>::new();
+        self.liftups = Vec::<Liftup>::new();
+        self.recharges = Vec::<Recharge>::new();
+        self.vanillas = Vec::<Vanilla>::new();
+        self.calls = Vec::<Call>::new();
+        self.reserveds = Vec::<Reserved>::new();
         self.payload_auth_nonces = HashMap::<Account, (Point, Point)>::new();
         self.payload_auth_musig_ctx = None;
         self.vtxo_projector_nonces = HashMap::<Account, (Point, Point)>::new();

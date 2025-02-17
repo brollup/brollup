@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::request::NSessionRequest;
+use super::commit::NSessionCommit;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
@@ -115,8 +115,8 @@ impl NSessionCtx {
         self.reserved.clone()
     }
 
-    pub fn into_request(&self) -> Option<Authenticable<NSessionRequest>> {
-        let session_request = NSessionRequest::new(
+    pub fn commit(&self) -> Option<Authenticable<NSessionCommit>> {
+        let session_request = NSessionCommit::new(
             self.account(),
             self.liftup(),
             self.recharge(),
