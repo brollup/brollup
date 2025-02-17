@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{nonces::NSessionNonces, request::NSessionRequest};
+use super::request::NSessionRequest;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
@@ -104,15 +104,25 @@ impl NSessionCtx {
     }
 
     pub fn vanilla(&self) -> Option<Vanilla> {
-        self.vanilla().clone()
+        self.vanilla.clone()
     }
 
     pub fn call(&self) -> Option<Call> {
-        self.call().clone()
+        self.call.clone()
     }
 
-    pub fn session_nonces(&self) -> NSessionNonces {
-        NSessionNonces::new(
+    pub fn reserved(&self) -> Option<Reserved> {
+        self.reserved.clone()
+    }
+
+    pub fn session_request(&self) -> NSessionRequest {
+        NSessionRequest::new(
+            self.account(),
+            self.liftup(),
+            self.recharge(),
+            self.vanilla(),
+            self.call(),
+            self.reserved(),
             self.payload_auth_public_nonces.0,
             self.payload_auth_public_nonces.1,
             self.vtxo_projector_public_nonces.0,
@@ -124,12 +134,6 @@ impl NSessionCtx {
             &self.lift_prevtxo_public_nonces,
             &self.connector_txo_public_nonces,
         )
-    }
-
-    pub fn session_request(&self) -> NSessionRequest {
-        let session_nonces = self.session_nonces();
-        let session_request = NSessionRequest::new(self.account(), &session_nonces);
-        session_request
     }
 }
 
