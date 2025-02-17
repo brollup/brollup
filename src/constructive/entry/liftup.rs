@@ -22,6 +22,13 @@ impl Liftup {
         Some(liftup)
     }
 
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn lifts(&self) -> Vec<Lift> {
         self.lift_prevtxos.clone()
     }

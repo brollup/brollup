@@ -13,6 +13,13 @@ impl Vanilla {
         Vanilla { from, to, amount }
     }
 
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn from(&self) -> Account {
         self.from
     }

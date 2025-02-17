@@ -1,10 +1,11 @@
 use crate::musig::keyagg::MusigKeyAggCtx;
 use crate::taproot::{TapRoot, P2TR};
 use secp::Point;
+use serde::{Deserialize, Serialize};
 
 type Bytes = Vec<u8>;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Connector {
     remote: Point,
     operator: Point,
@@ -13,6 +14,13 @@ pub struct Connector {
 impl Connector {
     pub fn new(remote: Point, operator: Point) -> Connector {
         Connector { remote, operator }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
     }
 
     pub fn operator_key(&self) -> Point {

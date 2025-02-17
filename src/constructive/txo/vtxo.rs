@@ -25,6 +25,13 @@ impl VTXO {
         }
     }
 
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn operator_key(&self) -> Point {
         self.operator
     }

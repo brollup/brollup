@@ -22,6 +22,13 @@ impl Recharge {
         Some(liftup)
     }
 
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn vtxos(&self) -> Vec<VTXO> {
         self.recharge_vtxos.clone()
     }

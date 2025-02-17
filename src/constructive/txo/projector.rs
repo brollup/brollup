@@ -6,16 +6,18 @@ use crate::taproot::TapLeaf;
 use crate::taproot::TapRoot;
 use crate::taproot::P2TR;
 use secp::Point;
+use serde::Deserialize;
+use serde::Serialize;
 
 type Bytes = Vec<u8>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum ProjectorTag {
     VTXOProjector,
     ConnectorProjector,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Projector {
     remote: Vec<Point>,
     operator: Point,
@@ -28,6 +30,13 @@ impl Projector {
             remote: remote.to_owned(),
             operator,
             tag,
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
         }
     }
 
