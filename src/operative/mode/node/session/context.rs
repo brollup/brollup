@@ -14,18 +14,13 @@ use serde::{Deserialize, Serialize};
 pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum MainEntry {
-    Vanilla(Vanilla),
-    Call(Call),
-}
-
-#[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCtx {
     account: Account,
     secret_key: Scalar,
     liftup: Option<Liftup>,
     recharge: Option<Recharge>,
-    main_entry: MainEntry,
+    vanilla: Option<Vanilla>,
+    call: Option<Call>,
     reserved: Option<Reserved>,
     // Payload auth nonces
     payload_auth_secret_nonces: (Scalar, Scalar),
@@ -53,7 +48,8 @@ impl NSessionCtx {
         secret_key: Scalar,
         liftup: Option<Liftup>,
         recharge: Option<Recharge>,
-        main_entry: MainEntry,
+        vanilla: Option<Vanilla>,
+        call: Option<Call>,
     ) -> Option<NSessionCtx> {
         let public_key = secret_key.base_point_mul();
 
@@ -61,14 +57,15 @@ impl NSessionCtx {
             return None;
         }
 
-        let nonces = gen_nonce(&liftup, &recharge, &main_entry)?;
+        let nonces = gen_nonce(&liftup, &recharge, &vanilla, &call)?;
 
         let ctx = NSessionCtx {
             account,
             secret_key,
             liftup,
             recharge,
-            main_entry,
+            vanilla,
+            call,
             reserved: None,
             //
             // Payload auth nonces
@@ -106,8 +103,12 @@ impl NSessionCtx {
         self.recharge.clone()
     }
 
-    pub fn main_entry(&self) -> MainEntry {
-        self.main_entry.clone()
+    pub fn vanilla(&self) -> Option<Vanilla> {
+        self.vanilla().clone()
+    }
+
+    pub fn call(&self) -> Option<Call> {
+        self.call().clone()
     }
 
     pub fn session_nonces(&self) -> NSessionNonces {
@@ -133,7 +134,11 @@ impl NSessionCtx {
 }
 
 // TODO:
-fn num_connectors(_recharge: &Option<Recharge>, _main_entry: &MainEntry) -> u8 {
+fn num_connectors(
+    _recharge: &Option<Recharge>,
+    _vanilla: &Option<Vanilla>,
+    _call: &Option<Call>,
+) -> u8 {
     3 as u8 + CONNECTORS_EXTRA_IN
 }
 
@@ -153,7 +158,8 @@ fn gen_nonce_tuple() -> Option<((Scalar, Scalar), (Point, Point))> {
 pub fn gen_nonce(
     liftup: &Option<Liftup>,
     recharge: &Option<Recharge>,
-    main_entry: &MainEntry,
+    vanilla: &Option<Vanilla>,
+    call: &Option<Call>,
 ) -> Option<(
     (Scalar, Scalar),                // Payload auth secret nonces
     (Point, Point),                  // Payload auth public nonces
@@ -191,7 +197,7 @@ pub fn gen_nonce(
     let mut connector_txo_secret_nonces = Vec::<(Scalar, Scalar)>::new();
     let mut connector_txo_public_nonces = Vec::<(Point, Point)>::new();
 
-    let num_connectors = num_connectors(recharge, main_entry);
+    let num_connectors = num_connectors(recharge, vanilla, call);
 
     for _ in 0..num_connectors {
         let (secret_nonces, public_nonces) = gen_nonce_tuple()?;
