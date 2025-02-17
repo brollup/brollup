@@ -3,6 +3,7 @@ use crate::{
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     nsession::request::NSessionRequest,
     registery::key_registery_index,
+    schnorr::Authenticable,
     txo::{
         connector::Connector,
         lift::Lift,
@@ -92,9 +93,8 @@ impl CSessionCtx {
     async fn is_valid_request(&self, request: &NSessionRequest) -> bool {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
-        let msg_sender = request.msg_sender();
+        let msg_sender = request.account();
         let msg_sender_key = msg_sender.key();
-        let request_nonces = request.nonces();
 
         // #1 Overlap check
         if self.msg_senders.contains(&msg_sender) {
@@ -107,7 +107,7 @@ impl CSessionCtx {
         }
 
         // #3 Lift prevtxouts validation
-        for (lift, _) in request_nonces.lift_prevtxo_nonces().iter() {
+        for (lift, _) in request.lift_prevtxo_nonces().iter() {
             // #1 Operator key validation
             {
                 let lift_operator_key = lift.operator_key();
@@ -142,12 +142,23 @@ impl CSessionCtx {
         true
     }
 
-    pub async fn insert(&mut self, request: &NSessionRequest) -> bool {
-        let mut msg_sender = request.msg_sender();
-        let nonces = request.nonces();
+    pub async fn insert(&mut self, request: &Authenticable<NSessionRequest>) -> bool {
+        let auth_key = request.key();
+
+        if !request.authenticate() {
+            return false;
+        }
+
+        let request = request.object();
+
+        let mut msg_sender = request.account();
+
+        if auth_key != msg_sender.key().serialize_xonly() {
+            return false;
+        }
 
         // #1 Check request validity.
-        if !self.is_valid_request(request).await {
+        if !self.is_valid_request(&request).await {
             return false;
         };
 
@@ -160,32 +171,32 @@ impl CSessionCtx {
         self.msg_senders.push(msg_sender);
 
         // Insert into payload_auth_nonces:
-        let payload_auth_nonces = nonces.payload_auth_nonces();
+        let payload_auth_nonces = request.payload_auth_nonces();
         self.payload_auth_nonces
             .insert(msg_sender, payload_auth_nonces);
 
         // Insert into vtxo_projector_nonces:
-        let vtxo_projector_nonces = nonces.vtxo_projector_nonces();
+        let vtxo_projector_nonces = request.vtxo_projector_nonces();
         self.vtxo_projector_nonces
             .insert(msg_sender, vtxo_projector_nonces);
 
         // Insert into connector_projector_nonces:
-        let connector_projector_nonces = nonces.connector_projector_nonces();
+        let connector_projector_nonces = request.connector_projector_nonces();
         self.connector_projector_nonces
             .insert(msg_sender, connector_projector_nonces);
 
         // Insert into zkp_contingent_nonces:
-        let zkp_contingent_nonces = nonces.zkp_contingent_nonces();
+        let zkp_contingent_nonces = request.zkp_contingent_nonces();
         self.zkp_contingent_nonces
             .insert(msg_sender, zkp_contingent_nonces);
 
         // Insert to lift nonces:
-        let lift_prevtxo_nonces = nonces.lift_prevtxo_nonces();
+        let lift_prevtxo_nonces = request.lift_prevtxo_nonces();
         self.lift_prevtxo_nonces
             .insert(msg_sender, lift_prevtxo_nonces);
 
         // Insert to connector nonces:
-        let connector_txo_nonces = nonces.connector_txo_nonces();
+        let connector_txo_nonces = request.connector_txo_nonces();
         self.connector_txo_nonces
             .insert(msg_sender, connector_txo_nonces);
 
@@ -203,215 +214,241 @@ impl CSessionCtx {
             }
         };
 
-        let (payload_auth_nonce_index, payload_auth_musig_ctx) = {
-            // TODO:
-            let payload_auth_message = [0xffu8; 32];
+        let payload_auth_musig_tuple = match self.payload_auth_nonces.len() {
+            0 => None,
+            _ => {
+                // TODO:
+                let payload_auth_message = [0xffu8; 32];
 
-            let mut dkg_dir_ = dkg_dir.lock().await;
+                let mut dkg_dir_ = dkg_dir.lock().await;
 
-            let noist_signing_session =
-                match dkg_dir_.pick_signing_session(payload_auth_message, None, false) {
-                    Some(session) => session,
-                    None => return false,
-                };
+                let noist_signing_session =
+                    match dkg_dir_.pick_signing_session(payload_auth_message, None, false) {
+                        Some(session) => session,
+                        None => return false,
+                    };
 
-            let nonce_index = noist_signing_session.nonce_index();
-            let mut keys: Vec<Point> = self
-                .payload_auth_nonces
-                .iter()
-                .map(|(account, _)| account.key().clone())
-                .collect();
+                let nonce_index = noist_signing_session.nonce_index();
+                let mut keys: Vec<Point> = self
+                    .payload_auth_nonces
+                    .iter()
+                    .map(|(account, _)| account.key().clone())
+                    .collect();
 
-            keys.push(noist_signing_session.group_key());
+                keys.push(noist_signing_session.group_key());
 
-            let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, payload_auth_message) {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            for (msg_sender, (hiding, binding)) in self.payload_auth_nonces.iter() {
-                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
-                {
-                    return false;
-                }
-            }
-
-            let operator_key = noist_signing_session.group_key();
-            let operator_hiding = noist_signing_session.hiding_group_nonce();
-            let operator_binding = noist_signing_session.post_binding_group_nonce();
-
-            if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
-                return false;
-            }
-
-            (nonce_index, musig_ctx)
-        };
-
-        let (vtxo_projector_nonce_index, vtxo_projector_musig_ctx) = {
-            // TODO:
-            let vtxo_projector_message = [0xffu8; 32];
-
-            let mut dkg_dir_ = dkg_dir.lock().await;
-
-            let noist_signing_session =
-                match dkg_dir_.pick_signing_session(vtxo_projector_message, None, false) {
-                    Some(session) => session,
-                    None => return false,
-                };
-
-            let nonce_index = noist_signing_session.nonce_index();
-
-            let remote_keys: Vec<Point> = self
-                .vtxo_projector_nonces
-                .iter()
-                .map(|(account, _)| account.key().clone())
-                .collect();
-
-            let operator_key = noist_signing_session.group_key();
-
-            let vtxo_projector = Projector::new(
-                &remote_keys,
-                operator_key,
-                projector::ProjectorTag::VTXOProjector,
-            );
-
-            let key_agg_ctx = match vtxo_projector.key_agg_ctx() {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, vtxo_projector_message) {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            for (msg_sender, (hiding, binding)) in self.vtxo_projector_nonces.iter() {
-                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
-                {
-                    return false;
-                }
-            }
-
-            let operator_key = noist_signing_session.group_key();
-            let operator_hiding = noist_signing_session.hiding_group_nonce();
-            let operator_binding = noist_signing_session.post_binding_group_nonce();
-
-            if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
-                return false;
-            }
-
-            (nonce_index, musig_ctx)
-        };
-
-        let (connector_projector_nonce_index, connector_projector_musig_ctx) = {
-            // TODO:
-            let connector_projector_message = [0xffu8; 32];
-
-            let mut dkg_dir_ = dkg_dir.lock().await;
-
-            let noist_signing_session =
-                match dkg_dir_.pick_signing_session(connector_projector_message, None, false) {
-                    Some(session) => session,
-                    None => return false,
-                };
-
-            let nonce_index = noist_signing_session.nonce_index();
-            let remote_keys: Vec<Point> = self
-                .connector_projector_nonces
-                .iter()
-                .map(|(account, _)| account.key().clone())
-                .collect();
-
-            let operator_key = noist_signing_session.group_key();
-
-            let connector_projector = Projector::new(
-                &remote_keys,
-                operator_key,
-                projector::ProjectorTag::ConnectorProjector,
-            );
-
-            let key_agg_ctx = match connector_projector.key_agg_ctx() {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            let mut musig_ctx =
-                match MusigSessionCtx::new(&key_agg_ctx, connector_projector_message) {
+                let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
                     Some(ctx) => ctx,
                     None => return false,
                 };
 
-            for (msg_sender, (hiding, binding)) in self.connector_projector_nonces.iter() {
-                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
-                {
-                    return false;
-                }
-            }
-
-            let operator_key = noist_signing_session.group_key();
-            let operator_hiding = noist_signing_session.hiding_group_nonce();
-            let operator_binding = noist_signing_session.post_binding_group_nonce();
-
-            if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
-                return false;
-            }
-
-            (nonce_index, musig_ctx)
-        };
-
-        let (zkp_contingent_nonce_index, zkp_contingent_musig_ctx) = {
-            // TODO:
-            let zkp_contingent_message = [0xffu8; 32];
-
-            let mut dkg_dir_ = dkg_dir.lock().await;
-
-            let noist_signing_session =
-                match dkg_dir_.pick_signing_session(zkp_contingent_message, None, false) {
-                    Some(session) => session,
+                let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, payload_auth_message) {
+                    Some(ctx) => ctx,
                     None => return false,
                 };
 
-            let nonce_index = noist_signing_session.nonce_index();
+                for (msg_sender, (hiding, binding)) in self.payload_auth_nonces.iter() {
+                    if !musig_ctx.insert_nonce(
+                        msg_sender.key(),
+                        hiding.to_owned(),
+                        binding.to_owned(),
+                    ) {
+                        return false;
+                    }
+                }
 
-            let mut keys: Vec<Point> = self
-                .zkp_contingent_nonces
-                .iter()
-                .map(|(account, _)| account.key().clone())
-                .collect();
+                let operator_key = noist_signing_session.group_key();
+                let operator_hiding = noist_signing_session.hiding_group_nonce();
+                let operator_binding = noist_signing_session.post_binding_group_nonce();
 
-            keys.push(noist_signing_session.group_key());
-
-            let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, zkp_contingent_message) {
-                Some(ctx) => ctx,
-                None => return false,
-            };
-
-            for (msg_sender, (hiding, binding)) in self.zkp_contingent_nonces.iter() {
-                if !musig_ctx.insert_nonce(msg_sender.key(), hiding.to_owned(), binding.to_owned())
-                {
+                if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
                     return false;
                 }
+
+                Some((nonce_index, musig_ctx))
             }
+        };
 
-            let operator_key = noist_signing_session.group_key();
-            let operator_hiding = noist_signing_session.hiding_group_nonce();
-            let operator_binding = noist_signing_session.post_binding_group_nonce();
+        let vtxo_projector_musig_tuple = match self.vtxo_projector_nonces.len() {
+            0 => None,
+            _ => {
+                // TODO:
+                let vtxo_projector_message = [0xffu8; 32];
 
-            if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
-                return false;
+                let mut dkg_dir_ = dkg_dir.lock().await;
+
+                let noist_signing_session =
+                    match dkg_dir_.pick_signing_session(vtxo_projector_message, None, false) {
+                        Some(session) => session,
+                        None => return false,
+                    };
+
+                let nonce_index = noist_signing_session.nonce_index();
+
+                let remote_keys: Vec<Point> = self
+                    .vtxo_projector_nonces
+                    .iter()
+                    .map(|(account, _)| account.key().clone())
+                    .collect();
+
+                let operator_key = noist_signing_session.group_key();
+
+                let vtxo_projector = Projector::new(
+                    &remote_keys,
+                    operator_key,
+                    projector::ProjectorTag::VTXOProjector,
+                );
+
+                let key_agg_ctx = match vtxo_projector.key_agg_ctx() {
+                    Some(ctx) => ctx,
+                    None => return false,
+                };
+
+                let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, vtxo_projector_message)
+                {
+                    Some(ctx) => ctx,
+                    None => return false,
+                };
+
+                for (msg_sender, (hiding, binding)) in self.vtxo_projector_nonces.iter() {
+                    if !musig_ctx.insert_nonce(
+                        msg_sender.key(),
+                        hiding.to_owned(),
+                        binding.to_owned(),
+                    ) {
+                        return false;
+                    }
+                }
+
+                let operator_key = noist_signing_session.group_key();
+                let operator_hiding = noist_signing_session.hiding_group_nonce();
+                let operator_binding = noist_signing_session.post_binding_group_nonce();
+
+                if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
+                    return false;
+                }
+
+                Some((nonce_index, musig_ctx))
             }
+        };
 
-            (nonce_index, musig_ctx)
+        let connector_projector_musig_tuple = match self.connector_projector_nonces.len() {
+            0 => None,
+            _ => {
+                // TODO:
+                let connector_projector_message = [0xffu8; 32];
+
+                let mut dkg_dir_ = dkg_dir.lock().await;
+
+                let noist_signing_session =
+                    match dkg_dir_.pick_signing_session(connector_projector_message, None, false) {
+                        Some(session) => session,
+                        None => return false,
+                    };
+
+                let nonce_index = noist_signing_session.nonce_index();
+                let remote_keys: Vec<Point> = self
+                    .connector_projector_nonces
+                    .iter()
+                    .map(|(account, _)| account.key().clone())
+                    .collect();
+
+                let operator_key = noist_signing_session.group_key();
+
+                let connector_projector = Projector::new(
+                    &remote_keys,
+                    operator_key,
+                    projector::ProjectorTag::ConnectorProjector,
+                );
+
+                let key_agg_ctx = match connector_projector.key_agg_ctx() {
+                    Some(ctx) => ctx,
+                    None => return false,
+                };
+
+                let mut musig_ctx =
+                    match MusigSessionCtx::new(&key_agg_ctx, connector_projector_message) {
+                        Some(ctx) => ctx,
+                        None => return false,
+                    };
+
+                for (msg_sender, (hiding, binding)) in self.connector_projector_nonces.iter() {
+                    if !musig_ctx.insert_nonce(
+                        msg_sender.key(),
+                        hiding.to_owned(),
+                        binding.to_owned(),
+                    ) {
+                        return false;
+                    }
+                }
+
+                let operator_key = noist_signing_session.group_key();
+                let operator_hiding = noist_signing_session.hiding_group_nonce();
+                let operator_binding = noist_signing_session.post_binding_group_nonce();
+
+                if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
+                    return false;
+                }
+
+                Some((nonce_index, musig_ctx))
+            }
+        };
+
+        let zkp_contingent_musig_tuple = match self.zkp_contingent_nonces.len() {
+            0 => None,
+            _ => {
+                // TODO:
+                let zkp_contingent_message = [0xffu8; 32];
+
+                let mut dkg_dir_ = dkg_dir.lock().await;
+
+                let noist_signing_session =
+                    match dkg_dir_.pick_signing_session(zkp_contingent_message, None, false) {
+                        Some(session) => session,
+                        None => return false,
+                    };
+
+                let nonce_index = noist_signing_session.nonce_index();
+
+                let mut keys: Vec<Point> = self
+                    .zkp_contingent_nonces
+                    .iter()
+                    .map(|(account, _)| account.key().clone())
+                    .collect();
+
+                keys.push(noist_signing_session.group_key());
+
+                let key_agg_ctx = match MusigKeyAggCtx::new(&keys, None) {
+                    Some(ctx) => ctx,
+                    None => return false,
+                };
+
+                let mut musig_ctx = match MusigSessionCtx::new(&key_agg_ctx, zkp_contingent_message)
+                {
+                    Some(ctx) => ctx,
+                    None => return false,
+                };
+
+                for (msg_sender, (hiding, binding)) in self.zkp_contingent_nonces.iter() {
+                    if !musig_ctx.insert_nonce(
+                        msg_sender.key(),
+                        hiding.to_owned(),
+                        binding.to_owned(),
+                    ) {
+                        return false;
+                    }
+                }
+
+                let operator_key = noist_signing_session.group_key();
+                let operator_hiding = noist_signing_session.hiding_group_nonce();
+                let operator_binding = noist_signing_session.post_binding_group_nonce();
+
+                if !musig_ctx.insert_nonce(operator_key, operator_hiding, operator_binding) {
+                    return false;
+                }
+
+                Some((nonce_index, musig_ctx))
+            }
         };
 
         // Lift prevtxos:
@@ -551,15 +588,10 @@ impl CSessionCtx {
         }
 
         // Set values:
-        self.payload_auth_musig_ctx = Some((payload_auth_nonce_index, payload_auth_musig_ctx));
-        self.vtxo_projector_musig_ctx =
-            Some((vtxo_projector_nonce_index, vtxo_projector_musig_ctx));
-        self.connector_projector_musig_ctx = Some((
-            connector_projector_nonce_index,
-            connector_projector_musig_ctx,
-        ));
-        self.zkp_contingent_musig_ctx =
-            Some((zkp_contingent_nonce_index, zkp_contingent_musig_ctx));
+        self.payload_auth_musig_ctx = payload_auth_musig_tuple;
+        self.vtxo_projector_musig_ctx = vtxo_projector_musig_tuple;
+        self.connector_projector_musig_ctx = connector_projector_musig_tuple;
+        self.zkp_contingent_musig_ctx = zkp_contingent_musig_tuple;
         self.lift_prevtxo_musig_ctxes = lift_prevtxo_musig_ctxes;
         self.connector_txo_musig_ctxes = connector_txo_musig_ctxes;
 
@@ -570,6 +602,10 @@ impl CSessionCtx {
         self.stage = CSessionStage::Locked;
         self.set_musig_ctxes().await
     }
+
+    //pub fn musig_ctxes_for_msg_sender(&self) -> {
+
+    //}
 
     pub fn finalized(&mut self) {
         self.stage = CSessionStage::Finalized;
