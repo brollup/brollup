@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::session::MusigSessionCtx,
@@ -7,9 +5,11 @@ use crate::{
     valtype::account::Account,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {
+    // Account
     account: Account,
     // msg.senders
     msg_senders: Vec<Account>,

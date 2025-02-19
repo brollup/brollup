@@ -1,9 +1,9 @@
-use super::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck};
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     registery::key_registery_index,
     schnorr::Authenticable,
+    session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
     txo::{
         connector::Connector,
         lift::Lift,
@@ -249,6 +249,7 @@ impl CSessionCtx {
         true
     }
 
+    // Sets the musig contexes upon collecting all commitments.
     async fn set_musig_ctxes(&mut self) -> bool {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
@@ -644,12 +645,18 @@ impl CSessionCtx {
         true
     }
 
+    // Locks the session. No new commitments are allowed.
     pub async fn lock(&mut self) -> bool {
         self.stage = CSessionStage::Locked;
         self.set_musig_ctxes().await
     }
 
-    pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+    // Returns the CommitAck for the respective account who have commited.
+    pub fn into_commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+        if !self.msg_senders.contains(&account) {
+            return None;
+        }
+
         let msg_senders = self.msg_senders();
         let liftups = self.liftups.clone();
         let recharges = self.recharges.clone();

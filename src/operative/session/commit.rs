@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCommit {
+    // Account
     account: Account,
     // Entries
     liftup: Option<Liftup>,

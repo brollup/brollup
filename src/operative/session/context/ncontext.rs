@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use super::commit::NSessionCommit;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
     schnorr::{self, Authenticable},
+    session::commit::NSessionCommit,
     txo::lift::Lift,
     valtype::account::Account,
 };
