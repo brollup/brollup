@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Outpoint {
     prev: [u8; 32],
     vout: u32,

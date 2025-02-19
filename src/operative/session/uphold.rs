@@ -1,4 +1,9 @@
-use crate::{txo::lift::Lift, valtype::account::Account};
+use crate::{
+    hash::{Hash, HashTag},
+    schnorr::Sighash,
+    txo::lift::Lift,
+    valtype::account::Account,
+};
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -68,5 +73,52 @@ impl NSessionUphold {
 
     pub fn connector_txo_partial_sigs(&self) -> Vec<Scalar> {
         self.connector_txo_partial_sigs.clone()
+    }
+}
+
+impl Sighash for NSessionUphold {
+    fn sighash(&self) -> [u8; 32] {
+        let mut preimage: Vec<u8> = Vec::<u8>::new();
+
+        // Account
+        preimage.extend(self.account.key().serialize_xonly());
+
+        // payload_auth_partial_sig
+        preimage.extend(self.payload_auth_partial_sig.serialize());
+
+        // vtxo_projector_partial_sig
+        match &self.vtxo_projector_partial_sig {
+            Some(sig) => preimage.extend(sig.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // connector_projector_partial_sig
+        match &self.connector_projector_partial_sig {
+            Some(sig) => preimage.extend(sig.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // zkp_contingent_partial_sig
+        match &self.zkp_contingent_partial_sig {
+            Some(sig) => preimage.extend(sig.serialize()),
+            None => preimage.push(0x00),
+        };
+
+        // Lifts
+        let mut lift_prevtxos_sorted: Vec<(Lift, Scalar)> =
+            self.lift_prevtxo_partial_sigs().into_iter().collect();
+        lift_prevtxos_sorted.sort_by(|(lift_a, _), (lift_b, _)| lift_a.cmp(lift_b));
+
+        for (lift, partial_sig) in lift_prevtxos_sorted.iter() {
+            preimage.extend(lift.serialize());
+            preimage.extend(partial_sig.serialize());
+        }
+
+        // Connectors
+        for partial_sig in self.connector_txo_partial_sigs.iter() {
+            preimage.extend(partial_sig.serialize());
+        }
+
+        preimage.hash(Some(HashTag::SighashAuthenticable))
     }
 }

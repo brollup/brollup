@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 type Bytes = Vec<u8>;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Lift {
     remote: Point,
     operator: Point,

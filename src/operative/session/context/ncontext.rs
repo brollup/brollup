@@ -11,6 +11,8 @@ use crate::{
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 
+use super::{commitack::CSessionCommitAck, uphold::NSessionUphold};
+
 pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -115,6 +117,7 @@ impl NSessionCtx {
         self.reserved.clone()
     }
 
+    // Returns the commitment
     pub fn commit(&self) -> Option<Authenticable<NSessionCommit>> {
         let session_request = NSessionCommit::new(
             self.account(),
@@ -139,6 +142,113 @@ impl NSessionCtx {
             Authenticable::new(session_request, self.secret_key.serialize())?;
 
         Some(auth_session_request)
+    }
+
+    // Returns the commitment uphold.
+    pub fn uphold(&self, commitack: CSessionCommitAck) -> Option<Authenticable<NSessionUphold>> {
+        if commitack.account().key() != self.account.key() {
+            return None;
+        }
+
+        // Payload auth partial sig
+        let payload_auth_partial_sig = {
+            commitack.payload_auth_musig_ctx().partial_sign(
+                self.secret_key,
+                self.payload_auth_secret_nonces.0,
+                self.payload_auth_secret_nonces.1,
+            )?
+        };
+
+        // VTXO projector partial sig
+        let vtxo_projector_partial_sig = {
+            match commitack.vtxo_projector_musig_ctx() {
+                Some(ctx) => {
+                    let partial_sig = ctx.partial_sign(
+                        self.secret_key,
+                        self.vtxo_projector_secret_nonces.0,
+                        self.vtxo_projector_secret_nonces.1,
+                    )?;
+                    Some(partial_sig)
+                }
+                None => None,
+            }
+        };
+
+        // Connector projector partial sig
+        let connector_projector_partial_sig = {
+            match commitack.connector_projector_musig_ctx() {
+                Some(ctx) => {
+                    let partial_sig = ctx.partial_sign(
+                        self.secret_key,
+                        self.connector_projector_secret_nonces.0,
+                        self.connector_projector_secret_nonces.1,
+                    )?;
+                    Some(partial_sig)
+                }
+                None => None,
+            }
+        };
+
+        // ZKP contingent partial sig
+        let zkp_contingent_partial_sig = {
+            match commitack.zkp_contingent_musig_ctx() {
+                Some(ctx) => {
+                    let partial_sig = ctx.partial_sign(
+                        self.secret_key,
+                        self.zkp_contingent_secret_nonces.0,
+                        self.zkp_contingent_secret_nonces.1,
+                    )?;
+                    Some(partial_sig)
+                }
+                None => None,
+            }
+        };
+
+        // Lift prevtxos partial sigs
+        let mut lift_prevtxo_partial_sigs = HashMap::<Lift, Scalar>::new();
+
+        for (lift, musig_ctx) in commitack.lift_prevtxo_musig_ctxes() {
+            let (secret_hiding_nonce, secet_binding_nonce) =
+                self.lift_prevtxo_secret_nonces.get(&lift)?;
+
+            let partial_sig = musig_ctx.partial_sign(
+                self.secret_key,
+                secret_hiding_nonce.to_owned(),
+                secet_binding_nonce.to_owned(),
+            )?;
+
+            lift_prevtxo_partial_sigs.insert(lift, partial_sig);
+        }
+
+        // Connector txos partial sigs
+        let mut connector_txo_partial_sigs = Vec::<Scalar>::new();
+
+        for (index, musig_ctx) in commitack.connector_txo_musig_ctxes().iter().enumerate() {
+            let (secret_hiding_nonce, secet_binding_nonce) =
+                self.connector_txo_secret_nonces.get(index)?;
+
+            let partial_sig = musig_ctx.partial_sign(
+                self.secret_key,
+                secret_hiding_nonce.to_owned(),
+                secet_binding_nonce.to_owned(),
+            )?;
+
+            connector_txo_partial_sigs.push(partial_sig);
+        }
+
+        let uphold = NSessionUphold::new(
+            self.account(),
+            payload_auth_partial_sig,
+            vtxo_projector_partial_sig,
+            connector_projector_partial_sig,
+            zkp_contingent_partial_sig,
+            lift_prevtxo_partial_sigs,
+            connector_txo_partial_sigs,
+        );
+
+        let auth_uphold = Authenticable::new(uphold, self.secret_key.serialize())?;
+
+        Some(auth_uphold)
     }
 }
 

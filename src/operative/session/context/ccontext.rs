@@ -652,7 +652,7 @@ impl CSessionCtx {
     }
 
     // Returns the CommitAck for the respective account who have commited.
-    pub fn into_commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+    pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
         if !self.msg_senders.contains(&account) {
             return None;
         }
