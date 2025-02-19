@@ -19,17 +19,17 @@ pub struct NSessionCommit {
     vanilla: Option<Vanilla>,
     call: Option<Call>,
     reserved: Option<Reserved>,
-    // Payload auth nonces (hiding & binding):
+    // Payload auth nonces (hiding & binding)
     payload_auth_nonces: (Point, Point),
-    // VTXO projector nonces (hiding & binding):
+    // VTXO projector nonces (hiding & binding)
     vtxo_projector_nonces: (Point, Point),
-    // Connector projector nonces (hiding & binding):
+    // Connector projector nonces (hiding & binding)
     connector_projector_nonces: (Point, Point),
-    // ZKP contingent nonces (hiding & binding):
+    // ZKP contingent nonces (hiding & binding)
     zkp_contingent_nonces: (Point, Point),
-    // Lift prevtxo nonces (Lift -> hiding & binding):
+    // Lift prevtxo nonces (Lift -> hiding & binding)
     lift_prevtxo_nonces: HashMap<Lift, (Point, Point)>,
-    // Connector txo nonces (hiding & binding):
+    // Connector txo nonces (hiding & binding)
     connector_txo_nonces: Vec<(Point, Point)>,
 }
 

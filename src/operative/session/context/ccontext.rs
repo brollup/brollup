@@ -691,6 +691,7 @@ impl CSessionCtx {
             }
         }
 
+        // TODO: prune connectors
         let mut connector_txo_musig_ctxes = Vec::<MusigSessionCtx>::new();
 
         for (account, ctxes) in self.connector_txo_musig_ctxes.iter() {

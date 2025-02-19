@@ -1,17 +1,17 @@
-## Brollup Session
-Session protocol for covenant emulation & forfeiting.
+## Session
+Brollup session protocol for covenant emulation & forfeiting.
 
     +------------+                               +-------------+                               +-------------+ 
     |            |--(1)--   NSessionCommit    -->|             |                               |             |
     |            |<-(2)--  CSessionCommitAck  ---|             |                               |             |
-    |            |                               |             |--(1)--   RequestStateSigs  -->|             |
-    |            |                               |             |<-(2)--      StateSigs      ---|             | 
-    |            |--(3)--   NSessionUphold    -->|             |                               |             |
-    |    Node    |<-(4)--  CSessionUpholdAck  ---| Coordinator |                               |   Operator  |
-    |            |                               |             |--(1)--   RequestCovSigs    -->|             |
-    |            |                               |             |<-(2)--      CovSigs        ---|             | 
-    |            |--(5)--   NSessionForfeit   -->|             |                               |             |
-    |            |<-(6)--  CSessionForfeitAck ---|             |                               |             |
-    |            |                               |             |--(1)--   RequestPoolSig    -->|             |
-    |            |                               |             |<-(2)--      PoolSig        ---|             | 
+    |            |                               |             |--(3)--   RequestStateSigs  -->|             |
+    |            |                               |             |<-(4)--      StateSigs      ---|             | 
+    |            |--(5)--   NSessionUphold    -->|             |                               |             |
+    |    Node    |<-(6)--  CSessionUpholdAck  ---| Coordinator |                               |   Operator  |
+    |            |                               |             |--(7)--   RequestCovSigs    -->|             |
+    |            |                               |             |<-(8)--      CovSigs        ---|             | 
+    |            |--(9)--   NSessionForfeit   -->|             |                               |             |
+    |            |<-(10)-- CSessionForfeitAck ---|             |                               |             |
+    |            |                               |             |--(11)--  RequestPoolSig    -->|             |
+    |            |                               |             |<-(12)--     PoolSig        ---|             | 
     +------------+                               +-------------+                               +-------------+ 

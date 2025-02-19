@@ -21,19 +21,19 @@ pub struct CSessionCommitAck {
     vanillas: Vec<Vanilla>,
     // Calls
     calls: Vec<Call>,
-    // Reserveds:
+    // Reserveds
     reserveds: Vec<Reserved>,
-    // Payload Auth:
+    // Payload auth
     payload_auth_musig_ctx: MusigSessionCtx,
-    // VTXO projector:
+    // VTXO projector
     vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
-    // Connector projector:
+    // Connector projector
     connector_projector_musig_ctx: Option<MusigSessionCtx>,
-    // ZKP contingent:
+    // ZKP contingent
     zkp_contingent_musig_ctx: Option<MusigSessionCtx>,
-    // Lift txos:
+    // Lift txos
     lift_prevtxo_musig_ctxes: HashMap<Lift, MusigSessionCtx>,
-    // Connectors:
+    // Connectors
     connector_txo_musig_ctxes: Vec<MusigSessionCtx>,
 }
 
