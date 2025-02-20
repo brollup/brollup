@@ -6,14 +6,14 @@ Brollup session protocol for covenant emulation & forfeiting.
     |            |--(1)--   NSessionCommit    -->|             |                               |             |
     |            |                               |             |--(2)--   RequestStateSigs  -->|             |
     |            |                               |             |<-(3)--      StateSigs      ---|             | 
-    |            |<-(4)--  CSessionCommitAck  ---|             |                               |             |
-    |            |--(5)--   NSessionUphold    -->|             |                               |             |
-    |    Node    |                               | Coordinator |--(6)--   RequestCovSigs    -->|   Operator  |
-    |            |                               |             |<-(7)--      CovSigs        ---|             | 
-    |            |<-(8)--  CSessionUpholdAck  ---|             |                               |             |
-    |            |--(9)--   NSessionForfeit   -->|             |                               |             |
-    |            |                               |             |--(10)--  RequestPoolSig    -->|             |
-    |            |                               |             |<-(11)--     PoolSig        ---|             | 
-    |            |<-(12)-- CSessionForfeitAck ---|             |                               |             |
+    |            |                               |             |                               |             |
+    |            |<-(4a)-  CSessionCommitAck  ---|             |--(4b)-   RequestCovSigs    -->|             |
+    |            |--(5a)-   NSessionUphold    -->|             |<-(5b)-      CovSigs        ---|             |
+    |    Node    |                               | Coordinator |                               |   Operator  |
+    |            |<-(6)--  CSessionUpholdAck  ---|             |                               |             |
+    |            |--(7)--   NSessionForfeit   -->|             |                               |             |
+    |            |                               |             |--(8)--   RequestPoolSig    -->|             |
+    |            |                               |             |<-(9)--      PoolSig        ---|             | 
+    |            |<-(10)-- CSessionForfeitAck ---|             |                               |             |
     |            |                               |             |                               |             |
     +------------+                               +-------------+                               +-------------+ 
