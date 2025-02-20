@@ -16,6 +16,8 @@ use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
+use super::uphold::NSessionUphold;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CSessionStage {
     On,        // collect keys, hiding and binding nonces.
@@ -719,6 +721,95 @@ impl CSessionCtx {
         );
 
         Some(commitack)
+    }
+
+    pub fn insert_uphold(&mut self, auth_uphold: Authenticable<NSessionUphold>) -> bool {
+        if !auth_uphold.authenticate() {
+            return false;
+        }
+
+        let uphold = auth_uphold.object();
+
+        let account_key = uphold.account().key();
+
+        if auth_uphold.key() != account_key.serialize_xonly() {
+            return false;
+        }
+
+        // Payload auth partial sig:
+        if let Some((_, ctx)) = &mut self.payload_auth_musig_ctx {
+            if !ctx.insert_partial_sig(account_key, uphold.payload_auth_partial_sig()) {
+                return false;
+            }
+        }
+
+        // VTXO projector partial sig:
+        if let Some((_, ctx)) = &mut self.vtxo_projector_musig_ctx {
+            let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
+                Some(sig) => sig,
+                None => return false,
+            };
+
+            if !ctx.insert_partial_sig(account_key, vtxo_projector_partial_sig) {
+                return false;
+            }
+        }
+
+        // Connector projector partial sig:
+        if let Some((_, ctx)) = &mut self.connector_projector_musig_ctx {
+            let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
+                Some(sig) => sig,
+                None => return false,
+            };
+
+            if !ctx.insert_partial_sig(account_key, connector_projector_partial_sig) {
+                return false;
+            }
+        }
+
+        // ZKP contingent partial sig:
+        if let Some((_, ctx)) = &mut self.zkp_contingent_musig_ctx {
+            let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
+                Some(sig) => sig,
+                None => return false,
+            };
+
+            if !ctx.insert_partial_sig(account_key, zkp_contingent_partial_sig) {
+                return false;
+            }
+        }
+
+        // Insert lift prevtxo partial sigs.
+        let uphold_lift_prevtxo_partial_sigs = uphold.lift_prevtxo_partial_sigs();
+        if let Some(musig_ctxes) = self.lift_prevtxo_musig_ctxes.get_mut(&uphold.account()) {
+            for (lift, (_, _, musig_ctx)) in musig_ctxes.iter_mut() {
+                let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
+                    Some(sig) => sig,
+                    None => return false,
+                };
+
+                if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
+                    return false;
+                }
+            }
+        }
+
+        // Insert connector txo partial sigs.
+        let uphold_connector_txo_partial_sigs = uphold.connector_txo_partial_sigs();
+        if let Some(musig_ctxes) = self.connector_txo_musig_ctxes.get_mut(&uphold.account()) {
+            for (index, (_, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
+                let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
+                    Some(sig) => sig,
+                    None => return false,
+                };
+
+                if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 
     pub fn finalized(&mut self) {
