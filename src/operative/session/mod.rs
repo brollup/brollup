@@ -1,9 +1,23 @@
+// Context
 #[path = "context/ccontext.rs"]
 pub mod ccontext;
 #[path = "context/ncontext.rs"]
 pub mod ncontext;
 
-pub mod allowance;
+// Commit
+#[path = "commit/commit.rs"]
 pub mod commit;
+#[path = "commit/commitack.rs"]
 pub mod commitack;
+#[path = "commit/commiterr.rs"]
+pub mod commiterr;
+
+// Uphold
+#[path = "uphold/uphold.rs"]
 pub mod uphold;
+#[path = "uphold/upholdack.rs"]
+pub mod upholdack;
+#[path = "uphold/upholderr.rs"]
+pub mod upholderr;
+
+pub mod allowance;

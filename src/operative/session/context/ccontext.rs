@@ -1,3 +1,6 @@
+use super::{
+    commiterr::CSessionCommitError, uphold::NSessionUphold, upholderr::NSessionUpholdError,
+};
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
@@ -16,14 +19,13 @@ use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
-use super::uphold::NSessionUphold;
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CSessionStage {
-    On,        // collect keys, hiding and binding nonces.
-    Locked,    // no longer accepting remote. MusigNestingCtx ready.
-    Finalized, // collected all partial sigs.
-    Off,
+    On,        // The session is on. New commitments are now allowed to join.
+    Locked,    // The session is locked. No new commitments are allowed.
+    Upheld,    // The session is upheld. All partial MuSig signatures are collected.
+    Finalized, // The session is finalized. All forfeiture signatures are collected.
+    Off,       // The session is off.
 }
 
 #[derive(Clone)]
@@ -110,25 +112,40 @@ impl CSessionCtx {
         self.msg_senders.clone()
     }
 
+    /// Sets the coordinator session stage to `on`
+    /// meaning accounts can now participate in a rollup state transition.
     pub fn on(&mut self) {
         self.reset();
         self.stage = CSessionStage::On;
     }
 
-    async fn is_valid_commit(&self, commit: &NSessionCommit) -> bool {
+    /// Validates a given `NSessionCommit` to ensure that the involved account
+    /// and transactions are eligible for the rollup state transition.
+    async fn validate_commit(
+        &self,
+        auth_commit: &Authenticable<NSessionCommit>,
+    ) -> Result<(), CSessionCommitError> {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
+        if !auth_commit.authenticate() {
+            return Err(CSessionCommitError::AuthErr);
+        }
+
+        let commit = auth_commit.object();
         let msg_sender = commit.account();
-        let msg_sender_key = msg_sender.key();
+
+        if auth_commit.key() != msg_sender.key().serialize_xonly() {
+            return Err(CSessionCommitError::AuthErr);
+        }
 
         // #1 Overlap check
         if self.msg_senders.contains(&msg_sender) {
-            return false;
+            return Err(CSessionCommitError::Overlap);
         }
 
         // #2 Allowance check
         if allowance(msg_sender) {
-            return false;
+            return Err(CSessionCommitError::Allowance);
         }
 
         // #3 Lift prevtxouts validation
@@ -138,14 +155,18 @@ impl CSessionCtx {
                 let lift_operator_key = lift.operator_key();
                 let lift_remote_key = lift.remote_key();
 
-                if lift_remote_key != msg_sender_key {
-                    return false;
+                if lift_operator_key == lift_remote_key {
+                    return Err(CSessionCommitError::InvalidLiftRemoteKey);
+                }
+
+                if lift_remote_key != msg_sender.key() {
+                    return Err(CSessionCommitError::InvalidLiftRemoteKey);
                 }
 
                 {
                     let dkg_manager_ = dkg_manager.lock().await;
                     if let None = dkg_manager_.directory_by_key(lift_operator_key).await {
-                        return false;
+                        return Err(CSessionCommitError::InvalidLiftOperatorKey);
                     }
                 }
             }
@@ -156,7 +177,7 @@ impl CSessionCtx {
                     Some(_outpoint) => {
                         // TODO: check if this is a valid outpoint.
                     }
-                    None => return false,
+                    None => return Err(CSessionCommitError::InvalidLiftOutpoint),
                 };
             }
         }
@@ -164,94 +185,95 @@ impl CSessionCtx {
         // #4 TODO: Check for num of connectors:
         let _connector_count = self.connector_projector_nonces.len();
 
-        true
+        Ok(())
     }
 
-    pub async fn insert_commit(&mut self, auth_commit: &Authenticable<NSessionCommit>) -> bool {
-        if !auth_commit.authenticate() {
-            return false;
+    /// Attempts to insert an `NSessionCommit` into the coordinator session.  
+    /// The coordinator awaits `NSessionCommit`s until the `CSessionStage` is set to `on`,  
+    /// after which it inserts `NSessionCommit`s into the session context.  
+    /// Shortly after, `CSessionStage` is set to `locked`, preventing further insertions for this session.
+    pub async fn insert_commit(
+        &mut self,
+        auth_commit: &Authenticable<NSessionCommit>,
+    ) -> Result<(), CSessionCommitError> {
+        // #1 Check stage
+        if self.stage != CSessionStage::On {
+            return Err(CSessionCommitError::SessionLocked);
         }
+
+        // #2 Validate commit
+        self.validate_commit(&auth_commit).await?;
 
         let commit = auth_commit.object();
-
         let mut msg_sender = commit.account();
 
-        if auth_commit.key() != msg_sender.key().serialize_xonly() {
-            return false;
-        }
-
-        // #1 Check commit validity.
-        if !self.is_valid_commit(&commit).await {
-            return false;
-        };
-
-        // #2 Registery info
+        // #3 Set registery index (if not set)
         if let Some(registery_index) = key_registery_index(msg_sender.key()) {
             msg_sender.set_registery_index(registery_index);
         }
 
-        // Insert into msg_senders
+        // #4 Insert into msg_senders
         self.msg_senders.push(msg_sender);
 
-        // Insert liftup
+        // #5 Insert into liftups
         if let Some(liftup) = commit.liftup() {
             self.liftups.push(liftup);
         }
 
-        // Insert recharge
+        // #6 Insert into recharges
         if let Some(recharge) = commit.recharge() {
             self.recharges.push(recharge);
         }
 
-        // Insert vanilla
+        // #7 Insert into vanillas
         if let Some(vanilla) = commit.vanilla() {
             self.vanillas.push(vanilla);
         }
 
-        // Insert call
+        // #8 Insert into calls
         if let Some(call) = commit.call() {
             self.calls.push(call);
         }
 
-        // Insert reserved
+        // #9 Insert into reserveds
         if let Some(reserved) = commit.reserved() {
             self.reserveds.push(reserved);
         }
 
-        // Insert into payload_auth_nonces
+        // #10 Insert payload auth nonce commitments
         let payload_auth_nonces = commit.payload_auth_nonces();
         self.payload_auth_nonces
             .insert(msg_sender, payload_auth_nonces);
 
-        // Insert into vtxo_projector_nonces
+        // #11 Insert vtxo projector nonce commitments
         let vtxo_projector_nonces = commit.vtxo_projector_nonces();
         self.vtxo_projector_nonces
             .insert(msg_sender, vtxo_projector_nonces);
 
-        // Insert into connector_projector_nonces
+        // #12 Insert connector projector nonce commitments
         let connector_projector_nonces = commit.connector_projector_nonces();
         self.connector_projector_nonces
             .insert(msg_sender, connector_projector_nonces);
 
-        // Insert into zkp_contingent_nonces
+        // #13 Insert zkp contingent nonce commitments
         let zkp_contingent_nonces = commit.zkp_contingent_nonces();
         self.zkp_contingent_nonces
             .insert(msg_sender, zkp_contingent_nonces);
 
-        // Insert to lift nonces:
+        // #14 Insert lift nonce commitments
         let lift_prevtxo_nonces = commit.lift_prevtxo_nonces();
         self.lift_prevtxo_nonces
             .insert(msg_sender, lift_prevtxo_nonces);
 
-        // Insert to connector nonces
+        // #15 Insert connector nonce commitments
         let connector_txo_nonces = commit.connector_txo_nonces();
         self.connector_txo_nonces
             .insert(msg_sender, connector_txo_nonces);
 
-        true
+        Ok(())
     }
 
-    // Sets the musig contexes upon collecting all commitments.
+    /// Sets the MuSig contexes upon collecting `NSessionCommit`s, triggered by `lock`.
     async fn set_musig_ctxes(&mut self) -> bool {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
@@ -647,13 +669,17 @@ impl CSessionCtx {
         true
     }
 
-    // Locks the session. No new commitments are allowed.
+    /// Locks the session, preventing further `NSessionCommit`s from joining this session.  
+    /// New `NSessionCommit`s are put on hold until the `CSessionStage` is set back to `on`.
     pub async fn lock(&mut self) -> bool {
         self.stage = CSessionStage::Locked;
         self.set_musig_ctxes().await
     }
 
-    // Returns the CommitAck for the respective account who have commited.
+    /// Returns the respective `CSessionCommitAck`s for accounts that have previously committed.  
+    /// The coordinator does this immediately after locking the session.
+    /// `CSessionCommitAck`s contain the post-round-one MuSig contexts to be filled with individual partial signatures.
+    /// Those individual partial signatures are returned as part of the subsequent `NSessionUphold`s.
     pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
         if !self.msg_senders.contains(&account) {
             return None;
@@ -723,9 +749,15 @@ impl CSessionCtx {
         Some(commitack)
     }
 
-    pub fn insert_uphold(&mut self, auth_uphold: Authenticable<NSessionUphold>) -> bool {
+    /// Attempts to insert `NSessionUphold` into the session,
+    /// which contains partial signatures for the MuSig contexts
+    /// requested as part of the earlier `CSessionCommitAck`.
+    pub fn insert_uphold(
+        &mut self,
+        auth_uphold: Authenticable<NSessionUphold>,
+    ) -> Result<(), NSessionUpholdError> {
         if !auth_uphold.authenticate() {
-            return false;
+            return Err(NSessionUpholdError::AuthErr);
         }
 
         let uphold = auth_uphold.object();
@@ -733,83 +765,174 @@ impl CSessionCtx {
         let account_key = uphold.account().key();
 
         if auth_uphold.key() != account_key.serialize_xonly() {
-            return false;
+            return Err(NSessionUpholdError::AuthErr);
         }
 
-        // Payload auth partial sig:
+        // Insert payload auth partial sig
         if let Some((_, ctx)) = &mut self.payload_auth_musig_ctx {
             if !ctx.insert_partial_sig(account_key, uphold.payload_auth_partial_sig()) {
-                return false;
+                return Err(NSessionUpholdError::InvalidPayloadAuthSig);
             }
         }
 
-        // VTXO projector partial sig:
+        // Insert VTXO projector partial sig
         if let Some((_, ctx)) = &mut self.vtxo_projector_musig_ctx {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return false,
+                None => return Err(NSessionUpholdError::MissingVTXOProjectorSig),
             };
 
             if !ctx.insert_partial_sig(account_key, vtxo_projector_partial_sig) {
-                return false;
+                return Err(NSessionUpholdError::InvalidVTXOProjectorSig);
             }
         }
 
-        // Connector projector partial sig:
+        // Insert connector projector partial sig
         if let Some((_, ctx)) = &mut self.connector_projector_musig_ctx {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return false,
+                None => return Err(NSessionUpholdError::MissingConnectorProjectorSig),
             };
 
             if !ctx.insert_partial_sig(account_key, connector_projector_partial_sig) {
-                return false;
+                return Err(NSessionUpholdError::InvalidConnectorProjectorSig);
             }
         }
 
-        // ZKP contingent partial sig:
+        // Insert ZKP contingent partial sig
         if let Some((_, ctx)) = &mut self.zkp_contingent_musig_ctx {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
-                None => return false,
+                None => return Err(NSessionUpholdError::MissingZKPContigentSig),
             };
 
             if !ctx.insert_partial_sig(account_key, zkp_contingent_partial_sig) {
-                return false;
+                return Err(NSessionUpholdError::InvalidZKPContigentSig);
             }
         }
 
-        // Insert lift prevtxo partial sigs.
+        // Insert lift prevtxo partial sigs
         let uphold_lift_prevtxo_partial_sigs = uphold.lift_prevtxo_partial_sigs();
         if let Some(musig_ctxes) = self.lift_prevtxo_musig_ctxes.get_mut(&uphold.account()) {
             for (lift, (_, _, musig_ctx)) in musig_ctxes.iter_mut() {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
-                    None => return false,
+                    None => return Err(NSessionUpholdError::MissingLiftSig),
                 };
 
                 if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return false;
+                    return Err(NSessionUpholdError::InvalidLiftSig);
                 }
             }
         }
 
-        // Insert connector txo partial sigs.
+        // Insert connector txo partial sigs
         let uphold_connector_txo_partial_sigs = uphold.connector_txo_partial_sigs();
         if let Some(musig_ctxes) = self.connector_txo_musig_ctxes.get_mut(&uphold.account()) {
             for (index, (_, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
-                    None => return false,
+                    None => return Err(NSessionUpholdError::MissingConnectorSig),
                 };
 
                 if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return false;
+                    return Err(NSessionUpholdError::InvalidConnectorSig);
                 }
             }
         }
 
-        true
+        Ok(())
+    }
+
+    /// Returns a lift of accounts who have failed to uphold their commitments.
+    pub fn blame_list(&self) -> Vec<Account> {
+        let mut blame_list = Vec::<Account>::new();
+
+        // Payload auth scanning
+        if let Some((_, musig_ctx)) = &self.payload_auth_musig_ctx {
+            let musig_blame_list = musig_ctx.blame_list();
+
+            for account in self.msg_senders.iter() {
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        // VTXO projector scanning
+        if let Some((_, musig_ctx)) = &self.vtxo_projector_musig_ctx {
+            let musig_blame_list = musig_ctx.blame_list();
+
+            for account in self.msg_senders.iter() {
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        // Connector projector scanning
+        if let Some((_, musig_ctx)) = &self.connector_projector_musig_ctx {
+            let musig_blame_list = musig_ctx.blame_list();
+
+            for account in self.msg_senders.iter() {
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        // ZKP contingent scanning
+        if let Some((_, musig_ctx)) = &self.zkp_contingent_musig_ctx {
+            let musig_blame_list = musig_ctx.blame_list();
+
+            for account in self.msg_senders.iter() {
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        // Lifts scanning
+        for (account, musig_ctxes) in self.lift_prevtxo_musig_ctxes.iter() {
+            for (_, (_, _, musig_ctx)) in musig_ctxes {
+                let musig_blame_list = musig_ctx.blame_list();
+
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        // Connectors scanning
+        for (account, musig_ctxes) in self.connector_txo_musig_ctxes.iter() {
+            for (_, musig_ctx) in musig_ctxes {
+                let musig_blame_list = musig_ctx.blame_list();
+
+                if musig_blame_list.contains(&account.key()) {
+                    if !blame_list.contains(account) {
+                        blame_list.push(account.to_owned());
+                    }
+                }
+            }
+        }
+
+        blame_list
+    }
+
+    // is it final? who is missing? blaming..
+
+    pub fn upheld(&mut self) {
+        self.stage = CSessionStage::Upheld;
     }
 
     pub fn finalized(&mut self) {
