@@ -220,10 +220,22 @@ impl MusigSessionCtx {
         true
     }
 
+    pub fn blame_list(&self) -> Vec<Point> {
+        let mut blame_list = Vec::<Point>::new();
+
+        for key in self.key_agg_ctx.keys().iter() {
+            if let None = self.partial_sigs.get(&key) {
+                blame_list.push(key.to_owned());
+            }
+        }
+
+        blame_list
+    }
+
     pub fn agg_sig(&self) -> Option<Scalar> {
-        if self.partial_sigs.len() != self.key_agg_ctx.num_keys() {
+        if self.blame_list().len() != 0 {
             return None;
-        };
+        }
 
         let mut agg_sig = MaybeScalar::Zero;
 
