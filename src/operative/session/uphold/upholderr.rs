@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum NSessionUpholdError {
+pub enum CSessionUpholdError {
     AuthErr,
     InvalidPayloadAuthSig,
     MissingVTXOProjectorSig,

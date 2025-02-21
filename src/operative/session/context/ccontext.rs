@@ -1,5 +1,5 @@
 use super::{
-    commiterr::CSessionCommitError, uphold::NSessionUphold, upholderr::NSessionUpholdError,
+    commiterr::CSessionCommitError, uphold::NSessionUphold, upholderr::CSessionUpholdError,
 };
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
@@ -755,9 +755,9 @@ impl CSessionCtx {
     pub fn insert_uphold(
         &mut self,
         auth_uphold: Authenticable<NSessionUphold>,
-    ) -> Result<(), NSessionUpholdError> {
+    ) -> Result<(), CSessionUpholdError> {
         if !auth_uphold.authenticate() {
-            return Err(NSessionUpholdError::AuthErr);
+            return Err(CSessionUpholdError::AuthErr);
         }
 
         let uphold = auth_uphold.object();
@@ -765,13 +765,13 @@ impl CSessionCtx {
         let account_key = uphold.account().key();
 
         if auth_uphold.key() != account_key.serialize_xonly() {
-            return Err(NSessionUpholdError::AuthErr);
+            return Err(CSessionUpholdError::AuthErr);
         }
 
         // Insert payload auth partial sig
         if let Some((_, ctx)) = &mut self.payload_auth_musig_ctx {
             if !ctx.insert_partial_sig(account_key, uphold.payload_auth_partial_sig()) {
-                return Err(NSessionUpholdError::InvalidPayloadAuthSig);
+                return Err(CSessionUpholdError::InvalidPayloadAuthSig);
             }
         }
 
@@ -779,11 +779,11 @@ impl CSessionCtx {
         if let Some((_, ctx)) = &mut self.vtxo_projector_musig_ctx {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(NSessionUpholdError::MissingVTXOProjectorSig),
+                None => return Err(CSessionUpholdError::MissingVTXOProjectorSig),
             };
 
             if !ctx.insert_partial_sig(account_key, vtxo_projector_partial_sig) {
-                return Err(NSessionUpholdError::InvalidVTXOProjectorSig);
+                return Err(CSessionUpholdError::InvalidVTXOProjectorSig);
             }
         }
 
@@ -791,11 +791,11 @@ impl CSessionCtx {
         if let Some((_, ctx)) = &mut self.connector_projector_musig_ctx {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(NSessionUpholdError::MissingConnectorProjectorSig),
+                None => return Err(CSessionUpholdError::MissingConnectorProjectorSig),
             };
 
             if !ctx.insert_partial_sig(account_key, connector_projector_partial_sig) {
-                return Err(NSessionUpholdError::InvalidConnectorProjectorSig);
+                return Err(CSessionUpholdError::InvalidConnectorProjectorSig);
             }
         }
 
@@ -803,11 +803,11 @@ impl CSessionCtx {
         if let Some((_, ctx)) = &mut self.zkp_contingent_musig_ctx {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(NSessionUpholdError::MissingZKPContigentSig),
+                None => return Err(CSessionUpholdError::MissingZKPContigentSig),
             };
 
             if !ctx.insert_partial_sig(account_key, zkp_contingent_partial_sig) {
-                return Err(NSessionUpholdError::InvalidZKPContigentSig);
+                return Err(CSessionUpholdError::InvalidZKPContigentSig);
             }
         }
 
@@ -817,11 +817,11 @@ impl CSessionCtx {
             for (lift, (_, _, musig_ctx)) in musig_ctxes.iter_mut() {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
-                    None => return Err(NSessionUpholdError::MissingLiftSig),
+                    None => return Err(CSessionUpholdError::MissingLiftSig),
                 };
 
                 if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return Err(NSessionUpholdError::InvalidLiftSig);
+                    return Err(CSessionUpholdError::InvalidLiftSig);
                 }
             }
         }
@@ -832,11 +832,11 @@ impl CSessionCtx {
             for (index, (_, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
-                    None => return Err(NSessionUpholdError::MissingConnectorSig),
+                    None => return Err(CSessionUpholdError::MissingConnectorSig),
                 };
 
                 if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return Err(NSessionUpholdError::InvalidConnectorSig);
+                    return Err(CSessionUpholdError::InvalidConnectorSig);
                 }
             }
         }
