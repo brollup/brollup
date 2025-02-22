@@ -22,12 +22,13 @@ type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
-#[path = "inscriptive/registery.rs"]
+#[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
 
 // Crypto modules.
-#[path = "transmutive/encoding/mod.rs"]
+#[path = "inscriptive/encoding/mod.rs"]
 pub mod encoding;
+
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]

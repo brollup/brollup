@@ -4,7 +4,7 @@ use super::{
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-    registery::key_registery_index,
+    registery::account::account_registery_index,
     schnorr::Authenticable,
     session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
     txo::{
@@ -208,7 +208,7 @@ impl CSessionCtx {
         let mut msg_sender = commit.account();
 
         // #3 Set registery index (if not set)
-        if let Some(registery_index) = key_registery_index(msg_sender.key()) {
+        if let Some(registery_index) = account_registery_index(msg_sender.key()) {
             msg_sender.set_registery_index(registery_index);
         }
 
