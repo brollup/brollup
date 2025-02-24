@@ -8,10 +8,14 @@ use secp::Scalar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// `NSessionUphold` is a follow-up request from the msg.sender for the coordinator to uphold the session.
+/// It is sent by the msg.senders to the coordinator, who then responds with `CSessionUpholdAck`.
+/// `NSessionUphold` contains the covenant partial signatures and is returned by the msg.senders to the coordinator 
+/// upon receiving `CSessionCommitAck` from the coordinator.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionUphold {
     // Account
-    account: Account,
+    msg_sender: Account,
     // Payload auth partial sig
     payload_auth_partial_sig: Scalar,
     // VTXO projector partial sig
@@ -28,7 +32,7 @@ pub struct NSessionUphold {
 
 impl NSessionUphold {
     pub fn new(
-        account: Account,
+        msg_sender: Account,
         payload_auth_partial_sig: Scalar,
         vtxo_projector_partial_sig: Option<Scalar>,
         connector_projector_partial_sig: Option<Scalar>,
@@ -37,7 +41,7 @@ impl NSessionUphold {
         connector_txo_partial_sigs: Vec<Scalar>,
     ) -> NSessionUphold {
         NSessionUphold {
-            account,
+            msg_sender,
             payload_auth_partial_sig,
             vtxo_projector_partial_sig,
             connector_projector_partial_sig,
@@ -47,8 +51,8 @@ impl NSessionUphold {
         }
     }
 
-    pub fn account(&self) -> Account {
-        self.account.clone()
+    pub fn msg_sender(&self) -> Account {
+        self.msg_sender.clone()
     }
 
     pub fn payload_auth_partial_sig(&self) -> Scalar {
@@ -81,7 +85,7 @@ impl Sighash for NSessionUphold {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         // Account
-        preimage.extend(self.account.key().serialize_xonly());
+        preimage.extend(self.msg_sender.key().serialize_xonly());
 
         // payload_auth_partial_sig
         preimage.extend(self.payload_auth_partial_sig.serialize());
