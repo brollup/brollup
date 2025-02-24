@@ -9,8 +9,8 @@ use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// `NSessionCommit` is for requesting the coordinator to commit to a session.
-/// `NSessionCommit` is sent by the msg.senders to the coordinator who then responds with `CSessionCommitAck`.
+/// `NSessionCommit` is a request from the msg.sender for the coordinator to commit to a session. 
+/// It is sent by the msg.senders to the coordinator, who then responds with `CSessionCommitAck`.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCommit {
     // Account
