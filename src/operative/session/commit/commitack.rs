@@ -10,10 +10,11 @@ use std::collections::HashMap;
 /// `CSessionCommitAck` is returned by the coordinator to the msg.senders
 /// upon receiving `NSessionCommit` if the commitment is successful.
 /// Otherwise, the coordinator responds with `CSessionCommitError`.
+/// `CSessionCommitAck` contains the MuSig contexts in which the respective msg.sender is a co-signer.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {
     // Account
-    account: Account,
+    msg_sender: Account,
     // msg.senders
     msg_senders: Vec<Account>,
     // Liftups
@@ -42,7 +43,7 @@ pub struct CSessionCommitAck {
 
 impl CSessionCommitAck {
     pub fn new(
-        account: Account,
+        msg_sender: Account,
         msg_senders: Vec<Account>,
         liftups: Vec<Liftup>,
         recharges: Vec<Recharge>,
@@ -57,7 +58,7 @@ impl CSessionCommitAck {
         connector_txo_musig_ctxes: Vec<MusigSessionCtx>,
     ) -> CSessionCommitAck {
         CSessionCommitAck {
-            account,
+            msg_sender,
             msg_senders,
             liftups,
             recharges,
@@ -73,8 +74,8 @@ impl CSessionCommitAck {
         }
     }
 
-    pub fn account(&self) -> Account {
-        self.account
+    pub fn msg_sender(&self) -> Account {
+        self.msg_sender
     }
 
     pub fn msg_senders(&self) -> Vec<Account> {
