@@ -12,6 +12,14 @@ pub mod commitack;
 #[path = "commit/commiterr.rs"]
 pub mod commiterr;
 
+// Opcov
+#[path = "opcov/opcov.rs"]
+pub mod opcov;
+#[path = "opcov/opcovack.rs"]
+pub mod opcovack;
+#[path = "opcov/opcoverr.rs"]
+pub mod opcoverr;
+
 // Uphold
 #[path = "uphold/uphold.rs"]
 pub mod uphold;

@@ -19,6 +19,9 @@ use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
+type DKGDirHeight = u64;
+type DKGNonceHeight = u64;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CSessionStage {
     On,        // The session is on. New commitments are now allowed to join.
@@ -46,22 +49,23 @@ pub struct CSessionCtx {
     reserveds: Vec<Reserved>,
     // Payload Auth:
     payload_auth_nonces: HashMap<Account, (Point, Point)>,
-    payload_auth_musig_ctx: Option<(u64, MusigSessionCtx)>,
+    payload_auth_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
     // VTXO projector:
     vtxo_projector_nonces: HashMap<Account, (Point, Point)>,
-    vtxo_projector_musig_ctx: Option<(u64, MusigSessionCtx)>,
+    vtxo_projector_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
     // Connector projector:
     connector_projector_nonces: HashMap<Account, (Point, Point)>,
-    connector_projector_musig_ctx: Option<(u64, MusigSessionCtx)>,
+    connector_projector_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
     // ZKP contingent:
     zkp_contingent_nonces: HashMap<Account, (Point, Point)>,
-    zkp_contingent_musig_ctx: Option<(u64, MusigSessionCtx)>,
+    zkp_contingent_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
     // Lift txos:
     lift_prevtxo_nonces: HashMap<Account, HashMap<Lift, (Point, Point)>>,
-    lift_prevtxo_musig_ctxes: HashMap<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>,
+    lift_prevtxo_musig_ctxes:
+        HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
     // Connectors:
     connector_txo_nonces: HashMap<Account, Vec<(Point, Point)>>,
-    connector_txo_musig_ctxes: HashMap<Account, Vec<(u64, MusigSessionCtx)>>,
+    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
 }
 
 impl CSessionCtx {

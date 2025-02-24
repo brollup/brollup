@@ -1,19 +1,19 @@
 ## Session
-Brollup session protocol for covenant emulation & forfeiting.
+Session protocol for the rollup state transition
 
-    +------------+                                    +-------------+                               +-------------+ 
-    |            |                                    |             |                               |             |
-    |            |--(1)--          Commit          -->|             |                               |             |
-    |            |                                    |             |--(2)--    StateSigsAsk     -->|             |
-    |            |                                    |             |<-(3)--      StateSigs      ---|             | 
-    |            |                                    |             |                               |             |
-    |            |<-(4a)-  CommitErr or CommitAck  ---|             |--(4b)-    CovSigsAsk       -->|             |
-    |            |--(5a)-         Uphold           -->|             |<-(5b)-      CovSigs        ---|             |
-    |    Node    |                                    | Coordinator |                               |   Operator  |
-    |            |<-(6)--  UpholdErr or UpholdAck  ---|             |                               |             |
-    |            |--(7)--          Forfeit         -->|             |                               |             |
-    |            |                                    |             |--(8)--    AdvanceSigAsk    -->|             |
-    |            |                                    |             |<-(9)--     AdvanceSig      ---|             | 
-    |            |<-(10)-- ForfeitErr or ForfeitAck --|             |                               |             |
-    |            |                                    |             |                               |             |
-    +------------+                                    +-------------+                               +-------------+ 
+    +------------+                                      +-------------+                                      +-------------+ 
+    |            |                                      |             |                                      |             |
+    |            |--(1)--          Commit            -->|             |                                      |             |
+    |            |                                      |             |--(2)--          StateUp           -->|             |
+    |            |                                      |             |<-(3)-- StateUpAck (or StateUpErr) ---|             | 
+    |            |                                      |             |                                      |             |
+    |            |<-(4a)-  CommitAck (or CommitErr)  ---|             |--(4b)-           OpCov            -->|             |
+    |            |--(5a)-          Uphold            -->|             |<-(5b)-   OpCovAck (or OpCovErr)   ---|             |
+    |    Node    |                                      | Coordinator |                                      |   Operator  |
+    |            |<-(6)--  UpholdAck (or UpholdErr)  ---|             |                                      |             |
+    |            |--(7)--          Forfeit           -->|             |                                      |             |
+    |            |                                      |             |--(8)--          Advance           -->|             |
+    |            |                                      |             |<-(9)-- AdvanceAck (or AdvanceErr) ---|             | 
+    |            |<-(10)- ForfeitAck (or ForfeitErr) ---|             |                                      |             |
+    |            |                                      |             |                                      |             |
+    +------------+                                      +-------------+                                      +-------------+ 

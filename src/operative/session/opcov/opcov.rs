@@ -7,10 +7,14 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+type DKGDirHeight = u64;
+type DKGNonceHeight = u64;
+
+/// `CSessionOpCov` is similar to `CSessionCommitAck`, but it is used for requesting
+/// partial covenant signatures from the operators rather than individual msg.senders.
+/// Therefore, `CSessionOpCov` contains all the MuSig contexts in which the DKG quorum is a co-signer.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct CSessionCommitAck {
-    // Account
-    account: Account,
+pub struct CSessionOpCov {
     // msg.senders
     msg_senders: Vec<Account>,
     // Liftups
@@ -31,15 +35,15 @@ pub struct CSessionCommitAck {
     connector_projector_musig_ctx: Option<MusigSessionCtx>,
     // ZKP contingent
     zkp_contingent_musig_ctx: Option<MusigSessionCtx>,
-    // Lift txos related to this account
-    lift_prevtxo_musig_ctxes: HashMap<Lift, MusigSessionCtx>,
-    // Connectors related to this account
-    connector_txo_musig_ctxes: Vec<MusigSessionCtx>,
+    // All lift txos
+    lift_prevtxo_musig_ctxes:
+        HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
+    // All connectors
+    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
 }
 
-impl CSessionCommitAck {
+impl CSessionOpCov {
     pub fn new(
-        account: Account,
         msg_senders: Vec<Account>,
         liftups: Vec<Liftup>,
         recharges: Vec<Recharge>,
@@ -50,11 +54,13 @@ impl CSessionCommitAck {
         vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
         connector_projector_musig_ctx: Option<MusigSessionCtx>,
         zkp_contingent_musig_ctx: Option<MusigSessionCtx>,
-        lift_prevtxo_musig_ctxes: HashMap<Lift, MusigSessionCtx>,
-        connector_txo_musig_ctxes: Vec<MusigSessionCtx>,
-    ) -> CSessionCommitAck {
-        CSessionCommitAck {
-            account,
+        lift_prevtxo_musig_ctxes: HashMap<
+            Account,
+            HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+        >,
+        connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
+    ) -> CSessionOpCov {
+        CSessionOpCov {
             msg_senders,
             liftups,
             recharges,
@@ -68,10 +74,6 @@ impl CSessionCommitAck {
             lift_prevtxo_musig_ctxes,
             connector_txo_musig_ctxes,
         }
-    }
-
-    pub fn account(&self) -> Account {
-        self.account
     }
 
     pub fn msg_senders(&self) -> Vec<Account> {
@@ -114,11 +116,15 @@ impl CSessionCommitAck {
         self.zkp_contingent_musig_ctx.clone()
     }
 
-    pub fn lift_prevtxo_musig_ctxes(&self) -> HashMap<Lift, MusigSessionCtx> {
+    pub fn lift_prevtxo_musig_ctxes(
+        &self,
+    ) -> HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>> {
         self.lift_prevtxo_musig_ctxes.clone()
     }
 
-    pub fn connector_txo_musig_ctxes(&self) -> Vec<MusigSessionCtx> {
+    pub fn connector_txo_musig_ctxes(
+        &self,
+    ) -> HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>> {
         self.connector_txo_musig_ctxes.clone()
     }
 }
