@@ -7,7 +7,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// `CSessionCommitAck` is returned by the coordinator to the msg.senders upon receiving `NSessionCommit` if the commitment is successful.
+/// `CSessionCommitAck` is returned by the coordinator to the msg.senders
+/// upon receiving `NSessionCommit` if the commitment is successful.
 /// Otherwise, the coordinator responds with `CSessionCommitError`.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {
