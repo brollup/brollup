@@ -3,6 +3,9 @@ use secp::Scalar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// `CSessionUpholdAck` contains the full aggreagte covenant signatures and is returned by the coordinator
+/// to the msg.senders upon receiving `NSessionUphold` if all `NSessionUphold`s were sucesfully collected.
+/// Otherwise, the coordinator responds with `CSessionUpholdError`.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionUpholdAck {
     // Account
