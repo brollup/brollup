@@ -9,12 +9,12 @@ use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// `NSessionCommit` is a request from the msg.sender for the coordinator to commit to a session. 
+/// `NSessionCommit` is a request from the msg.sender for the coordinator to commit to a session.
 /// It is sent by the msg.senders to the coordinator, who then responds with `CSessionCommitAck`.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCommit {
     // Account
-    account: Account,
+    msg_sender: Account,
     // Entries
     liftup: Option<Liftup>,
     recharge: Option<Recharge>,
@@ -37,7 +37,7 @@ pub struct NSessionCommit {
 
 impl NSessionCommit {
     pub fn new(
-        account: Account,
+        msg_sender: Account,
         liftup: Option<Liftup>,
         recharge: Option<Recharge>,
         vanilla: Option<Vanilla>,
@@ -60,7 +60,7 @@ impl NSessionCommit {
         connector_txo_nonces: &Vec<(Point, Point)>,
     ) -> NSessionCommit {
         NSessionCommit {
-            account,
+            msg_sender,
             liftup,
             recharge,
             vanilla,
@@ -78,8 +78,8 @@ impl NSessionCommit {
         }
     }
 
-    pub fn account(&self) -> Account {
-        self.account.clone()
+    pub fn msg_sender(&self) -> Account {
+        self.msg_sender.clone()
     }
 
     pub fn liftup(&self) -> Option<Liftup> {
@@ -132,7 +132,7 @@ impl Sighash for NSessionCommit {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         // Account
-        preimage.extend(self.account.key().serialize_xonly());
+        preimage.extend(self.msg_sender.key().serialize_xonly());
 
         // Liftup
         match self.liftup() {
