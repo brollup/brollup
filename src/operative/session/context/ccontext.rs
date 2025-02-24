@@ -766,7 +766,7 @@ impl CSessionCtx {
 
         let uphold = auth_uphold.object();
 
-        let account_key = uphold.account().key();
+        let account_key = uphold.msg_sender().key();
 
         if auth_uphold.key() != account_key.serialize_xonly() {
             return Err(CSessionUpholdError::AuthErr);
@@ -817,7 +817,7 @@ impl CSessionCtx {
 
         // Insert lift prevtxo partial sigs
         let uphold_lift_prevtxo_partial_sigs = uphold.lift_prevtxo_partial_sigs();
-        if let Some(musig_ctxes) = self.lift_prevtxo_musig_ctxes.get_mut(&uphold.account()) {
+        if let Some(musig_ctxes) = self.lift_prevtxo_musig_ctxes.get_mut(&uphold.msg_sender()) {
             for (lift, (_, _, musig_ctx)) in musig_ctxes.iter_mut() {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
@@ -832,7 +832,7 @@ impl CSessionCtx {
 
         // Insert connector txo partial sigs
         let uphold_connector_txo_partial_sigs = uphold.connector_txo_partial_sigs();
-        if let Some(musig_ctxes) = self.connector_txo_musig_ctxes.get_mut(&uphold.account()) {
+        if let Some(musig_ctxes) = self.connector_txo_musig_ctxes.get_mut(&uphold.msg_sender()) {
             for (index, (_, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
