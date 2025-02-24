@@ -146,7 +146,7 @@ impl NSessionCtx {
 
     // Returns the commitment uphold.
     pub fn uphold(&self, commitack: CSessionCommitAck) -> Option<Authenticable<NSessionUphold>> {
-        if commitack.account().key() != self.account.key() {
+        if commitack.msg_sender().key() != self.account.key() {
             return None;
         }
 

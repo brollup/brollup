@@ -136,7 +136,7 @@ impl CSessionCtx {
         }
 
         let commit = auth_commit.object();
-        let msg_sender = commit.account();
+        let msg_sender = commit.msg_sender();
 
         if auth_commit.key() != msg_sender.key().serialize_xonly() {
             return Err(CSessionCommitError::AuthErr);
@@ -209,7 +209,7 @@ impl CSessionCtx {
         self.validate_commit(&auth_commit).await?;
 
         let commit = auth_commit.object();
-        let mut msg_sender = commit.account();
+        let mut msg_sender = commit.msg_sender();
 
         // #3 Set registery index (if not set)
         if let Some(registery_index) = account_registery_index(msg_sender.key()) {
