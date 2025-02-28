@@ -1035,6 +1035,118 @@ impl CSessionCtx {
         true
     }
 
+    pub fn operator_agg_sigs_ready(&self) -> bool {
+        // Check payload auth
+        if let Some((_, _, noist_ctx, _)) = &self.payload_auth_ctxes {
+            if let None = noist_ctx.aggregated_sig() {
+                return false;
+            }
+        }
+
+        // Check vtxo projector
+        if let Some((_, _, noist_ctx, _)) = &self.vtxo_projector_ctxes {
+            if let None = noist_ctx.aggregated_sig() {
+                return false;
+            }
+        }
+
+        // Check connector projector
+        if let Some((_, _, noist_ctx, _)) = &self.connector_projector_ctxes {
+            if let None = noist_ctx.aggregated_sig() {
+                return false;
+            }
+        }
+
+        // Check zkp contingent
+        if let Some((_, _, noist_ctx, _)) = &self.zkp_contingent_ctxes {
+            if let None = noist_ctx.aggregated_sig() {
+                return false;
+            }
+        }
+
+        // Check lifts
+        for (_, ctxes) in self.lift_prevtxo_ctxes.iter() {
+            for (_, (_, _, noist_ctx, _)) in ctxes.iter() {
+                if let None = noist_ctx.aggregated_sig() {
+                    return false;
+                }
+            }
+        }
+
+        // Check connectors
+        for (_, ctxes) in self.connector_txo_ctxes.iter() {
+            for (_, _, noist_ctx, _) in ctxes.iter() {
+                if let None = noist_ctx.aggregated_sig() {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    pub fn set_operator_agg_sigs(&mut self) -> bool {
+        // Payload auth
+        if let Some((_, _, noist_ctx, musig_ctx)) = &mut self.payload_auth_ctxes {
+            if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                    return false;
+                }
+            }
+        }
+
+        // VTXO projector
+        if let Some((_, _, noist_ctx, musig_ctx)) = &mut self.vtxo_projector_ctxes {
+            if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                    return false;
+                }
+            }
+        }
+
+        // Connector projector
+        if let Some((_, _, noist_ctx, musig_ctx)) = &mut self.connector_projector_ctxes {
+            if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                    return false;
+                }
+            }
+        }
+
+        // ZKP contingent
+        if let Some((_, _, noist_ctx, musig_ctx)) = &mut self.zkp_contingent_ctxes {
+            if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                    return false;
+                }
+            }
+        }
+
+        // Lifts
+        for (_, ctxes) in self.lift_prevtxo_ctxes.iter_mut() {
+            for (_, (_, _, noist_ctx, musig_ctx)) in ctxes.iter_mut() {
+                if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                    if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // Connectors
+        for (_, ctxes) in self.connector_txo_ctxes.iter_mut() {
+            for (_, _, noist_ctx, musig_ctx) in ctxes.iter_mut() {
+                if let Some(agg_sig) = noist_ctx.aggregated_sig() {
+                    if !musig_ctx.insert_partial_sig(noist_ctx.group_key(), agg_sig) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
+
     /// Attempts to insert `NSessionUphold` into the session,
     /// which contains partial signatures for the MuSig contexts
     /// requested as part of the earlier `CSessionCommitAck`.
