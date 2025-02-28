@@ -28,18 +28,18 @@ pub struct CSessionOpCov {
     // Reserveds
     reserveds: Vec<Reserved>,
     // Payload auth
-    payload_auth_musig_ctx: MusigSessionCtx,
+    payload_auth_musig_ctx: (DKGDirHeight, DKGNonceHeight, MusigSessionCtx),
     // VTXO projector
-    vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
+    vtxo_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // Connector projector
-    connector_projector_musig_ctx: Option<MusigSessionCtx>,
+    connector_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // ZKP contingent
-    zkp_contingent_musig_ctx: Option<MusigSessionCtx>,
+    zkp_contingent_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // All lift txos
     lift_prevtxo_musig_ctxes:
         HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
     // All connectors
-    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
+    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
 }
 
 impl CSessionOpCov {
@@ -50,15 +50,15 @@ impl CSessionOpCov {
         vanillas: Vec<Vanilla>,
         calls: Vec<Call>,
         reserveds: Vec<Reserved>,
-        payload_auth_musig_ctx: MusigSessionCtx,
-        vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
-        connector_projector_musig_ctx: Option<MusigSessionCtx>,
-        zkp_contingent_musig_ctx: Option<MusigSessionCtx>,
+        payload_auth_musig_ctx: (DKGDirHeight, DKGNonceHeight, MusigSessionCtx),
+        vtxo_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+        connector_projector_musig_ctx: Option<(DKGDirHeight,DKGNonceHeight, MusigSessionCtx)>,
+        zkp_contingent_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         lift_prevtxo_musig_ctxes: HashMap<
             Account,
             HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         >,
-        connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
+        connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
     ) -> CSessionOpCov {
         CSessionOpCov {
             msg_senders,
@@ -100,19 +100,19 @@ impl CSessionOpCov {
         self.reserveds.clone()
     }
 
-    pub fn payload_auth_musig_ctx(&self) -> MusigSessionCtx {
+    pub fn payload_auth_musig_ctx(&self) -> (DKGDirHeight, DKGNonceHeight, MusigSessionCtx) {
         self.payload_auth_musig_ctx.clone()
     }
 
-    pub fn vtxo_projector_musig_ctx(&self) -> Option<MusigSessionCtx> {
+    pub fn vtxo_projector_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.vtxo_projector_musig_ctx.clone()
     }
 
-    pub fn connector_projector_musig_ctx(&self) -> Option<MusigSessionCtx> {
+    pub fn connector_projector_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.connector_projector_musig_ctx.clone()
     }
 
-    pub fn zkp_contingent_musig_ctx(&self) -> Option<MusigSessionCtx> {
+    pub fn zkp_contingent_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.zkp_contingent_musig_ctx.clone()
     }
 
@@ -124,7 +124,7 @@ impl CSessionOpCov {
 
     pub fn connector_txo_musig_ctxes(
         &self,
-    ) -> HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>> {
+    ) -> HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>> {
         self.connector_txo_musig_ctxes.clone()
     }
 }
