@@ -1,4 +1,4 @@
-use super::{dkg::directory::DKGDirectory, session::SessionCtx, setup::setup::VSESetup};
+use super::{dkg::directory::DKGDirectory, session::NOISTSessionCtx, setup::setup::VSESetup};
 use crate::{musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
 use secp::Point;
 use serde::{Deserialize, Serialize};
@@ -107,7 +107,7 @@ impl DKGManager {
         message: [u8; 32],
         musig_ctx: Option<MusigSessionCtx>,
         toxic: bool,
-    ) -> Option<SessionCtx> {
+    ) -> Option<NOISTSessionCtx> {
         let dkg_dir: DKG_DIRECTORY = self.directory_by_height(dir_height)?;
         let mut dkg_dir_ = dkg_dir.lock().await;
         let nonce_height = dkg_dir_.pick_index()?;
@@ -120,7 +120,7 @@ impl DKGManager {
         nonce_height: u64,
         musig_ctx: MusigSessionCtx,
         toxic: bool,
-    ) -> Result<SessionCtx, SessionCtxError> {
+    ) -> Result<NOISTSessionCtx, SessionCtxError> {
         let dkg_dir: DKG_DIRECTORY = match self.directory_by_height(dir_height) {
             Some(dir) => dir,
             None => return Err(SessionCtxError::InvalidDKGDirHeight),
@@ -147,7 +147,7 @@ impl DKGManager {
         nonce_height: u64,
         message: [u8; 32],
         toxic: bool,
-    ) -> Result<SessionCtx, SessionCtxError> {
+    ) -> Result<NOISTSessionCtx, SessionCtxError> {
         let dkg_dir: DKG_DIRECTORY = match self.directory_by_height(dir_height) {
             Some(dir) => dir,
             None => return Err(SessionCtxError::InvalidDKGDirHeight),

@@ -8,7 +8,7 @@ Session protocol for the rollup state transition
     |          |                                      |             |<-(3)-- StateUpAck (or StateUpErr) ---|          | 
     |          |                                      |             |                                      |          |
     |          |<-(4a)-  CommitAck (or CommitErr)  ---|             |--(4b)-           OpCov            -->|          |
-    |          |--(5a)-          Uphold            -->|             |<-(5b)-   OpCovAck (or OpCovErr)   ---|          |
+    |          |--(5a)-          Uphold            -->|             |<-(5b)-         OpCovAck           ---|          |
     |   Node   |                                      | Coordinator |                                      | Operator |
     |          |<-(6)--  UpholdAck (or UpholdErr)  ---|             |                                      |          |
     |          |--(7)--          Forfeit           -->|             |                                      |          |

@@ -7,7 +7,7 @@ use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub struct SessionCtx {
+pub struct NOISTSessionCtx {
     group_key_session: DKGSession,
     group_nonce_session: DKGSession,
     group_key: Point,
@@ -20,7 +20,7 @@ pub struct SessionCtx {
     partial_sigs: HashMap<Point, Scalar>,
 }
 
-impl SessionCtx {
+impl NOISTSessionCtx {
     pub fn new(
         group_key_session: &DKGSession,
         group_nonce_session: &DKGSession,
@@ -30,7 +30,7 @@ impl SessionCtx {
         group_nonce: Point,
         message: [u8; 32],
         musig_ctx: Option<MusigSessionCtx>,
-    ) -> Option<SessionCtx> {
+    ) -> Option<NOISTSessionCtx> {
         let (challenge_nonce, challenge_key) = match &musig_ctx {
             Some(ctx) => (ctx.agg_nonce()?, ctx.key_agg_ctx().agg_key()),
             None => (group_nonce, group_key),
@@ -46,7 +46,7 @@ impl SessionCtx {
             MaybeScalar::Zero => return None,
         };
 
-        let session = SessionCtx {
+        let session = NOISTSessionCtx {
             group_key_session: group_key_session.to_owned(),
             group_nonce_session: group_nonce_session.to_owned(),
             group_key,

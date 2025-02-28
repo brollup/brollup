@@ -1,7 +1,7 @@
 use super::session::DKGSession;
 use crate::{
     musig::session::MusigSessionCtx,
-    noist::{session::SessionCtx, setup::setup::VSESetup},
+    noist::{session::NOISTSessionCtx, setup::setup::VSESetup},
 };
 use secp::Point;
 use std::collections::HashMap;
@@ -202,7 +202,7 @@ impl DKGDirectory {
         message: [u8; 32],
         musig_ctx: Option<MusigSessionCtx>,
         toxic: bool,
-    ) -> Option<SessionCtx> {
+    ) -> Option<NOISTSessionCtx> {
         let nonce_height = self.pick_index()?;
         self.signing_session(message, nonce_height, musig_ctx, toxic)
     }
@@ -213,7 +213,7 @@ impl DKGDirectory {
         nonce_height: u64,
         musig_ctx: Option<MusigSessionCtx>,
         toxic: bool,
-    ) -> Option<SessionCtx> {
+    ) -> Option<NOISTSessionCtx> {
         let group_key_session = self.group_key_session()?;
 
         let group_nonce_session = self.group_nonce_session(nonce_height)?;
@@ -226,7 +226,7 @@ impl DKGDirectory {
 
         let group_nonce = self.group_nonce(nonce_height, message)?;
 
-        let signing_session = SessionCtx::new(
+        let signing_session = NOISTSessionCtx::new(
             &group_key_session,
             &group_nonce_session,
             group_key,

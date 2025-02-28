@@ -17,8 +17,6 @@ pub mod commiterr;
 pub mod opcov;
 #[path = "opcov/opcovack.rs"]
 pub mod opcovack;
-#[path = "opcov/opcoverr.rs"]
-pub mod opcoverr;
 
 // Uphold
 #[path = "uphold/uphold.rs"]
