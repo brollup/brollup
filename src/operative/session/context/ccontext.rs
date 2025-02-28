@@ -697,6 +697,9 @@ impl CSessionCtx {
         self.set_musig_ctxes().await
     }
 
+    /// Returns the respective `CSessionOpCov`s for the DKG operators.
+    /// The coordinator does this immediately after locking the session (simultaneously with commitack).
+    /// `CSessionOpCov`s contain the post-round-one MuSig contexts to be filled with individual partial signatures (just like `CSessionCommitAck`).
     pub fn opcov(&self) -> Option<CSessionOpCov> {
         // Allowed only in the locked stage
         if self.stage != CSessionStage::Locked {
