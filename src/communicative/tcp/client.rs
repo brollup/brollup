@@ -7,6 +7,8 @@ use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::peer::PeerConnection;
 use crate::schnorr::Authenticable;
+use crate::session::opcov::CSessionOpCov;
+use crate::session::opcovack::OSessionOpCovAck;
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -49,18 +51,8 @@ pub trait TCPClient {
         dir_height: u64,
     ) -> Result<(VSESetup, Vec<DKGSession>), RequestError>;
 
-    async fn cov_session_join(
-        &self,
-        key: [u8; 32],
-        hiding_nonce: Point,
-        binding_nonce: Point,
-    ) -> Result<MusigSessionCtx, RequestError>;
-
-    async fn cov_session_submit(
-        &self,
-        key: [u8; 32],
-        partial_sig: Scalar,
-    ) -> Result<(), RequestError>;
+    /// Coordinator asking operators partial signatires given CSessionOpCov, returning OSessionOpCovAck.
+    async fn request_opcov(&self, opcov: CSessionOpCov) -> Result<OSessionOpCovAck, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -369,79 +361,20 @@ impl TCPClient for PEER {
         Ok((setup, sorted_sessions))
     }
 
-    async fn cov_session_join(
-        &self,
-        key: [u8; 32],
-        hiding_nonce: Point,
-        binding_nonce: Point,
-    ) -> Result<MusigSessionCtx, RequestError> {
-        let key_point = match key.into_point() {
-            Ok(point) => point,
-            Err(_) => return Err(RequestError::InvalidRequest),
-        };
+    async fn request_opcov(&self, opcov: CSessionOpCov) -> Result<OSessionOpCovAck, RequestError> {
+        let payload = serde_json::to_vec(&opcov).map_err(|_| RequestError::InvalidRequest)?;
 
-        let payload = serde_json::to_vec(&(key, hiding_nonce, binding_nonce))
-            .map_err(|_| RequestError::InvalidRequest)?;
-
-        // Build request package.
         let request_package = {
-            let kind = PackageKind::CovSessionJoin;
+            let kind = PackageKind::RequestOpCov;
             let timestamp = Utc::now().timestamp();
             TCPPackage::new(kind, timestamp, &payload)
         };
 
-        // Return the TCP socket.
         let socket: SOCKET = self
             .socket()
             .await
             .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
 
-        // Timeout 11 seconds.
-        let timeout = Duration::from_millis(11_000);
-
-        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
-            .await
-            .map_err(|err| RequestError::TCPErr(err))?;
-
-        let response_payload = match response_package.payload_len() {
-            0 => return Err(RequestError::EmptyResponse),
-            _ => response_package.payload(),
-        };
-
-        let musig_ctx: MusigSessionCtx = match serde_json::from_slice(&response_payload) {
-            Ok(ctx) => ctx,
-            Err(_) => return Err(RequestError::InvalidResponse),
-        };
-
-        if !musig_ctx.key_agg_ctx().keys().contains(&key_point) {
-            return Err(RequestError::InvalidResponse);
-        };
-
-        Ok(musig_ctx)
-    }
-
-    async fn cov_session_submit(
-        &self,
-        key: [u8; 32],
-        partial_sig: Scalar,
-    ) -> Result<(), RequestError> {
-        let payload =
-            serde_json::to_vec(&(key, partial_sig)).map_err(|_| RequestError::InvalidRequest)?;
-
-        // Build request package.
-        let request_package = {
-            let kind = PackageKind::CovSessionSubmit;
-            let timestamp = Utc::now().timestamp();
-            TCPPackage::new(kind, timestamp, &payload)
-        };
-
-        // Return the TCP socket.
-        let socket: SOCKET = self
-            .socket()
-            .await
-            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
-
-        // Timeout 1 seconds.
         let timeout = Duration::from_millis(1_000);
 
         let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
@@ -453,14 +386,8 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let response_code: u8 = match serde_json::from_slice(&response_payload) {
-            Ok(code) => code,
-            Err(_) => return Err(RequestError::InvalidResponse),
-        };
+        let opcov_ack = serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
-        match response_code {
-            0x01 => Ok(()),
-            _ => Err(RequestError::ErrorResponse),
-        }
+        Ok(opcov_ack)
     }
 }

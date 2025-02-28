@@ -1,6 +1,5 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp;
-use crate::csession::stage::CSessionStage;
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::musig::session::MusigSessionCtx;
@@ -8,8 +7,8 @@ use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
-use crate::nsession::commit::NSessionRequest;
 use crate::schnorr::Authenticable;
+use crate::session::opcov::CSessionOpCov;
 use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use secp::Scalar;
@@ -251,14 +250,6 @@ async fn handle_package(
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
                 PackageKind::SyncDKGDir => {
                     handle_sync_dkg_dir(package.timestamp(), &package.payload(), dkg_manager).await
-                }
-                PackageKind::CovSessionJoin => {
-                    handle_cov_session_join(package.timestamp(), &package.payload(), csession_ctx)
-                        .await
-                }
-                PackageKind::CovSessionSubmit => {
-                    handle_cov_session_submit(package.timestamp(), &package.payload(), csession_ctx)
-                        .await
                 }
 
                 _ => return,
@@ -510,6 +501,7 @@ async fn handle_deliver_dkg_sessions(
     Some(response_package)
 }
 
+/// Coordinator asking operators for partial signatures generic.
 async fn handle_request_partial_sigs(
     timestamp: i64,
     payload: &[u8],
@@ -560,103 +552,37 @@ async fn handle_request_partial_sigs(
     Some(response_package)
 }
 
-async fn handle_cov_session_join(
+/// Coordinator asking operators for partial signatures
+async fn handle_request_opcov(
     timestamp: i64,
     payload: &[u8],
-    csession_ctx: &Option<CSESSION_CTX>,
+    dkg_manager: &mut DKG_MANAGER,
 ) -> Option<TCPPackage> {
-    let nsession_request: NSessionRequest = match serde_json::from_slice(payload) {
-        Ok(nsession) => nsession,
+    let opcov: CSessionOpCov = match serde_json::from_slice(payload) {
+        Ok(opcov) => opcov,
         Err(_) => return None,
     };
 
-    let csession_ctx = match csession_ctx {
-        Some(session) => session,
-        None => return None,
-    };
-
+    // Payload auth
     {
-        let mut _csession_ctx = csession_ctx.lock().await;
-        match _csession_ctx.stage() {
-            CSessionStage::On => {
-                if !_csession_ctx.insert(&nsession_request).await {
-                    return None;
-                }
-            }
-            _ => return None,
-        }
-    }
 
-    let musig_ctx = loop {
-        let stage = {
-            let mut _csession_ctx = csession_ctx.lock().await;
-            _csession_ctx.stage()
+        let (dkg_dir_height, dkg_nonce_height, musig_ctx) = opcov.payload_auth_musig_ctx();
+
+        let dkg_directory: DKG_DIRECTORY = {
+            let _dkg_manager = dkg_manager.lock().await;
+            match _dkg_manager.directory_by_height(dkg_dir_height) {
+                Some(directory) => directory,
+                None => return None,
+            }
         };
+    }
+    
 
-        match stage {
-            CSessionStage::Locked => {
-                let mut _csession_ctx = csession_ctx.lock().await;
-                let musig_ctx = match _csession_ctx.payload_auth_musig_ctx() {
-                    Some(ctx) => ctx,
-                    None => return None,
-                };
 
-                break musig_ctx;
-            }
-            _ => {
-                tokio::time::sleep(Duration::from_millis(50)).await;
-                continue;
-            }
-        }
-    };
 
-    let response_payload = match serde_json::to_vec(&musig_ctx) {
-        Ok(bytes) => bytes,
-        Err(_) => return None,
-    };
 
-    let response_package = {
-        let kind = PackageKind::CovSessionJoin;
-        TCPPackage::new(kind, timestamp, &response_payload)
-    };
+    
 
-    Some(response_package)
-}
-
-async fn handle_cov_session_submit(
-    timestamp: i64,
-    payload: &[u8],
-    session_ctx: &Option<CSESSION_CTX>,
-) -> Option<TCPPackage> {
-    let (key, partial_sig): ([u8; 32], Scalar) = match serde_json::from_slice(payload) {
-        Ok(tuple) => tuple,
-        Err(_) => return None,
-    };
-
-    let session_ctx = match session_ctx {
-        Some(session) => session,
-        None => return None,
-    };
-
-    let insertion = {
-        let mut _session_ctx = session_ctx.lock().await;
-        _session_ctx.insert_partial_sig(key, partial_sig)
-    };
-
-    let response_bytecode: u8 = match insertion {
-        true => 0x01,
-        false => 0x00,
-    };
-
-    let response_payload = match serde_json::to_vec(&response_bytecode) {
-        Ok(bytes) => bytes,
-        Err(_) => return None,
-    };
-
-    let response_package = {
-        let kind = PackageKind::CovSessionSubmit;
-        TCPPackage::new(kind, timestamp, &response_payload)
-    };
-
-    Some(response_package)
+    
+    None
 }
