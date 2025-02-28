@@ -105,7 +105,7 @@ impl SessionCtx {
         self.group_nonce
     }
 
-    pub fn nonce_index(&self) -> u64 {
+    pub fn nonce_height(&self) -> u64 {
         self.group_nonce_session.index()
     }
 

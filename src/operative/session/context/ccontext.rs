@@ -1,5 +1,6 @@
 use super::{
-    commiterr::CSessionCommitError, uphold::NSessionUphold, upholderr::CSessionUpholdError,
+    commiterr::CSessionCommitError, opcov::CSessionOpCov, uphold::NSessionUphold,
+    upholderr::CSessionUpholdError,
 };
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
@@ -49,23 +50,24 @@ pub struct CSessionCtx {
     reserveds: Vec<Reserved>,
     // Payload Auth:
     payload_auth_nonces: HashMap<Account, (Point, Point)>,
-    payload_auth_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
+    payload_auth_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // VTXO projector:
     vtxo_projector_nonces: HashMap<Account, (Point, Point)>,
-    vtxo_projector_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
+    vtxo_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // Connector projector:
     connector_projector_nonces: HashMap<Account, (Point, Point)>,
-    connector_projector_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
+    connector_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // ZKP contingent:
     zkp_contingent_nonces: HashMap<Account, (Point, Point)>,
-    zkp_contingent_musig_ctx: Option<(DKGNonceHeight, MusigSessionCtx)>,
+    zkp_contingent_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
     // Lift txos:
     lift_prevtxo_nonces: HashMap<Account, HashMap<Lift, (Point, Point)>>,
     lift_prevtxo_musig_ctxes:
         HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
     // Connectors:
     connector_txo_nonces: HashMap<Account, Vec<(Point, Point)>>,
-    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGNonceHeight, MusigSessionCtx)>>,
+    connector_txo_musig_ctxes:
+        HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
 }
 
 impl CSessionCtx {
@@ -88,10 +90,15 @@ impl CSessionCtx {
             zkp_contingent_nonces: HashMap::<Account, (Point, Point)>::new(),
             zkp_contingent_musig_ctx: None,
             lift_prevtxo_nonces: HashMap::<Account, HashMap<Lift, (Point, Point)>>::new(),
-            lift_prevtxo_musig_ctxes:
-                HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new(),
+            lift_prevtxo_musig_ctxes: HashMap::<
+                Account,
+                HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+            >::new(),
             connector_txo_nonces: HashMap::<Account, Vec<(Point, Point)>>::new(),
-            connector_txo_musig_ctxes: HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new(),
+            connector_txo_musig_ctxes: HashMap::<
+                Account,
+                Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+            >::new(),
         };
         Arc::new(Mutex::new(session))
     }
@@ -100,7 +107,9 @@ impl CSessionCtx {
         self.payload_auth_nonces.clone()
     }
 
-    pub fn payload_auth_musig_ctx(&self) -> Option<(u64, MusigSessionCtx)> {
+    pub fn payload_auth_musig_ctx(
+        &self,
+    ) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.payload_auth_musig_ctx.clone()
     }
 
@@ -281,7 +290,7 @@ impl CSessionCtx {
     async fn set_musig_ctxes(&mut self) -> bool {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
-        let dkg_dir: DKG_DIRECTORY = {
+        let active_dkg_dir: DKG_DIRECTORY = {
             let dkg_manager_ = dkg_manager.lock().await;
             match dkg_manager_.active_directory() {
                 Some(dir) => dir,
@@ -289,13 +298,18 @@ impl CSessionCtx {
             }
         };
 
-        let payload_auth_musig_tuple = match self.payload_auth_nonces.len() {
+        let active_dir_height = {
+            let active_dkg_dir_ = active_dkg_dir.lock().await;
+            active_dkg_dir_.dir_height()
+        };
+
+        let payload_auth_musig_triple = match self.payload_auth_nonces.len() {
             0 => return false,
             _ => {
                 // TODO:
                 let payload_auth_message = [0xffu8; 32];
 
-                let mut dkg_dir_ = dkg_dir.lock().await;
+                let mut dkg_dir_ = active_dkg_dir.lock().await;
 
                 let noist_signing_session =
                     match dkg_dir_.pick_signing_session(payload_auth_message, None, false) {
@@ -303,7 +317,7 @@ impl CSessionCtx {
                         None => return false,
                     };
 
-                let nonce_index = noist_signing_session.nonce_index();
+                let nonce_height = noist_signing_session.nonce_height();
                 let mut keys: Vec<Point> = self
                     .payload_auth_nonces
                     .iter()
@@ -340,17 +354,17 @@ impl CSessionCtx {
                     return false;
                 }
 
-                Some((nonce_index, musig_ctx))
+                Some((active_dir_height, nonce_height, musig_ctx))
             }
         };
 
-        let vtxo_projector_musig_tuple = match self.vtxo_projector_nonces.len() {
+        let vtxo_projector_musig_triple = match self.vtxo_projector_nonces.len() {
             0 => None,
             _ => {
                 // TODO:
                 let vtxo_projector_message = [0xffu8; 32];
 
-                let mut dkg_dir_ = dkg_dir.lock().await;
+                let mut dkg_dir_ = active_dkg_dir.lock().await;
 
                 let noist_signing_session =
                     match dkg_dir_.pick_signing_session(vtxo_projector_message, None, false) {
@@ -358,7 +372,7 @@ impl CSessionCtx {
                         None => return false,
                     };
 
-                let nonce_index = noist_signing_session.nonce_index();
+                let nonce_height = noist_signing_session.nonce_height();
 
                 let remote_keys: Vec<Point> = self
                     .vtxo_projector_nonces
@@ -403,17 +417,17 @@ impl CSessionCtx {
                     return false;
                 }
 
-                Some((nonce_index, musig_ctx))
+                Some((active_dir_height, nonce_height, musig_ctx))
             }
         };
 
-        let connector_projector_musig_tuple = match self.connector_projector_nonces.len() {
+        let connector_projector_musig_triple = match self.connector_projector_nonces.len() {
             0 => None,
             _ => {
                 // TODO:
                 let connector_projector_message = [0xffu8; 32];
 
-                let mut dkg_dir_ = dkg_dir.lock().await;
+                let mut dkg_dir_ = active_dkg_dir.lock().await;
 
                 let noist_signing_session =
                     match dkg_dir_.pick_signing_session(connector_projector_message, None, false) {
@@ -421,7 +435,7 @@ impl CSessionCtx {
                         None => return false,
                     };
 
-                let nonce_index = noist_signing_session.nonce_index();
+                let nonce_height = noist_signing_session.nonce_height();
                 let remote_keys: Vec<Point> = self
                     .connector_projector_nonces
                     .iter()
@@ -465,17 +479,17 @@ impl CSessionCtx {
                     return false;
                 }
 
-                Some((nonce_index, musig_ctx))
+                Some((active_dir_height, nonce_height, musig_ctx))
             }
         };
 
-        let zkp_contingent_musig_tuple = match self.zkp_contingent_nonces.len() {
+        let zkp_contingent_musig_triple = match self.zkp_contingent_nonces.len() {
             0 => None,
             _ => {
                 // TODO:
                 let zkp_contingent_message = [0xffu8; 32];
 
-                let mut dkg_dir_ = dkg_dir.lock().await;
+                let mut dkg_dir_ = active_dkg_dir.lock().await;
 
                 let noist_signing_session =
                     match dkg_dir_.pick_signing_session(zkp_contingent_message, None, false) {
@@ -483,7 +497,7 @@ impl CSessionCtx {
                         None => return false,
                     };
 
-                let nonce_index = noist_signing_session.nonce_index();
+                let nonce_height = noist_signing_session.nonce_height();
 
                 let mut keys: Vec<Point> = self
                     .zkp_contingent_nonces
@@ -522,14 +536,16 @@ impl CSessionCtx {
                     return false;
                 }
 
-                Some((nonce_index, musig_ctx))
+                Some((active_dir_height, nonce_height, musig_ctx))
             }
         };
 
         // Lift prevtxos:
 
-        let mut lift_prevtxo_musig_ctxes =
-            HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
+        let mut lift_prevtxo_musig_ctxes = HashMap::<
+            Account,
+            HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+        >::new();
 
         for (msg_sender, lift_prevtxos) in self.lift_prevtxo_nonces.iter() {
             let mut musig_ctxes = HashMap::<Lift, (u64, u64, MusigSessionCtx)>::new();
@@ -562,7 +578,7 @@ impl CSessionCtx {
                             None => return false,
                         };
 
-                    let nonce_index = noist_signing_session.nonce_index();
+                    let nonce_height = noist_signing_session.nonce_height();
                     let remote_key = msg_sender.key();
 
                     let key_agg_ctx = match lift.key_agg_ctx() {
@@ -588,7 +604,7 @@ impl CSessionCtx {
                         return false;
                     }
 
-                    (dir_height, nonce_index, musig_ctx)
+                    (dir_height, nonce_height, musig_ctx)
                 };
                 if let Some(_) =
                     musig_ctxes.insert(lift.to_owned(), (dir_height, nonce_index, musig_ctx))
@@ -604,17 +620,18 @@ impl CSessionCtx {
 
         // Connector TXOs:
 
-        let mut connector_txo_musig_ctxes = HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new();
+        let mut connector_txo_musig_ctxes =
+            HashMap::<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>::new();
 
         for (msg_sender, connector_txos) in self.connector_txo_nonces.iter() {
-            let mut musig_ctxes = Vec::<(u64, MusigSessionCtx)>::new();
+            let mut musig_ctxes = Vec::<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>::new();
 
             for (hiding, binding) in connector_txos.iter() {
-                let (nonce_index, musig_ctx) = {
+                let (dir_height, nonce_height, musig_ctx) = {
                     // TODO:
                     let connector_txo_message = [0xffu8; 32];
 
-                    let mut dkg_dir_ = dkg_dir.lock().await;
+                    let mut dkg_dir_ = active_dkg_dir.lock().await;
 
                     let noist_signing_session =
                         match dkg_dir_.pick_signing_session(connector_txo_message, None, false) {
@@ -622,7 +639,7 @@ impl CSessionCtx {
                             None => return false,
                         };
 
-                    let nonce_index = noist_signing_session.nonce_index();
+                    let nonce_height = noist_signing_session.nonce_height();
                     let remote_key = msg_sender.key();
                     let operator_key = noist_signing_session.group_key();
 
@@ -651,10 +668,10 @@ impl CSessionCtx {
                         return false;
                     }
 
-                    (nonce_index, musig_ctx)
+                    (active_dir_height, nonce_height, musig_ctx)
                 };
 
-                musig_ctxes.push((nonce_index, musig_ctx));
+                musig_ctxes.push((dir_height, nonce_height, musig_ctx));
             }
 
             if let Some(_) = connector_txo_musig_ctxes.insert(msg_sender.to_owned(), musig_ctxes) {
@@ -663,10 +680,10 @@ impl CSessionCtx {
         }
 
         // Set values:
-        self.payload_auth_musig_ctx = payload_auth_musig_tuple;
-        self.vtxo_projector_musig_ctx = vtxo_projector_musig_tuple;
-        self.connector_projector_musig_ctx = connector_projector_musig_tuple;
-        self.zkp_contingent_musig_ctx = zkp_contingent_musig_tuple;
+        self.payload_auth_musig_ctx = payload_auth_musig_triple;
+        self.vtxo_projector_musig_ctx = vtxo_projector_musig_triple;
+        self.connector_projector_musig_ctx = connector_projector_musig_triple;
+        self.zkp_contingent_musig_ctx = zkp_contingent_musig_triple;
         self.lift_prevtxo_musig_ctxes = lift_prevtxo_musig_ctxes;
         self.connector_txo_musig_ctxes = connector_txo_musig_ctxes;
 
@@ -680,11 +697,68 @@ impl CSessionCtx {
         self.set_musig_ctxes().await
     }
 
+    pub fn opcov(&self) -> Option<CSessionOpCov> {
+        // Allowed only in the locked stage
+        if self.stage != CSessionStage::Locked {
+            return None;
+        }
+
+        let msg_senders = self.msg_senders();
+        let liftups = self.liftups.clone();
+        let recharges = self.recharges.clone();
+        let vanillas = self.vanillas.clone();
+        let calls = self.calls.clone();
+        let reserveds = self.reserveds.clone();
+
+        let payload_auth_musig_ctx = self.payload_auth_musig_ctx()?;
+
+        let vtxo_projector_musig_ctx = match &self.vtxo_projector_musig_ctx {
+            Some(tuple) => Some(tuple.to_owned()),
+            None => return None,
+        };
+
+        let connector_projector_musig_ctx = match &self.connector_projector_musig_ctx {
+            Some(tuple) => Some(tuple.to_owned()),
+            None => return None,
+        };
+
+        let zkp_contingent_musig_ctx = match &self.zkp_contingent_musig_ctx {
+            Some(tuple) => Some(tuple.to_owned()),
+            None => return None,
+        };
+
+        let lift_prevtxo_musig_ctxes = self.lift_prevtxo_musig_ctxes.clone();
+
+        let connector_txo_musig_ctxes = self.connector_txo_musig_ctxes.clone();
+
+        let opcov = CSessionOpCov::new(
+            msg_senders,
+            liftups,
+            recharges,
+            vanillas,
+            calls,
+            reserveds,
+            payload_auth_musig_ctx,
+            vtxo_projector_musig_ctx,
+            connector_projector_musig_ctx,
+            zkp_contingent_musig_ctx,
+            lift_prevtxo_musig_ctxes,
+            connector_txo_musig_ctxes,
+        );
+
+        Some(opcov)
+    }
+
     /// Returns the respective `CSessionCommitAck`s for accounts that have previously committed.  
     /// The coordinator does this immediately after locking the session.
     /// `CSessionCommitAck`s contain the post-round-one MuSig contexts to be filled with individual partial signatures.
     /// Those individual partial signatures are returned as part of the subsequent `NSessionUphold`s.
     pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+        // Allowed only in the locked stage
+        if self.stage != CSessionStage::Locked {
+            return None;
+        }
+
         if !self.msg_senders.contains(&account) {
             return None;
         }
@@ -696,20 +770,20 @@ impl CSessionCtx {
         let calls = self.calls.clone();
         let reserveds = self.reserveds.clone();
 
-        let payload_auth_musig_ctx = self.payload_auth_musig_ctx()?.1;
+        let payload_auth_musig_ctx = self.payload_auth_musig_ctx()?.2;
 
         let vtxo_projector_musig_ctx = match &self.vtxo_projector_musig_ctx {
-            Some((_, ctx)) => Some(ctx.to_owned()),
+            Some((_, _, ctx)) => Some(ctx.to_owned()),
             None => return None,
         };
 
         let connector_projector_musig_ctx = match &self.connector_projector_musig_ctx {
-            Some((_, ctx)) => Some(ctx.to_owned()),
+            Some((_, _, ctx)) => Some(ctx.to_owned()),
             None => return None,
         };
 
         let zkp_contingent_musig_ctx = match &self.zkp_contingent_musig_ctx {
-            Some((_, ctx)) => Some(ctx.to_owned()),
+            Some((_, _, ctx)) => Some(ctx.to_owned()),
             None => return None,
         };
 
@@ -728,7 +802,7 @@ impl CSessionCtx {
 
         for (account, ctxes) in self.connector_txo_musig_ctxes.iter() {
             if account.key() == account.key() {
-                for (_, ctx) in ctxes {
+                for (_, _, ctx) in ctxes {
                     connector_txo_musig_ctxes.push(ctx.to_owned());
                 }
             }
@@ -773,14 +847,14 @@ impl CSessionCtx {
         }
 
         // Insert payload auth partial sig
-        if let Some((_, ctx)) = &mut self.payload_auth_musig_ctx {
+        if let Some((_, _, ctx)) = &mut self.payload_auth_musig_ctx {
             if !ctx.insert_partial_sig(account_key, uphold.payload_auth_partial_sig()) {
                 return Err(CSessionUpholdError::InvalidPayloadAuthSig);
             }
         }
 
         // Insert VTXO projector partial sig
-        if let Some((_, ctx)) = &mut self.vtxo_projector_musig_ctx {
+        if let Some((_, _, ctx)) = &mut self.vtxo_projector_musig_ctx {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
                 None => return Err(CSessionUpholdError::MissingVTXOProjectorSig),
@@ -792,7 +866,7 @@ impl CSessionCtx {
         }
 
         // Insert connector projector partial sig
-        if let Some((_, ctx)) = &mut self.connector_projector_musig_ctx {
+        if let Some((_, _, ctx)) = &mut self.connector_projector_musig_ctx {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
                 None => return Err(CSessionUpholdError::MissingConnectorProjectorSig),
@@ -804,7 +878,7 @@ impl CSessionCtx {
         }
 
         // Insert ZKP contingent partial sig
-        if let Some((_, ctx)) = &mut self.zkp_contingent_musig_ctx {
+        if let Some((_, _, ctx)) = &mut self.zkp_contingent_musig_ctx {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
                 None => return Err(CSessionUpholdError::MissingZKPContigentSig),
@@ -833,7 +907,7 @@ impl CSessionCtx {
         // Insert connector txo partial sigs
         let uphold_connector_txo_partial_sigs = uphold.connector_txo_partial_sigs();
         if let Some(musig_ctxes) = self.connector_txo_musig_ctxes.get_mut(&uphold.msg_sender()) {
-            for (index, (_, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
+            for (index, (_, _, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
                     None => return Err(CSessionUpholdError::MissingConnectorSig),
@@ -853,7 +927,7 @@ impl CSessionCtx {
         let mut blame_list = Vec::<Account>::new();
 
         // Payload auth scanning
-        if let Some((_, musig_ctx)) = &self.payload_auth_musig_ctx {
+        if let Some((_, _, musig_ctx)) = &self.payload_auth_musig_ctx {
             let musig_blame_list = musig_ctx.blame_list();
 
             for account in self.msg_senders.iter() {
@@ -866,7 +940,7 @@ impl CSessionCtx {
         }
 
         // VTXO projector scanning
-        if let Some((_, musig_ctx)) = &self.vtxo_projector_musig_ctx {
+        if let Some((_, _, musig_ctx)) = &self.vtxo_projector_musig_ctx {
             let musig_blame_list = musig_ctx.blame_list();
 
             for account in self.msg_senders.iter() {
@@ -879,7 +953,7 @@ impl CSessionCtx {
         }
 
         // Connector projector scanning
-        if let Some((_, musig_ctx)) = &self.connector_projector_musig_ctx {
+        if let Some((_, _, musig_ctx)) = &self.connector_projector_musig_ctx {
             let musig_blame_list = musig_ctx.blame_list();
 
             for account in self.msg_senders.iter() {
@@ -892,7 +966,7 @@ impl CSessionCtx {
         }
 
         // ZKP contingent scanning
-        if let Some((_, musig_ctx)) = &self.zkp_contingent_musig_ctx {
+        if let Some((_, _, musig_ctx)) = &self.zkp_contingent_musig_ctx {
             let musig_blame_list = musig_ctx.blame_list();
 
             for account in self.msg_senders.iter() {
@@ -919,7 +993,7 @@ impl CSessionCtx {
 
         // Connectors scanning
         for (account, musig_ctxes) in self.connector_txo_musig_ctxes.iter() {
-            for (_, musig_ctx) in musig_ctxes {
+            for (_, _, musig_ctx) in musig_ctxes {
                 let musig_blame_list = musig_ctx.blame_list();
 
                 if musig_blame_list.contains(&account.key()) {
@@ -963,9 +1037,12 @@ impl CSessionCtx {
         self.zkp_contingent_nonces = HashMap::<Account, (Point, Point)>::new();
         self.zkp_contingent_musig_ctx = None;
         self.lift_prevtxo_nonces = HashMap::<Account, HashMap<Lift, (Point, Point)>>::new();
-        self.lift_prevtxo_musig_ctxes =
-            HashMap::<Account, HashMap<Lift, (u64, u64, MusigSessionCtx)>>::new();
+        self.lift_prevtxo_musig_ctxes = HashMap::<
+            Account,
+            HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+        >::new();
         self.connector_txo_nonces = HashMap::<Account, Vec<(Point, Point)>>::new();
-        self.connector_txo_musig_ctxes = HashMap::<Account, Vec<(u64, MusigSessionCtx)>>::new();
+        self.connector_txo_musig_ctxes =
+            HashMap::<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>::new();
     }
 }
