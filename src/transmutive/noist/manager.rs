@@ -1,8 +1,15 @@
 use super::{dkg::directory::DKGDirectory, session::SessionCtx, setup::setup::VSESetup};
 use crate::{musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
 use secp::Point;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum SessionCtxError {
+    InvalidDKGDirHeight,
+    InvalidDKGNonceHeight,
+}
 
 pub struct DKGManager {
     directories: HashMap<u64, DKG_DIRECTORY>,
@@ -107,18 +114,52 @@ impl DKGManager {
         dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)
     }
 
-    pub async fn signing_session(
+    pub async fn musig_nested_signing_session(
         &self,
         dir_height: u64,
-        message: [u8; 32],
         nonce_height: u64,
-        musig_ctx: Option<MusigSessionCtx>,
+        musig_ctx: MusigSessionCtx,
         toxic: bool,
-    ) -> Option<SessionCtx> {
-        let dkg_dir: DKG_DIRECTORY = self.directory_by_height(dir_height)?;
-        let mut dkg_dir_ = dkg_dir.lock().await;
-        let session = dkg_dir_.signing_session(message, nonce_height, musig_ctx, toxic)?;
+    ) -> Result<SessionCtx, SessionCtxError> {
+        let dkg_dir: DKG_DIRECTORY = match self.directory_by_height(dir_height) {
+            Some(dir) => dir,
+            None => return Err(SessionCtxError::InvalidDKGDirHeight),
+        };
 
-        Some(session)
+        let mut dkg_dir_ = dkg_dir.lock().await;
+
+        let session = match dkg_dir_.signing_session(
+            musig_ctx.message(),
+            nonce_height,
+            Some(musig_ctx),
+            toxic,
+        ) {
+            Some(session) => session,
+            None => return Err(SessionCtxError::InvalidDKGNonceHeight),
+        };
+
+        Ok(session)
+    }
+
+    pub async fn vanilla_signing_session(
+        &self,
+        dir_height: u64,
+        nonce_height: u64,
+        message: [u8; 32],
+        toxic: bool,
+    ) -> Result<SessionCtx, SessionCtxError> {
+        let dkg_dir: DKG_DIRECTORY = match self.directory_by_height(dir_height) {
+            Some(dir) => dir,
+            None => return Err(SessionCtxError::InvalidDKGDirHeight),
+        };
+
+        let mut dkg_dir_ = dkg_dir.lock().await;
+
+        let session = match dkg_dir_.signing_session(message, nonce_height, None, toxic) {
+            Some(session) => session,
+            None => return Err(SessionCtxError::InvalidDKGNonceHeight),
+        };
+
+        Ok(session)
     }
 }

@@ -1,9 +1,14 @@
+use super::{opcovack::OSessionOpCovAck, opcoverr::OSessionOpCovError};
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    key::KeyHolder,
     musig::session::MusigSessionCtx,
+    noist::manager::SessionCtxError,
     txo::lift::Lift,
     valtype::account::Account,
+    DKG_MANAGER,
 };
+use secp::Scalar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -39,7 +44,8 @@ pub struct CSessionOpCov {
     lift_prevtxo_musig_ctxes:
         HashMap<Account, HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
     // All connectors
-    connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
+    connector_txo_musig_ctxes:
+        HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
 }
 
 impl CSessionOpCov {
@@ -52,13 +58,16 @@ impl CSessionOpCov {
         reserveds: Vec<Reserved>,
         payload_auth_musig_ctx: (DKGDirHeight, DKGNonceHeight, MusigSessionCtx),
         vtxo_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
-        connector_projector_musig_ctx: Option<(DKGDirHeight,DKGNonceHeight, MusigSessionCtx)>,
+        connector_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         zkp_contingent_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         lift_prevtxo_musig_ctxes: HashMap<
             Account,
             HashMap<Lift, (DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         >,
-        connector_txo_musig_ctxes: HashMap<Account, Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>>,
+        connector_txo_musig_ctxes: HashMap<
+            Account,
+            Vec<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
+        >,
     ) -> CSessionOpCov {
         CSessionOpCov {
             msg_senders,
@@ -74,6 +83,235 @@ impl CSessionOpCov {
             lift_prevtxo_musig_ctxes,
             connector_txo_musig_ctxes,
         }
+    }
+
+    pub async fn opcovack(
+        &self,
+        dkg_manager: &mut DKG_MANAGER,
+        keys: &KeyHolder,
+    ) -> Result<OSessionOpCovAck, OSessionOpCovError> {
+        // Payload auth
+        let payload_auth_partial_sig = {
+            let (dkg_dir_height, dkg_nonce_height, musig_ctx) = self.payload_auth_musig_ctx();
+
+            let noist_signing_session = {
+                let mut _dkg_manager = dkg_manager.lock().await;
+                match _dkg_manager
+                    .musig_nested_signing_session(dkg_dir_height, dkg_nonce_height, musig_ctx, true)
+                    .await
+                {
+                    Ok(signing_session) => signing_session,
+                    Err(err) => match err {
+                        SessionCtxError::InvalidDKGDirHeight => {
+                            return Err(OSessionOpCovError::DKGDirHeightErr)
+                        }
+                        SessionCtxError::InvalidDKGNonceHeight => {
+                            return Err(OSessionOpCovError::DKGNonceHeightErr)
+                        }
+                    },
+                }
+            };
+
+            match noist_signing_session.partial_sign(keys.secret_key()) {
+                Some(partial_sig) => partial_sig,
+                None => return Err(OSessionOpCovError::SigningErr),
+            }
+        };
+
+        // VTXO projector
+        let vtxo_projector_partial_sig = match self.vtxo_projector_musig_ctx() {
+            Some((dkg_dir_height, dkg_nonce_height, musig_ctx)) => {
+                let noist_signing_session = {
+                    let mut _dkg_manager = dkg_manager.lock().await;
+                    match _dkg_manager
+                        .musig_nested_signing_session(
+                            dkg_dir_height,
+                            dkg_nonce_height,
+                            musig_ctx,
+                            true,
+                        )
+                        .await
+                    {
+                        Ok(signing_session) => signing_session,
+                        Err(err) => match err {
+                            SessionCtxError::InvalidDKGDirHeight => {
+                                return Err(OSessionOpCovError::DKGDirHeightErr)
+                            }
+                            SessionCtxError::InvalidDKGNonceHeight => {
+                                return Err(OSessionOpCovError::DKGNonceHeightErr)
+                            }
+                        },
+                    }
+                };
+
+                match noist_signing_session.partial_sign(keys.secret_key()) {
+                    Some(partial_sig) => Some(partial_sig),
+                    None => return Err(OSessionOpCovError::SigningErr),
+                }
+            }
+            None => None,
+        };
+
+        // Connector projector
+        let connector_projector_partial_sig = match self.connector_projector_musig_ctx() {
+            Some((dkg_dir_height, dkg_nonce_height, musig_ctx)) => {
+                let noist_signing_session = {
+                    let mut _dkg_manager = dkg_manager.lock().await;
+                    match _dkg_manager
+                        .musig_nested_signing_session(
+                            dkg_dir_height,
+                            dkg_nonce_height,
+                            musig_ctx,
+                            true,
+                        )
+                        .await
+                    {
+                        Ok(signing_session) => signing_session,
+                        Err(err) => match err {
+                            SessionCtxError::InvalidDKGDirHeight => {
+                                return Err(OSessionOpCovError::DKGDirHeightErr)
+                            }
+                            SessionCtxError::InvalidDKGNonceHeight => {
+                                return Err(OSessionOpCovError::DKGNonceHeightErr)
+                            }
+                        },
+                    }
+                };
+
+                match noist_signing_session.partial_sign(keys.secret_key()) {
+                    Some(partial_sig) => Some(partial_sig),
+                    None => return Err(OSessionOpCovError::SigningErr),
+                }
+            }
+            None => None,
+        };
+
+        // ZKP contingent
+        let zkp_contingent_partial_sig = match self.zkp_contingent_musig_ctx() {
+            Some((dkg_dir_height, dkg_nonce_height, musig_ctx)) => {
+                let noist_signing_session = {
+                    let mut _dkg_manager = dkg_manager.lock().await;
+                    match _dkg_manager
+                        .musig_nested_signing_session(
+                            dkg_dir_height,
+                            dkg_nonce_height,
+                            musig_ctx,
+                            true,
+                        )
+                        .await
+                    {
+                        Ok(signing_session) => signing_session,
+                        Err(err) => match err {
+                            SessionCtxError::InvalidDKGDirHeight => {
+                                return Err(OSessionOpCovError::DKGDirHeightErr)
+                            }
+                            SessionCtxError::InvalidDKGNonceHeight => {
+                                return Err(OSessionOpCovError::DKGNonceHeightErr)
+                            }
+                        },
+                    }
+                };
+
+                match noist_signing_session.partial_sign(keys.secret_key()) {
+                    Some(partial_sig) => Some(partial_sig),
+                    None => return Err(OSessionOpCovError::SigningErr),
+                }
+            }
+            None => None,
+        };
+
+        // All lifts
+        let mut lift_prevtxo_partial_sigs = HashMap::<Account, HashMap<Lift, Scalar>>::new();
+
+        for (account, musig_ctxes) in self.lift_prevtxo_musig_ctxes.iter() {
+            let mut lift_partial_sigs = HashMap::<Lift, Scalar>::new();
+
+            for (lift, (dkg_dir_height, dkg_nonce_height, musig_ctx)) in musig_ctxes {
+                let noist_signing_session = {
+                    let mut _dkg_manager = dkg_manager.lock().await;
+                    match _dkg_manager
+                        .musig_nested_signing_session(
+                            dkg_dir_height.to_owned(),
+                            dkg_nonce_height.to_owned(),
+                            musig_ctx.to_owned(),
+                            true,
+                        )
+                        .await
+                    {
+                        Ok(signing_session) => signing_session,
+                        Err(err) => match err {
+                            SessionCtxError::InvalidDKGDirHeight => {
+                                return Err(OSessionOpCovError::DKGDirHeightErr)
+                            }
+                            SessionCtxError::InvalidDKGNonceHeight => {
+                                return Err(OSessionOpCovError::DKGNonceHeightErr)
+                            }
+                        },
+                    }
+                };
+
+                let partial_sig = match noist_signing_session.partial_sign(keys.secret_key()) {
+                    Some(partial_sig) => partial_sig,
+                    None => return Err(OSessionOpCovError::SigningErr),
+                };
+
+                lift_partial_sigs.insert(lift.to_owned(), partial_sig);
+            }
+
+            lift_prevtxo_partial_sigs.insert(account.to_owned(), lift_partial_sigs);
+        }
+
+        // All connectors
+        let mut connector_txo_partial_sigs = HashMap::<Account, Vec<Scalar>>::new();
+
+        for (account, musig_ctxes) in self.connector_txo_musig_ctxes.iter() {
+            let mut connector_partial_sigs = Vec::<Scalar>::new();
+
+            for (dkg_dir_height, dkg_nonce_height, musig_ctx) in musig_ctxes {
+                let noist_signing_session = {
+                    let mut _dkg_manager = dkg_manager.lock().await;
+                    match _dkg_manager
+                        .musig_nested_signing_session(
+                            dkg_dir_height.to_owned(),
+                            dkg_nonce_height.to_owned(),
+                            musig_ctx.to_owned(),
+                            true,
+                        )
+                        .await
+                    {
+                        Ok(signing_session) => signing_session,
+                        Err(err) => match err {
+                            SessionCtxError::InvalidDKGDirHeight => {
+                                return Err(OSessionOpCovError::DKGDirHeightErr)
+                            }
+                            SessionCtxError::InvalidDKGNonceHeight => {
+                                return Err(OSessionOpCovError::DKGNonceHeightErr)
+                            }
+                        },
+                    }
+                };
+
+                let partial_sig = match noist_signing_session.partial_sign(keys.secret_key()) {
+                    Some(partial_sig) => partial_sig,
+                    None => return Err(OSessionOpCovError::SigningErr),
+                };
+
+                connector_partial_sigs.push(partial_sig);
+            }
+
+            connector_txo_partial_sigs.insert(account.to_owned(), connector_partial_sigs);
+        }
+
+        let opcovack = OSessionOpCovAck::new(
+            payload_auth_partial_sig,
+            vtxo_projector_partial_sig,
+            connector_projector_partial_sig,
+            zkp_contingent_partial_sig,
+            lift_prevtxo_partial_sigs,
+            connector_txo_partial_sigs,
+        );
+
+        Ok(opcovack)
     }
 
     pub fn msg_senders(&self) -> Vec<Account> {
@@ -104,15 +342,21 @@ impl CSessionOpCov {
         self.payload_auth_musig_ctx.clone()
     }
 
-    pub fn vtxo_projector_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
+    pub fn vtxo_projector_musig_ctx(
+        &self,
+    ) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.vtxo_projector_musig_ctx.clone()
     }
 
-    pub fn connector_projector_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
+    pub fn connector_projector_musig_ctx(
+        &self,
+    ) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.connector_projector_musig_ctx.clone()
     }
 
-    pub fn zkp_contingent_musig_ctx(&self) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
+    pub fn zkp_contingent_musig_ctx(
+        &self,
+    ) -> Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)> {
         self.zkp_contingent_musig_ctx.clone()
     }
 

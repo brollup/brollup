@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 /// shortly after receiving `CSessionOpCov`s if an issue was encountered.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum OSessionOpCovError {
-    InvalidStateTransition,
-    ActiveDKGDirHeightNotFound,
-    DKGDirHeightNotFound,
-    DKGNonceHeightNotFound,
-    UnknownErrorInsertingPartialSig,
+    DKGDirHeightErr,
+    DKGNonceHeightErr,
+    SigningErr,
 }

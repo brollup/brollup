@@ -98,6 +98,10 @@ impl MusigSessionCtx {
         self.nonce_coef
     }
 
+    pub fn message(&self) -> [u8; 32] {
+        self.message
+    }
+
     pub fn challenge(&self) -> Option<Scalar> {
         self.challenge
     }
