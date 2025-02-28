@@ -557,32 +557,24 @@ async fn handle_request_opcov(
     timestamp: i64,
     payload: &[u8],
     dkg_manager: &mut DKG_MANAGER,
+    keys: &KeyHolder,
 ) -> Option<TCPPackage> {
     let opcov: CSessionOpCov = match serde_json::from_slice(payload) {
         Ok(opcov) => opcov,
         Err(_) => return None,
     };
 
-    // Payload auth
-    {
+    let opcovack = opcov.opcovack(dkg_manager, keys).await?;
 
-        let (dkg_dir_height, dkg_nonce_height, musig_ctx) = opcov.payload_auth_musig_ctx();
+    let response_payload = match serde_json::to_vec(&opcovack) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
 
-        let dkg_directory: DKG_DIRECTORY = {
-            let _dkg_manager = dkg_manager.lock().await;
-            match _dkg_manager.directory_by_height(dkg_dir_height) {
-                Some(directory) => directory,
-                None => return None,
-            }
-        };
-    }
-    
+    let response_package = {
+        let kind = PackageKind::RequestOpCov;
+        TCPPackage::new(kind, timestamp, &response_payload)
+    };
 
-
-
-
-    
-
-    
-    None
+    Some(response_package)
 }

@@ -386,8 +386,8 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let opcov_ack = serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+        let opcovack = serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
-        Ok(opcov_ack)
+        Ok(opcovack)
     }
 }
