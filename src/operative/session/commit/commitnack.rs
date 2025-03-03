@@ -1,15 +1,17 @@
+use crate::txn::outpoint::Outpoint;
 use serde::{Deserialize, Serialize};
 
-/// `CSessionCommitError` is returned by the coordinator to the msg.senders
+/// `CSessionCommitNack` is returned by the coordinator to the msg.senders
 /// upon receiving `NSessionCommit` if the commitment fails.
 #[derive(Clone, Serialize, Deserialize)]
-pub enum CSessionCommitError {
+pub enum CSessionCommitNack {
     SessionLocked,
     AuthErr,
     Overlap,
     Allowance,
     InvalidLiftRemoteKey,
     InvalidLiftOperatorKey,
-    InvalidLiftOutpoint,
+    MissingLiftOutpoint(),
+    InvalidLiftOutpoint(Outpoint),
     InsufficientConnectors,
 }

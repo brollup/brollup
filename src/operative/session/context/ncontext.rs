@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
+    key::KeyHolder,
     schnorr::{self, Authenticable},
     session::commit::NSessionCommit,
     txo::lift::Lift,
@@ -11,7 +12,10 @@ use crate::{
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 
-use super::{commitack::CSessionCommitAck, uphold::NSessionUphold};
+use super::{
+    commitack::CSessionCommitAck, uphold::NSessionUphold, upholdack::CSessionUpholdAck,
+    upholderr::NSessionUpholdError,
+};
 
 pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
@@ -46,18 +50,15 @@ pub struct NSessionCtx {
 
 impl NSessionCtx {
     pub fn new(
-        account: Account,
-        secret_key: Scalar,
+        keys: KeyHolder,
         liftup: Option<Liftup>,
         recharge: Option<Recharge>,
         vanilla: Option<Vanilla>,
         call: Option<Call>,
     ) -> Option<NSessionCtx> {
+        let secret_key = keys.secret_key().into_scalar().ok()?;
         let public_key = secret_key.base_point_mul();
-
-        if account.key() != public_key || account.is_odd_key() {
-            return None;
-        }
+        let account = Account::new(public_key, None)?;
 
         let nonces = gen_nonce(&liftup, &recharge, &vanilla, &call)?;
 
@@ -119,7 +120,7 @@ impl NSessionCtx {
 
     // Returns the commitment
     pub fn commit(&self) -> Option<Authenticable<NSessionCommit>> {
-        let session_request = NSessionCommit::new(
+        let commit = NSessionCommit::new(
             self.account(),
             self.liftup(),
             self.recharge(),
@@ -138,37 +139,54 @@ impl NSessionCtx {
             &self.connector_txo_public_nonces,
         );
 
-        let auth_session_request =
-            Authenticable::new(session_request, self.secret_key.serialize())?;
+        let auth_commit = Authenticable::new(commit, self.secret_key.serialize())?;
 
-        Some(auth_session_request)
+        Some(auth_commit)
     }
 
-    // Returns the commitment uphold.
-    pub fn uphold(&self, commitack: CSessionCommitAck) -> Option<Authenticable<NSessionUphold>> {
+    fn validate_commitack(&self, commitack: &CSessionCommitAck) -> bool {
         if commitack.msg_sender().key() != self.account.key() {
-            return None;
+            return false;
+        }
+
+        // TODO: additional validations..
+
+        true
+    }
+
+    /// Returns the commitment uphold upon receiving `CSessionCommitAck`.
+    pub fn uphold(
+        &self,
+        commitack: &CSessionCommitAck,
+    ) -> Result<Authenticable<NSessionUphold>, NSessionUpholdError> {
+        if !self.validate_commitack(commitack) {
+            return Err(NSessionUpholdError::CommitAckAuthErr);
         }
 
         // Payload auth partial sig
         let payload_auth_partial_sig = {
-            commitack.payload_auth_musig_ctx().partial_sign(
+            match commitack.payload_auth_musig_ctx().partial_sign(
                 self.secret_key,
                 self.payload_auth_secret_nonces.0,
                 self.payload_auth_secret_nonces.1,
-            )?
+            ) {
+                Some(sig) => sig,
+                None => return Err(NSessionUpholdError::PayloadAuthPartialSignErr),
+            }
         };
 
         // VTXO projector partial sig
         let vtxo_projector_partial_sig = {
             match commitack.vtxo_projector_musig_ctx() {
                 Some(ctx) => {
-                    let partial_sig = ctx.partial_sign(
+                    match ctx.partial_sign(
                         self.secret_key,
                         self.vtxo_projector_secret_nonces.0,
                         self.vtxo_projector_secret_nonces.1,
-                    )?;
-                    Some(partial_sig)
+                    ) {
+                        Some(sig) => Some(sig),
+                        None => return Err(NSessionUpholdError::VTXOProjectorPartialSignErr),
+                    }
                 }
                 None => None,
             }
@@ -178,12 +196,14 @@ impl NSessionCtx {
         let connector_projector_partial_sig = {
             match commitack.connector_projector_musig_ctx() {
                 Some(ctx) => {
-                    let partial_sig = ctx.partial_sign(
+                    match ctx.partial_sign(
                         self.secret_key,
                         self.connector_projector_secret_nonces.0,
                         self.connector_projector_secret_nonces.1,
-                    )?;
-                    Some(partial_sig)
+                    ) {
+                        Some(sig) => Some(sig),
+                        None => return Err(NSessionUpholdError::ConnectorProjectorPartialSignErr),
+                    }
                 }
                 None => None,
             }
@@ -193,12 +213,14 @@ impl NSessionCtx {
         let zkp_contingent_partial_sig = {
             match commitack.zkp_contingent_musig_ctx() {
                 Some(ctx) => {
-                    let partial_sig = ctx.partial_sign(
+                    match ctx.partial_sign(
                         self.secret_key,
                         self.zkp_contingent_secret_nonces.0,
                         self.zkp_contingent_secret_nonces.1,
-                    )?;
-                    Some(partial_sig)
+                    ) {
+                        Some(sig) => Some(sig),
+                        None => return Err(NSessionUpholdError::ZKPContigentPartialSignErr),
+                    }
                 }
                 None => None,
             }
@@ -208,14 +230,19 @@ impl NSessionCtx {
         let mut lift_prevtxo_partial_sigs = HashMap::<Lift, Scalar>::new();
 
         for (lift, musig_ctx) in commitack.lift_prevtxo_musig_ctxes() {
-            let (secret_hiding_nonce, secet_binding_nonce) =
-                self.lift_prevtxo_secret_nonces.get(&lift)?;
+            let (secret_hiding_nonce, secet_binding_nonce) = self
+                .lift_prevtxo_secret_nonces
+                .get(&lift)
+                .ok_or(NSessionUpholdError::UnabletoFindLiftSecretNonces)?;
 
-            let partial_sig = musig_ctx.partial_sign(
+            let partial_sig = match musig_ctx.partial_sign(
                 self.secret_key,
                 secret_hiding_nonce.to_owned(),
                 secet_binding_nonce.to_owned(),
-            )?;
+            ) {
+                Some(sig) => sig,
+                None => return Err(NSessionUpholdError::LiftPrevtxoPartialSignErr),
+            };
 
             lift_prevtxo_partial_sigs.insert(lift, partial_sig);
         }
@@ -224,14 +251,19 @@ impl NSessionCtx {
         let mut connector_txo_partial_sigs = Vec::<Scalar>::new();
 
         for (index, musig_ctx) in commitack.connector_txo_musig_ctxes().iter().enumerate() {
-            let (secret_hiding_nonce, secet_binding_nonce) =
-                self.connector_txo_secret_nonces.get(index)?;
+            let (secret_hiding_nonce, secet_binding_nonce) = self
+                .connector_txo_secret_nonces
+                .get(index)
+                .ok_or(NSessionUpholdError::UnabletoFindConnectorSecretNonces)?;
 
-            let partial_sig = musig_ctx.partial_sign(
+            let partial_sig = match musig_ctx.partial_sign(
                 self.secret_key,
                 secret_hiding_nonce.to_owned(),
                 secet_binding_nonce.to_owned(),
-            )?;
+            ) {
+                Some(sig) => sig,
+                None => return Err(NSessionUpholdError::ConnectorPartialSignErr),
+            };
 
             connector_txo_partial_sigs.push(partial_sig);
         }
@@ -246,9 +278,30 @@ impl NSessionCtx {
             connector_txo_partial_sigs,
         );
 
-        let auth_uphold = Authenticable::new(uphold, self.secret_key.serialize())?;
+        let auth_uphold = Authenticable::new(uphold, self.secret_key.serialize())
+            .ok_or(NSessionUpholdError::AuthenticableErr)?;
 
-        Some(auth_uphold)
+        Ok(auth_uphold)
+    }
+
+    fn validate_upholdack(&self, upholdack: &CSessionUpholdAck) -> bool {
+        if upholdack.msg_sender().key() != self.account.key() {
+            return false;
+        }
+
+        // TODO: additional validations..
+
+        true
+    }
+
+    pub fn forfeit(&self, upholdack: &CSessionUpholdAck) -> Option<()> {
+        if !self.validate_upholdack(upholdack) {
+            return None;
+        }
+
+        // TODO: additional validations..
+
+        None
     }
 }
 

@@ -2,7 +2,7 @@ use crate::{
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     liquidity,
     musig::session::MusigSessionCtx,
-    noist::{dkg::session::DKGSession, session::SessionCtx, setup::setup::VSESetup},
+    noist::{dkg::session::DKGSession, session::NOISTSessionCtx, setup::setup::VSESetup},
     peer::PeerConnection,
     peer_manager::PeerManagerExt,
     tcp::client::TCPClient,
@@ -241,7 +241,7 @@ impl DKGOps for DKG_MANAGER {
         };
 
         // #5 Initialize signing sessions.
-        let mut signing_sessions = Vec::<SessionCtx>::with_capacity(messages.len());
+        let mut signing_sessions = Vec::<NOISTSessionCtx>::with_capacity(messages.len());
         let mut signing_requests =
             Vec::<(u64, [u8; 32], Option<MusigSessionCtx>)>::with_capacity(signing_sessions.len()); // Nonce index, message.
 
@@ -271,7 +271,7 @@ impl DKGOps for DKG_MANAGER {
                 },
             };
 
-            let nonce_index = signing_session.nonce_index();
+            let nonce_index = signing_session.nonce_height();
 
             signing_requests.push((
                 nonce_index,

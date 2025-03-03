@@ -1,19 +1,25 @@
 ## Session
-Session protocol for the rollup state transition
+Session protocol for the rollup state transition.
 
     +----------+                                      +-------------+                                      +----------+ 
     |          |                                      |             |                                      |          |
-    |          |--(1)--          Commit            -->|             |                                      |          |
-    |          |                                      |             |--(2)--          StateUp           -->|          |
-    |          |                                      |             |<-(3)-- StateUpAck (or StateUpErr) ---|          | 
+    |          |--(1)--           Commit           -->|             |                                      |          |
+    |          |<-(1a)-   (possibly CommitNack)    ---|             |                                      |          |
     |          |                                      |             |                                      |          |
-    |          |<-(4a)-  CommitAck (or CommitErr)  ---|             |--(4b)-           OpCov            -->|          |
-    |          |--(5a)-          Uphold            -->|             |<-(5b)-         OpCovAck           ---|          |
-    |   Node   |                                      | Coordinator |                                      | Operator |
-    |          |<-(6)--  UpholdAck (or UpholdErr)  ---|             |                                      |          |
-    |          |--(7)--          Forfeit           -->|             |                                      |          |
-    |          |                                      |             |--(8)--          Advance           -->|          |
-    |          |                                      |             |<-(9)-- AdvanceAck (or AdvanceErr) ---|          | 
-    |          |<-(10)- ForfeitAck (or ForfeitErr) ---|             |                                      |          |
+    |          |          .. AWAITING COMMITS ..      |             |                                      |          |
+    |          |                                      |             |--(2)--          StateUp           -->|          |
+    |          |                                      |             |<-(3)--  StateUpAck or StateUpNack ---|          | 
+    |          |                                      |             |                                      |          |
+    |          |<-(6)-          CommitAck          ---|             |--(4)-            OpCov            -->|          |
+    |   Node   |--(7)-     Uphold (or UpholdErr)   -->| Coordinator |<-(5)-          OpCovAck           ---| Operator |
+    |          |<-(7a)    (possibly UpholdINack)   ---|             |                                      |          |
+    |          |                                      |             |                                      |          |
+    |          |          .. AWAITING UPHOLDS ..      |             |                                      |          |
+    |          |                                      |             |                                      |          |
+    |          |<-(8)-- UpholdAck (or UpholdONack) ---|             |                                      |          |
+    |          |--(9)--   Forfeit (or ForfeitErr)  -->|             |                                      |          |
+    |          |                                      |             |--(10)--          Advance          -->|          |
+    |          |                                      |             |<-(11)--(AdvanceAck or AdvanceNack)---|          | 
+    |          |<-(12)- ForfeitAck (or ForfeitNack)---|             |                                      |          |
     |          |                                      |             |                                      |          |
     +----------+                                      +-------------+                                      +----------+ 

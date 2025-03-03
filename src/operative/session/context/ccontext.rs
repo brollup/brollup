@@ -1,6 +1,7 @@
 use super::{
-    commiterr::CSessionCommitError, opcov::CSessionOpCov, opcovack::OSessionOpCovAck,
-    uphold::NSessionUphold, upholderr::CSessionUpholdError,
+    commitnack::CSessionCommitNack, opcov::CSessionOpCov, opcovack::OSessionOpCovAck,
+    uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdinack::CSessionUpholdINack,
+    upholdonack::CSessionUpholdONack,
 };
 use crate::{
     entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
@@ -17,7 +18,7 @@ use crate::{
     valtype::account::Account,
     CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER,
 };
-use secp::Point;
+use secp::{Point, Scalar};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -166,6 +167,12 @@ impl CSessionCtx {
         self.msg_senders.clone()
     }
 
+    fn is_msg_sender(&self, account: &Account) -> bool {
+        self.msg_senders
+            .iter()
+            .any(|sender| sender.key() == account.key())
+    }
+
     /// Sets the coordinator session stage to `on`
     /// meaning accounts can now participate in a rollup state transition.
     pub fn on(&mut self) {
@@ -178,28 +185,28 @@ impl CSessionCtx {
     async fn validate_commit(
         &self,
         auth_commit: &Authenticable<NSessionCommit>,
-    ) -> Result<(), CSessionCommitError> {
+    ) -> Result<(), CSessionCommitNack> {
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
         if !auth_commit.authenticate() {
-            return Err(CSessionCommitError::AuthErr);
+            return Err(CSessionCommitNack::AuthErr);
         }
 
         let commit = auth_commit.object();
         let msg_sender = commit.msg_sender();
 
         if auth_commit.key() != msg_sender.key().serialize_xonly() {
-            return Err(CSessionCommitError::AuthErr);
+            return Err(CSessionCommitNack::AuthErr);
         }
 
         // #1 Overlap check
         if self.msg_senders.contains(&msg_sender) {
-            return Err(CSessionCommitError::Overlap);
+            return Err(CSessionCommitNack::Overlap);
         }
 
         // #2 Allowance check
         if allowance(msg_sender) {
-            return Err(CSessionCommitError::Allowance);
+            return Err(CSessionCommitNack::Allowance);
         }
 
         // #3 Lift prevtxouts validation
@@ -210,17 +217,17 @@ impl CSessionCtx {
                 let lift_remote_key = lift.remote_key();
 
                 if lift_operator_key == lift_remote_key {
-                    return Err(CSessionCommitError::InvalidLiftRemoteKey);
+                    return Err(CSessionCommitNack::InvalidLiftRemoteKey);
                 }
 
                 if lift_remote_key != msg_sender.key() {
-                    return Err(CSessionCommitError::InvalidLiftRemoteKey);
+                    return Err(CSessionCommitNack::InvalidLiftRemoteKey);
                 }
 
                 {
                     let dkg_manager_ = dkg_manager.lock().await;
                     if let None = dkg_manager_.directory_by_key(lift_operator_key).await {
-                        return Err(CSessionCommitError::InvalidLiftOperatorKey);
+                        return Err(CSessionCommitNack::InvalidLiftOperatorKey);
                     }
                 }
             }
@@ -231,7 +238,7 @@ impl CSessionCtx {
                     Some(_outpoint) => {
                         // TODO: check if this is a valid outpoint.
                     }
-                    None => return Err(CSessionCommitError::InvalidLiftOutpoint),
+                    None => return Err(CSessionCommitNack::MissingLiftOutpoint()),
                 };
             }
         }
@@ -249,10 +256,10 @@ impl CSessionCtx {
     pub async fn insert_commit(
         &mut self,
         auth_commit: &Authenticable<NSessionCommit>,
-    ) -> Result<(), CSessionCommitError> {
-        // #1 Check stage
+    ) -> Result<(), CSessionCommitNack> {
+        // #1 Check session stage
         if self.stage != CSessionStage::On {
-            return Err(CSessionCommitError::SessionLocked);
+            return Err(CSessionCommitNack::SessionLocked);
         }
 
         // #2 Validate commit
@@ -329,6 +336,11 @@ impl CSessionCtx {
 
     /// Sets the NOIST and MuSig contexes upon collecting `NSessionCommit`s, triggered by `lock`.
     async fn set_ctxes(&mut self) -> bool {
+        // #1 Check session stage
+        if self.stage != CSessionStage::Locked {
+            return false;
+        }
+
         let dkg_manager: DKG_MANAGER = Arc::clone(&self.dkg_manager);
 
         let active_dkg_dir: DKG_DIRECTORY = {
@@ -870,13 +882,13 @@ impl CSessionCtx {
     /// The coordinator does this immediately after locking the session.
     /// `CSessionCommitAck`s contain the post-round-one MuSig contexts to be filled with individual partial signatures.
     /// Those individual partial signatures are returned as part of the subsequent `NSessionUphold`s.
-    pub fn commitack(&self, account: Account) -> Option<CSessionCommitAck> {
+    pub fn commitack(&self, msg_sender: Account) -> Option<CSessionCommitAck> {
         // Allowed only in the locked stage
         if self.stage != CSessionStage::Locked {
             return None;
         }
 
-        if !self.msg_senders.contains(&account) {
+        if !self.is_msg_sender(&msg_sender) {
             return None;
         }
 
@@ -926,7 +938,7 @@ impl CSessionCtx {
         }
 
         let commitack = CSessionCommitAck::new(
-            account,
+            msg_sender,
             msg_senders,
             liftups,
             recharges,
@@ -1147,29 +1159,45 @@ impl CSessionCtx {
         true
     }
 
+    fn validate_uphold(&self, auth_uphold: &Authenticable<NSessionUphold>) -> bool {
+        let msg_sender = auth_uphold.object().msg_sender();
+
+        if auth_uphold.key() != msg_sender.key().serialize_xonly() {
+            return false;
+        }
+
+        if !auth_uphold.authenticate() {
+            return false;
+        }
+
+        if !self.is_msg_sender(&msg_sender) {
+            return false;
+        }
+
+        // TODO: additional validations..
+
+        true
+    }
+
     /// Attempts to insert `NSessionUphold` into the session,
     /// which contains partial signatures for the MuSig contexts
     /// requested as part of the earlier `CSessionCommitAck`.
     pub fn insert_uphold(
         &mut self,
         auth_uphold: Authenticable<NSessionUphold>,
-    ) -> Result<(), CSessionUpholdError> {
-        if !auth_uphold.authenticate() {
-            return Err(CSessionUpholdError::AuthErr);
+    ) -> Result<(), CSessionUpholdINack> {
+        // #1 Validate uphold
+        if !self.validate_uphold(&auth_uphold) {
+            return Err(CSessionUpholdINack::AuthErr);
         }
 
         let uphold = auth_uphold.object();
-
-        let account_key = uphold.msg_sender().key();
-
-        if auth_uphold.key() != account_key.serialize_xonly() {
-            return Err(CSessionUpholdError::AuthErr);
-        }
+        let msg_sender = uphold.msg_sender().key();
 
         // Insert payload auth partial sig
         if let Some((_, _, _, ctx)) = &mut self.payload_auth_ctxes {
-            if !ctx.insert_partial_sig(account_key, uphold.payload_auth_partial_sig()) {
-                return Err(CSessionUpholdError::InvalidPayloadAuthSig);
+            if !ctx.insert_partial_sig(msg_sender, uphold.payload_auth_partial_sig()) {
+                return Err(CSessionUpholdINack::InvalidPayloadAuthSig);
             }
         }
 
@@ -1177,11 +1205,11 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.vtxo_projector_ctxes {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdError::MissingVTXOProjectorSig),
+                None => return Err(CSessionUpholdINack::MissingVTXOProjectorSig),
             };
 
-            if !ctx.insert_partial_sig(account_key, vtxo_projector_partial_sig) {
-                return Err(CSessionUpholdError::InvalidVTXOProjectorSig);
+            if !ctx.insert_partial_sig(msg_sender, vtxo_projector_partial_sig) {
+                return Err(CSessionUpholdINack::InvalidVTXOProjectorSig);
             }
         }
 
@@ -1189,11 +1217,11 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.connector_projector_ctxes {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdError::MissingConnectorProjectorSig),
+                None => return Err(CSessionUpholdINack::MissingConnectorProjectorSig),
             };
 
-            if !ctx.insert_partial_sig(account_key, connector_projector_partial_sig) {
-                return Err(CSessionUpholdError::InvalidConnectorProjectorSig);
+            if !ctx.insert_partial_sig(msg_sender, connector_projector_partial_sig) {
+                return Err(CSessionUpholdINack::InvalidConnectorProjectorSig);
             }
         }
 
@@ -1201,11 +1229,11 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.zkp_contingent_ctxes {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdError::MissingZKPContigentSig),
+                None => return Err(CSessionUpholdINack::MissingZKPContigentSig),
             };
 
-            if !ctx.insert_partial_sig(account_key, zkp_contingent_partial_sig) {
-                return Err(CSessionUpholdError::InvalidZKPContigentSig);
+            if !ctx.insert_partial_sig(msg_sender, zkp_contingent_partial_sig) {
+                return Err(CSessionUpholdINack::InvalidZKPContigentSig);
             }
         }
 
@@ -1215,11 +1243,11 @@ impl CSessionCtx {
             for (lift, (_, _, _, musig_ctx)) in musig_ctxes.iter_mut() {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
-                    None => return Err(CSessionUpholdError::MissingLiftSig),
+                    None => return Err(CSessionUpholdINack::MissingLiftSig),
                 };
 
-                if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return Err(CSessionUpholdError::InvalidLiftSig);
+                if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
+                    return Err(CSessionUpholdINack::InvalidLiftSig);
                 }
             }
         }
@@ -1230,11 +1258,11 @@ impl CSessionCtx {
             for (index, (_, _, _, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
-                    None => return Err(CSessionUpholdError::MissingConnectorSig),
+                    None => return Err(CSessionUpholdINack::MissingConnectorSig),
                 };
 
-                if !musig_ctx.insert_partial_sig(account_key, partial_sig.to_owned()) {
-                    return Err(CSessionUpholdError::InvalidConnectorSig);
+                if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
+                    return Err(CSessionUpholdINack::InvalidConnectorSig);
                 }
             }
         }
@@ -1325,6 +1353,94 @@ impl CSessionCtx {
         }
 
         blame_list
+    }
+
+    pub fn upholdack(&self, msg_sender: Account) -> Result<CSessionUpholdAck, CSessionUpholdONack> {
+        // Check msg.senders blame list.
+        let blame_list = self.blame_list();
+
+        if blame_list.len() > 0 {
+            return Err(CSessionUpholdONack::BlameMsgSenders(blame_list));
+        }
+
+        // Check operator blame.
+        if !self.operator_agg_sigs_ready() {
+            return Err(CSessionUpholdONack::BlameOperator);
+        }
+
+        let payload_auth_agg_sig = self
+            .payload_auth_ctxes
+            .clone()
+            .ok_or(CSessionUpholdONack::PayloadAuthSigErr)?
+            .3
+            .agg_sig()
+            .ok_or(CSessionUpholdONack::PayloadAuthSigErr)?;
+
+        let vtxo_projector_agg_sig = match &self.vtxo_projector_ctxes {
+            Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
+                Some(sig) => Some(sig),
+                None => return Err(CSessionUpholdONack::VtxoProjectorSigErr),
+            },
+            None => None,
+        };
+
+        let connector_projector_agg_sig = match &self.connector_projector_ctxes {
+            Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
+                Some(sig) => Some(sig),
+                None => return Err(CSessionUpholdONack::ConnectorProjectorSigErr),
+            },
+            None => None,
+        };
+
+        let zkp_contingent_agg_sig = match &self.zkp_contingent_ctxes {
+            Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
+                Some(sig) => Some(sig),
+                None => return Err(CSessionUpholdONack::ZkpContigentSigErr),
+            },
+            None => None,
+        };
+
+        // Lift prevtxo agg sigs
+        let mut lift_prevtxo_agg_sigs = HashMap::<Lift, Scalar>::new();
+        for (account, ctxes) in self.lift_prevtxo_ctxes.iter() {
+            if account.key() == msg_sender.key() {
+                for (lift, (_, _, _, musig_ctx)) in ctxes.iter() {
+                    let agg_sig = match musig_ctx.agg_sig() {
+                        Some(sig) => sig,
+                        None => return Err(CSessionUpholdONack::LiftSigErr),
+                    };
+
+                    lift_prevtxo_agg_sigs.insert(lift.to_owned(), agg_sig);
+                }
+            }
+        }
+
+        // Connector txo agg sigs
+        let mut connector_agg_sigs = Vec::<Scalar>::new();
+        for (account, ctxes) in self.connector_txo_ctxes.iter() {
+            if account.key() == msg_sender.key() {
+                for (_, _, _, musig_ctx) in ctxes.iter() {
+                    let agg_sig = match musig_ctx.agg_sig() {
+                        Some(sig) => sig,
+                        None => return Err(CSessionUpholdONack::ConnectorSigErr),
+                    };
+
+                    connector_agg_sigs.push(agg_sig);
+                }
+            }
+        }
+
+        let uphold_ack = CSessionUpholdAck::new(
+            msg_sender,
+            payload_auth_agg_sig,
+            vtxo_projector_agg_sig,
+            connector_projector_agg_sig,
+            zkp_contingent_agg_sig,
+            lift_prevtxo_agg_sigs,
+            connector_agg_sigs,
+        );
+
+        Ok(uphold_ack)
     }
 
     // is it final? who is missing? blaming..

@@ -9,8 +9,8 @@ pub mod ncontext;
 pub mod commit;
 #[path = "commit/commitack.rs"]
 pub mod commitack;
-#[path = "commit/commiterr.rs"]
-pub mod commiterr;
+#[path = "commit/commitnack.rs"]
+pub mod commitnack;
 
 // Opcov
 #[path = "opcov/opcov.rs"]
@@ -25,5 +25,9 @@ pub mod uphold;
 pub mod upholdack;
 #[path = "uphold/upholderr.rs"]
 pub mod upholderr;
+#[path = "uphold/upholdinack.rs"]
+pub mod upholdinack;
+#[path = "uphold/upholdonack.rs"]
+pub mod upholdonack;
 
 pub mod allowance;

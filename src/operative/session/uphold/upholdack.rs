@@ -9,7 +9,7 @@ use std::collections::HashMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionUpholdAck {
     // Account
-    account: Account,
+    msg_sender: Account,
     // Payload auth
     payload_auth_agg_sig: Scalar,
     // VTXO projector
@@ -27,7 +27,7 @@ pub struct CSessionUpholdAck {
 
 impl CSessionUpholdAck {
     pub fn new(
-        account: Account,
+        msg_sender: Account,
         payload_auth_agg_sig: Scalar,
         vtxo_projector_agg_sig: Option<Scalar>,
         connector_projector_agg_sig: Option<Scalar>,
@@ -36,7 +36,7 @@ impl CSessionUpholdAck {
         connector_txo_agg_sigs: Vec<Scalar>,
     ) -> CSessionUpholdAck {
         CSessionUpholdAck {
-            account,
+            msg_sender,
             payload_auth_agg_sig,
             vtxo_projector_agg_sig,
             connector_projector_agg_sig,
@@ -46,8 +46,8 @@ impl CSessionUpholdAck {
         }
     }
 
-    pub fn account(&self) -> Account {
-        self.account.clone()
+    pub fn msg_sender(&self) -> Account {
+        self.msg_sender.clone()
     }
 
     pub fn payload_auth_agg_sig(&self) -> Scalar {

@@ -84,7 +84,7 @@ mod noist_tests {
 
         // Retrieve DKG Directory from the manager.
         let mut dkg_directory = {
-            let dir = manager.directory(setup_no).unwrap();
+            let dir = manager.directory_by_height(setup_no).unwrap();
             let _dir = dir.lock().await;
             (*_dir).clone()
         };
@@ -286,13 +286,13 @@ mod noist_tests {
             .pick_signing_session(message, None, true)
             .unwrap();
 
-        let _nonce_index = noist_signing_session.nonce_index();
+        let _nonce_index = noist_signing_session.nonce_height();
 
         let operator_key = noist_signing_session.group_key();
         let operator_hiding_nonce = noist_signing_session.hiding_group_nonce();
         let operator_binding_nonce = noist_signing_session.post_binding_group_nonce();
 
-        let projector = Projector::new(remote_keys, operator_key, ProjectorTag::VTXOProjector);
+        let projector = Projector::new(&remote_keys, operator_key, ProjectorTag::VTXOProjector);
 
         let key_agg_ctx = projector.key_agg_ctx().expect("leyn");
 
