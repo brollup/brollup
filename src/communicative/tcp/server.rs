@@ -11,6 +11,9 @@ use crate::schnorr::Authenticable;
 use crate::session::ccontext::CSessionStage;
 use crate::session::commit::NSessionCommit;
 use crate::session::opcov::CSessionOpCov;
+use crate::session::uphold::NSessionUphold;
+use crate::session::upholdack::CSessionUpholdAck;
+use crate::session::upholdnack::CSessionUpholdNack;
 use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use secp::Scalar;
@@ -641,6 +644,75 @@ async fn handle_commit_session(
 
     let response_package = {
         let kind = PackageKind::CommitSession;
+        TCPPackage::new(kind, timestamp, &response_payload)
+    };
+
+    Some(response_package)
+}
+
+async fn handle_uphold_session(
+    socket: &SOCKET,
+    timestamp: i64,
+    payload: &[u8],
+    csession_ctx: &Option<CSESSION_CTX>,
+) -> Option<TCPPackage> {
+    let csession_ctx: CSESSION_CTX = Arc::clone(&csession_ctx.to_owned()?);
+
+    let auth_uphold: Authenticable<NSessionUphold> = match serde_json::from_slice(payload) {
+        Ok(uphold) => uphold,
+        Err(_) => return None,
+    };
+
+    let msg_sender = auth_uphold.object().msg_sender();
+
+    let session_locked = {
+        let mut _csession_ctx = csession_ctx.lock().await;
+        _csession_ctx.stage() == CSessionStage::Locked
+    };
+
+    if !session_locked {
+        return None;
+    }
+
+    let uphold_result: Result<CSessionUpholdAck, CSessionUpholdNack> = {
+        let mut _csession_ctx = csession_ctx.lock().await;
+        match _csession_ctx.insert_uphold(auth_uphold) {
+            Ok(_) => {
+                // Uhold inserted, now wait until stage status is changed.
+                loop {
+                    let stage = {
+                        let mut _csession_ctx = csession_ctx.lock().await;
+                        _csession_ctx.stage()
+                    };
+
+                    if stage != CSessionStage::Locked {
+                        // Stage status has changed; either to upheld or upheld err.
+                        let mut _csession_ctx = csession_ctx.lock().await;
+                        match _csession_ctx.upholdack(msg_sender) {
+                            // If the status was set to upheld, this should be able to return upholdack.
+                            Ok(upholdack) => {
+                                break Ok(upholdack);
+                            }
+                            // If the status was set to uphelderr, this should return upholdonack.
+                            Err(uphold_onack) => {
+                                break Err(CSessionUpholdNack::UpholdONack(uphold_onack));
+                            }
+                        };
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            }
+            Err(uphold_inack) => Err(CSessionUpholdNack::UpholdINack(uphold_inack)),
+        }
+    };
+
+    let response_payload = match serde_json::to_vec(&uphold_result) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
+
+    let response_package = {
+        let kind = PackageKind::UpholdSession;
         TCPPackage::new(kind, timestamp, &response_payload)
     };
 

@@ -21,17 +21,19 @@ use crate::{
 use async_trait::async_trait;
 use secp::{Point, Scalar};
 use std::{collections::HashMap, sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::Instant};
 
 type DKGDirHeight = u64;
 type DKGNonceHeight = u64;
 
 pub const ON_STAGE_WAIT_TIME: Duration = Duration::from_secs(5);
+pub const UPHOLD_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CSessionStage {
     On,        // The session is on. New commitments are now allowed to join.
     Locked,    // The session is locked. No new commitments are allowed.
+    UpheldErr, // The session is failed to upheld.
     Upheld,    // The session is upheld. All partial MuSig signatures are collected.
     Finalized, // The session is finalized. All forfeiture signatures are collected.
     Off,       // The session is off.
@@ -1198,8 +1200,14 @@ impl CSessionCtx {
         &mut self,
         auth_uphold: Authenticable<NSessionUphold>,
     ) -> Result<(), CSessionUpholdINack> {
+        // Check if the session is locked.
+        if self.stage != CSessionStage::Locked {
+            return Err(CSessionUpholdINack::SessionNotLocked);
+        }
+
         // #1 Validate uphold
         if !self.validate_uphold(&auth_uphold) {
+            self.uphelderr();
             return Err(CSessionUpholdINack::AuthErr);
         }
 
@@ -1209,6 +1217,7 @@ impl CSessionCtx {
         // Insert payload auth partial sig
         if let Some((_, _, _, ctx)) = &mut self.payload_auth_ctxes {
             if !ctx.insert_partial_sig(msg_sender, uphold.payload_auth_partial_sig()) {
+                self.uphelderr();
                 return Err(CSessionUpholdINack::InvalidPayloadAuthSig);
             }
         }
@@ -1217,10 +1226,14 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.vtxo_projector_ctxes {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdINack::MissingVTXOProjectorSig),
+                None => {
+                    self.uphelderr();
+                    return Err(CSessionUpholdINack::MissingVTXOProjectorSig);
+                }
             };
 
             if !ctx.insert_partial_sig(msg_sender, vtxo_projector_partial_sig) {
+                self.uphelderr();
                 return Err(CSessionUpholdINack::InvalidVTXOProjectorSig);
             }
         }
@@ -1229,10 +1242,14 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.connector_projector_ctxes {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdINack::MissingConnectorProjectorSig),
+                None => {
+                    self.uphelderr();
+                    return Err(CSessionUpholdINack::MissingConnectorProjectorSig);
+                }
             };
 
             if !ctx.insert_partial_sig(msg_sender, connector_projector_partial_sig) {
+                self.uphelderr();
                 return Err(CSessionUpholdINack::InvalidConnectorProjectorSig);
             }
         }
@@ -1241,10 +1258,14 @@ impl CSessionCtx {
         if let Some((_, _, _, ctx)) = &mut self.zkp_contingent_ctxes {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
-                None => return Err(CSessionUpholdINack::MissingZKPContigentSig),
+                None => {
+                    self.uphelderr();
+                    return Err(CSessionUpholdINack::MissingZKPContigentSig);
+                }
             };
 
             if !ctx.insert_partial_sig(msg_sender, zkp_contingent_partial_sig) {
+                self.uphelderr();
                 return Err(CSessionUpholdINack::InvalidZKPContigentSig);
             }
         }
@@ -1255,10 +1276,14 @@ impl CSessionCtx {
             for (lift, (_, _, _, musig_ctx)) in musig_ctxes.iter_mut() {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
-                    None => return Err(CSessionUpholdINack::MissingLiftSig),
+                    None => {
+                        self.uphelderr();
+                        return Err(CSessionUpholdINack::MissingLiftSig);
+                    }
                 };
 
                 if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
+                    self.uphelderr();
                     return Err(CSessionUpholdINack::InvalidLiftSig);
                 }
             }
@@ -1270,10 +1295,14 @@ impl CSessionCtx {
             for (index, (_, _, _, musig_ctx)) in musig_ctxes.iter_mut().enumerate() {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
-                    None => return Err(CSessionUpholdINack::MissingConnectorSig),
+                    None => {
+                        self.uphelderr();
+                        return Err(CSessionUpholdINack::MissingConnectorSig);
+                    }
                 };
 
                 if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
+                    self.uphelderr();
                     return Err(CSessionUpholdINack::InvalidConnectorSig);
                 }
             }
@@ -1367,6 +1396,18 @@ impl CSessionCtx {
         blame_list
     }
 
+    pub fn is_upheld_ready(&self) -> bool {
+        if self.blame_list().len() > 0 {
+            return false;
+        }
+
+        if !self.operator_agg_sigs_ready() {
+            return false;
+        }
+
+        true
+    }
+
     pub fn upholdack(&self, msg_sender: Account) -> Result<CSessionUpholdAck, CSessionUpholdONack> {
         // Check msg.senders blame list.
         let blame_list = self.blame_list();
@@ -1456,6 +1497,9 @@ impl CSessionCtx {
     }
 
     // is it final? who is missing? blaming..
+    pub fn uphelderr(&mut self) {
+        self.stage = CSessionStage::UpheldErr;
+    }
 
     pub fn upheld(&mut self) {
         self.stage = CSessionStage::Upheld;
@@ -1520,7 +1564,7 @@ pub trait CContextRunner {
 #[async_trait]
 impl CContextRunner for CSESSION_CTX {
     async fn run(&self) {
-        loop {
+        'runner: loop {
             // Reset the context and set the stage `on`
             {
                 let mut _csession_ctx = self.lock().await;
@@ -1538,7 +1582,7 @@ impl CContextRunner for CSESSION_CTX {
                 _csession_ctx.msg_senders_len()
             };
 
-            // At least one or more msg.senders are required to move to the next stage.
+            // Lock the session & set the ctxes if there are one or more msg.senders.
             match num_msg_senders {
                 0 => {
                     // Back to the beginning.
@@ -1559,9 +1603,60 @@ impl CContextRunner for CSESSION_CTX {
                 }
             }
 
-            // TODOs..
+            // Commitacks are returned to respective msg.senders by tcp::server::handle_commit_session.
+            // Immediately after session is locked.
 
-            // Return commitacks to respective msg.senders.
+            // Now can accept upholds.
+            // WAITING FOR UPHOLDS..
+
+            let start = Instant::now();
+
+            // Wait for upholds with a timeout.
+            loop {
+                let is_upheld_ready = {
+                    let mut _csession_ctx = self.lock().await;
+                    _csession_ctx.is_upheld_ready()
+                };
+
+                match is_upheld_ready {
+                    true => {
+                        // set to upheld.
+                        {
+                            let mut _csession_ctx = self.lock().await;
+                            _csession_ctx.upheld();
+                        }
+                        break;
+                    }
+                    false => {
+                        // Is it uphold err?
+                        let stage = {
+                            let mut _csession_ctx = self.lock().await;
+                            _csession_ctx.stage()
+                        };
+
+                        match stage == CSessionStage::UpheldErr {
+                            true => {
+                                // Back to the beginning.
+                                eprintln!("Uphold err. Back to the beginning.");
+                                continue 'runner;
+                            }
+                            false => {
+                                let elapsed = start.elapsed();
+
+                                if elapsed > UPHOLD_TIMEOUT {
+                                    // Back to the beginning.
+                                    eprintln!("Uphold timeout. Back to the beginning.");
+                                    continue 'runner;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+
+            // POST-UPHOLD LOGIC..
         }
     }
 }

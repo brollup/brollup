@@ -25,9 +25,11 @@ pub mod uphold;
 pub mod upholdack;
 #[path = "uphold/upholderr.rs"]
 pub mod upholderr;
-#[path = "uphold/upholdinack.rs"]
+#[path = "uphold/upholdnack/upholdnack.rs"]
+pub mod upholdnack;
+#[path = "uphold/upholdnack/upholdinack.rs"]
 pub mod upholdinack;
-#[path = "uphold/upholdonack.rs"]
+#[path = "uphold/upholdnack/upholdonack.rs"]
 pub mod upholdonack;
 
 pub mod allowance;

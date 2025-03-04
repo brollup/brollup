@@ -13,6 +13,7 @@ pub enum PackageKind {
     SyncDKGDir,
     RequestOpCov,
     CommitSession,
+    UpholdSession,
 }
 
 impl PackageKind {
@@ -27,6 +28,7 @@ impl PackageKind {
             PackageKind::SyncDKGDir => 0x06,
             PackageKind::RequestOpCov => 0x07,
             PackageKind::CommitSession => 0x08,
+            PackageKind::UpholdSession => 0x09,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -40,6 +42,7 @@ impl PackageKind {
             0x06 => Some(PackageKind::SyncDKGDir),
             0x07 => Some(PackageKind::RequestOpCov),
             0x08 => Some(PackageKind::CommitSession),
+            0x09 => Some(PackageKind::UpholdSession),
             _ => None,
         }
     }

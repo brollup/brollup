@@ -11,6 +11,9 @@ use crate::session::commitack::CSessionCommitAck;
 use crate::session::commitnack::CSessionCommitNack;
 use crate::session::opcov::CSessionOpCov;
 use crate::session::opcovack::OSessionOpCovAck;
+use crate::session::uphold::NSessionUphold;
+use crate::session::upholdack::CSessionUpholdAck;
+use crate::session::upholdnack::CSessionUpholdNack;
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -61,6 +64,12 @@ pub trait TCPClient {
         &self,
         auth_commit: Authenticable<NSessionCommit>,
     ) -> Result<Result<CSessionCommitAck, CSessionCommitNack>, RequestError>;
+
+    /// msg.sender returning the coordinator to uphold a rollup state transition session.
+    async fn uphold_session(
+        &self,
+        auth_uphold: Authenticable<NSessionUphold>,
+    ) -> Result<Result<CSessionUpholdAck, CSessionUpholdNack>, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -432,5 +441,39 @@ impl TCPClient for PEER {
             serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
         Ok(commit_result)
+    }
+
+    async fn uphold_session(
+        &self,
+        auth_uphold: Authenticable<NSessionUphold>,
+    ) -> Result<Result<CSessionUpholdAck, CSessionUpholdNack>, RequestError> {
+        let payload = serde_json::to_vec(&auth_uphold).map_err(|_| RequestError::InvalidRequest)?;
+
+        let request_package = {
+            let kind = PackageKind::UpholdSession;
+            let timestamp = Utc::now().timestamp();
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        let timeout = Duration::from_millis(1_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let uphold_result: Result<CSessionUpholdAck, CSessionUpholdNack> =
+            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+
+        Ok(uphold_result)
     }
 }

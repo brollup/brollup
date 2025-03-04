@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 /// immeduately after receiving `NSessionUphold`s if there is an issue with it.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum CSessionUpholdINack {
+    SessionNotLocked,
     AuthErr,
     InvalidPayloadAuthSig,
     MissingVTXOProjectorSig,
