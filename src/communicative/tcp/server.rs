@@ -218,15 +218,7 @@ async fn handle_socket(
         let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
 
         // Process the request kind.
-        handle_package(
-            package,
-            &mut *_socket,
-            mode,
-            keys,
-            dkg_manager,
-            csession_ctx,
-        )
-        .await;
+        handle_package(package, socket, mode, keys, dkg_manager, csession_ctx).await;
     }
 
     // Remove the client from the list upon disconnection.
@@ -240,7 +232,7 @@ async fn handle_socket(
 
 async fn handle_package(
     package: TCPPackage,
-    socket: &mut tokio::net::TcpStream,
+    socket: &SOCKET,
     mode: OperatingMode,
     keys: &KeyHolder,
     dkg_manager: &mut DKG_MANAGER,
@@ -255,8 +247,13 @@ async fn handle_package(
                 }
 
                 PackageKind::CommitSession => {
-                    handle_commit_session(package.timestamp(), &package.payload(), csession_ctx)
-                        .await
+                    handle_commit_session(
+                        socket,
+                        package.timestamp(),
+                        &package.payload(),
+                        csession_ctx,
+                    )
+                    .await
                 }
 
                 _ => return,
@@ -560,7 +557,7 @@ async fn handle_request_partial_sigs(
 }
 
 /// Coordinator asking operators for partial signatures
-async fn handle_request_opcov(
+async fn _handle_request_opcov(
     timestamp: i64,
     payload: &[u8],
     dkg_manager: &mut DKG_MANAGER,
@@ -588,6 +585,7 @@ async fn handle_request_opcov(
 
 /// Coordinator handling msg.sender's session commitment request.
 async fn handle_commit_session(
+    socket: &SOCKET,
     timestamp: i64,
     payload: &[u8],
     csession_ctx: &Option<CSESSION_CTX>,
@@ -613,7 +611,7 @@ async fn handle_commit_session(
     let commit_result = {
         let mut _csession_ctx = csession_ctx.lock().await;
         // Insert the commit.
-        match _csession_ctx.insert_commit(&auth_commit).await {
+        match _csession_ctx.insert_commit(&auth_commit, socket).await {
             Ok(_) => {
                 // If the insertion is valid, wait until the session is locked.
                 loop {

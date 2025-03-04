@@ -1,8 +1,6 @@
-use std::time::Duration;
-
-use tokio::net::TcpStream;
-
 use super::tcp::{self, TCPError};
+use crate::SOCKET;
+use std::time::Duration;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum PackageKind {
@@ -14,7 +12,7 @@ pub enum PackageKind {
     RequestPartialSigs,
     SyncDKGDir,
     RequestOpCov,
-    CommitSession,  
+    CommitSession,
 }
 
 impl PackageKind {
@@ -91,9 +89,10 @@ impl TCPPackage {
 
     pub async fn deliver(
         &self,
-        socket: &mut TcpStream,
+        socket: &SOCKET,
         timeout: Option<Duration>,
     ) -> Result<(), TCPError> {
-        tcp::write(socket, &self.serialize(), timeout).await
+        let mut _socket = socket.lock().await;
+        tcp::write(&mut _socket, &self.serialize(), timeout).await
     }
 }

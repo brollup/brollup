@@ -1,6 +1,5 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp::{self, TCPError};
-use crate::into::IntoPoint;
 use crate::musig::session::MusigSessionCtx;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
@@ -15,7 +14,7 @@ use crate::session::opcovack::OSessionOpCovAck;
 use crate::{PEER, SOCKET};
 use async_trait::async_trait;
 use chrono::Utc;
-use secp::{Point, Scalar};
+use secp::Scalar;
 use std::collections::HashMap;
 use std::time::Duration;
 
