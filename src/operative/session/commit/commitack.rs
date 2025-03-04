@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 /// `CSessionCommitAck` is returned by the coordinator to the msg.senders
 /// upon receiving `NSessionCommit` if the commitment is successful.
-/// Otherwise, the coordinator responds with `CSessionCommitError`.
+/// Otherwise, the coordinator responds with `CSessionCommitNack`.
 /// `CSessionCommitAck` contains the MuSig contexts in which the respective msg.sender is a co-signer.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {

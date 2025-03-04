@@ -18,12 +18,15 @@ use crate::{
     valtype::account::Account,
     CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER,
 };
+use async_trait::async_trait;
 use secp::{Point, Scalar};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 type DKGDirHeight = u64;
 type DKGNonceHeight = u64;
+
+pub const ON_STAGE_WAIT_TIME: Duration = Duration::from_secs(5);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CSessionStage {
@@ -176,7 +179,6 @@ impl CSessionCtx {
     /// Sets the coordinator session stage to `on`
     /// meaning accounts can now participate in a rollup state transition.
     pub fn on(&mut self) {
-        self.reset();
         self.stage = CSessionStage::On;
     }
 
@@ -773,9 +775,8 @@ impl CSessionCtx {
 
     /// Locks the session, preventing further `NSessionCommit`s from joining this session.  
     /// New `NSessionCommit`s are put on hold until the `CSessionStage` is set back to `on`.
-    pub async fn lock(&mut self) -> bool {
+    pub fn locked(&mut self) {
         self.stage = CSessionStage::Locked;
-        self.set_ctxes().await
     }
 
     /// Returns the respective `CSessionOpCov`s for the DKG operators.
@@ -1495,5 +1496,60 @@ impl CSessionCtx {
                 MusigSessionCtx,
             )>,
         >::new();
+    }
+}
+
+#[async_trait]
+/// `CContextRunner` handles the background task that runs Brollup sessions for the coordinator.
+pub trait CContextRunner {
+    async fn run(&self);
+}
+
+#[async_trait]
+impl CContextRunner for CSESSION_CTX {
+    async fn run(&self) {
+        loop {
+            // Reset the context and set the stage `on`
+            {
+                let mut _csession_ctx = self.lock().await;
+                _csession_ctx.reset();
+                _csession_ctx.on();
+            }
+
+            // Wait for 5 seconds for `NSessionCommit`s.
+            // In this period `NSessionCommit`s are inserted via `tcp::server::handle_commit_session`.
+            tokio::time::sleep(ON_STAGE_WAIT_TIME).await;
+
+            // Check the number of msg.senders.
+            let num_msg_senders = {
+                let _csession_ctx = self.lock().await;
+                _csession_ctx.msg_senders_len()
+            };
+
+            // At least one or more msg.senders are required to move to the next stage.
+            match num_msg_senders {
+                0 => {
+                    // Back to the beginning.
+                    continue;
+                }
+                _ => {
+                    // Set the stage `locked` and set the ctxes.
+                    {
+                        let mut _csession_ctx = self.lock().await;
+                        _csession_ctx.locked();
+
+                        if !_csession_ctx.set_ctxes().await {
+                            // Back to the beginning.
+                            eprintln!("Failed to set ctxes. Back to the beginning.");
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // TODOs..
+
+            // Return commitacks to respective msg.senders.
+        }
     }
 }
