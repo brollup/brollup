@@ -14,6 +14,7 @@ pub enum PackageKind {
     RequestPartialSigs,
     SyncDKGDir,
     RequestOpCov,
+    CommitSession,  
 }
 
 impl PackageKind {
@@ -27,6 +28,7 @@ impl PackageKind {
             PackageKind::RequestPartialSigs => 0x05,
             PackageKind::SyncDKGDir => 0x06,
             PackageKind::RequestOpCov => 0x07,
+            PackageKind::CommitSession => 0x08,
         }
     }
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
@@ -39,6 +41,7 @@ impl PackageKind {
             0x05 => Some(PackageKind::RequestPartialSigs),
             0x06 => Some(PackageKind::SyncDKGDir),
             0x07 => Some(PackageKind::RequestOpCov),
+            0x08 => Some(PackageKind::CommitSession),
             _ => None,
         }
     }

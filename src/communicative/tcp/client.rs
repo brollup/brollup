@@ -7,6 +7,9 @@ use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::peer::PeerConnection;
 use crate::schnorr::Authenticable;
+use crate::session::commit::NSessionCommit;
+use crate::session::commitack::CSessionCommitAck;
+use crate::session::commitnack::CSessionCommitNack;
 use crate::session::opcov::CSessionOpCov;
 use crate::session::opcovack::OSessionOpCovAck;
 use crate::{PEER, SOCKET};
@@ -53,6 +56,12 @@ pub trait TCPClient {
 
     /// Coordinator asking operators partial signatires given CSessionOpCov, returning OSessionOpCovAck.
     async fn request_opcov(&self, opcov: CSessionOpCov) -> Result<OSessionOpCovAck, RequestError>;
+
+    /// msg.sender asking the coordinator to commit to a rollup state transition session.
+    async fn commit_session(
+        &self,
+        auth_commit: Authenticable<NSessionCommit>,
+    ) -> Result<Result<CSessionCommitAck, CSessionCommitNack>, RequestError>;
 }
 
 #[derive(Copy, Clone)]
@@ -386,8 +395,43 @@ impl TCPClient for PEER {
             _ => response_package.payload(),
         };
 
-        let opcovack = serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+        let opcovack =
+            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
 
         Ok(opcovack)
+    }
+
+    async fn commit_session(
+        &self,
+        auth_commit: Authenticable<NSessionCommit>,
+    ) -> Result<Result<CSessionCommitAck, CSessionCommitNack>, RequestError> {
+        let payload = serde_json::to_vec(&auth_commit).map_err(|_| RequestError::InvalidRequest)?;
+
+        let request_package = {
+            let kind = PackageKind::CommitSession;
+            let timestamp = Utc::now().timestamp();
+            TCPPackage::new(kind, timestamp, &payload)
+        };
+
+        let socket: SOCKET = self
+            .socket()
+            .await
+            .ok_or(RequestError::TCPErr(TCPError::ConnErr))?;
+
+        let timeout = Duration::from_millis(1_000);
+
+        let (response_package, _) = tcp::request(&socket, request_package, Some(timeout))
+            .await
+            .map_err(|err| RequestError::TCPErr(err))?;
+
+        let response_payload = match response_package.payload_len() {
+            0 => return Err(RequestError::EmptyResponse),
+            _ => response_package.payload(),
+        };
+
+        let commit_result: Result<CSessionCommitAck, CSessionCommitNack> =
+            serde_json::from_slice(&response_payload).map_err(|_| RequestError::InvalidResponse)?;
+
+        Ok(commit_result)
     }
 }

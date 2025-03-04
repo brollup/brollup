@@ -8,6 +8,8 @@ use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::schnorr::Authenticable;
+use crate::session::ccontext::CSessionStage;
+use crate::session::commit::NSessionCommit;
 use crate::session::opcov::CSessionOpCov;
 use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
@@ -250,6 +252,11 @@ async fn handle_package(
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
                 PackageKind::SyncDKGDir => {
                     handle_sync_dkg_dir(package.timestamp(), &package.payload(), dkg_manager).await
+                }
+
+                PackageKind::CommitSession => {
+                    handle_commit_session(package.timestamp(), &package.payload(), csession_ctx)
+                        .await
                 }
 
                 _ => return,
@@ -573,6 +580,69 @@ async fn handle_request_opcov(
 
     let response_package = {
         let kind = PackageKind::RequestOpCov;
+        TCPPackage::new(kind, timestamp, &response_payload)
+    };
+
+    Some(response_package)
+}
+
+/// Coordinator handling msg.sender's session commitment request.
+async fn handle_commit_session(
+    timestamp: i64,
+    payload: &[u8],
+    csession_ctx: &Option<CSESSION_CTX>,
+) -> Option<TCPPackage> {
+    let csession_ctx: CSESSION_CTX = Arc::clone(&csession_ctx.to_owned()?);
+
+    let auth_commit: Authenticable<NSessionCommit> = match serde_json::from_slice(payload) {
+        Ok(commit) => commit,
+        Err(_) => return None,
+    };
+
+    let msg_sender = auth_commit.object().msg_sender();
+
+    // Wait until the session is on.
+    loop {
+        let mut _csession_ctx = csession_ctx.lock().await;
+        if _csession_ctx.stage() == CSessionStage::On {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+
+    let commit_result = {
+        let mut _csession_ctx = csession_ctx.lock().await;
+        // Insert the commit.
+        match _csession_ctx.insert_commit(&auth_commit).await {
+            Ok(_) => {
+                // If the insertion is valid, wait until the session is locked.
+                loop {
+                    let mut _csession_ctx = csession_ctx.lock().await;
+                    if _csession_ctx.stage() == CSessionStage::Locked {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+                // Return the commitack upon the session is locked.
+                let commitack = match _csession_ctx.commitack(msg_sender) {
+                    Some(commitack) => commitack,
+                    None => return None,
+                };
+
+                Ok(commitack)
+            }
+            // Return the nack if the commit is invalid.
+            Err(commit_nack) => Err(commit_nack),
+        }
+    };
+
+    let response_payload = match serde_json::to_vec(&commit_result) {
+        Ok(bytes) => bytes,
+        Err(_) => return None,
+    };
+
+    let response_package = {
+        let kind = PackageKind::CommitSession;
         TCPPackage::new(kind, timestamp, &response_payload)
     };
 
