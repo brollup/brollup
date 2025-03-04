@@ -16,7 +16,7 @@ use crate::{
         projector::{self, Projector},
     },
     valtype::account::Account,
-    CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER,
+    CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET,
 };
 use async_trait::async_trait;
 use secp::{Point, Scalar};
@@ -43,6 +43,8 @@ pub struct CSessionCtx {
     stage: CSessionStage,
     // Remote keys
     msg_senders: Vec<Account>,
+    //Sockets
+    sockets: HashMap<Account, SOCKET>,
     // Liftups
     liftups: Vec<Liftup>,
     // Recharges
@@ -118,6 +120,7 @@ impl CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             stage: CSessionStage::Off,
             msg_senders: Vec::<Account>::new(),
+            sockets: HashMap::<Account, SOCKET>::new(),
             liftups: Vec::<Liftup>::new(),
             recharges: Vec::<Recharge>::new(),
             vanillas: Vec::<Vanilla>::new(),
@@ -174,6 +177,10 @@ impl CSessionCtx {
         self.msg_senders
             .iter()
             .any(|sender| sender.key() == account.key())
+    }
+
+    pub fn socket(&self, account: &Account) -> Option<SOCKET> {
+        self.sockets.get(account).map(|socket| Arc::clone(socket))
     }
 
     /// Sets the coordinator session stage to `on`
@@ -258,6 +265,7 @@ impl CSessionCtx {
     pub async fn insert_commit(
         &mut self,
         auth_commit: &Authenticable<NSessionCommit>,
+        socket: &SOCKET,
     ) -> Result<(), CSessionCommitNack> {
         // #1 Check session stage
         if self.stage != CSessionStage::On {
@@ -277,6 +285,9 @@ impl CSessionCtx {
 
         // #4 Insert into msg_senders
         self.msg_senders.push(msg_sender);
+
+        // Insert into sockets
+        self.sockets.insert(msg_sender, Arc::clone(socket));
 
         // #5 Insert into liftups
         if let Some(liftup) = commit.liftup() {
@@ -1460,6 +1471,7 @@ impl CSessionCtx {
 
     pub fn reset(&mut self) {
         self.msg_senders = Vec::<Account>::new();
+        self.sockets = HashMap::<Account, SOCKET>::new();
         self.liftups = Vec::<Liftup>::new();
         self.recharges = Vec::<Recharge>::new();
         self.vanillas = Vec::<Vanilla>::new();
