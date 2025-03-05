@@ -18,7 +18,7 @@ use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MA
 use colored::Colorize;
 use secp::Scalar;
 use std::{sync::Arc, time::Duration};
-use tokio::time::Instant;
+use tokio::time::{sleep, Instant};
 use tokio::{net::TcpListener, sync::Mutex};
 
 pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -250,13 +250,13 @@ async fn handle_package(
                 }
 
                 PackageKind::CommitSession => {
-                    handle_commit_session(
-                        socket,
-                        package.timestamp(),
-                        &package.payload(),
-                        csession_ctx,
-                    )
-                    .await
+                    handle_commit_session(package.timestamp(), &package.payload(), csession_ctx)
+                        .await
+                }
+
+                PackageKind::UpholdSession => {
+                    handle_uphold_session(package.timestamp(), &package.payload(), csession_ctx)
+                        .await
                 }
 
                 _ => return,
@@ -588,47 +588,49 @@ async fn _handle_request_opcov(
 
 /// Coordinator handling msg.sender's session commitment request.
 async fn handle_commit_session(
-    socket: &SOCKET,
     timestamp: i64,
     payload: &[u8],
     csession_ctx: &Option<CSESSION_CTX>,
 ) -> Option<TCPPackage> {
     let csession_ctx: CSESSION_CTX = Arc::clone(&csession_ctx.to_owned()?);
-
-    let auth_commit: Authenticable<NSessionCommit> = match serde_json::from_slice(payload) {
-        Ok(commit) => commit,
-        Err(_) => return None,
-    };
-
+    let auth_commit: Authenticable<NSessionCommit> = serde_json::from_slice(payload).ok()?;
     let msg_sender = auth_commit.object().msg_sender();
 
     // Wait until the session is on.
     loop {
-        let mut _csession_ctx = csession_ctx.lock().await;
-        if _csession_ctx.stage() == CSessionStage::On {
-            break;
+        let stage = { csession_ctx.lock().await.stage() };
+
+        match stage {
+            CSessionStage::On => break,
+            _ => sleep(Duration::from_millis(10)).await,
         }
-        tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
     let commit_result = {
-        let mut _csession_ctx = csession_ctx.lock().await;
-        // Insert the commit.
-        match _csession_ctx.insert_commit(&auth_commit, socket).await {
+        // Insert commit.
+        let insert_commit_result = {
+            let mut _csession_ctx = csession_ctx.lock().await;
+            _csession_ctx.insert_commit(&auth_commit).await
+        };
+
+        // Check the insertion result.
+        match insert_commit_result {
             Ok(_) => {
                 // If the insertion is valid, wait until the session is locked.
                 loop {
-                    let mut _csession_ctx = csession_ctx.lock().await;
-                    if _csession_ctx.stage() == CSessionStage::Locked {
-                        break;
+                    let stage = { csession_ctx.lock().await.stage() };
+
+                    match stage {
+                        CSessionStage::Locked => break,
+                        _ => sleep(Duration::from_millis(10)).await,
                     }
-                    tokio::time::sleep(Duration::from_millis(10)).await;
                 }
+
                 // Return the commitack upon the session is locked.
-                let commitack = match _csession_ctx.commitack(msg_sender) {
-                    Some(commitack) => commitack,
-                    None => return None,
-                };
+                let commitack = {
+                    let mut _csession_ctx = csession_ctx.lock().await;
+                    _csession_ctx.commitack(msg_sender)
+                }?;
 
                 Ok(commitack)
             }
@@ -650,56 +652,58 @@ async fn handle_commit_session(
     Some(response_package)
 }
 
+/// Coordinator handling msg.sender's session uphold.
 async fn handle_uphold_session(
-    socket: &SOCKET,
     timestamp: i64,
     payload: &[u8],
     csession_ctx: &Option<CSESSION_CTX>,
 ) -> Option<TCPPackage> {
     let csession_ctx: CSESSION_CTX = Arc::clone(&csession_ctx.to_owned()?);
-
-    let auth_uphold: Authenticable<NSessionUphold> = match serde_json::from_slice(payload) {
-        Ok(uphold) => uphold,
-        Err(_) => return None,
-    };
-
+    let auth_uphold: Authenticable<NSessionUphold> = serde_json::from_slice(payload).ok()?;
     let msg_sender = auth_uphold.object().msg_sender();
 
-    let session_locked = {
-        let mut _csession_ctx = csession_ctx.lock().await;
-        _csession_ctx.stage() == CSessionStage::Locked
-    };
+    // Check if the session is locked.
+    {
+        let stage = { csession_ctx.lock().await.stage() };
 
-    if !session_locked {
-        return None;
+        if stage != CSessionStage::Locked {
+            return None;
+        }
     }
 
     let uphold_result: Result<CSessionUpholdAck, CSessionUpholdNack> = {
-        let mut _csession_ctx = csession_ctx.lock().await;
-        match _csession_ctx.insert_uphold(auth_uphold) {
-            Ok(_) => {
-                // Uhold inserted, now wait until stage status is changed.
-                loop {
-                    let stage = {
-                        let mut _csession_ctx = csession_ctx.lock().await;
-                        _csession_ctx.stage()
-                    };
+        let insert_uphold_result = {
+            let mut _csession_ctx = csession_ctx.lock().await;
+            _csession_ctx.insert_uphold(auth_uphold)
+        };
 
-                    if stage != CSessionStage::Locked {
-                        // Stage status has changed; either to upheld or upheld err.
-                        let mut _csession_ctx = csession_ctx.lock().await;
-                        match _csession_ctx.upholdack(msg_sender) {
-                            // If the status was set to upheld, this should be able to return upholdack.
-                            Ok(upholdack) => {
-                                break Ok(upholdack);
-                            }
-                            // If the status was set to uphelderr, this should return upholdonack.
-                            Err(uphold_onack) => {
-                                break Err(CSessionUpholdNack::UpholdONack(uphold_onack));
-                            }
-                        };
+        match insert_uphold_result {
+            Ok(_) => {
+                // Uphold inserted, now wait until stage status changes.
+                loop {
+                    let stage = { csession_ctx.lock().await.stage() };
+
+                    match stage {
+                        CSessionStage::Locked => sleep(Duration::from_millis(10)).await,
+                        _ => {
+                            // Stage status has changed; either to upheld or back to on (due to failure).
+
+                            let upholdack_result = {
+                                let mut _csession_ctx = csession_ctx.lock().await;
+                                _csession_ctx.upholdack(msg_sender)
+                            };
+
+                            match upholdack_result {
+                                Ok(upholdack) => {
+                                    break Ok(upholdack);
+                                }
+
+                                Err(uphold_onack) => {
+                                    break Err(CSessionUpholdNack::UpholdONack(uphold_onack));
+                                }
+                            };
+                        }
                     }
-                    tokio::time::sleep(Duration::from_millis(10)).await;
                 }
             }
             Err(uphold_inack) => Err(CSessionUpholdNack::UpholdINack(uphold_inack)),
