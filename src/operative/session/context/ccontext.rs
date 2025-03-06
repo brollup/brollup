@@ -5,10 +5,11 @@ use super::{
 };
 use crate::{
     entry::Entry,
+    hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     noist::session::NOISTSessionCtx,
     registery::account::account_registery_index,
-    schnorr::Authenticable,
+    schnorr::{Authenticable, Sighash},
     session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
     txo::{
         connector::Connector,
@@ -45,6 +46,7 @@ pub enum CSessionStage {
 #[derive(Clone)]
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
+    session_id: [u8; 32],
     stage: CSessionStage,
     // Remote keys
     msg_senders: Vec<Account>,
@@ -113,6 +115,7 @@ impl CSessionCtx {
     pub fn construct(dkg_manager: &DKG_MANAGER) -> CSESSION_CTX {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
+            session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             msg_senders: Vec::<Account>::new(),
             entries: Vec::<Entry>::new(),
@@ -149,6 +152,15 @@ impl CSessionCtx {
             >::new(),
         };
         Arc::new(Mutex::new(session))
+    }
+
+    pub fn new_session(&mut self, session_id: [u8; 32]) {
+        self.session_id = session_id;
+        self.reset();
+    }
+
+    pub fn session_id(&self) -> [u8; 32] {
+        self.session_id
     }
 
     pub fn stage(&self) -> CSessionStage {
@@ -194,17 +206,22 @@ impl CSessionCtx {
             return Err(CSessionCommitNack::AuthErr);
         }
 
-        // #1 Overlap check
+        // #1 Account validation
+        if !commit.entry().validate_account() {
+            return Err(CSessionCommitNack::AuthErr);
+        }
+
+        // #2 Overlap check
         if self.msg_senders.contains(&msg_sender) {
             return Err(CSessionCommitNack::Overlap);
         }
 
-        // #2 Allowance check
+        // #3 Allowance check
         if allowance(msg_sender) {
             return Err(CSessionCommitNack::Allowance);
         }
 
-        // #3 Lift prevtxouts validation
+        // #4 Lift prevtxouts validation
         for (lift, _) in commit.lift_prevtxo_nonces().iter() {
             // #1 Operator key validation
             {
@@ -238,7 +255,7 @@ impl CSessionCtx {
             }
         }
 
-        // #4 TODO: Check for num of connectors:
+        // #5 TODO: Check for num of connectors:
         let _connector_count = self.connector_projector_nonces.len();
 
         Ok(())
@@ -307,6 +324,22 @@ impl CSessionCtx {
         Ok(())
     }
 
+    fn payload_auth_msg(&self) -> [u8; 32] {
+        let mut preimage = Vec::<u8>::new();
+
+        // Session ID
+        preimage.extend(self.session_id);
+
+        // Entries
+        for (index, entry) in self.entries.iter().enumerate() {
+            let entry_sighash = entry.sighash();
+            preimage.extend((index as u32).to_le_bytes());
+            preimage.extend(entry_sighash);
+        }
+
+        preimage.hash(Some(HashTag::PayloadAuth))
+    }
+
     /// Sets the NOIST and MuSig contexes upon collecting `NSessionCommit`s, triggered by `lock`.
     async fn set_ctxes(&mut self) -> bool {
         // #1 Check session stage
@@ -332,8 +365,7 @@ impl CSessionCtx {
         let payload_auth_ctxes = match self.payload_auth_nonces.len() {
             0 => return false,
             _ => {
-                // TODO:
-                let payload_auth_message = [0xffu8; 32];
+                let payload_auth_message = self.payload_auth_msg();
 
                 let mut dkg_dir_ = active_dkg_dir.lock().await;
 
@@ -894,8 +926,11 @@ impl CSessionCtx {
             }
         }
 
+        let session_id = self.session_id;
+
         let commitack = CSessionCommitAck::new(
             msg_sender,
+            session_id,
             entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,

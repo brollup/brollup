@@ -8,6 +8,7 @@ pub enum HashTag {
     Sighash,
     SighashCombinator,
     SighashEntry,
+    PayloadAuth,
     SignatureChallenge,
     BIP340Challenge,
     GroupCommitment,
@@ -46,6 +47,7 @@ impl HashTag {
             HashTag::KeyAggList => format!("KeyAgg list"),
             HashTag::KeyAggCoef => format!("KeyAgg coefficient"),
             HashTag::MusigNonceCoef => format!("MuSig/noncecoef"),
+            HashTag::PayloadAuth => format!("{}/{}", baked::PROJECT_TAG, "payloadauth"),
         }
     }
 }

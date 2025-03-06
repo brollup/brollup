@@ -47,6 +47,10 @@ impl NSessionCtx {
         let secret_key = keys.secret_key().into_scalar().ok()?;
         let public_key = secret_key.base_point_mul();
 
+        if entry.account().key() != public_key {
+            return None;
+        }
+
         let nonces = gen_nonce(&entry)?;
 
         let ctx = NSessionCtx {
@@ -106,7 +110,13 @@ impl NSessionCtx {
     }
 
     fn validate_commitack(&self, commitack: &CSessionCommitAck) -> bool {
+        // Validate msg.sender key
         if commitack.msg_sender().key() != self.entry.account().key() {
+            return false;
+        }
+
+        // Validate payload auth msg
+        if !commitack.validate_payload_auth_msg() {
             return false;
         }
 
@@ -267,7 +277,7 @@ impl NSessionCtx {
 }
 
 // TODO:
-fn num_connectors(entry: &Entry) -> u8 {
+fn num_connectors(_entry: &Entry) -> u8 {
     3 as u8 + CONNECTORS_EXTRA_IN
 }
 

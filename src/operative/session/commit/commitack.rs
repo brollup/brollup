@@ -1,5 +1,10 @@
 use crate::{
-    entry::Entry, musig::session::MusigSessionCtx, txo::lift::Lift, valtype::account::Account,
+    entry::Entry,
+    hash::{Hash, HashTag},
+    musig::session::MusigSessionCtx,
+    schnorr::Sighash,
+    txo::lift::Lift,
+    valtype::account::Account,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,6 +17,7 @@ use std::collections::HashMap;
 pub struct CSessionCommitAck {
     // Msg sender
     msg_sender: Account,
+    session_id: [u8; 32],
     // Entries
     entries: Vec<Entry>,
     // Payload auth
@@ -31,6 +37,7 @@ pub struct CSessionCommitAck {
 impl CSessionCommitAck {
     pub fn new(
         msg_sender: Account,
+        session_id: [u8; 32],
         entries: Vec<Entry>,
         payload_auth_musig_ctx: MusigSessionCtx,
         vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
@@ -41,6 +48,7 @@ impl CSessionCommitAck {
     ) -> CSessionCommitAck {
         CSessionCommitAck {
             msg_sender,
+            session_id,
             entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,
@@ -53,6 +61,10 @@ impl CSessionCommitAck {
 
     pub fn msg_sender(&self) -> Account {
         self.msg_sender.clone()
+    }
+
+    pub fn session_id(&self) -> [u8; 32] {
+        self.session_id
     }
 
     pub fn entries(&self) -> Vec<Entry> {
@@ -81,5 +93,25 @@ impl CSessionCommitAck {
 
     pub fn connector_txo_musig_ctxes(&self) -> Vec<MusigSessionCtx> {
         self.connector_txo_musig_ctxes.clone()
+    }
+
+    fn payload_auth_msg(&self) -> [u8; 32] {
+        let mut preimage = Vec::<u8>::new();
+
+        // Session ID
+        preimage.extend(self.session_id);
+
+        // Entries
+        for (index, entry) in self.entries.iter().enumerate() {
+            let entry_sighash = entry.sighash();
+            preimage.extend((index as u32).to_le_bytes());
+            preimage.extend(entry_sighash);
+        }
+
+        preimage.hash(Some(HashTag::PayloadAuth))
+    }
+
+    pub fn validate_payload_auth_msg(&self) -> bool {
+        self.payload_auth_musig_ctx.message() == self.payload_auth_msg()
     }
 }

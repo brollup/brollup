@@ -20,16 +20,33 @@ impl UppermostLeftBranch {
         Self { liftup, recharge }
     }
 
+    pub fn new_liftup(liftup: Liftup) -> Self {
+        Self {
+            liftup: Some(liftup),
+            recharge: None,
+        }
+    }
+
+    pub fn new_recharge(recharge: Recharge) -> Self {
+        Self {
+            liftup: None,
+            recharge: Some(recharge),
+        }
+    }
+
+    pub fn new_liftup_and_recharge(liftup: Liftup, recharge: Recharge) -> Self {
+        Self {
+            liftup: Some(liftup),
+            recharge: Some(recharge),
+        }
+    }
+
     pub fn liftup(&self) -> Option<Liftup> {
         self.liftup.clone()
     }
 
     pub fn recharge(&self) -> Option<Recharge> {
         self.recharge.clone()
-    }
-
-    pub fn on(&self) -> bool {
-        self.liftup.is_some() || self.recharge.is_some()
     }
 }
 
@@ -63,6 +80,53 @@ pub enum UppermostRightBranch {
     UpperRightBranch(UpperRightBranch),
 }
 
+impl UppermostRightBranch {
+    pub fn new_move(r#move: Move) -> Self {
+        Self::Transact(Transact::Move(r#move))
+    }
+
+    pub fn new_call(call: Call) -> Self {
+        Self::Transact(Transact::Call(call))
+    }
+
+    pub fn new_add(add: Add) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::Liquidity(Liquidity::Add(add)))
+    }
+
+    pub fn new_remove(remove: Remove) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::Liquidity(Liquidity::Remove(remove)))
+    }
+
+    pub fn new_swapout(swapout: Swapout) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::Swapout(swapout)))
+    }
+
+    pub fn new_reserved(reserved: Reserved) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::Reserved(
+            reserved,
+        )))
+    }
+
+    pub fn main_combinator(&self) -> Combinator {
+        match self {
+            Self::Transact(transact) => match transact {
+                Transact::Move(r#move) => Combinator::Move(r#move.clone()),
+                Transact::Call(call) => Combinator::Call(call.clone()),
+            },
+            Self::UpperRightBranch(upper_right_branch) => match upper_right_branch {
+                UpperRightBranch::Liquidity(liquidity) => match liquidity {
+                    Liquidity::Add(add) => Combinator::Add(add.clone()),
+                    Liquidity::Remove(remove) => Combinator::Remove(remove.clone()),
+                },
+                UpperRightBranch::RightBranch(right_branch) => match right_branch {
+                    RightBranch::Swapout(swapout) => Combinator::Swapout(swapout.clone()),
+                    RightBranch::Reserved(reserved) => Combinator::Reserved(reserved.clone()),
+                },
+            },
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Entry {
     account: Account,
@@ -86,7 +150,7 @@ impl Entry {
     // Liftup and/or recharge ONLY.
     pub fn new_nop(account: Account, liftup: Option<Liftup>, recharge: Option<Recharge>) -> Entry {
         let uppermost_left_branch = {
-            if liftup.is_some() || recharge.is_some() {
+            if liftup.is_some() && recharge.is_some() {
                 Some(UppermostLeftBranch::new(liftup, recharge))
             } else {
                 None
@@ -236,26 +300,7 @@ impl Entry {
             None => return None,
         };
 
-        match uppermost_right_branch {
-            UppermostRightBranch::Transact(transact) => match transact {
-                Transact::Move(r#move) => Some(Combinator::Move(r#move.clone())),
-                Transact::Call(call) => Some(Combinator::Call(call.clone())),
-            },
-            UppermostRightBranch::UpperRightBranch(upper_right_branch) => {
-                match upper_right_branch {
-                    UpperRightBranch::Liquidity(liquidity) => match liquidity {
-                        Liquidity::Add(add) => Some(Combinator::Add(add.clone())),
-                        Liquidity::Remove(remove) => Some(Combinator::Remove(remove.clone())),
-                    },
-                    UpperRightBranch::RightBranch(right_branch) => match right_branch {
-                        RightBranch::Swapout(swapout) => Some(Combinator::Swapout(swapout.clone())),
-                        RightBranch::Reserved(reserved) => {
-                            Some(Combinator::Reserved(reserved.clone()))
-                        }
-                    },
-                }
-            }
-        }
+        Some(uppermost_right_branch.main_combinator())
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -361,18 +406,15 @@ impl Sighash for Entry {
             Some(uppermost_right_branch) => {
                 preimage.push(0x01);
 
-                match &self.main_combinator() {
-                    Some(main_combinator) => match main_combinator {
-                        Combinator::Move(r#move) => preimage.extend(r#move.sighash()),
-                        Combinator::Call(call) => preimage.extend(call.sighash()),
-                        Combinator::Add(add) => preimage.extend(add.sighash()),
-                        Combinator::Remove(remove) => preimage.extend(remove.sighash()),
-                        Combinator::Swapout(swapout) => preimage.extend(swapout.sighash()),
-                        Combinator::Reserved(_) => return [0xffu8; 32],
-                        Combinator::Liftup(_) => return [0xffu8; 32],
-                        Combinator::Recharge(_) => return [0xffu8; 32],
-                    },
-                    None => return [0xffu8; 32],
+                match &uppermost_right_branch.main_combinator() {
+                    Combinator::Move(r#move) => preimage.extend(r#move.sighash()),
+                    Combinator::Call(call) => preimage.extend(call.sighash()),
+                    Combinator::Add(add) => preimage.extend(add.sighash()),
+                    Combinator::Remove(remove) => preimage.extend(remove.sighash()),
+                    Combinator::Swapout(swapout) => preimage.extend(swapout.sighash()),
+                    Combinator::Reserved(_) => return [0xffu8; 32],
+                    Combinator::Liftup(_) => return [0xffu8; 32],
+                    Combinator::Recharge(_) => return [0xffu8; 32],
                 }
             }
             None => preimage.push(0x00),
