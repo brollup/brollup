@@ -154,9 +154,10 @@ impl CSessionCtx {
         Arc::new(Mutex::new(session))
     }
 
-    pub fn new_session(&mut self, session_id: [u8; 32]) {
+    pub fn init(&mut self, session_id: [u8; 32]) {
         self.session_id = session_id;
         self.reset();
+        self.on();
     }
 
     pub fn session_id(&self) -> [u8; 32] {
@@ -1528,11 +1529,13 @@ pub trait CContextRunner {
 impl CContextRunner for CSESSION_CTX {
     async fn run(&self) {
         loop {
-            // Reset context and set the stage to "on"
+            // Initialize session
             {
+                // TODO:
+                let session_id = [0x00u8; 32];
+
                 let mut session_ctx = self.lock().await;
-                session_ctx.reset();
-                session_ctx.on();
+                session_ctx.init(session_id);
             }
 
             // Wait for other commits.
