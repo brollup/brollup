@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    combinator::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     into::IntoScalar,
     key::KeyHolder,
     schnorr::{self, Authenticable},

@@ -1,6 +1,6 @@
 use super::opcovack::OSessionOpCovAck;
 use crate::{
-    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    combinator::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
     key::KeyHolder,
     musig::session::MusigSessionCtx,
     schnorr::Bytes32,

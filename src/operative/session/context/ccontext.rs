@@ -4,7 +4,9 @@ use super::{
     upholdonack::CSessionUpholdONack,
 };
 use crate::{
-    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    combinator::{
+        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
+    },
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     noist::session::NOISTSessionCtx,
     registery::account::account_registery_index,

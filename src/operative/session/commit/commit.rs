@@ -2,7 +2,9 @@ use crate::hash::{Hash, HashTag};
 use crate::schnorr::Sighash;
 use crate::txo::lift::Lift;
 use crate::{
-    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    combinator::{
+        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
+    },
     valtype::account::Account,
 };
 use secp::Point;

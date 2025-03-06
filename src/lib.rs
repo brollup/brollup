@@ -82,7 +82,9 @@ pub mod peer_manager;
 pub mod tcp;
 
 // Constructive
-#[path = "constructive/entry/mod.rs"]
+#[path = "constructive/entry/combinator/mod.rs"]
+pub mod combinator;
+#[path = "constructive/entry/entry.rs"]
 pub mod entry;
 #[path = "constructive/taproot.rs"]
 pub mod taproot;

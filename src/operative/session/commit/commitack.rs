@@ -1,5 +1,7 @@
 use crate::{
-    entry::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    combinator::{
+        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
+    },
     musig::session::MusigSessionCtx,
     txo::lift::Lift,
     valtype::account::Account,
