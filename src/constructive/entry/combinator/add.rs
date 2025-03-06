@@ -43,6 +43,6 @@ impl Sighash for Add {
         preimage.extend(self.account.key().serialize_xonly());
         preimage.extend(self.amount.to_le_bytes());
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashCombinator))
     }
 }

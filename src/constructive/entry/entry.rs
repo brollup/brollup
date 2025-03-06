@@ -267,6 +267,6 @@ impl Sighash for Entry {
             Combinator::Reserved(_) => preimage.extend([0xffu8; 32]),
         }
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashEntry))
     }
 }

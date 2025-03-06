@@ -49,6 +49,6 @@ impl Sighash for Move {
         preimage.extend(self.to.key().serialize_xonly());
         preimage.extend(self.amount.to_le_bytes());
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashCombinator))
     }
 }

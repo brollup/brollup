@@ -70,6 +70,6 @@ impl Sighash for Liftup {
             preimage.extend(bytes);
         }
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashCombinator))
     }
 }

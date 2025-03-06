@@ -56,6 +56,6 @@ impl Sighash for Call {
             preimage.extend(calldata);
         }
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashCombinator))
     }
 }

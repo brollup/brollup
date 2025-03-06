@@ -6,6 +6,8 @@ use crate::baked;
 pub enum HashTag {
     VSEEncryptionAuth,
     Sighash,
+    SighashCombinator,
+    SighashEntry,
     SignatureChallenge,
     BIP340Challenge,
     GroupCommitment,
@@ -28,6 +30,8 @@ impl HashTag {
         match self {
             HashTag::VSEEncryptionAuth => format!("{}/{}", baked::PROJECT_TAG, "vseencryptionauth"),
             HashTag::Sighash => format!("{}/{}", baked::PROJECT_TAG, "sighash"),
+            HashTag::SighashCombinator => format!("{}/{}", baked::PROJECT_TAG, "sighashcombinator"),
+            HashTag::SighashEntry => format!("{}/{}", baked::PROJECT_TAG, "sighashentry"),
             HashTag::SignatureChallenge => format!("{}/{}", baked::PROJECT_TAG, "challenge"),
             HashTag::BIP340Challenge => format!("{}/{}", "BIP0340", "challenge"),
             HashTag::GroupCommitment => format!("{}/{}", baked::PROJECT_TAG, "groupcommitment"),

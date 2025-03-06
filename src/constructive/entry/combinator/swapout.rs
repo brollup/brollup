@@ -53,6 +53,6 @@ impl Sighash for Swapout {
         preimage.extend(self.amount.to_le_bytes());
         preimage.extend(self.taproot_key);
 
-        preimage.hash(Some(HashTag::Sighash))
+        preimage.hash(Some(HashTag::SighashCombinator))
     }
 }
