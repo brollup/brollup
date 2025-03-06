@@ -21,4 +21,11 @@ impl Outpoint {
     pub fn vout_bytes(&self) -> [u8; 4] {
         self.vout.to_be_bytes()
     }
+
+    pub fn bytes(&self) -> [u8; 36] {
+        let mut bytes: [u8; 36] = [0; 36];
+        bytes[..32].copy_from_slice(&self.prev);
+        bytes[32..36].copy_from_slice(&self.vout_bytes());
+        bytes
+    }
 }

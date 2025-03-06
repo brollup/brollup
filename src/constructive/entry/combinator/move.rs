@@ -1,36 +1,32 @@
 use crate::{
     hash::{Hash, HashTag},
     schnorr::Sighash,
-    valtype::{account::Account, contract::Contract},
+    valtype::account::Account,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Call {
+pub struct Move {
     from: Account,
-    contract: Contract,
-    calldata: Vec<Vec<u8>>,
+    to: Account,
+    amount: u32,
 }
 
-impl Call {
-    pub fn new(from: Account, contract: Contract, calldata: Vec<Vec<u8>>) -> Call {
-        Call {
-            from,
-            contract,
-            calldata,
-        }
+impl Move {
+    pub fn new(from: Account, to: Account, amount: u32) -> Move {
+        Move { from, to, amount }
     }
 
     pub fn from(&self) -> Account {
         self.from
     }
 
-    pub fn contract(&self) -> Contract {
-        self.contract
+    pub fn to(&self) -> Account {
+        self.to
     }
 
-    pub fn calldata(&self) -> Vec<Vec<u8>> {
-        self.calldata.clone()
+    pub fn amount(&self) -> u32 {
+        self.amount
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -45,16 +41,13 @@ impl Call {
     }
 }
 
-impl Sighash for Call {
+impl Sighash for Move {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         preimage.extend(self.from.key().serialize_xonly());
-        preimage.extend(self.contract.contract_id());
-
-        for calldata in self.calldata.iter() {
-            preimage.extend(calldata);
-        }
+        preimage.extend(self.to.key().serialize_xonly());
+        preimage.extend(self.amount.to_le_bytes());
 
         preimage.hash(Some(HashTag::Sighash))
     }

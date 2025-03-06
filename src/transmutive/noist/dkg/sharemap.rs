@@ -234,6 +234,6 @@ impl Sighash for DKGShareMap {
             preimage.extend(share.1 .1.serialize());
         }
 
-        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
+        preimage.hash(Some(crate::hash::HashTag::Sighash))
     }
 }

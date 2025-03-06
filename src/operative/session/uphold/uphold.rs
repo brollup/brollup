@@ -123,6 +123,6 @@ impl Sighash for NSessionUphold {
             preimage.extend(partial_sig.serialize());
         }
 
-        preimage.hash(Some(HashTag::SighashAuthenticable))
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

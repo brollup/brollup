@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{
-    combinator::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
+    entry::Entry,
     into::IntoScalar,
     key::KeyHolder,
     schnorr::{self, Authenticable},
@@ -11,6 +9,7 @@ use crate::{
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use super::{
     commitack::CSessionCommitAck, uphold::NSessionUphold, upholdack::CSessionUpholdAck,
@@ -21,13 +20,8 @@ pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCtx {
-    account: Account,
     secret_key: Scalar,
-    liftup: Option<Liftup>,
-    recharge: Option<Recharge>,
-    vanilla: Option<Vanilla>,
-    call: Option<Call>,
-    reserved: Option<Reserved>,
+    entry: Entry,
     // Payload auth nonces
     payload_auth_secret_nonces: (Scalar, Scalar),
     payload_auth_public_nonces: (Point, Point),
@@ -49,27 +43,15 @@ pub struct NSessionCtx {
 }
 
 impl NSessionCtx {
-    pub fn new(
-        keys: KeyHolder,
-        liftup: Option<Liftup>,
-        recharge: Option<Recharge>,
-        vanilla: Option<Vanilla>,
-        call: Option<Call>,
-    ) -> Option<NSessionCtx> {
+    pub fn new(keys: KeyHolder, entry: Entry) -> Option<NSessionCtx> {
         let secret_key = keys.secret_key().into_scalar().ok()?;
         let public_key = secret_key.base_point_mul();
-        let account = Account::new(public_key, None)?;
 
-        let nonces = gen_nonce(&liftup, &recharge, &vanilla, &call)?;
+        let nonces = gen_nonce(&entry)?;
 
         let ctx = NSessionCtx {
-            account,
             secret_key,
-            liftup,
-            recharge,
-            vanilla,
-            call,
-            reserved: None,
+            entry,
             //
             // Payload auth nonces
             payload_auth_secret_nonces: nonces.0,
@@ -95,38 +77,17 @@ impl NSessionCtx {
     }
 
     pub fn account(&self) -> Account {
-        self.account
+        self.entry.account()
     }
 
-    pub fn liftup(&self) -> Option<Liftup> {
-        self.liftup.clone()
-    }
-
-    pub fn recharge(&self) -> Option<Recharge> {
-        self.recharge.clone()
-    }
-
-    pub fn vanilla(&self) -> Option<Vanilla> {
-        self.vanilla.clone()
-    }
-
-    pub fn call(&self) -> Option<Call> {
-        self.call.clone()
-    }
-
-    pub fn reserved(&self) -> Option<Reserved> {
-        self.reserved.clone()
+    pub fn entry(&self) -> Entry {
+        self.entry.clone()
     }
 
     // Returns the commitment
     pub fn commit(&self) -> Option<Authenticable<NSessionCommit>> {
         let commit = NSessionCommit::new(
-            self.account(),
-            self.liftup(),
-            self.recharge(),
-            self.vanilla(),
-            self.call(),
-            self.reserved(),
+            self.entry(),
             self.payload_auth_public_nonces.0,
             self.payload_auth_public_nonces.1,
             self.vtxo_projector_public_nonces.0,
@@ -145,7 +106,7 @@ impl NSessionCtx {
     }
 
     fn validate_commitack(&self, commitack: &CSessionCommitAck) -> bool {
-        if commitack.msg_sender().key() != self.account.key() {
+        if commitack.msg_sender().key() != self.entry.account().key() {
             return false;
         }
 
@@ -285,7 +246,7 @@ impl NSessionCtx {
     }
 
     fn validate_upholdack(&self, upholdack: &CSessionUpholdAck) -> bool {
-        if upholdack.msg_sender().key() != self.account.key() {
+        if upholdack.msg_sender().key() != self.entry.account().key() {
             return false;
         }
 
@@ -306,11 +267,7 @@ impl NSessionCtx {
 }
 
 // TODO:
-fn num_connectors(
-    _recharge: &Option<Recharge>,
-    _vanilla: &Option<Vanilla>,
-    _call: &Option<Call>,
-) -> u8 {
+fn num_connectors(entry: &Entry) -> u8 {
     3 as u8 + CONNECTORS_EXTRA_IN
 }
 
@@ -328,10 +285,7 @@ fn gen_nonce_tuple() -> Option<((Scalar, Scalar), (Point, Point))> {
 }
 
 pub fn gen_nonce(
-    liftup: &Option<Liftup>,
-    recharge: &Option<Recharge>,
-    vanilla: &Option<Vanilla>,
-    call: &Option<Call>,
+    entry: &Entry,
 ) -> Option<(
     (Scalar, Scalar),                // Payload auth secret nonces
     (Point, Point),                  // Payload auth public nonces
@@ -356,7 +310,7 @@ pub fn gen_nonce(
     let mut lift_prevtxo_secret_nonces = HashMap::<Lift, (Scalar, Scalar)>::new();
     let mut lift_prevtxo_public_nonces = HashMap::<Lift, (Point, Point)>::new();
 
-    if let Some(liftup) = &liftup {
+    if let Some(liftup) = &entry.liftup() {
         for lift in liftup.lifts().iter() {
             let (secret_nonces, public_nonces) = gen_nonce_tuple()?;
 
@@ -369,7 +323,7 @@ pub fn gen_nonce(
     let mut connector_txo_secret_nonces = Vec::<(Scalar, Scalar)>::new();
     let mut connector_txo_public_nonces = Vec::<(Point, Point)>::new();
 
-    let num_connectors = num_connectors(recharge, vanilla, call);
+    let num_connectors = num_connectors(entry);
 
     for _ in 0..num_connectors {
         let (secret_nonces, public_nonces) = gen_nonce_tuple()?;

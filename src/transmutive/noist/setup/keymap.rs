@@ -175,6 +175,6 @@ impl Sighash for VSEKeyMap {
             }
         }
 
-        preimage.hash(Some(HashTag::SighashAuthenticable))
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

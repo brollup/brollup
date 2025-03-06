@@ -2,7 +2,7 @@ use secp::Point;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    hash::Hash,
+    hash::{Hash, HashTag},
     into::IntoPoint,
     noist::setup::setup::VSESetup,
     schnorr::{Bytes32, Sighash},
@@ -114,6 +114,6 @@ impl Sighash for DKGPackage {
         preimage.extend(self.signatory.serialize_xonly());
         preimage.extend(self.hiding.sighash());
         preimage.extend(self.binding.sighash());
-        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

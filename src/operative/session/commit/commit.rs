@@ -1,12 +1,8 @@
+use crate::entry::Entry;
 use crate::hash::{Hash, HashTag};
 use crate::schnorr::Sighash;
 use crate::txo::lift::Lift;
-use crate::{
-    combinator::{
-        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
-    },
-    valtype::account::Account,
-};
+use crate::valtype::account::Account;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,14 +11,8 @@ use std::collections::HashMap;
 /// It is sent by the msg.senders to the coordinator, who then responds with `CSessionCommitAck`.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionCommit {
-    // Account
-    msg_sender: Account,
-    // Entries
-    liftup: Option<Liftup>,
-    recharge: Option<Recharge>,
-    vanilla: Option<Vanilla>,
-    call: Option<Call>,
-    reserved: Option<Reserved>,
+    // Entry
+    entry: Entry,
     // Payload auth nonces (hiding & binding)
     payload_auth_nonces: (Point, Point),
     // VTXO projector nonces (hiding & binding)
@@ -39,12 +29,7 @@ pub struct NSessionCommit {
 
 impl NSessionCommit {
     pub fn new(
-        msg_sender: Account,
-        liftup: Option<Liftup>,
-        recharge: Option<Recharge>,
-        vanilla: Option<Vanilla>,
-        call: Option<Call>,
-        reserved: Option<Reserved>,
+        entry: Entry,
         // Payload auth nonces
         payload_auth_hiding_nonce: Point,
         payload_auth_binding_nonce: Point,
@@ -62,12 +47,7 @@ impl NSessionCommit {
         connector_txo_nonces: &Vec<(Point, Point)>,
     ) -> NSessionCommit {
         NSessionCommit {
-            msg_sender,
-            liftup,
-            recharge,
-            vanilla,
-            call,
-            reserved,
+            entry,
             payload_auth_nonces: (payload_auth_hiding_nonce, payload_auth_binding_nonce),
             vtxo_projector_nonces: (vtxo_projector_hiding_nonce, vtxo_projector_binding_nonce),
             connector_projector_nonces: (
@@ -81,27 +61,11 @@ impl NSessionCommit {
     }
 
     pub fn msg_sender(&self) -> Account {
-        self.msg_sender.clone()
+        self.entry.account()
     }
 
-    pub fn liftup(&self) -> Option<Liftup> {
-        self.liftup.clone()
-    }
-
-    pub fn recharge(&self) -> Option<Recharge> {
-        self.recharge.clone()
-    }
-
-    pub fn vanilla(&self) -> Option<Vanilla> {
-        self.vanilla.clone()
-    }
-
-    pub fn call(&self) -> Option<Call> {
-        self.call.clone()
-    }
-
-    pub fn reserved(&self) -> Option<Reserved> {
-        self.reserved.clone()
+    pub fn entry(&self) -> Entry {
+        self.entry.clone()
     }
 
     pub fn payload_auth_nonces(&self) -> (Point, Point) {
@@ -133,39 +97,38 @@ impl Sighash for NSessionCommit {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
-        // Account
-        preimage.extend(self.msg_sender.key().serialize_xonly());
+        // Entry
+        preimage.extend(self.entry.sighash());
 
-        // Liftup
-        match self.liftup() {
-            Some(liftup) => preimage.extend(liftup.serialize()),
-            None => preimage.push(0x00),
-        };
+        // Payload auth nonces
+        preimage.extend(self.payload_auth_nonces.0.serialize());
+        preimage.extend(self.payload_auth_nonces.1.serialize());
 
-        // Recharge
-        match self.recharge() {
-            Some(recharge) => preimage.extend(recharge.serialize()),
-            None => preimage.push(0x00),
-        };
+        // VTXO projector nonces
+        preimage.extend(self.vtxo_projector_nonces.0.serialize());
+        preimage.extend(self.vtxo_projector_nonces.1.serialize());
 
-        // Vanilla
-        match self.vanilla() {
-            Some(vanilla) => preimage.extend(vanilla.serialize()),
-            None => preimage.push(0x00),
-        };
+        // Connector projector nonces
+        preimage.extend(self.connector_projector_nonces.0.serialize());
+        preimage.extend(self.connector_projector_nonces.1.serialize());
 
-        // Call
-        match self.call() {
-            Some(call) => preimage.extend(call.serialize()),
-            None => preimage.push(0x00),
-        };
+        // ZKP contingent nonces
+        preimage.extend(self.zkp_contingent_nonces.0.serialize());
+        preimage.extend(self.zkp_contingent_nonces.1.serialize());
 
-        // Reserved
-        match self.reserved() {
-            Some(reserved) => preimage.extend(reserved.serialize()),
-            None => preimage.push(0x00),
-        };
+        // Lift prevtxo nonces
+        for (lift, (hiding, binding)) in self.lift_prevtxo_nonces.iter() {
+            preimage.extend(lift.serialize());
+            preimage.extend(hiding.serialize());
+            preimage.extend(binding.serialize());
+        }
 
-        preimage.hash(Some(HashTag::SighashAuthenticable))
+        // Connector txo nonces
+        for (hiding, binding) in self.connector_txo_nonces.iter() {
+            preimage.extend(hiding.serialize());
+            preimage.extend(binding.serialize());
+        }
+
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

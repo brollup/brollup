@@ -1,6 +1,6 @@
 use super::package::DKGPackage;
 use crate::{
-    hash::Hash,
+    hash::{Hash, HashTag},
     into::IntoScalar,
     noist::{core::vse, setup::setup::VSESetup},
     schnorr::{Authenticable, LiftScalar, Sighash},
@@ -444,6 +444,6 @@ impl Sighash for DKGSession {
             preimage.extend(package.sighash());
         }
 
-        preimage.hash(Some(crate::hash::HashTag::SighashAuthenticable))
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

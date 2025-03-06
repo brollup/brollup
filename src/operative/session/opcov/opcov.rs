@@ -1,12 +1,7 @@
 use super::opcovack::OSessionOpCovAck;
 use crate::{
-    combinator::{call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla},
-    key::KeyHolder,
-    musig::session::MusigSessionCtx,
-    schnorr::Bytes32,
-    txo::lift::Lift,
-    valtype::account::Account,
-    DKG_MANAGER,
+    entry::Entry, key::KeyHolder, musig::session::MusigSessionCtx, schnorr::Bytes32,
+    txo::lift::Lift, valtype::account::Account, DKG_MANAGER,
 };
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
@@ -21,17 +16,7 @@ type DKGNonceHeight = u64;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionOpCov {
     // msg.senders
-    msg_senders: Vec<Account>,
-    // Liftups
-    liftups: Vec<Liftup>,
-    // Recharges
-    recharges: Vec<Recharge>,
-    // Vanillas
-    vanillas: Vec<Vanilla>,
-    // Calls
-    calls: Vec<Call>,
-    // Reserveds
-    reserveds: Vec<Reserved>,
+    entries: Vec<Entry>,
     // Payload auth
     payload_auth_musig_ctx: (DKGDirHeight, DKGNonceHeight, MusigSessionCtx),
     // VTXO projector
@@ -50,12 +35,7 @@ pub struct CSessionOpCov {
 
 impl CSessionOpCov {
     pub fn new(
-        msg_senders: Vec<Account>,
-        liftups: Vec<Liftup>,
-        recharges: Vec<Recharge>,
-        vanillas: Vec<Vanilla>,
-        calls: Vec<Call>,
-        reserveds: Vec<Reserved>,
+        entries: Vec<Entry>,
         payload_auth_musig_ctx: (DKGDirHeight, DKGNonceHeight, MusigSessionCtx),
         vtxo_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
         connector_projector_musig_ctx: Option<(DKGDirHeight, DKGNonceHeight, MusigSessionCtx)>,
@@ -70,12 +50,7 @@ impl CSessionOpCov {
         >,
     ) -> CSessionOpCov {
         CSessionOpCov {
-            msg_senders,
-            liftups,
-            recharges,
-            vanillas,
-            calls,
-            reserveds,
+            entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,
             connector_projector_musig_ctx,
@@ -248,28 +223,8 @@ impl CSessionOpCov {
         Some(opcovack)
     }
 
-    pub fn msg_senders(&self) -> Vec<Account> {
-        self.msg_senders.clone()
-    }
-
-    pub fn liftups(&self) -> Vec<Liftup> {
-        self.liftups.clone()
-    }
-
-    pub fn recharges(&self) -> Vec<Recharge> {
-        self.recharges.clone()
-    }
-
-    pub fn vanillas(&self) -> Vec<Vanilla> {
-        self.vanillas.clone()
-    }
-
-    pub fn calls(&self) -> Vec<Call> {
-        self.calls.clone()
-    }
-
-    pub fn reserveds(&self) -> Vec<Reserved> {
-        self.reserveds.clone()
+    pub fn entries(&self) -> Vec<Entry> {
+        self.entries.clone()
     }
 
     pub fn payload_auth_musig_ctx(&self) -> (DKGDirHeight, DKGNonceHeight, MusigSessionCtx) {

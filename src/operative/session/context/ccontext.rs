@@ -4,9 +4,7 @@ use super::{
     upholdonack::CSessionUpholdONack,
 };
 use crate::{
-    combinator::{
-        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
-    },
+    entry::Entry,
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     noist::session::NOISTSessionCtx,
     registery::account::account_registery_index,
@@ -50,16 +48,8 @@ pub struct CSessionCtx {
     stage: CSessionStage,
     // Remote keys
     msg_senders: Vec<Account>,
-    // Liftups
-    liftups: Vec<Liftup>,
-    // Recharges
-    recharges: Vec<Recharge>,
-    // Vanillas
-    vanillas: Vec<Vanilla>,
-    // Calls
-    calls: Vec<Call>,
-    // Reserveds:
-    reserveds: Vec<Reserved>,
+    // Entries
+    entries: Vec<Entry>,
     // Payload Auth:
     payload_auth_nonces: HashMap<Account, (Point, Point)>,
     payload_auth_ctxes: Option<(
@@ -125,11 +115,7 @@ impl CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             stage: CSessionStage::Off,
             msg_senders: Vec::<Account>::new(),
-            liftups: Vec::<Liftup>::new(),
-            recharges: Vec::<Recharge>::new(),
-            vanillas: Vec::<Vanilla>::new(),
-            calls: Vec::<Call>::new(),
-            reserveds: Vec::<Reserved>::new(),
+            entries: Vec::<Entry>::new(),
             payload_auth_nonces: HashMap::<Account, (Point, Point)>::new(),
             payload_auth_ctxes: None,
             vtxo_projector_nonces: HashMap::<Account, (Point, Point)>::new(),
@@ -285,30 +271,8 @@ impl CSessionCtx {
         // #4 Insert into msg_senders
         self.msg_senders.push(msg_sender);
 
-        // #5 Insert into liftups
-        if let Some(liftup) = commit.liftup() {
-            self.liftups.push(liftup);
-        }
-
-        // #6 Insert into recharges
-        if let Some(recharge) = commit.recharge() {
-            self.recharges.push(recharge);
-        }
-
-        // #7 Insert into vanillas
-        if let Some(vanilla) = commit.vanilla() {
-            self.vanillas.push(vanilla);
-        }
-
-        // #8 Insert into calls
-        if let Some(call) = commit.call() {
-            self.calls.push(call);
-        }
-
-        // #9 Insert into reserveds
-        if let Some(reserved) = commit.reserved() {
-            self.reserveds.push(reserved);
-        }
+        // #5 Insert into entries
+        self.entries.push(commit.entry());
 
         // #10 Insert payload auth nonce commitments
         let payload_auth_nonces = commit.payload_auth_nonces();
@@ -795,12 +759,7 @@ impl CSessionCtx {
             return None;
         }
 
-        let msg_senders = self.msg_senders();
-        let liftups = self.liftups.clone();
-        let recharges = self.recharges.clone();
-        let vanillas = self.vanillas.clone();
-        let calls = self.calls.clone();
-        let reserveds = self.reserveds.clone();
+        let entries = self.entries.clone();
 
         let payload_auth_musig_ctx = match &self.payload_auth_ctxes {
             Some((dir_height, nonce_height, _, musig_ctx)) => (
@@ -869,12 +828,7 @@ impl CSessionCtx {
             .collect();
 
         let opcov = CSessionOpCov::new(
-            msg_senders,
-            liftups,
-            recharges,
-            vanillas,
-            calls,
-            reserveds,
+            entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,
             connector_projector_musig_ctx,
@@ -900,12 +854,7 @@ impl CSessionCtx {
             return None;
         }
 
-        let msg_senders = self.msg_senders();
-        let liftups = self.liftups.clone();
-        let recharges = self.recharges.clone();
-        let vanillas = self.vanillas.clone();
-        let calls = self.calls.clone();
-        let reserveds = self.reserveds.clone();
+        let entries = self.entries.clone();
 
         let payload_auth_musig_ctx = self.payload_auth_ctxes.clone()?.3;
 
@@ -947,12 +896,7 @@ impl CSessionCtx {
 
         let commitack = CSessionCommitAck::new(
             msg_sender,
-            msg_senders,
-            liftups,
-            recharges,
-            vanillas,
-            calls,
-            reserveds,
+            entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,
             connector_projector_musig_ctx,
@@ -1500,12 +1444,7 @@ impl CSessionCtx {
     }
 
     pub fn reset(&mut self) {
-        self.msg_senders = Vec::<Account>::new();
-        self.liftups = Vec::<Liftup>::new();
-        self.recharges = Vec::<Recharge>::new();
-        self.vanillas = Vec::<Vanilla>::new();
-        self.calls = Vec::<Call>::new();
-        self.reserveds = Vec::<Reserved>::new();
+        self.entries = Vec::<Entry>::new();
         self.payload_auth_nonces = HashMap::<Account, (Point, Point)>::new();
         self.payload_auth_ctxes = None;
         self.vtxo_projector_nonces = HashMap::<Account, (Point, Point)>::new();

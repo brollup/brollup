@@ -19,7 +19,7 @@ mod authenticable_tests {
             preimage.extend(self.field1.as_bytes());
             preimage.extend(self.field2.to_be().to_be_bytes());
 
-            preimage.hash(Some(HashTag::SighashAuthenticable))
+            preimage.hash(Some(HashTag::Sighash))
         }
     }
 

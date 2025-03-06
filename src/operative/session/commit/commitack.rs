@@ -1,10 +1,5 @@
 use crate::{
-    combinator::{
-        call::Call, liftup::Liftup, recharge::Recharge, reserved::Reserved, vanilla::Vanilla,
-    },
-    musig::session::MusigSessionCtx,
-    txo::lift::Lift,
-    valtype::account::Account,
+    entry::Entry, musig::session::MusigSessionCtx, txo::lift::Lift, valtype::account::Account,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,20 +10,10 @@ use std::collections::HashMap;
 /// `CSessionCommitAck` contains the MuSig contexts in which the respective msg.sender is a co-signer.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {
-    // Account
+    // Msg sender
     msg_sender: Account,
-    // msg.senders
-    msg_senders: Vec<Account>,
-    // Liftups
-    liftups: Vec<Liftup>,
-    // Recharges
-    recharges: Vec<Recharge>,
-    // Vanillas
-    vanillas: Vec<Vanilla>,
-    // Calls
-    calls: Vec<Call>,
-    // Reserveds
-    reserveds: Vec<Reserved>,
+    // Entries
+    entries: Vec<Entry>,
     // Payload auth
     payload_auth_musig_ctx: MusigSessionCtx,
     // VTXO projector
@@ -46,12 +31,7 @@ pub struct CSessionCommitAck {
 impl CSessionCommitAck {
     pub fn new(
         msg_sender: Account,
-        msg_senders: Vec<Account>,
-        liftups: Vec<Liftup>,
-        recharges: Vec<Recharge>,
-        vanillas: Vec<Vanilla>,
-        calls: Vec<Call>,
-        reserveds: Vec<Reserved>,
+        entries: Vec<Entry>,
         payload_auth_musig_ctx: MusigSessionCtx,
         vtxo_projector_musig_ctx: Option<MusigSessionCtx>,
         connector_projector_musig_ctx: Option<MusigSessionCtx>,
@@ -61,12 +41,7 @@ impl CSessionCommitAck {
     ) -> CSessionCommitAck {
         CSessionCommitAck {
             msg_sender,
-            msg_senders,
-            liftups,
-            recharges,
-            vanillas,
-            calls,
-            reserveds,
+            entries,
             payload_auth_musig_ctx,
             vtxo_projector_musig_ctx,
             connector_projector_musig_ctx,
@@ -77,31 +52,11 @@ impl CSessionCommitAck {
     }
 
     pub fn msg_sender(&self) -> Account {
-        self.msg_sender
+        self.msg_sender.clone()
     }
 
-    pub fn msg_senders(&self) -> Vec<Account> {
-        self.msg_senders.clone()
-    }
-
-    pub fn liftups(&self) -> Vec<Liftup> {
-        self.liftups.clone()
-    }
-
-    pub fn recharges(&self) -> Vec<Recharge> {
-        self.recharges.clone()
-    }
-
-    pub fn vanillas(&self) -> Vec<Vanilla> {
-        self.vanillas.clone()
-    }
-
-    pub fn calls(&self) -> Vec<Call> {
-        self.calls.clone()
-    }
-
-    pub fn reserveds(&self) -> Vec<Reserved> {
-        self.reserveds.clone()
+    pub fn entries(&self) -> Vec<Entry> {
+        self.entries.clone()
     }
 
     pub fn payload_auth_musig_ctx(&self) -> MusigSessionCtx {

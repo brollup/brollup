@@ -5,7 +5,7 @@ use crate::baked;
 #[derive(Copy, Clone, PartialEq)]
 pub enum HashTag {
     VSEEncryptionAuth,
-    SighashAuthenticable,
+    Sighash,
     SignatureChallenge,
     BIP340Challenge,
     GroupCommitment,
@@ -27,7 +27,7 @@ impl HashTag {
     pub fn as_str(&self) -> String {
         match self {
             HashTag::VSEEncryptionAuth => format!("{}/{}", baked::PROJECT_TAG, "vseencryptionauth"),
-            HashTag::SighashAuthenticable => format!("{}/{}", baked::PROJECT_TAG, "sighashauth"),
+            HashTag::Sighash => format!("{}/{}", baked::PROJECT_TAG, "sighash"),
             HashTag::SignatureChallenge => format!("{}/{}", baked::PROJECT_TAG, "challenge"),
             HashTag::BIP340Challenge => format!("{}/{}", "BIP0340", "challenge"),
             HashTag::GroupCommitment => format!("{}/{}", baked::PROJECT_TAG, "groupcommitment"),
