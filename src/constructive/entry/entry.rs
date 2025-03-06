@@ -237,13 +237,19 @@ impl Sighash for Entry {
 
         // Liftup
         match &self.uppermost_left_branch.liftup {
-            Some(liftup) => preimage.extend(liftup.sighash()),
+            Some(liftup) => {
+                preimage.push(0x01);
+                preimage.extend(liftup.sighash());
+            }
             None => preimage.push(0x00),
         }
 
         // Recharge
         match &self.uppermost_left_branch.recharge {
-            Some(recharge) => preimage.extend(recharge.sighash()),
+            Some(recharge) => {
+                preimage.push(0x01);
+                preimage.extend(recharge.sighash());
+            }
             None => preimage.push(0x00),
         }
 
