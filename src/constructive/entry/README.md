@@ -1,5 +1,5 @@
-# Entries
-`Brollup` employs of 8 types of entries:
+# Combinators
+`Brollup` employs of 8 types of combinators:
 
 | Entry Type       |  Description                                                                                  |
 |:-----------------|:----------------------------------------------------------------------------------------------|
