@@ -3,7 +3,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
-use crate::session::ccontext::CSessionCtx;
+use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
 use crate::{ccli, nns, tcp, Network, OperatingMode, CSESSION_CTX, DKG_MANAGER, PEER_MANAGER};
@@ -57,30 +57,33 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 7. Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // Construct cov session..
-    let mut cov_session: CSESSION_CTX = CSessionCtx::construct(&dkg_manager);
+    // 8. Construct CSession.
+    let csession: CSESSION_CTX = CSessionCtx::construct(&dkg_manager, &peer_manager);
 
-    // 8. Run TCP server.
+    // 9. Run CSession.
     {
-        let nns_client = nns_client.clone();
-        let dkg_manager = Arc::clone(&dkg_manager);
-        let cov_session = Arc::clone(&cov_session);
-
+        let csession = Arc::clone(&csession);
         let _ = tokio::spawn(async move {
-            let _ =
-                tcp::server::run(mode, &nns_client, &keys, &dkg_manager, Some(cov_session)).await;
+            csession.run().await;
         });
     }
 
-    // 9. CLI
-    cli(&mut peer_manager, &mut dkg_manager, &mut cov_session).await;
+    // 10. Run TCP server.
+    {
+        let nns_client = nns_client.clone();
+        let dkg_manager = Arc::clone(&dkg_manager);
+        let csession = Arc::clone(&csession);
+
+        let _ = tokio::spawn(async move {
+            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager, Some(csession)).await;
+        });
+    }
+
+    // 11. Initialize CLI
+    cli(&mut peer_manager, &mut dkg_manager).await;
 }
 
-pub async fn cli(
-    peer_manager: &mut PEER_MANAGER,
-    dkg_manager: &mut DKG_MANAGER,
-    cov_session: &mut CSESSION_CTX,
-) {
+pub async fn cli(peer_manager: &mut PEER_MANAGER, dkg_manager: &mut DKG_MANAGER) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -110,7 +113,6 @@ pub async fn cli(
             "clear" => ccli::clear::command(),
             "dkg" => ccli::dkg::command(parts, peer_manager, dkg_manager).await,
             "ops" => ccli::ops::command(peer_manager).await,
-            "covr" => ccli::covr::command(parts, peer_manager, dkg_manager, cov_session).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

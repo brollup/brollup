@@ -11,6 +11,7 @@ use crate::{
     registery::account::account_registery_index,
     schnorr::{Authenticable, Sighash},
     session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
+    tcp::client::TCPClient,
     txo::{
         connector::Connector,
         lift::Lift,
@@ -31,7 +32,8 @@ use tokio::{
 type DKGDirHeight = u64;
 type DKGNonceHeight = u64;
 
-pub const ON_STAGE_WAIT_TIME: Duration = Duration::from_secs(10);
+pub const ON_STAGE_WAIT_TIME_REGULAR: Duration = Duration::from_secs(10);
+pub const ON_STAGE_WAIT_TIME_POSTUPHELDERR: Duration = Duration::from_secs(1500);
 pub const UPHOLD_TIMEOUT: Duration = Duration::from_millis(1500);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -1045,7 +1047,7 @@ impl CSessionCtx {
         true
     }
 
-    pub fn operator_agg_sigs_ready(&self) -> bool {
+    pub fn opcov_ready(&self) -> bool {
         // Check payload auth
         if let Some((_, _, noist_ctx, _)) = &self.payload_auth_ctxes {
             if let None = noist_ctx.aggregated_sig() {
@@ -1382,7 +1384,7 @@ impl CSessionCtx {
             return false;
         }
 
-        if !self.operator_agg_sigs_ready() {
+        if !self.opcov_ready() {
             return false;
         }
 
@@ -1398,7 +1400,7 @@ impl CSessionCtx {
         }
 
         // Check operator blame.
-        if !self.operator_agg_sigs_ready() {
+        if !self.opcov_ready() {
             return Err(CSessionUpholdONack::BlameOperator);
         }
 
@@ -1533,13 +1535,17 @@ pub trait CContextRunner {
     async fn run(&self);
     /// Returns true if all upholds are collected; otherwise, false after a timeout.
     async fn await_upheld(&self) -> bool;
-    /// Opcov
+    /// Returns the opcov peer list.
     async fn opcov_peer_list(&self) -> Option<Vec<PEER>>;
+    /// Requests `CSessionOpCov`s and retrieves & inserts `OSessionOpCovAck`s.
+    async fn opcov_task(&self) -> bool;
 }
 
 #[async_trait]
 impl CContextRunner for CSESSION_CTX {
     async fn run(&self) {
+        let mut waiting_window = ON_STAGE_WAIT_TIME_REGULAR;
+
         loop {
             // Initialize session
             {
@@ -1551,7 +1557,7 @@ impl CContextRunner for CSESSION_CTX {
             }
 
             // Wait for other commits.
-            tokio::time::sleep(ON_STAGE_WAIT_TIME).await;
+            tokio::time::sleep(waiting_window).await;
 
             // Check the number of message senders
             let num_msg_senders = {
@@ -1579,14 +1585,24 @@ impl CContextRunner for CSESSION_CTX {
 
             // Commitacks are being sent immediately after lock..
 
-            // Opcovs
+            // Spawn the opcov background task.
+            {
+                let session_ctx: CSESSION_CTX = Arc::clone(&self);
+                tokio::spawn(async move {
+                    session_ctx.opcov_task().await;
+                });
+            }
 
             // Wait for the upheld.
             if !self.await_upheld().await {
+                waiting_window = ON_STAGE_WAIT_TIME_POSTUPHELDERR;
                 continue;
             }
 
             // Post-uphold logic..
+
+            // End of successful session.
+            waiting_window = ON_STAGE_WAIT_TIME_REGULAR;
         }
     }
 
@@ -1626,8 +1642,10 @@ impl CContextRunner for CSESSION_CTX {
 
     async fn opcov_peer_list(&self) -> Option<Vec<PEER>> {
         let key_list = {
-            let _session_ctx = self.lock().await;
-            let dkg_manager: DKG_MANAGER = _session_ctx.dkg_manager();
+            let dkg_manager: DKG_MANAGER = {
+                let _session_ctx = self.lock().await;
+                _session_ctx.dkg_manager()
+            };
             let _dkg_manager = dkg_manager.lock().await;
             _dkg_manager.full_operator_list().await
         };
@@ -1662,5 +1680,41 @@ impl CContextRunner for CSESSION_CTX {
         };
 
         Some(peer_list)
+    }
+
+    async fn opcov_task(&self) -> bool {
+        // Return opcov.
+        let opcov = {
+            let _session_ctx = self.lock().await;
+            match _session_ctx.opcov() {
+                Some(opcov) => opcov,
+                None => return false,
+            }
+        };
+
+        // Return opcov peer list.
+        let peer_list: Vec<PEER> = match self.opcov_peer_list().await {
+            Some(list) => list,
+            None => return false,
+        };
+
+        for peer in peer_list.iter() {
+            let peer: PEER = Arc::clone(&peer);
+            let opcov = opcov.clone();
+            let session_ctx: CSESSION_CTX = Arc::clone(&self);
+
+            // Opcov requests.
+            tokio::spawn(async move {
+                if let Ok(opcovack) = peer.request_opcov(opcov).await {
+                    // Opcovack insertions.
+                    {
+                        let mut _session_ctx = session_ctx.lock().await;
+                        _session_ctx.insert_opcovack(opcovack);
+                    }
+                }
+            });
+        }
+
+        true
     }
 }
