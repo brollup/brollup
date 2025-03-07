@@ -1,5 +1,5 @@
 use super::{dkg::directory::DKGDirectory, session::NOISTSessionCtx, setup::setup::VSESetup};
-use crate::{musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
+use crate::{into::IntoPointByteVec, musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -66,6 +66,20 @@ impl DKGManager {
             }
         }
         None
+    }
+
+    pub async fn full_operator_list(&self) -> Vec<[u8; 32]> {
+        let mut full_list = Vec::<[u8; 32]>::new();
+
+        for (_, dir) in self.directories.iter() {
+            let _dkg_dir = dir.lock().await;
+
+            if let Ok(list) = _dkg_dir.setup().signatories().into_xpoint_vec() {
+                full_list.extend(list);
+            }
+        }
+
+        full_list
     }
 
     pub fn insert_setup(&mut self, setup: &VSESetup) -> bool {
