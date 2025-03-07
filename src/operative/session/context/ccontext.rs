@@ -17,7 +17,7 @@ use crate::{
         projector::{self, Projector},
     },
     valtype::account::Account,
-    CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER,
+    CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -46,6 +46,7 @@ pub enum CSessionStage {
 #[derive(Clone)]
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
+    peer_manager: PEER_MANAGER,
     session_id: [u8; 32],
     stage: CSessionStage,
     // Remote keys
@@ -112,9 +113,10 @@ pub struct CSessionCtx {
 }
 
 impl CSessionCtx {
-    pub fn construct(dkg_manager: &DKG_MANAGER) -> CSESSION_CTX {
+    pub fn construct(dkg_manager: &DKG_MANAGER, peer_manager: &PEER_MANAGER) -> CSESSION_CTX {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
+            peer_manager: Arc::clone(peer_manager),
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             msg_senders: Vec::<Account>::new(),
@@ -152,6 +154,14 @@ impl CSessionCtx {
             >::new(),
         };
         Arc::new(Mutex::new(session))
+    }
+
+    fn dkg_manager(&self) -> DKG_MANAGER {
+        Arc::clone(&self.dkg_manager)
+    }
+
+    fn peer_manager(&self) -> PEER_MANAGER {
+        Arc::clone(&self.peer_manager)
     }
 
     pub fn init(&mut self, session_id: [u8; 32]) {
@@ -1523,6 +1533,8 @@ pub trait CContextRunner {
     async fn run(&self);
     /// Returns true if all upholds are collected; otherwise, false after a timeout.
     async fn await_upheld(&self) -> bool;
+    /// Opcov
+    async fn opcov_peer_list(&self) -> Option<Vec<PEER>>;
 }
 
 #[async_trait]
@@ -1534,8 +1546,8 @@ impl CContextRunner for CSESSION_CTX {
                 // TODO:
                 let session_id = [0x00u8; 32];
 
-                let mut session_ctx = self.lock().await;
-                session_ctx.init(session_id);
+                let mut _session_ctx = self.lock().await;
+                _session_ctx.init(session_id);
             }
 
             // Wait for other commits.
@@ -1564,6 +1576,10 @@ impl CContextRunner for CSESSION_CTX {
                     }
                 }
             }
+
+            // Commitacks are being sent immediately after lock..
+
+            // Opcovs
 
             // Wait for the upheld.
             if !self.await_upheld().await {
@@ -1606,5 +1622,45 @@ impl CContextRunner for CSESSION_CTX {
                 false => sleep(Duration::from_millis(10)).await,
             }
         }
+    }
+
+    async fn opcov_peer_list(&self) -> Option<Vec<PEER>> {
+        let key_list = {
+            let _session_ctx = self.lock().await;
+            let dkg_manager: DKG_MANAGER = _session_ctx.dkg_manager();
+            let _dkg_manager = dkg_manager.lock().await;
+            _dkg_manager.full_operator_list().await
+        };
+
+        let peer_list: Vec<PEER> = {
+            let peer_manager: PEER_MANAGER = {
+                let _session_ctx = self.lock().await;
+                _session_ctx.peer_manager()
+            };
+
+            let peers: Vec<PEER> = match {
+                let _peer_manager = peer_manager.lock().await;
+                _peer_manager.retrieve_peers(&key_list)
+            } {
+                Some(peers) => peers,
+                None => {
+                    eprintln!(
+                        "{}",
+                        "Unexpected error: Failed to retrieve opcov peer list.".red()
+                    );
+                    return None;
+                }
+            };
+
+            match peers.len() >= (key_list.len() / 2 + 1) {
+                true => peers,
+                false => {
+                    eprintln!("{}", "Unexpected error: Insufficient opcov peers.".red());
+                    return None;
+                }
+            }
+        };
+
+        Some(peer_list)
     }
 }
