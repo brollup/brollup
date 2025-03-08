@@ -58,7 +58,10 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
     // 8. Construct CSession.
-    let csession: CSESSION_CTX = CSessionCtx::construct(&dkg_manager, &peer_manager);
+    let csession: CSESSION_CTX = match CSessionCtx::construct(&dkg_manager, &peer_manager) {
+        Some(csession) => csession,
+        None => return eprintln!("{}", "Error initializing csession.".red()),
+    };
 
     // 9. Run CSession.
     {

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum CSessionCommitNack {
     // Immediate errors upon insertion.
     SessionLocked,
+    BlacklistedUntil(u64),
     AuthErr,
     Overlap,
     Allowance,

@@ -3,6 +3,7 @@ use super::{
     uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdnack::CSessionUpholdNack,
 };
 use crate::{
+    blaming::BlamingDirectory,
     entry::Entry,
     hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
@@ -17,7 +18,7 @@ use crate::{
         projector::{self, Projector},
     },
     valtype::account::Account,
-    CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
+    BLAMING_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -48,6 +49,8 @@ pub enum CSessionStage {
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     peer_manager: PEER_MANAGER,
+    blaming_dir: BLAMING_DIRECTORY,
+    //
     session_id: [u8; 32],
     stage: CSessionStage,
     // Commit pool.
@@ -118,10 +121,25 @@ pub struct CSessionCtx {
 }
 
 impl CSessionCtx {
-    pub fn construct(dkg_manager: &DKG_MANAGER, peer_manager: &PEER_MANAGER) -> CSESSION_CTX {
+    pub fn construct(
+        dkg_manager: &DKG_MANAGER,
+        peer_manager: &PEER_MANAGER,
+    ) -> Option<CSESSION_CTX> {
+        let blaming_dir: BLAMING_DIRECTORY = match BlamingDirectory::new() {
+            Some(blaming_directory) => blaming_directory,
+            None => {
+                eprintln!(
+                    "{}",
+                    "Unexpected error: Failed to create blaming directory.".red()
+                );
+                return None;
+            }
+        };
+
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             peer_manager: Arc::clone(peer_manager),
+            blaming_dir,
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             commit_pool: Vec::<NSessionCommit>::new(),
@@ -162,7 +180,7 @@ impl CSessionCtx {
                 )>,
             >::new(),
         };
-        Arc::new(Mutex::new(session))
+        Some(Arc::new(Mutex::new(session)))
     }
 
     fn dkg_manager(&self) -> DKG_MANAGER {
@@ -231,23 +249,30 @@ impl CSessionCtx {
         if auth_commit.key() != account.key().serialize_xonly() {
             return Err(CSessionCommitNack::AuthErr);
         }
+        // #1 Blacklist check.
+        {
+            let _blaming_dir = self.blaming_dir.lock().await;
+            if let Some(until) = _blaming_dir.check_blacklist(account) {
+                return Err(CSessionCommitNack::BlacklistedUntil(until));
+            }
+        }
 
-        // #1 Account validation
+        // #2 Entry-account validation
         if !commit.entry().validate_account() {
             return Err(CSessionCommitNack::AuthErr);
         }
 
-        // #2 Overlap check
+        // #3 Overlap check
         if self.commit_pool_overlap(account) {
             return Err(CSessionCommitNack::Overlap);
         }
 
-        // #3 Allowance check
+        // #4 Allowance check
         if allowance(account) {
             return Err(CSessionCommitNack::Allowance);
         }
 
-        // #4 Lift prevtxouts validation
+        // #5 Lift prevtxouts validation
         for (lift, _) in commit.lift_prevtxo_nonces().iter() {
             // #1 Operator key validation
             {
@@ -281,7 +306,7 @@ impl CSessionCtx {
             }
         }
 
-        // #5 TODO: Check for num of connectors:
+        // #6 TODO: Check for num of connectors:
         let _connector_count = self.connector_projector_nonces.len();
 
         Ok(())
@@ -1419,6 +1444,17 @@ impl CSessionCtx {
         blame_list
     }
 
+    /// Applies blaming to the blame list.
+    pub async fn blame(&self) {
+        let blame_list = self.blame_list();
+
+        let mut _blaming_dir = self.blaming_dir.lock().await;
+
+        for account in blame_list {
+            _blaming_dir.blame(account);
+        }
+    }
+
     fn print_blame_list(&self) {
         let blame_list = self.blame_list();
 
@@ -1687,8 +1723,10 @@ impl CContextRunner for CSESSION_CTX {
                         "Session timed out due to one or more missing upholds.".yellow()
                     );
 
+                    // Appy blaming and print blame list.
                     {
                         let _session_ctx = self.lock().await;
+                        _session_ctx.blame().await;
                         _session_ctx.print_blame_list();
                     }
 

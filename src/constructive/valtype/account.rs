@@ -1,7 +1,7 @@
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Serialize, Deserialize, Hash)]
 pub struct Account {
     key: Point,
     registery_index: Option<u32>,
@@ -38,4 +38,19 @@ impl Account {
     pub fn is_odd_key(&self) -> bool {
         self.key.parity().into()
     }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
 }
+
+impl PartialEq for Account {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl Eq for Account {}
