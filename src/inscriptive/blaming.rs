@@ -6,8 +6,8 @@ use tokio::sync::Mutex;
 type BlameCounter = u16;
 type BlacklistedUntil = u64;
 
-// Initial blame window period is 10 seconds.
-const INITIAL_BLAME_SECS_WINDOW: u64 = 5;
+// Initial blame window period is 5 seconds.
+const BASE_WAITING_WINDOW: u64 = 5;
 
 /// Directory for the coordinator to manage account blacklists.
 pub struct BlamingDirectory {
@@ -71,8 +71,9 @@ impl BlamingDirectory {
 
                 if blame_counter < u16::MAX {
                     blame_counter = blame_counter + 1;
-                    blacklisted_until =
-                        current_unix_timestamp() + (2 as u64).pow(blame_counter as u32);
+                    blacklisted_until = current_unix_timestamp()
+                        + BASE_WAITING_WINDOW
+                        + (2 as u64).pow(blame_counter as u32);
                 } else if blame_counter == u16::MAX {
                     // Permaban
                     blacklisted_until = u64::MAX;
@@ -82,7 +83,7 @@ impl BlamingDirectory {
             }
             None => {
                 let blame_counter: u16 = 1;
-                let blamed_until: u64 = current_unix_timestamp() + INITIAL_BLAME_SECS_WINDOW;
+                let blamed_until: u64 = current_unix_timestamp() + BASE_WAITING_WINDOW;
 
                 self.update(account, blame_counter, blamed_until);
             }
