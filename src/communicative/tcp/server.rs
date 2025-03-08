@@ -594,7 +594,7 @@ async fn handle_commit_session(
 ) -> Option<TCPPackage> {
     let csession_ctx: CSESSION_CTX = Arc::clone(&csession_ctx.to_owned()?);
     let auth_commit: Authenticable<NSessionCommit> = serde_json::from_slice(payload).ok()?;
-    let msg_sender = auth_commit.object().msg_sender();
+    let account = auth_commit.object().account();
 
     // Wait until the session is on.
     loop {
@@ -616,7 +616,7 @@ async fn handle_commit_session(
         // Check the insertion result.
         match insert_commit_result {
             Ok(_) => {
-                // If the insertion is valid, wait until the session is locked.
+                // Inserted to commit pool, wait until the session is locked.
                 loop {
                     let stage = { csession_ctx.lock().await.stage() };
 
@@ -627,12 +627,10 @@ async fn handle_commit_session(
                 }
 
                 // Return the commitack upon the session is locked.
-                let commitack = {
+                {
                     let mut _csession_ctx = csession_ctx.lock().await;
-                    _csession_ctx.commitack(msg_sender)
-                }?;
-
-                Ok(commitack)
+                    _csession_ctx.commitack(account)
+                }
             }
             // Return the nack if the commit is invalid.
             Err(commit_nack) => Err(commit_nack),

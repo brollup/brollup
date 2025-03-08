@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 /// upon receiving `NSessionCommit` if the commitment fails.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum CSessionCommitNack {
+    // Immediate errors upon insertion.
     SessionLocked,
     AuthErr,
     Overlap,
@@ -14,4 +15,9 @@ pub enum CSessionCommitNack {
     MissingLiftOutpoint(),
     InvalidLiftOutpoint(Outpoint),
     InsufficientConnectors,
+    // Post commit-pool errors
+    CommitPruned,
+    SessionNotLocked,
+    AccountMismatch,
+    PayloadAuthCtxErr,
 }

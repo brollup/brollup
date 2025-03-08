@@ -10,7 +10,7 @@ Session protocol for the rollup state transition.
     |          |                                      |             |--(2)--          StateUp           -->|          |
     |          |                                      |             |<-(3)--  StateUpAck or StateUpNack ---|          | 
     |          |                                      |             |                                      |          |
-    |          |<-(6)-          CommitAck          ---|             |--(4)-            OpCov            -->|          |
+    |          |<-(6)-   CommitAck (or CommitNack) ---|             |--(4)-            OpCov            -->|          |
     |   Node   |--(7)-     Uphold (or UpholdErr)   -->| Coordinator |<-(5)-          OpCovAck           ---| Operator |
     |          |<-(7a)    (possibly UpholdINack)   ---|             |                                      |          |
     |          |                                      |             |                                      |          |

@@ -60,7 +60,7 @@ impl NSessionCommit {
         }
     }
 
-    pub fn msg_sender(&self) -> Account {
+    pub fn account(&self) -> Account {
         self.entry.account()
     }
 

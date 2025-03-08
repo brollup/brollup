@@ -51,8 +51,12 @@ pub struct CSessionCtx {
     peer_manager: PEER_MANAGER,
     session_id: [u8; 32],
     stage: CSessionStage,
-    // Remote keys
-    msg_senders: Vec<Account>,
+    // Commit pool.
+    commit_pool: Vec<NSessionCommit>,
+    // Post-commit-pool pruned (failed) commits
+    pruned_commits: Vec<NSessionCommit>,
+    // Post-commit-pool passed commits
+    passed_commits: Vec<NSessionCommit>,
     // Entries
     entries: Vec<Entry>,
     // Payload Auth:
@@ -121,7 +125,11 @@ impl CSessionCtx {
             peer_manager: Arc::clone(peer_manager),
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
-            msg_senders: Vec::<Account>::new(),
+            commit_pool: Vec::<NSessionCommit>::new(),
+            pruned_commits: Vec::<NSessionCommit>::new(),
+            // Post-commit-pool valid commits
+            passed_commits: Vec::<NSessionCommit>::new(),
+            // Entries
             entries: Vec::<Entry>::new(),
             payload_auth_nonces: HashMap::<Account, (Point, Point)>::new(),
             payload_auth_ctxes: None,
@@ -180,18 +188,24 @@ impl CSessionCtx {
         self.stage
     }
 
-    pub fn msg_senders_len(&self) -> usize {
-        self.msg_senders.len()
+    pub fn num_entries(&self) -> usize {
+        self.entries.len()
     }
 
-    pub fn msg_senders(&self) -> Vec<Account> {
-        self.msg_senders.clone()
+    pub fn accounts(&self) -> Vec<Account> {
+        self.entries.iter().map(|entry| entry.account()).collect()
     }
 
-    fn is_msg_sender(&self, account: &Account) -> bool {
-        self.msg_senders
+    fn is_account(&self, account: &Account) -> bool {
+        self.entries
             .iter()
-            .any(|sender| sender.key() == account.key())
+            .any(|entry| entry.account().key() == account.key())
+    }
+
+    fn commit_pool_overlap(&self, account: Account) -> bool {
+        self.commit_pool
+            .iter()
+            .any(|commit| commit.entry().account().key() == account.key())
     }
 
     /// Sets the coordinator session stage to `on`
@@ -213,9 +227,9 @@ impl CSessionCtx {
         }
 
         let commit = auth_commit.object();
-        let msg_sender = commit.msg_sender();
+        let account = commit.account();
 
-        if auth_commit.key() != msg_sender.key().serialize_xonly() {
+        if auth_commit.key() != account.key().serialize_xonly() {
             return Err(CSessionCommitNack::AuthErr);
         }
 
@@ -225,12 +239,12 @@ impl CSessionCtx {
         }
 
         // #2 Overlap check
-        if self.msg_senders.contains(&msg_sender) {
+        if self.commit_pool_overlap(account) {
             return Err(CSessionCommitNack::Overlap);
         }
 
         // #3 Allowance check
-        if allowance(msg_sender) {
+        if allowance(account) {
             return Err(CSessionCommitNack::Allowance);
         }
 
@@ -245,7 +259,7 @@ impl CSessionCtx {
                     return Err(CSessionCommitNack::InvalidLiftRemoteKey);
                 }
 
-                if lift_remote_key != msg_sender.key() {
+                if lift_remote_key != account.key() {
                     return Err(CSessionCommitNack::InvalidLiftRemoteKey);
                 }
 
@@ -274,7 +288,7 @@ impl CSessionCtx {
         Ok(())
     }
 
-    /// Attempts to insert an `NSessionCommit` into the coordinator session.  
+    /// Inserts `NSessionCommit` into the commit pool.
     /// The coordinator awaits `NSessionCommit`s until the `CSessionStage` is set to `on`,  
     /// after which it inserts `NSessionCommit`s into the session context.  
     /// Shortly after, `CSessionStage` is set to `locked`, preventing further insertions for this session.
@@ -291,50 +305,77 @@ impl CSessionCtx {
         self.validate_commit(&auth_commit).await?;
 
         let commit = auth_commit.object();
-        let mut msg_sender = commit.msg_sender();
+        let mut account = commit.account();
 
         // #3 Set registery index (if not set)
-        if let Some(registery_index) = account_registery_index(msg_sender.key()) {
-            msg_sender.set_registery_index(registery_index);
+        if let Some(registery_index) = account_registery_index(account.key()) {
+            account.set_registery_index(registery_index);
         }
 
-        // #4 Insert into msg_senders
-        self.msg_senders.push(msg_sender);
-
-        // #5 Insert into entries
-        self.entries.push(commit.entry());
-
-        // #10 Insert payload auth nonce commitments
-        let payload_auth_nonces = commit.payload_auth_nonces();
-        self.payload_auth_nonces
-            .insert(msg_sender, payload_auth_nonces);
-
-        // #11 Insert vtxo projector nonce commitments
-        let vtxo_projector_nonces = commit.vtxo_projector_nonces();
-        self.vtxo_projector_nonces
-            .insert(msg_sender, vtxo_projector_nonces);
-
-        // #12 Insert connector projector nonce commitments
-        let connector_projector_nonces = commit.connector_projector_nonces();
-        self.connector_projector_nonces
-            .insert(msg_sender, connector_projector_nonces);
-
-        // #13 Insert zkp contingent nonce commitments
-        let zkp_contingent_nonces = commit.zkp_contingent_nonces();
-        self.zkp_contingent_nonces
-            .insert(msg_sender, zkp_contingent_nonces);
-
-        // #14 Insert lift nonce commitments
-        let lift_prevtxo_nonces = commit.lift_prevtxo_nonces();
-        self.lift_prevtxo_nonces
-            .insert(msg_sender, lift_prevtxo_nonces);
-
-        // #15 Insert connector nonce commitments
-        let connector_txo_nonces = commit.connector_txo_nonces();
-        self.connector_txo_nonces
-            .insert(msg_sender, connector_txo_nonces);
+        // #4 Insert into commit pool.
+        self.commit_pool.push(commit);
 
         Ok(())
+    }
+
+    /// Prunes and order commits within the commit pool.
+    async fn order_and_prune_commit_pool(&mut self) {
+        // TODO
+    }
+
+    /// Check if a commit given account is pruned from commit pool.
+    pub fn is_pruned(&self, account: Account) -> bool {
+        self.pruned_commits
+            .iter()
+            .any(|commit| commit.entry().account().key() == account.key())
+    }
+
+    /// Sets commits.
+    pub async fn set_commits(&mut self) {
+        // Filter and order commit pool.
+        self.order_and_prune_commit_pool().await;
+
+        // Set commits.
+        for commit in self.commit_pool.iter() {
+            let account = commit.account();
+            let entry = commit.entry();
+
+            // #1 Insert to passed commits.
+            self.passed_commits.push(commit.to_owned());
+
+            // #2 Insert to entries.
+            self.entries.push(entry);
+
+            // #3 Insert payload auth nonce commitments.
+            let payload_auth_nonces = commit.payload_auth_nonces();
+            self.payload_auth_nonces
+                .insert(account, payload_auth_nonces);
+
+            // #4 Insert vtxo projector nonce commitments.
+            let vtxo_projector_nonces = commit.vtxo_projector_nonces();
+            self.vtxo_projector_nonces
+                .insert(account, vtxo_projector_nonces);
+
+            // #5 Insert connector projector nonce commitments.
+            let connector_projector_nonces = commit.connector_projector_nonces();
+            self.connector_projector_nonces
+                .insert(account, connector_projector_nonces);
+
+            // #6 Insert zkp contingent nonce commitments.
+            let zkp_contingent_nonces = commit.zkp_contingent_nonces();
+            self.zkp_contingent_nonces
+                .insert(account, zkp_contingent_nonces);
+
+            // #7 Insert lift nonce commitments.
+            let lift_prevtxo_nonces = commit.lift_prevtxo_nonces();
+            self.lift_prevtxo_nonces
+                .insert(account, lift_prevtxo_nonces);
+
+            // #8 Insert connector nonce commitments.
+            let connector_txo_nonces = commit.connector_txo_nonces();
+            self.connector_txo_nonces
+                .insert(account, connector_txo_nonces);
+        }
     }
 
     fn payload_auth_msg(&self) -> [u8; 32] {
@@ -889,33 +930,42 @@ impl CSessionCtx {
     /// The coordinator does this immediately after locking the session.
     /// `CSessionCommitAck`s contain the post-round-one MuSig contexts to be filled with individual partial signatures.
     /// Those individual partial signatures are returned as part of the subsequent `NSessionUphold`s.
-    pub fn commitack(&self, msg_sender: Account) -> Option<CSessionCommitAck> {
-        // Allowed only in the locked stage
+    pub fn commitack(&self, account: Account) -> Result<CSessionCommitAck, CSessionCommitNack> {
+        // #1 Check if the session stage is locked.
         if self.stage != CSessionStage::Locked {
-            return None;
+            return Err(CSessionCommitNack::SessionNotLocked);
         }
 
-        if !self.is_msg_sender(&msg_sender) {
-            return None;
+        // #2 Check if the entry is pruned.
+        if self.is_pruned(account) {
+            return Err(CSessionCommitNack::CommitPruned);
+        }
+
+        // #3 Check if account is valid.
+        if !self.is_account(&account) {
+            return Err(CSessionCommitNack::AccountMismatch);
         }
 
         let entries = self.entries.clone();
 
-        let payload_auth_musig_ctx = self.payload_auth_ctxes.clone()?.3;
+        let payload_auth_musig_ctx = match &self.payload_auth_ctxes {
+            Some((_, _, _, ctx)) => ctx.to_owned(),
+            None => return Err(CSessionCommitNack::PayloadAuthCtxErr),
+        };
 
         let vtxo_projector_musig_ctx = match &self.vtxo_projector_ctxes {
             Some((_, _, _, ctx)) => Some(ctx.to_owned()),
-            None => return None,
+            None => None,
         };
 
         let connector_projector_musig_ctx = match &self.connector_projector_ctxes {
             Some((_, _, _, ctx)) => Some(ctx.to_owned()),
-            None => return None,
+            None => None,
         };
 
         let zkp_contingent_musig_ctx = match &self.zkp_contingent_ctxes {
             Some((_, _, _, ctx)) => Some(ctx.to_owned()),
-            None => return None,
+            None => None,
         };
 
         let mut lift_prevtxo_musig_ctxes = HashMap::<Lift, MusigSessionCtx>::new();
@@ -942,7 +992,7 @@ impl CSessionCtx {
         let session_id = self.session_id;
 
         let commitack = CSessionCommitAck::new(
-            msg_sender,
+            account,
             session_id,
             entries,
             payload_auth_musig_ctx,
@@ -953,7 +1003,7 @@ impl CSessionCtx {
             connector_txo_musig_ctxes,
         );
 
-        Some(commitack)
+        Ok(commitack)
     }
 
     pub fn insert_opcovack(&mut self, opcovack: OSessionOpCovAck) -> bool {
@@ -1160,9 +1210,9 @@ impl CSessionCtx {
     }
 
     fn validate_uphold(&self, auth_uphold: &Authenticable<NSessionUphold>) -> bool {
-        let msg_sender = auth_uphold.object().msg_sender();
+        let account = auth_uphold.object().msg_sender();
 
-        if auth_uphold.key() != msg_sender.key().serialize_xonly() {
+        if auth_uphold.key() != account.key().serialize_xonly() {
             return false;
         }
 
@@ -1170,7 +1220,7 @@ impl CSessionCtx {
             return false;
         }
 
-        if !self.is_msg_sender(&msg_sender) {
+        if !self.is_account(&account) {
             return false;
         }
 
@@ -1293,7 +1343,7 @@ impl CSessionCtx {
         if let Some((_, _, _, musig_ctx)) = &self.payload_auth_ctxes {
             let musig_blame_list = musig_ctx.blame_list();
 
-            for account in self.msg_senders.iter() {
+            for account in self.accounts().iter() {
                 if musig_blame_list.contains(&account.key()) {
                     if !blame_list.contains(account) {
                         blame_list.push(account.to_owned());
@@ -1306,7 +1356,7 @@ impl CSessionCtx {
         if let Some((_, _, _, musig_ctx)) = &self.vtxo_projector_ctxes {
             let musig_blame_list = musig_ctx.blame_list();
 
-            for account in self.msg_senders.iter() {
+            for account in self.accounts().iter() {
                 if musig_blame_list.contains(&account.key()) {
                     if !blame_list.contains(account) {
                         blame_list.push(account.to_owned());
@@ -1319,7 +1369,7 @@ impl CSessionCtx {
         if let Some((_, _, _, musig_ctx)) = &self.connector_projector_ctxes {
             let musig_blame_list = musig_ctx.blame_list();
 
-            for account in self.msg_senders.iter() {
+            for account in self.accounts().iter() {
                 if musig_blame_list.contains(&account.key()) {
                     if !blame_list.contains(account) {
                         blame_list.push(account.to_owned());
@@ -1332,7 +1382,7 @@ impl CSessionCtx {
         if let Some((_, _, _, musig_ctx)) = &self.zkp_contingent_ctxes {
             let musig_blame_list = musig_ctx.blame_list();
 
-            for account in self.msg_senders.iter() {
+            for account in self.accounts().iter() {
                 if musig_blame_list.contains(&account.key()) {
                     if !blame_list.contains(account) {
                         blame_list.push(account.to_owned());
@@ -1492,6 +1542,10 @@ impl CSessionCtx {
     }
 
     pub fn reset(&mut self) {
+        self.stage = CSessionStage::Off;
+        self.commit_pool = Vec::<NSessionCommit>::new();
+        self.pruned_commits = Vec::<NSessionCommit>::new();
+        self.passed_commits = Vec::<NSessionCommit>::new();
         self.entries = Vec::<Entry>::new();
         self.payload_auth_nonces = HashMap::<Account, (Point, Point)>::new();
         self.payload_auth_ctxes = None;
@@ -1559,14 +1613,20 @@ impl CContextRunner for CSESSION_CTX {
             // Wait for other commits.
             tokio::time::sleep(waiting_window).await;
 
-            // Check the number of message senders
-            let num_msg_senders = {
+            // Set commits.
+            {
+                let mut _session_ctx = self.lock().await;
+                _session_ctx.set_commits().await;
+            }
+
+            // Check the number of entries to execute.
+            let num_entries = {
                 let _session_ctx = self.lock().await;
-                _session_ctx.msg_senders_len()
+                _session_ctx.num_entries()
             };
 
             // Re-start the session if no commits found.
-            if num_msg_senders == 0 {
+            if num_entries == 0 {
                 continue;
             }
 
