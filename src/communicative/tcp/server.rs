@@ -696,15 +696,15 @@ async fn handle_uphold_session(
                                     break Ok(upholdack);
                                 }
 
-                                Err(uphold_onack) => {
-                                    break Err(CSessionUpholdNack::UpholdONack(uphold_onack));
+                                Err(uphold_nack) => {
+                                    break Err(uphold_nack);
                                 }
                             };
                         }
                     }
                 }
             }
-            Err(uphold_inack) => Err(CSessionUpholdNack::UpholdINack(uphold_inack)),
+            Err(uphold_nack) => Err(uphold_nack),
         }
     };
 

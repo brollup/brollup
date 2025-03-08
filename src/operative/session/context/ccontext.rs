@@ -1,7 +1,6 @@
 use super::{
     commitnack::CSessionCommitNack, opcov::CSessionOpCov, opcovack::OSessionOpCovAck,
-    uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdinack::CSessionUpholdINack,
-    upholdonack::CSessionUpholdONack,
+    uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdnack::CSessionUpholdNack,
 };
 use crate::{
     entry::Entry,
@@ -1235,15 +1234,15 @@ impl CSessionCtx {
     pub fn insert_uphold(
         &mut self,
         auth_uphold: Authenticable<NSessionUphold>,
-    ) -> Result<(), CSessionUpholdINack> {
+    ) -> Result<(), CSessionUpholdNack> {
         // Check if the session is locked.
         if self.stage != CSessionStage::Locked {
-            return Err(CSessionUpholdINack::SessionNotLocked);
+            return Err(CSessionUpholdNack::SessionNotLocked);
         }
 
         // #1 Validate uphold
         if !self.validate_uphold(&auth_uphold) {
-            return Err(CSessionUpholdINack::AuthErr);
+            return Err(CSessionUpholdNack::AuthErr);
         }
 
         let uphold = auth_uphold.object();
@@ -1252,7 +1251,7 @@ impl CSessionCtx {
         // Insert payload auth partial sig
         if let Some((_, _, _, ctx)) = &mut self.payload_auth_ctxes {
             if !ctx.insert_partial_sig(msg_sender, uphold.payload_auth_partial_sig()) {
-                return Err(CSessionUpholdINack::InvalidPayloadAuthSig);
+                return Err(CSessionUpholdNack::InvalidPayloadAuthSig);
             }
         }
 
@@ -1261,12 +1260,12 @@ impl CSessionCtx {
             let vtxo_projector_partial_sig = match uphold.vtxo_projector_partial_sig() {
                 Some(sig) => sig,
                 None => {
-                    return Err(CSessionUpholdINack::MissingVTXOProjectorSig);
+                    return Err(CSessionUpholdNack::MissingVTXOProjectorSig);
                 }
             };
 
             if !ctx.insert_partial_sig(msg_sender, vtxo_projector_partial_sig) {
-                return Err(CSessionUpholdINack::InvalidVTXOProjectorSig);
+                return Err(CSessionUpholdNack::InvalidVTXOProjectorSig);
             }
         }
 
@@ -1275,12 +1274,12 @@ impl CSessionCtx {
             let connector_projector_partial_sig = match uphold.connector_projector_partial_sig() {
                 Some(sig) => sig,
                 None => {
-                    return Err(CSessionUpholdINack::MissingConnectorProjectorSig);
+                    return Err(CSessionUpholdNack::MissingConnectorProjectorSig);
                 }
             };
 
             if !ctx.insert_partial_sig(msg_sender, connector_projector_partial_sig) {
-                return Err(CSessionUpholdINack::InvalidConnectorProjectorSig);
+                return Err(CSessionUpholdNack::InvalidConnectorProjectorSig);
             }
         }
 
@@ -1289,12 +1288,12 @@ impl CSessionCtx {
             let zkp_contingent_partial_sig = match uphold.zkp_contingent_partial_sig() {
                 Some(sig) => sig,
                 None => {
-                    return Err(CSessionUpholdINack::MissingZKPContigentSig);
+                    return Err(CSessionUpholdNack::MissingZKPContigentSig);
                 }
             };
 
             if !ctx.insert_partial_sig(msg_sender, zkp_contingent_partial_sig) {
-                return Err(CSessionUpholdINack::InvalidZKPContigentSig);
+                return Err(CSessionUpholdNack::InvalidZKPContigentSig);
             }
         }
 
@@ -1305,12 +1304,12 @@ impl CSessionCtx {
                 let partial_sig = match (&uphold_lift_prevtxo_partial_sigs).get(lift) {
                     Some(sig) => sig,
                     None => {
-                        return Err(CSessionUpholdINack::MissingLiftSig);
+                        return Err(CSessionUpholdNack::MissingLiftSig);
                     }
                 };
 
                 if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
-                    return Err(CSessionUpholdINack::InvalidLiftSig);
+                    return Err(CSessionUpholdNack::InvalidLiftSig);
                 }
             }
         }
@@ -1322,12 +1321,12 @@ impl CSessionCtx {
                 let partial_sig = match (&uphold_connector_txo_partial_sigs).get(index) {
                     Some(sig) => sig,
                     None => {
-                        return Err(CSessionUpholdINack::MissingConnectorSig);
+                        return Err(CSessionUpholdNack::MissingConnectorSig);
                     }
                 };
 
                 if !musig_ctx.insert_partial_sig(msg_sender, partial_sig.to_owned()) {
-                    return Err(CSessionUpholdINack::InvalidConnectorSig);
+                    return Err(CSessionUpholdNack::InvalidConnectorSig);
                 }
             }
         }
@@ -1441,31 +1440,31 @@ impl CSessionCtx {
         true
     }
 
-    pub fn upholdack(&self, msg_sender: Account) -> Result<CSessionUpholdAck, CSessionUpholdONack> {
+    pub fn upholdack(&self, msg_sender: Account) -> Result<CSessionUpholdAck, CSessionUpholdNack> {
         // Check msg.senders blame list.
         let blame_list = self.blame_list();
 
         if blame_list.len() > 0 {
-            return Err(CSessionUpholdONack::BlameMsgSenders(blame_list));
+            return Err(CSessionUpholdNack::BlameMsgSenders(blame_list));
         }
 
         // Check operator blame.
         if !self.opcov_ready() {
-            return Err(CSessionUpholdONack::BlameOperator);
+            return Err(CSessionUpholdNack::BlameOperator);
         }
 
         let payload_auth_agg_sig = self
             .payload_auth_ctxes
             .clone()
-            .ok_or(CSessionUpholdONack::PayloadAuthSigErr)?
+            .ok_or(CSessionUpholdNack::PayloadAuthSigErr)?
             .3
             .agg_sig()
-            .ok_or(CSessionUpholdONack::PayloadAuthSigErr)?;
+            .ok_or(CSessionUpholdNack::PayloadAuthSigErr)?;
 
         let vtxo_projector_agg_sig = match &self.vtxo_projector_ctxes {
             Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
                 Some(sig) => Some(sig),
-                None => return Err(CSessionUpholdONack::VtxoProjectorSigErr),
+                None => return Err(CSessionUpholdNack::VtxoProjectorSigErr),
             },
             None => None,
         };
@@ -1473,7 +1472,7 @@ impl CSessionCtx {
         let connector_projector_agg_sig = match &self.connector_projector_ctxes {
             Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
                 Some(sig) => Some(sig),
-                None => return Err(CSessionUpholdONack::ConnectorProjectorSigErr),
+                None => return Err(CSessionUpholdNack::ConnectorProjectorSigErr),
             },
             None => None,
         };
@@ -1481,7 +1480,7 @@ impl CSessionCtx {
         let zkp_contingent_agg_sig = match &self.zkp_contingent_ctxes {
             Some((_, _, _, musig_ctx)) => match musig_ctx.agg_sig() {
                 Some(sig) => Some(sig),
-                None => return Err(CSessionUpholdONack::ZkpContigentSigErr),
+                None => return Err(CSessionUpholdNack::ZkpContigentSigErr),
             },
             None => None,
         };
@@ -1493,7 +1492,7 @@ impl CSessionCtx {
                 for (lift, (_, _, _, musig_ctx)) in ctxes.iter() {
                     let agg_sig = match musig_ctx.agg_sig() {
                         Some(sig) => sig,
-                        None => return Err(CSessionUpholdONack::LiftSigErr),
+                        None => return Err(CSessionUpholdNack::LiftSigErr),
                     };
 
                     lift_prevtxo_agg_sigs.insert(lift.to_owned(), agg_sig);
@@ -1508,7 +1507,7 @@ impl CSessionCtx {
                 for (_, _, _, musig_ctx) in ctxes.iter() {
                     let agg_sig = match musig_ctx.agg_sig() {
                         Some(sig) => sig,
-                        None => return Err(CSessionUpholdONack::ConnectorSigErr),
+                        None => return Err(CSessionUpholdNack::ConnectorSigErr),
                     };
 
                     connector_agg_sigs.push(agg_sig);
