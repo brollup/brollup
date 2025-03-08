@@ -111,7 +111,7 @@ impl NSessionCtx {
 
     fn validate_commitack(&self, commitack: &CSessionCommitAck) -> bool {
         // Validate msg.sender key
-        if commitack.msg_sender().key() != self.entry.account().key() {
+        if commitack.account().key() != self.entry.account().key() {
             return false;
         }
 

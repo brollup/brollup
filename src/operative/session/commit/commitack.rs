@@ -16,7 +16,7 @@ use std::collections::HashMap;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CSessionCommitAck {
     // Msg sender
-    msg_sender: Account,
+    account: Account,
     session_id: [u8; 32],
     // Entries
     entries: Vec<Entry>,
@@ -36,7 +36,7 @@ pub struct CSessionCommitAck {
 
 impl CSessionCommitAck {
     pub fn new(
-        msg_sender: Account,
+        account: Account,
         session_id: [u8; 32],
         entries: Vec<Entry>,
         payload_auth_musig_ctx: MusigSessionCtx,
@@ -47,7 +47,7 @@ impl CSessionCommitAck {
         connector_txo_musig_ctxes: Vec<MusigSessionCtx>,
     ) -> CSessionCommitAck {
         CSessionCommitAck {
-            msg_sender,
+            account,
             session_id,
             entries,
             payload_auth_musig_ctx,
@@ -59,8 +59,8 @@ impl CSessionCommitAck {
         }
     }
 
-    pub fn msg_sender(&self) -> Account {
-        self.msg_sender.clone()
+    pub fn account(&self) -> Account {
+        self.account.clone()
     }
 
     pub fn session_id(&self) -> [u8; 32] {
