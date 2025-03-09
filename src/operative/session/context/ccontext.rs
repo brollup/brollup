@@ -3,7 +3,6 @@ use super::{
     uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdnack::CSessionUpholdNack,
 };
 use crate::{
-    blaming::BlamingDirectory,
     entry::Entry,
     hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
@@ -18,7 +17,7 @@ use crate::{
         projector::{self, Projector},
     },
     valtype::account::Account,
-    BLAMING_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
+    BLIST_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -49,7 +48,7 @@ pub enum CSessionStage {
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     peer_manager: PEER_MANAGER,
-    blaming_dir: BLAMING_DIRECTORY,
+    blacklist_dir: BLIST_DIRECTORY,
     //
     session_id: [u8; 32],
     stage: CSessionStage,
@@ -124,22 +123,12 @@ impl CSessionCtx {
     pub fn construct(
         dkg_manager: &DKG_MANAGER,
         peer_manager: &PEER_MANAGER,
-    ) -> Option<CSESSION_CTX> {
-        let blaming_dir: BLAMING_DIRECTORY = match BlamingDirectory::new() {
-            Some(blaming_directory) => blaming_directory,
-            None => {
-                eprintln!(
-                    "{}",
-                    "Unexpected error: Failed to create blaming directory.".red()
-                );
-                return None;
-            }
-        };
-
+        blacklist_dir: &BLIST_DIRECTORY,
+    ) -> CSESSION_CTX {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             peer_manager: Arc::clone(peer_manager),
-            blaming_dir,
+            blacklist_dir: Arc::clone(blacklist_dir),
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             commit_pool: Vec::<NSessionCommit>::new(),
@@ -180,7 +169,7 @@ impl CSessionCtx {
                 )>,
             >::new(),
         };
-        Some(Arc::new(Mutex::new(session)))
+        Arc::new(Mutex::new(session))
     }
 
     fn dkg_manager(&self) -> DKG_MANAGER {
@@ -251,8 +240,8 @@ impl CSessionCtx {
         }
         // #1 Blacklist check.
         {
-            let _blaming_dir = self.blaming_dir.lock().await;
-            if let Some(until) = _blaming_dir.check_blacklist(account) {
+            let _blacklist_dir = self.blacklist_dir.lock().await;
+            if let Some(until) = _blacklist_dir.check_blacklist(account) {
                 return Err(CSessionCommitNack::BlacklistedUntil(until));
             }
         }
@@ -1448,10 +1437,10 @@ impl CSessionCtx {
     pub async fn blame(&self) {
         let blame_list = self.blame_list();
 
-        let mut _blaming_dir = self.blaming_dir.lock().await;
+        let mut _blacklist_dir = self.blacklist_dir.lock().await;
 
         for account in blame_list {
-            _blaming_dir.blame(account);
+            _blacklist_dir.blame(account);
         }
     }
 

@@ -1,3 +1,4 @@
+use crate::blacklist::BlacklistDirectory;
 use crate::dkgops::DKGOps;
 use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
@@ -6,7 +7,10 @@ use crate::peer_manager::PeerManager;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
-use crate::{ccli, nns, tcp, Network, OperatingMode, CSESSION_CTX, DKG_MANAGER, PEER_MANAGER};
+use crate::{
+    ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
+    PEER_MANAGER,
+};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
@@ -57,11 +61,21 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     // 7. Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // 8. Construct CSession.
-    let csession: CSESSION_CTX = match CSessionCtx::construct(&dkg_manager, &peer_manager) {
-        Some(csession) => csession,
-        None => return eprintln!("{}", "Error initializing csession.".red()),
+    // 8. Construct blacklist directory.
+    let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new() {
+        Some(blacklist_dir) => blacklist_dir,
+        None => {
+            eprintln!(
+                "{}",
+                "Unexpected error: Failed to create blaming directory.".red()
+            );
+            return;
+        }
     };
+
+    // 8. Construct CSession.
+    let csession: CSESSION_CTX =
+        CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir);
 
     // 9. Run CSession.
     {
@@ -83,10 +97,14 @@ pub async fn run(keys: KeyHolder, _network: Network) {
     }
 
     // 11. Initialize CLI
-    cli(&mut peer_manager, &mut dkg_manager).await;
+    cli(&mut peer_manager, &mut dkg_manager, &mut blacklist_dir).await;
 }
 
-pub async fn cli(peer_manager: &mut PEER_MANAGER, dkg_manager: &mut DKG_MANAGER) {
+pub async fn cli(
+    peer_manager: &mut PEER_MANAGER,
+    dkg_manager: &mut DKG_MANAGER,
+    blacklist_dir: &mut BLIST_DIRECTORY,
+) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -116,6 +134,7 @@ pub async fn cli(peer_manager: &mut PEER_MANAGER, dkg_manager: &mut DKG_MANAGER)
             "clear" => ccli::clear::command(),
             "dkg" => ccli::dkg::command(parts, peer_manager, dkg_manager).await,
             "ops" => ccli::ops::command(peer_manager).await,
+            "blist" => ccli::blist::command(parts, blacklist_dir).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

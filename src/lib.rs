@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use blaming::BlamingDirectory;
+use blacklist::BlacklistDirectory;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
@@ -17,14 +17,14 @@ type DKG_MANAGER = Arc<Mutex<DKGManager>>;
 type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
-type BLAMING_DIRECTORY = Arc<Mutex<BlamingDirectory>>;
+type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 
 // Inscriptive
 
 #[path = "inscriptive/baked.rs"]
 pub mod baked;
-#[path = "inscriptive/blaming.rs"]
-pub mod blaming;
+#[path = "inscriptive/blacklist.rs"]
+pub mod blacklist;
 #[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
 

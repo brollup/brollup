@@ -1,4 +1,4 @@
-use crate::{valtype::account::Account, BLAMING_DIRECTORY};
+use crate::{valtype::account::Account, BLIST_DIRECTORY};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -10,16 +10,16 @@ type BlacklistedUntil = u64;
 const BASE_WAITING_WINDOW: u64 = 5;
 
 /// Directory for the coordinator to manage account blacklists.
-pub struct BlamingDirectory {
+pub struct BlacklistDirectory {
     // In-memory list.
     list: HashMap<Account, (BlameCounter, BlacklistedUntil)>,
     // In-storage db.
     db: sled::Db,
 }
 
-impl BlamingDirectory {
-    pub fn new() -> Option<BLAMING_DIRECTORY> {
-        let db = sled::open("db/blamingdir").ok()?;
+impl BlacklistDirectory {
+    pub fn new() -> Option<BLIST_DIRECTORY> {
+        let db = sled::open("db/blistdir").ok()?;
 
         let mut list = HashMap::<Account, (BlameCounter, BlacklistedUntil)>::new();
 
@@ -33,7 +33,7 @@ impl BlamingDirectory {
             }
         }
 
-        let blaming_dir = BlamingDirectory { list, db };
+        let blaming_dir = BlacklistDirectory { list, db };
 
         Some(Arc::new(Mutex::new(blaming_dir)))
     }
@@ -71,9 +71,14 @@ impl BlamingDirectory {
 
                 if blame_counter < u16::MAX {
                     blame_counter = blame_counter + 1;
-                    blacklisted_until = current_unix_timestamp()
+
+                    let new_blacklisted_until = current_unix_timestamp()
                         + BASE_WAITING_WINDOW
                         + (2 as u64).pow(blame_counter as u32);
+
+                    if new_blacklisted_until > blacklisted_until {
+                        blacklisted_until = new_blacklisted_until;
+                    }
                 } else if blame_counter == u16::MAX {
                     // Permaban
                     blacklisted_until = u64::MAX;
@@ -101,6 +106,17 @@ impl BlamingDirectory {
             }
             None => None,
         }
+    }
+
+    pub fn manual_blacklist(&mut self, account: Account, blacklisted_until: BlacklistedUntil) {
+        let blame_counter = {
+            match self.list.get(&account) {
+                Some((blame_counter, _)) => blame_counter.to_owned(),
+                None => 1,
+            }
+        };
+
+        self.update(account, blame_counter, blacklisted_until);
     }
 }
 
