@@ -1,7 +1,12 @@
-use bitcoincore_rpc::{Auth, Client, RpcApi};
+use crate::{prevout::Prevout, txn::outpoint::Outpoint};
+use bitcoincore_rpc::{
+    bitcoin::hashes::Hash,
+    json::{ScanTxOutRequest, ScanTxOutResult},
+    Auth, Client, RpcApi,
+};
 
-pub fn bitcoin_rpc() {
-    let rpc_url = "http://209.97.150.144:38332";
+pub fn scan_prevouts() {
+    let rpc_url = "http://159.203.92.87:38332";
     let rpc_user = "brollup";
     let rpc_password = "brollup";
 
@@ -11,10 +16,33 @@ pub fn bitcoin_rpc() {
     )
     .unwrap();
 
-    let blockchain_info = rpc.get_blockchain_info().unwrap();
-    println!("Blockchain Info: {:?}", blockchain_info);
+    let scan_request = vec![ScanTxOutRequest::Single(
+        "addr(tb1qtwr5ft6tc6cy2nayzu2pm9huzuqcecgh2vauat)".to_string(),
+    )];
 
-    let best_block_hash = rpc.get_best_block_hash().unwrap();
+    let result: ScanTxOutResult = match rpc.scan_tx_out_set_blocking(&scan_request) {
+        Ok(result) => result,
+        Err(err) => return println!("rpc err: {}", err),
+    };
 
-    println!("Best Block Hash: {:?}", best_block_hash);
+    let mut prevouts = Vec::<Prevout>::new();
+
+    for utxo in result.unspents.iter() {
+        let outpoint = {
+            let prev: [u8; 32] = utxo.txid.to_byte_array();
+            let vout = utxo.vout;
+            Outpoint::new(prev, vout)
+        };
+
+        let prevout = Prevout::new(
+            outpoint,
+            utxo.amount.to_sat(),
+            utxo.script_pub_key.to_bytes(),
+            Some(utxo.height),
+        );
+
+        prevouts.push(prevout);
+    }
+
+    print!("prevouts len: {}", prevouts.len());
 }

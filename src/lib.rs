@@ -89,6 +89,8 @@ pub mod tcp;
 pub mod combinator;
 #[path = "constructive/entry/entry.rs"]
 pub mod entry;
+#[path = "constructive/txn/prevout.rs"]
+pub mod prevout;
 #[path = "constructive/taproot.rs"]
 pub mod taproot;
 #[path = "constructive/txn/mod.rs"]

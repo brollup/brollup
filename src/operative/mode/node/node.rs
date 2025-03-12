@@ -1,3 +1,4 @@
+use crate::bitcoin_rpc::scan_prevouts;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
 use crate::PEER;
@@ -10,6 +11,9 @@ use std::time::Duration;
 #[tokio::main]
 pub async fn run(keys: KeyHolder, _network: Network) {
     let _mode = OperatingMode::Node;
+
+    // RPC
+    scan_prevouts();
 
     println!("{}", "Initializing node..");
 
@@ -70,7 +74,9 @@ pub async fn cli(coordinator_conn: &PEER, keys: &KeyHolder) {
             "clear" => ncli::clear::command(),
             "conn" => ncli::conn::command(coordinator_conn).await,
             "ping" => ncli::ping::command(coordinator_conn).await,
-            "covj" => ncli::covj::command(coordinator_conn, keys.secret_key(), keys.public_key()).await,
+            "covj" => {
+                ncli::covj::command(coordinator_conn, keys.secret_key(), keys.public_key()).await
+            }
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
