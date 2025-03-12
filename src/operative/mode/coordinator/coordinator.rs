@@ -17,11 +17,11 @@ use std::io::{self, BufRead};
 use std::sync::Arc;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
+pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
     let mode = OperatingMode::Coordinator;
 
     // 1. Check if this is a valid coordinator.
-    if keys.public_key() != baked::COORDINATOR_WELL_KNOWN {
+    if keys.public_key().serialize_xonly() != baked::COORDINATOR_WELL_KNOWN {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
     }

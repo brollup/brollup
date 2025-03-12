@@ -10,7 +10,7 @@ use std::io::{self, BufRead};
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
+pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
     let _mode = OperatingMode::Node;
 
     // RPC

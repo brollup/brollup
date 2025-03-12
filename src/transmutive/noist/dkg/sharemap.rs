@@ -19,16 +19,12 @@ pub struct DKGShareMap {
 }
 
 impl DKGShareMap {
-    pub fn new(
-        secret_key: [u8; 32],
-        public_key: [u8; 32],
-        signatories: &Vec<Point>,
-    ) -> Option<Self> {
-        let self_point = public_key.into_point().ok()?;
+    pub fn new(secret_key: Scalar, public_key: Point, signatories: &Vec<Point>) -> Option<Self> {
+        let self_point = public_key;
 
         let polynomial_secret = {
             let mut preimage = Vec::<u8>::new();
-            preimage.extend(secret_key);
+            preimage.extend(secret_key.serialize());
             preimage.extend(generate_secret());
             preimage
                 .hash(Some(crate::hash::HashTag::SecretKey))
@@ -62,7 +58,7 @@ impl DKGShareMap {
 
             for (index, signatory) in signatories.iter().enumerate() {
                 let signatory_point = signatory.to_owned();
-                let self_secret_scalar = secret_key.into_scalar().ok()?;
+                let self_secret_scalar = secret_key;
 
                 let secret_share = secret_shares[index];
                 let public_share = secret_share.base_point_mul();

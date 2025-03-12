@@ -1,3 +1,4 @@
 use crate::PEER;
+use secp::{Point, Scalar};
 
-pub async fn command(_coordinator: &PEER, _sk: [u8; 32], _pk: [u8; 32]) {}
+pub async fn command(_coordinator: &PEER, _sk: Scalar, _pk: Point) {}

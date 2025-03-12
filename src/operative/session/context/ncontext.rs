@@ -44,7 +44,7 @@ pub struct NSessionCtx {
 
 impl NSessionCtx {
     pub fn new(keys: KeyHolder, entry: Entry) -> Option<NSessionCtx> {
-        let secret_key = keys.secret_key().into_scalar().ok()?;
+        let secret_key = keys.secret_key();
         let public_key = secret_key.base_point_mul();
 
         if entry.account().key() != public_key {

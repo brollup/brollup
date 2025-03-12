@@ -1,8 +1,8 @@
 use crate::{
     hash::{Hash, HashTag},
-    into::{FromSigTuple, IntoPoint, IntoScalar, IntoSigTuple},
+    into::{FromSigTuple, IntoSigTuple},
     noist::core::vse::encrypting_key_public,
-    schnorr::{self, Bytes32, Sighash},
+    schnorr::{self, Sighash},
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -18,17 +18,16 @@ pub struct VSEKeyMap {
 }
 
 impl VSEKeyMap {
-    pub fn new(secret_key: [u8; 32], signatories: &Vec<Point>) -> Option<VSEKeyMap> {
+    pub fn new(secret_key: Scalar, signatories: &Vec<Point>) -> Option<VSEKeyMap> {
         let mut signatories = signatories.clone();
         signatories.sort();
 
-        let public_key = secret_key.secret_to_public()?.into_point().ok()?;
+        let public_key = secret_key.base_point_mul();
 
         let mut map = HashMap::<Point, (Point, SigTuple, Proof)>::new();
 
         for signatory in signatories {
-            let vse_public =
-                encrypting_key_public(secret_key.into_scalar().ok()?, signatory.to_owned());
+            let vse_public = encrypting_key_public(secret_key, signatory.to_owned());
 
             let message = {
                 let mut preimage = Vec::<u8>::with_capacity(97);
@@ -38,7 +37,11 @@ impl VSEKeyMap {
                 preimage.hash(Some(HashTag::VSEEncryptionAuth))
             };
 
-            let auth_sig = schnorr::sign(secret_key, message, schnorr::SigningMode::Brollup)?;
+            let auth_sig = schnorr::sign(
+                secret_key.serialize(),
+                message,
+                schnorr::SigningMode::Brollup,
+            )?;
             let auth_sig_tuple = auth_sig.into_sig_tuple()?;
 
             map.insert(signatory.to_owned(), (vse_public, auth_sig_tuple, None));

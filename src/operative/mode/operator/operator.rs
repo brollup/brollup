@@ -19,11 +19,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
+pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
     let mode = OperatingMode::Operator;
 
     // 1. Check if this is a liquidity provider.
-    if !provider::is_provider(keys.public_key()) {
+    if !provider::is_provider(keys.public_key().serialize_xonly()) {
         eprintln!("{}", "Operator <nsec> does not match.".red());
         return;
     }

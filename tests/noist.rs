@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
-    use brollup::into::IntoPoint;
     use brollup::musig::session::MusigSessionCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
@@ -15,42 +14,29 @@ mod noist_tests {
 
     #[tokio::test]
     async fn noist_test() -> Result<(), String> {
-        let signer_1_secret: [u8; 32] =
-            hex::decode("396e7f3b89843e1e5610b1fdbaabf1b6a53066f43b22c529f839d69b6799ce8f")
-                .unwrap()
-                .try_into()
-                .unwrap();
-        let signer_1_public: [u8; 32] =
-            hex::decode("eae0001e445c4f748f91010c1fb6d5b99391e588e605dbbb6ca4e5d98e520cd7")
-                .unwrap()
-                .try_into()
+        let signer_1_secret =
+            Scalar::from_hex("4dd13a95c4c55dd7fc2f058a12e56e702879c37a7641943f5a83b9d90c0fa37e")
                 .unwrap();
 
-        let signer_2_secret: [u8; 32] =
-            hex::decode("31dfea206f96e7b254e00fddb22baac233feb57d6ea98f3fe6929becad1eee78")
-                .unwrap()
-                .try_into()
-                .unwrap();
-        let signer_2_public: [u8; 32] =
-            hex::decode("25451c1c2d326a14e86c7921cb1467512c944801c4fc0f81f8bd89e85d3ab1f1")
-                .unwrap()
-                .try_into()
+        let signer_1_public =
+            Point::from_hex("0244b24c49f6fbb510b9d48283f86207d3d23a9116b4c2c9d04c900d63a699512b")
                 .unwrap();
 
-        let signer_3_secret: [u8; 32] =
-            hex::decode("38e2361ab771574909a9768670fa33406a311a2cae7d446359f09df18ac2cb83")
-                .unwrap()
-                .try_into()
-                .unwrap();
-        let signer_3_public: [u8; 32] =
-            hex::decode("e8e5393d1873b616c12c6e2bee0c637f58dc5762dda654903c4dd1a72d762c34")
-                .unwrap()
-                .try_into()
+        let signer_2_secret =
+            Scalar::from_hex("a3f1048fae9a97776810160dfb5221649bfe3604ab3a3670a54db21a0ad5c56f")
                 .unwrap();
 
-        let signer_1_public = signer_1_public.into_point().unwrap();
-        let signer_2_public = signer_2_public.into_point().unwrap();
-        let signer_3_public = signer_3_public.into_point().unwrap();
+        let signer_2_public =
+            Point::from_hex("024bae102b6f7c31045ca52e110c5155aef701469060c965dacccc41476c62c4df")
+                .unwrap();
+
+        let signer_3_secret =
+            Scalar::from_hex("21df97475725ba6193450e274e5142a8c37bbbc2ae8ec5b4796b30592bccdb87")
+                .unwrap();
+
+        let signer_3_public =
+            Point::from_hex("028ba1d6c14ee9ad41a0556d0033b493b36247a2a483ee975e624ff701cdec2da8")
+                .unwrap();
 
         let mut public_list = vec![signer_1_public, signer_2_public, signer_3_public];
         public_list.sort();
@@ -97,15 +83,15 @@ mod noist_tests {
 
             let s1_package = {
                 let package = DKGPackage::new(signer_1_secret, &public_list).unwrap();
-                Authenticable::new(package, signer_1_secret).unwrap()
+                Authenticable::new(package, signer_1_secret.serialize()).unwrap()
             };
             let s2_package = {
                 let package = DKGPackage::new(signer_2_secret, &public_list).unwrap();
-                Authenticable::new(package, signer_2_secret).unwrap()
+                Authenticable::new(package, signer_2_secret.serialize()).unwrap()
             };
             let s3_package = {
                 let package = DKGPackage::new(signer_3_secret, &public_list).unwrap();
-                Authenticable::new(package, signer_3_secret).unwrap()
+                Authenticable::new(package, signer_3_secret.serialize()).unwrap()
             };
 
             if !dkg_session.insert(&s1_package, &vse_setup) {
@@ -138,9 +124,15 @@ mod noist_tests {
                 .pick_signing_session(message, None, true)
                 .unwrap();
 
-            let s1_partial_sig = signing_session.partial_sign(signer_1_secret).unwrap();
-            let s2_partial_sig = signing_session.partial_sign(signer_2_secret).unwrap();
-            let s3_partial_sig = signing_session.partial_sign(signer_3_secret).unwrap();
+            let s1_partial_sig = signing_session
+                .partial_sign(signer_1_secret.serialize())
+                .unwrap();
+            let s2_partial_sig = signing_session
+                .partial_sign(signer_2_secret.serialize())
+                .unwrap();
+            let s3_partial_sig = signing_session
+                .partial_sign(signer_3_secret.serialize())
+                .unwrap();
 
             if !signing_session.partial_sig_verify(signer_1_public, s1_partial_sig) {
                 return Err("s1_partial_sig verify err.".into());
@@ -338,16 +330,18 @@ mod noist_tests {
         // Insert operator partial signatures:
         {
             // Singatory #1
-            let signatory_1_partial_sig =
-                noist_signing_session.partial_sign(signer_1_secret).unwrap();
+            let signatory_1_partial_sig = noist_signing_session
+                .partial_sign(signer_1_secret.serialize())
+                .unwrap();
 
             assert!(
                 noist_signing_session.insert_partial_sig(signer_1_public, signatory_1_partial_sig)
             );
 
             // Singatory #2
-            let signatory_2_partial_sig =
-                noist_signing_session.partial_sign(signer_2_secret).unwrap();
+            let signatory_2_partial_sig = noist_signing_session
+                .partial_sign(signer_2_secret.serialize())
+                .unwrap();
 
             assert!(
                 noist_signing_session.insert_partial_sig(signer_2_public, signatory_2_partial_sig)

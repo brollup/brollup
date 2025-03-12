@@ -1,12 +1,10 @@
-use secp::Point;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     hash::{Hash, HashTag},
-    into::IntoPoint,
     noist::setup::setup::VSESetup,
-    schnorr::{Bytes32, Sighash},
+    schnorr::Sighash,
 };
+use secp::{Point, Scalar};
+use serde::{Deserialize, Serialize};
 
 use super::sharemap::DKGShareMap;
 
@@ -18,14 +16,14 @@ pub struct DKGPackage {
 }
 
 impl DKGPackage {
-    pub fn new(secret_key: [u8; 32], signatories: &Vec<Point>) -> Option<Self> {
-        let public_key = secret_key.secret_to_public()?;
+    pub fn new(secret_key: Scalar, signatories: &Vec<Point>) -> Option<Self> {
+        let public_key = secret_key.base_point_mul();
 
         let hiding = DKGShareMap::new(secret_key, public_key, &signatories)?;
         let binding = DKGShareMap::new(secret_key, public_key, &signatories)?;
 
         let package = DKGPackage {
-            signatory: public_key.into_point().ok()?,
+            signatory: public_key,
             hiding,
             binding,
         };

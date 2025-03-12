@@ -47,7 +47,7 @@ fn main() {
     };
 
     // RPC args
-    let rpc_holder = RPCHolder::new(args[3], args[4], args[5]);
+    let rpc_holder = RPCHolder::new(args[3].to_owned(), args[4].to_owned(), args[5].to_owned());
 
     // Key holder
     let key_holder = {

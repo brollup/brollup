@@ -452,7 +452,7 @@ async fn handle_request_dkg_packages(
             Some(package) => package,
             None => return None,
         };
-        let auth_package = match Authenticable::new(package, keys.secret_key()) {
+        let auth_package = match Authenticable::new(package, keys.secret_key().serialize()) {
             Some(auth_package) => auth_package,
             None => return None,
         };
@@ -540,7 +540,7 @@ async fn handle_request_partial_sigs(
             }
         };
 
-        match signing_session.partial_sign(keys.secret_key()) {
+        match signing_session.partial_sign(keys.secret_key().serialize()) {
             Some(partial_sig) => partial_sigs.push(partial_sig),
             None => return None,
         };

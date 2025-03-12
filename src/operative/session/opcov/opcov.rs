@@ -1,7 +1,7 @@
 use super::opcovack::OSessionOpCovAck;
 use crate::{
-    entry::Entry, key::KeyHolder, musig::session::MusigSessionCtx, schnorr::Bytes32,
-    txo::lift::Lift, valtype::account::Account, DKG_MANAGER,
+    entry::Entry, key::KeyHolder, musig::session::MusigSessionCtx, txo::lift::Lift,
+    valtype::account::Account, DKG_MANAGER,
 };
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
@@ -65,10 +65,7 @@ impl CSessionOpCov {
         dkg_manager: &mut DKG_MANAGER,
         keys: &KeyHolder,
     ) -> Option<OSessionOpCovAck> {
-        let signatory = match keys.public_key().to_even_point() {
-            Some(signatory) => signatory,
-            None => return None,
-        };
+        let signatory = keys.public_key();
 
         // Payload auth
         let payload_auth_partial_sig = {
@@ -79,10 +76,12 @@ impl CSessionOpCov {
                 .musig_nested_signing_session(dkg_dir_height, dkg_nonce_height, musig_ctx, true)
                 .await
             {
-                Ok(signing_session) => match signing_session.partial_sign(keys.secret_key()) {
-                    Some(partial_sig) => Some(partial_sig),
-                    None => return None,
-                },
+                Ok(signing_session) => {
+                    match signing_session.partial_sign(keys.secret_key().serialize()) {
+                        Some(partial_sig) => Some(partial_sig),
+                        None => return None,
+                    }
+                }
                 Err(_) => None,
             }
         };
@@ -95,10 +94,12 @@ impl CSessionOpCov {
                     .musig_nested_signing_session(dkg_dir_height, dkg_nonce_height, musig_ctx, true)
                     .await
                 {
-                    Ok(signing_session) => match signing_session.partial_sign(keys.secret_key()) {
-                        Some(partial_sig) => Some(partial_sig),
-                        None => return None,
-                    },
+                    Ok(signing_session) => {
+                        match signing_session.partial_sign(keys.secret_key().serialize()) {
+                            Some(partial_sig) => Some(partial_sig),
+                            None => return None,
+                        }
+                    }
                     Err(_) => None,
                 }
             }
@@ -113,10 +114,12 @@ impl CSessionOpCov {
                     .musig_nested_signing_session(dkg_dir_height, dkg_nonce_height, musig_ctx, true)
                     .await
                 {
-                    Ok(signing_session) => match signing_session.partial_sign(keys.secret_key()) {
-                        Some(partial_sig) => Some(partial_sig),
-                        None => return None,
-                    },
+                    Ok(signing_session) => {
+                        match signing_session.partial_sign(keys.secret_key().serialize()) {
+                            Some(partial_sig) => Some(partial_sig),
+                            None => return None,
+                        }
+                    }
                     Err(_) => None,
                 }
             }
@@ -131,10 +134,12 @@ impl CSessionOpCov {
                     .musig_nested_signing_session(dkg_dir_height, dkg_nonce_height, musig_ctx, true)
                     .await
                 {
-                    Ok(signing_session) => match signing_session.partial_sign(keys.secret_key()) {
-                        Some(partial_sig) => Some(partial_sig),
-                        None => return None,
-                    },
+                    Ok(signing_session) => {
+                        match signing_session.partial_sign(keys.secret_key().serialize()) {
+                            Some(partial_sig) => Some(partial_sig),
+                            None => return None,
+                        }
+                    }
                     Err(_) => None,
                 }
             }
@@ -160,10 +165,11 @@ impl CSessionOpCov {
                     .await
                 {
                     Ok(signing_session) => {
-                        let partial_sig = match signing_session.partial_sign(keys.secret_key()) {
-                            Some(partial_sig) => partial_sig,
-                            None => return None,
-                        };
+                        let partial_sig =
+                            match signing_session.partial_sign(keys.secret_key().serialize()) {
+                                Some(partial_sig) => partial_sig,
+                                None => return None,
+                            };
 
                         lift_partial_sigs.insert(lift.to_owned(), Some(partial_sig));
                     }
@@ -194,10 +200,11 @@ impl CSessionOpCov {
                     .await
                 {
                     Ok(signing_session) => {
-                        let partial_sig = match signing_session.partial_sign(keys.secret_key()) {
-                            Some(partial_sig) => partial_sig,
-                            None => return None,
-                        };
+                        let partial_sig =
+                            match signing_session.partial_sign(keys.secret_key().serialize()) {
+                                Some(partial_sig) => partial_sig,
+                                None => return None,
+                            };
 
                         connector_partial_sigs.push(Some(partial_sig));
                     }
