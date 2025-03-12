@@ -1,6 +1,7 @@
 use crate::bitcoin_rpc::scan_prevouts;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
+use crate::rpcholder::RPCHolder;
 use crate::PEER;
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, Network};
@@ -9,7 +10,7 @@ use std::io::{self, BufRead};
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network) {
+pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
     let _mode = OperatingMode::Node;
 
     // RPC

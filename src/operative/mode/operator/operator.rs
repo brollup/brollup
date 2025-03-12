@@ -5,6 +5,7 @@ use crate::noist::manager::DKGManager;
 use crate::ocli;
 use crate::peer::Peer;
 use crate::peer::PeerKind;
+use crate::rpcholder::RPCHolder;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::Network;
@@ -18,7 +19,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network) {
+pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Operator;
 
     // 1. Check if this is a liquidity provider.

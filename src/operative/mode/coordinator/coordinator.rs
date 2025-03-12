@@ -4,6 +4,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
+use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::tcp::tcp::open_port;
 use crate::{baked, key::KeyHolder};
@@ -16,7 +17,7 @@ use std::io::{self, BufRead};
 use std::sync::Arc;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network) {
+pub async fn run(keys: KeyHolder, _network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Coordinator;
 
     // 1. Check if this is a valid coordinator.

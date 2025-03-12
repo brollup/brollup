@@ -1,30 +1,30 @@
 #![allow(dead_code)]
-
 use crate::schnorr::Bytes32;
 use bech32::{Bech32, Hrp};
+use secp::{Point, Scalar};
 
 #[derive(Clone, PartialEq)]
 pub struct KeyHolder {
-    secret_key: [u8; 32],
+    secret_key: Scalar,
     nsec: String,
-    public_key: [u8; 32],
+    public_key: Point,
     npub: String,
     nostr_keypair: nostr_sdk::Keys,
 }
 
 impl KeyHolder {
-    pub fn new(secret_key: [u8; 32]) -> Option<Self> {
-        let nsec = match secret_key.to_nsec() {
+    pub fn new(secret_key: Scalar) -> Option<Self> {
+        let mut public_key = secret_key.base_point_mul();
+
+        let secret_key = secret_key.negate_if(public_key.parity());
+        public_key = public_key.negate_if(public_key.parity());
+
+        let nsec = match secret_key.serialize().to_nsec() {
             Some(nsec) => nsec,
             None => return None,
         };
 
-        let public_key = match secret_key.secret_to_public() {
-            Some(public_key) => public_key,
-            None => return None,
-        };
-
-        let npub = match public_key.to_npub() {
+        let npub = match public_key.serialize_xonly().to_npub() {
             Some(npub) => npub,
             None => return None,
         };
@@ -43,7 +43,7 @@ impl KeyHolder {
         })
     }
 
-    pub fn secret_key(&self) -> [u8; 32] {
+    pub fn secret_key(&self) -> Scalar {
         self.secret_key
     }
 
@@ -51,7 +51,7 @@ impl KeyHolder {
         self.nsec.clone()
     }
 
-    pub fn public_key(&self) -> [u8; 32] {
+    pub fn public_key(&self) -> Point {
         self.public_key
     }
 

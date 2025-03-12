@@ -81,6 +81,8 @@ pub mod nns;
 pub mod peer;
 #[path = "communicative/peer/manager.rs"]
 pub mod peer_manager;
+#[path = "communicative/rpc/rpcholder.rs"]
+pub mod rpcholder;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
 
@@ -110,7 +112,7 @@ pub enum Network {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum OperatingMode {
-    Coordinator,
-    Operator,
     Node,
+    Operator,
+    Coordinator,
 }
