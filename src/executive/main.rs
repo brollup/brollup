@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use brollup::{
-    bitcoin_rpc, coordinator,
+    coordinator,
     key::{FromNostrKeyStr, KeyHolder},
     node, operator, Network,
 };

@@ -1,6 +1,6 @@
-use crate::bitcoin_rpc::scan_prevouts;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
+use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::PEER;
 use crate::{baked, key::KeyHolder, OperatingMode};
@@ -10,18 +10,21 @@ use std::io::{self, BufRead};
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
-    let _mode = OperatingMode::Node;
-
-    // RPC
-    scan_prevouts();
+pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
+    let _operating_mode = OperatingMode::Node;
 
     println!("{}", "Initializing node..");
 
-    // 1. Initialize NNS client.
+    // #1 Validate Bitcoin RPC.
+    if let Err(err) = validate_rpc(&rpc_holder, network).await {
+        println!("{} {}", "Bitcoin RPC Error: ".red(), err);
+        return;
+    }
+
+    // #2 Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 2. Connect to the coordinator.
+    // #3 Connect to the coordinator.
     let coordinator: PEER = {
         loop {
             match Peer::connect(
@@ -41,7 +44,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         }
     };
 
-    // 3. CLI
+    // #4 CLI.
     cli(&coordinator, &keys).await;
 }
 

@@ -4,6 +4,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::PeerManager;
+use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::tcp::tcp::open_port;
@@ -17,10 +18,16 @@ use std::io::{self, BufRead};
 use std::sync::Arc;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
+pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Coordinator;
 
-    // 1. Check if this is a valid coordinator.
+    // #1 Validate Bitcoin RPC.
+    if let Err(err) = validate_rpc(&rpc_holder, network).await {
+        println!("{} {}", "Bitcoin RPC Error: ".red(), err);
+        return;
+    }
+
+    // #2 Check if this is a valid coordinator.
     if keys.public_key().serialize_xonly() != baked::COORDINATOR_WELL_KNOWN {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
@@ -28,16 +35,16 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
 
     println!("{}", "Initializing coordinator..");
 
-    // 2. Initialize NNS client.
+    // #3 Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 3. Open port 6272 for incoming connections.
+    // #4 Open port 6272 for incoming connections.
     match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
 
-    // 4. Run NNS server.
+    // #5 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -45,7 +52,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         });
     }
 
-    // 5. Initialize peer manager.
+    // #6 Initialize peer manager.
     let operator_set = baked::OPERATOR_SET.to_vec();
     let mut peer_manager: PEER_MANAGER =
         match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set).await {
@@ -53,16 +60,16 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
 
-    // 6. Initialize DKG Manager.
+    // #7 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // 7. Run background preprocessing for the DKG Manager.
+    // #8 Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // 8. Construct blacklist directory.
+    // #9 Construct blacklist directory.
     let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new() {
         Some(blacklist_dir) => blacklist_dir,
         None => {
@@ -74,11 +81,11 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         }
     };
 
-    // 8. Construct CSession.
+    // #10 Construct CSession.
     let csession: CSESSION_CTX =
         CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir);
 
-    // 9. Run CSession.
+    // #11 Run CSession.
     {
         let csession = Arc::clone(&csession);
         let _ = tokio::spawn(async move {
@@ -86,7 +93,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         });
     }
 
-    // 10. Run TCP server.
+    // #12 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -97,7 +104,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         });
     }
 
-    // 11. Initialize CLI
+    // #13 Initialize CLI
     cli(&mut peer_manager, &mut dkg_manager, &mut blacklist_dir).await;
 }
 

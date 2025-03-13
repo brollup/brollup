@@ -5,6 +5,7 @@ use crate::noist::manager::DKGManager;
 use crate::ocli;
 use crate::peer::Peer;
 use crate::peer::PeerKind;
+use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
@@ -19,10 +20,16 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
+pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Operator;
 
-    // 1. Check if this is a liquidity provider.
+    // #1 Validate Bitcoin RPC.
+    if let Err(err) = validate_rpc(&rpc_holder, network).await {
+        println!("{} {}", "Bitcoin RPC Error: ".red(), err);
+        return;
+    }
+
+    // #2 Check if this is a liquidity provider.
     if !provider::is_provider(keys.public_key().serialize_xonly()) {
         eprintln!("{}", "Operator <nsec> does not match.".red());
         return;
@@ -30,16 +37,16 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
 
     println!("{}", "Initializing operator..");
 
-    // 2. Initialize NNS client.
+    // #3 Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // 3. Open port 6272 for incoming connections.
+    // #4 Open port 6272 for incoming connections.
     match open_port().await {
         true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
         false => (),
     }
 
-    // 4. Run NNS server.
+    // #5 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -47,7 +54,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         });
     }
 
-    // 5. Connect to the coordinator.
+    // #6 Connect to the coordinator.
     let coordinator: PEER = {
         loop {
             match Peer::connect(
@@ -70,13 +77,13 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         }
     };
 
-    // 6. Initialize DKG Manager.
+    // #7 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // 7. Run TCP server.
+    // #8 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -86,7 +93,7 @@ pub async fn run(keys: KeyHolder, _network: Network, _rpc_holder: RPCHolder) {
         });
     }
 
-    // 8. CLI
+    // #9 CLI
     cli(&mut dkg_manager, &coordinator).await;
 }
 

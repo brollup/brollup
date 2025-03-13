@@ -73,15 +73,15 @@ pub mod ocli;
 pub mod liquidity;
 
 // Networking.
-#[path = "communicative/rpc/bitcoin-rpc.rs"]
-pub mod bitcoin_rpc;
 #[path = "communicative/nns/mod.rs"]
 pub mod nns;
 #[path = "communicative/peer/peer.rs"]
 pub mod peer;
 #[path = "communicative/peer/manager.rs"]
 pub mod peer_manager;
-#[path = "communicative/rpc/rpcholder.rs"]
+#[path = "communicative/rpc/mod.rs"]
+pub mod rpc;
+#[path = "communicative/rpc/bitcoin/rpcholder.rs"]
 pub mod rpcholder;
 #[path = "communicative/tcp/mod.rs"]
 pub mod tcp;
