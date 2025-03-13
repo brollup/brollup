@@ -19,7 +19,7 @@ pub struct BlacklistDirectory {
 
 impl BlacklistDirectory {
     pub fn new() -> Option<BLIST_DIRECTORY> {
-        let db = sled::open("db/blistdir").ok()?;
+        let db = sled::open("db/coordinator/blistdir").ok()?;
 
         let mut list = HashMap::<Account, (BlameCounter, BlacklistedUntil)>::new();
 

@@ -8,6 +8,7 @@ use noist::{
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use wallet::lift::LiftWallet;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
@@ -18,6 +19,7 @@ type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
+type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
 
 // Inscriptive
 
@@ -27,6 +29,8 @@ pub mod baked;
 pub mod blacklist;
 #[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
+#[path = "inscriptive/wallet/mod.rs"]
+pub mod wallet;
 
 // Crypto modules.
 #[path = "inscriptive/encoding/mod.rs"]

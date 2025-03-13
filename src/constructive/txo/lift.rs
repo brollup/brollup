@@ -14,14 +14,21 @@ pub struct Lift {
     remote: Point,
     operator: Point,
     outpoint: Option<Outpoint>,
+    value: Option<u64>,
 }
 
 impl Lift {
-    pub fn new(remote: Point, operator: Point, outpoint: Option<Outpoint>) -> Lift {
+    pub fn new(
+        remote: Point,
+        operator: Point,
+        outpoint: Option<Outpoint>,
+        value: Option<u64>,
+    ) -> Lift {
         Lift {
             remote,
             operator,
             outpoint,
+            value,
         }
     }
 
@@ -42,6 +49,10 @@ impl Lift {
 
     pub fn outpoint(&self) -> Option<Outpoint> {
         self.outpoint
+    }
+
+    pub fn value(&self) -> Option<u64> {
+        self.value
     }
 
     pub fn keys(&self) -> Vec<Point> {
