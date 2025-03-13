@@ -24,7 +24,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Operator;
 
     // #1 Validate Bitcoin RPC.
-    if let Err(err) = validate_rpc(&rpc_holder, network).await {
+    if let Err(err) = validate_rpc(&rpc_holder, network) {
         println!("{} {}", "Bitcoin RPC Error: ".red(), err);
         return;
     }
