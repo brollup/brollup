@@ -2,7 +2,7 @@ use crate::{txo::lift::Lift, Network, LIFT_WALLET};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-/// Wallet for storing bare Lift utxos.
+/// Wallet for storing bare Lift outputs.
 pub struct LiftWallet {
     height: u64,
     // In-memory list.
@@ -13,7 +13,7 @@ pub struct LiftWallet {
 
 impl LiftWallet {
     pub fn new(network: Network) -> Option<LIFT_WALLET> {
-        let path = format!("{}/{}/{}", "db", network.to_string(), "node/wallet/lift");
+        let path = format!("{}/{}/{}", "db", network.to_string(), "wallet/lift");
         let db = sled::open(path).ok()?;
 
         let mut set = Vec::<Lift>::new();

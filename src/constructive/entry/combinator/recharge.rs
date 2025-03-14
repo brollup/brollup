@@ -48,7 +48,7 @@ impl Recharge {
                 return false;
             }
 
-            if vtxo.remote_key() != account.key() {
+            if vtxo.account_key() != account.key() {
                 return false;
             }
         }

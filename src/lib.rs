@@ -9,7 +9,7 @@ use noist::{
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use wallet::lift::LiftWallet;
+use wallet::{lift::LiftWallet, vtxo::VTXOWallet};
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
@@ -21,6 +21,7 @@ type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
+type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
 type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
 
 // Inscriptive

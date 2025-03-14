@@ -39,7 +39,7 @@ fn main() {
     let operating_mode = match args[2].to_lowercase().as_str() {
         "node" => OperatingMode::Node,
         "operator" => OperatingMode::Operator,
-        "coordiantor" => OperatingMode::Coordinator,
+        "coordinator" => OperatingMode::Coordinator,
         _ => {
             println!("{}", "Invalid <mode>.".red());
             return;

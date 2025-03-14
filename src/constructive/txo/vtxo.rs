@@ -9,19 +9,26 @@ use serde::{Deserialize, Serialize};
 
 type Bytes = Vec<u8>;
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct VTXO {
-    remote: Point,
+    account: Point,
     operator: Point,
     outpoint: Option<Outpoint>,
+    value: Option<u64>,
 }
 
 impl VTXO {
-    pub fn new(remote: Point, operator: Point, outpoint: Option<Outpoint>) -> VTXO {
+    pub fn new(
+        account: Point,
+        operator: Point,
+        outpoint: Option<Outpoint>,
+        value: Option<u64>,
+    ) -> VTXO {
         VTXO {
-            remote,
+            account,
             operator,
             outpoint,
+            value,
         }
     }
 
@@ -32,23 +39,27 @@ impl VTXO {
         }
     }
 
-    pub fn operator_key(&self) -> Point {
-        self.operator
+    pub fn account_key(&self) -> Point {
+        self.account.clone()
     }
 
-    pub fn remote_key(&self) -> Point {
-        self.remote.clone()
+    pub fn operator_key(&self) -> Point {
+        self.operator
     }
 
     pub fn outpoint(&self) -> Option<Outpoint> {
         self.outpoint
     }
 
+    pub fn value(&self) -> Option<u64> {
+        self.value
+    }
+
     pub fn keys(&self) -> Vec<Point> {
         let mut keys = Vec::<Point>::new();
 
+        keys.push(self.account_key());
         keys.push(self.operator_key());
-        keys.push(self.remote_key());
 
         keys
     }
@@ -80,7 +91,7 @@ impl P2TR for VTXO {
         let mut sweep_path_script = Vec::<u8>::new();
         sweep_path_script.extend(Bytes::csv_script(CSVFlag::CSVThreeMonths)); // Relative Timelock
         sweep_path_script.push(0x20); // OP_PUSHDATA_32
-        sweep_path_script.extend(self.remote_key().serialize_xonly()); // Operator Key 32-bytes
+        sweep_path_script.extend(self.account_key().serialize_xonly()); // Account Key 32-bytes
         sweep_path_script.push(0xac); // OP_CHECKSIG
 
         let sweep_path = TapLeaf::new(sweep_path_script);
