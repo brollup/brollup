@@ -48,7 +48,7 @@ impl Liftup {
                 return false;
             }
 
-            if lift.remote_key() != account.key() {
+            if lift.account_key() != account.key() {
                 return false;
             }
         }

@@ -59,14 +59,14 @@ pub mod coordinator;
 // Operating modes.
 #[path = "operative/mode/coordinator/dkgops.rs"]
 pub mod dkgops;
-
-#[path = "operative/session/mod.rs"]
-pub mod session;
-
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
 #[path = "operative/mode/operator/operator.rs"]
 pub mod operator;
+#[path = "operative/mode/node/scanner.rs"]
+pub mod scanner;
+#[path = "operative/session/mod.rs"]
+pub mod session;
 
 // Command line.
 #[path = "operative/mode/coordinator/cli/mod.rs"]

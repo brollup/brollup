@@ -266,14 +266,14 @@ impl CSessionCtx {
             // #1 Operator key validation
             {
                 let lift_operator_key = lift.operator_key();
-                let lift_remote_key = lift.remote_key();
+                let lift_account_key = lift.account_key();
 
-                if lift_operator_key == lift_remote_key {
-                    return Err(CSessionCommitNack::InvalidLiftRemoteKey);
+                if lift_operator_key == lift_account_key {
+                    return Err(CSessionCommitNack::InvalidLiftOperatorKey);
                 }
 
-                if lift_remote_key != account.key() {
-                    return Err(CSessionCommitNack::InvalidLiftRemoteKey);
+                if lift_account_key != account.key() {
+                    return Err(CSessionCommitNack::InvalidLiftAccountKey);
                 }
 
                 {

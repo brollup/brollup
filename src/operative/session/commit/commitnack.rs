@@ -11,7 +11,7 @@ pub enum CSessionCommitNack {
     AuthErr,
     Overlap,
     Allowance,
-    InvalidLiftRemoteKey,
+    InvalidLiftAccountKey,
     InvalidLiftOperatorKey,
     MissingLiftOutpoint(),
     InvalidLiftOutpoint(Outpoint),
