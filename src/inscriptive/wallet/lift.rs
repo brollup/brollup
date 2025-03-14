@@ -4,6 +4,7 @@ use tokio::sync::Mutex;
 
 /// Wallet for storing bare Lift utxos.
 pub struct LiftWallet {
+    height: u64,
     // In-memory list.
     set: Vec<Lift>,
     // In-storage db.
@@ -17,17 +18,38 @@ impl LiftWallet {
 
         let mut set = Vec::<Lift>::new();
 
-        for lookup in db.iter() {
-            if let Ok((_, val)) = lookup {
-                let lift: Lift = serde_json::from_slice(&val).ok()?;
+        let height = match db.get([0x00]) {
+            Ok(val) => match val {
+                Some(val) => u64::from_be_bytes(val.as_ref().try_into().ok()?),
+                None => 0,
+            },
+            Err(_) => return None,
+        };
 
+        for lookup in db.iter() {
+            if let Ok((key, val)) = lookup {
+                // Skip the key allocated for 'height' value.
+                if key == [0x00] {
+                    continue;
+                }
+
+                let lift: Lift = serde_json::from_slice(&val).ok()?;
                 set.push(lift);
             }
         }
 
-        let wallet = LiftWallet { set, db };
+        let wallet = LiftWallet { height, set, db };
 
         Some(Arc::new(Mutex::new(wallet)))
+    }
+
+    pub fn height(&self) -> u64 {
+        self.height
+    }
+
+    pub fn set_height(&mut self, height: u64) {
+        self.height = height;
+        let _ = self.db.insert([0x00], height.to_be_bytes().to_vec());
     }
 
     pub fn set(&self) -> Vec<Lift> {

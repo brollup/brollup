@@ -1,11 +1,7 @@
 use super::bitcoin_rpc_error::ValidateRPCError;
 use crate::{rpcholder::RPCHolder, Network};
 use bitcoincore_rpc::{
-    bitcoin::{
-        self,
-        hashes::{sha256d, Hash},
-        Block, BlockHash,
-    },
+    bitcoin::{self, Block, BlockHash},
     json::GetBlockchainInfoResult,
     Auth, Client, RpcApi,
 };
@@ -46,7 +42,7 @@ pub fn validate_rpc(rpc_holder: &RPCHolder, network: Network) -> Result<(), Vali
     Ok(())
 }
 
-pub fn get_chain_tip(rpc_holder: &RPCHolder) -> Result<(u64, [u8; 32]), bitcoincore_rpc::Error> {
+pub fn get_chain_height(rpc_holder: &RPCHolder) -> Result<u64, bitcoincore_rpc::Error> {
     let rpc_url = rpc_holder.url();
     let rpc_user = rpc_holder.user();
     let rpc_password = rpc_holder.password();
@@ -62,14 +58,13 @@ pub fn get_chain_tip(rpc_holder: &RPCHolder) -> Result<(u64, [u8; 32]), bitcoinc
     };
 
     let chain_height = blockchain_info.blocks;
-    let chain_tip: [u8; 32] = blockchain_info.best_block_hash.to_byte_array();
 
-    Ok((chain_height, chain_tip))
+    Ok(chain_height)
 }
 
 pub fn get_block(
     rpc_holder: &RPCHolder,
-    block_hash: [u8; 32],
+    height: u64,
 ) -> Result<bitcoin::blockdata::block::Block, bitcoincore_rpc::Error> {
     let rpc_url = rpc_holder.url();
     let rpc_user = rpc_holder.user();
@@ -80,8 +75,10 @@ pub fn get_block(
         Err(err) => return Err(err),
     };
 
-    let block_hash =
-        BlockHash::from_raw_hash(sha256d::Hash::from_bytes_ref(&block_hash).to_owned());
+    let block_hash: BlockHash = match rpc_client.get_block_hash(height) {
+        Ok(block_hash) => block_hash,
+        Err(err) => return Err(err),
+    };
 
     let block: Block = match rpc_client.get_block(&block_hash) {
         Ok(block) => block,

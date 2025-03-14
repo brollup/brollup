@@ -3,16 +3,18 @@ use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
+use crate::scanner::scan_lifts;
 use crate::wallet::lift::LiftWallet;
 use crate::{baked, key::KeyHolder, OperatingMode};
 use crate::{ncli, Network, EPOCH_DIRECTORY};
 use crate::{LIFT_WALLET, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
+use std::sync::Arc;
 use std::time::Duration;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
+pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let _operating_mode = OperatingMode::Node;
 
     println!("{}", "Initializing node..");
@@ -33,7 +35,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     };
 
     // #3 Initialize Epoch directory.
-    let _epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
+    let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
         Some(epoch_dir) => epoch_dir,
         None => {
             println!("{}", "Error initializing epoch directory.".red());
@@ -42,7 +44,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     };
 
     // #4 Initialize NNS client.
-    let nns_client = NNSClient::new(&keys).await;
+    let nns_client = NNSClient::new(&key_holder).await;
 
     // #5 Connect to the coordinator.
     let coordinator: PEER = {
@@ -64,11 +66,24 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         }
     };
 
-    // #6 CLI.
-    cli(&coordinator, &keys, &lift_wallet).await;
+    // #6 Scan lifts.
+    {
+        let network = network.clone();
+        let key_holder = key_holder.clone();
+        let rpc_holder = rpc_holder.clone();
+        let epoch_dir = Arc::clone(&epoch_dir);
+        let lift_wallet = Arc::clone(&lift_wallet);
+
+        tokio::spawn(async move {
+            let _ = scan_lifts(network, &key_holder, &rpc_holder, &epoch_dir, &lift_wallet).await;
+        });
+    }
+
+    // #7 CLI.
+    cli(&coordinator, &key_holder, &lift_wallet).await;
 }
 
-pub async fn cli(coordinator_conn: &PEER, keys: &KeyHolder, lift_wallet: &LIFT_WALLET) {
+pub async fn cli(coordinator_conn: &PEER, key_holder: &KeyHolder, lift_wallet: &LIFT_WALLET) {
     println!(
         "{}",
         "Enter command (type help for options, type exit to quit):".cyan()
@@ -102,8 +117,8 @@ pub async fn cli(coordinator_conn: &PEER, keys: &KeyHolder, lift_wallet: &LIFT_W
                 ncli::covj::command(
                     coordinator_conn,
                     lift_wallet,
-                    keys.secret_key(),
-                    keys.public_key(),
+                    key_holder.secret_key(),
+                    key_holder.public_key(),
                 )
                 .await
             }

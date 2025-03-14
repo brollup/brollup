@@ -26,3 +26,6 @@ pub const OPERATOR_SET: [[u8; 32]; 3] = [
 ];
 
 pub const TCP_RESPONSE_TIMEOUT: u64 = 3;
+
+pub const SIGNET_LIFT_SCAN_HEIGHT_START: u64 = 100;
+pub const MAINNET_LIFT_SCAN_HEIGHT_START: u64 = 100;
