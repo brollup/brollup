@@ -1,4 +1,4 @@
-use crate::{valtype::account::Account, BLIST_DIRECTORY};
+use crate::{valtype::account::Account, Network, BLIST_DIRECTORY};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -18,15 +18,20 @@ pub struct BlacklistDirectory {
 }
 
 impl BlacklistDirectory {
-    pub fn new() -> Option<BLIST_DIRECTORY> {
-        let db = sled::open("db/coordinator/blistdir").ok()?;
+    pub fn new(network: Network) -> Option<BLIST_DIRECTORY> {
+        let path = format!(
+            "{}/{}/{}",
+            "db",
+            network.to_string(),
+            "coordinator/dir/blist"
+        );
+        let db = sled::open(path).ok()?;
 
         let mut list = HashMap::<Account, (BlameCounter, BlacklistedUntil)>::new();
 
         for lookup in db.iter() {
             if let Ok((key, val)) = lookup {
                 let account: Account = serde_json::from_slice(&key).ok()?;
-
                 let (blame_counter, blacklisted_until) = serde_json::from_slice(&val).ok()?;
 
                 list.insert(account, (blame_counter, blacklisted_until));

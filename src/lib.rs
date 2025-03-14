@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use blacklist::BlacklistDirectory;
+use epoch::dir::EpochDirectory;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
@@ -20,6 +21,7 @@ type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
+type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
 
 // Inscriptive
 
@@ -27,6 +29,8 @@ type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
 pub mod baked;
 #[path = "inscriptive/blacklist.rs"]
 pub mod blacklist;
+#[path = "inscriptive/epoch/mod.rs"]
+pub mod epoch;
 #[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
 #[path = "inscriptive/wallet/mod.rs"]
@@ -112,6 +116,15 @@ pub mod valtype;
 pub enum Network {
     Signet,
     Mainnet,
+}
+
+impl ToString for Network {
+    fn to_string(&self) -> String {
+        match self {
+            Network::Signet => "signet".to_string(),
+            Network::Mainnet => "mainnet".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

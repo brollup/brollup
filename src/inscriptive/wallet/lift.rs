@@ -1,4 +1,4 @@
-use crate::{txo::lift::Lift, LIFT_WALLET};
+use crate::{txo::lift::Lift, Network, LIFT_WALLET};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -11,8 +11,9 @@ pub struct LiftWallet {
 }
 
 impl LiftWallet {
-    pub fn new() -> Option<LIFT_WALLET> {
-        let db = sled::open("db/node/wallet/lift").ok()?;
+    pub fn new(network: Network) -> Option<LIFT_WALLET> {
+        let path = format!("{}/{}/{}", "db", network.to_string(), "node/wallet/lift");
+        let db = sled::open(path).ok()?;
 
         let mut set = Vec::<Lift>::new();
 

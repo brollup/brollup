@@ -70,7 +70,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
     // #9 Construct blacklist directory.
-    let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new() {
+    let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(network) {
         Some(blacklist_dir) => blacklist_dir,
         None => {
             eprintln!(

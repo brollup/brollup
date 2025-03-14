@@ -1,10 +1,11 @@
+use crate::epoch::dir::EpochDirectory;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::wallet::lift::LiftWallet;
 use crate::{baked, key::KeyHolder, OperatingMode};
-use crate::{ncli, Network};
+use crate::{ncli, Network, EPOCH_DIRECTORY};
 use crate::{LIFT_WALLET, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -23,7 +24,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     }
 
     // #2 Initialize Lift wallet.
-    let lift_wallet: LIFT_WALLET = match LiftWallet::new() {
+    let lift_wallet: LIFT_WALLET = match LiftWallet::new(network) {
         Some(lift_wallet) => lift_wallet,
         None => {
             println!("{}", "Error initializing lift wallet.".red());
@@ -31,10 +32,19 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         }
     };
 
-    // #3 Initialize NNS client.
+    // #3 Initialize Epoch directory.
+    let _epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
+        Some(epoch_dir) => epoch_dir,
+        None => {
+            println!("{}", "Error initializing epoch directory.".red());
+            return;
+        }
+    };
+
+    // #4 Initialize NNS client.
     let nns_client = NNSClient::new(&keys).await;
 
-    // #4 Connect to the coordinator.
+    // #5 Connect to the coordinator.
     let coordinator: PEER = {
         loop {
             match Peer::connect(
@@ -54,7 +64,7 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         }
     };
 
-    // #5 CLI.
+    // #6 CLI.
     cli(&coordinator, &keys, &lift_wallet).await;
 }
 
@@ -89,7 +99,13 @@ pub async fn cli(coordinator_conn: &PEER, keys: &KeyHolder, lift_wallet: &LIFT_W
             "conn" => ncli::conn::command(coordinator_conn).await,
             "ping" => ncli::ping::command(coordinator_conn).await,
             "covj" => {
-                ncli::covj::command(coordinator_conn, lift_wallet, keys.secret_key(), keys.public_key()).await
+                ncli::covj::command(
+                    coordinator_conn,
+                    lift_wallet,
+                    keys.secret_key(),
+                    keys.public_key(),
+                )
+                .await
             }
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
