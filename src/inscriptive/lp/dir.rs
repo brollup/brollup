@@ -3,10 +3,8 @@ use crate::{into::IntoPointVec, valtype::account::Account, Network, LP_DIRECTORY
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[allow(dead_code)]
 /// Directory for the liquidity providers.
 pub struct LPDirectory {
-    network: Network,
     // In-memory list.
     lps: Vec<LP>,
     // In-storage db.
@@ -28,7 +26,7 @@ impl LPDirectory {
             }
         }
 
-        let lp_dir = LPDirectory { network, lps, db };
+        let lp_dir = LPDirectory { lps, db };
 
         Some(Arc::new(Mutex::new(lp_dir)))
     }

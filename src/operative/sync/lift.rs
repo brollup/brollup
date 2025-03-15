@@ -41,7 +41,7 @@ pub async fn lifts_spks_to_scan(
     Some(spks)
 }
 
-pub async fn scan_lifts(
+pub async fn sync_lifts(
     network: Network,
     key_holder: &KeyHolder,
     rpc_holder: &RPCHolder,
@@ -56,7 +56,7 @@ pub async fn scan_lifts(
     loop {
         let (wallet_sync_height, self_lifts) = {
             let _lift_wallet = lift_wallet.lock().await;
-            (_lift_wallet.height(), _lift_wallet.set())
+            (_lift_wallet.bitcoin_sync_height(), _lift_wallet.set())
         };
 
         // Retrieve chain height.
@@ -70,8 +70,6 @@ pub async fn scan_lifts(
                 }
             }
         };
-
-        println!("chain_height: {}", chain_height);
 
         match wallet_sync_height == chain_height {
             true => {
@@ -166,7 +164,7 @@ pub async fn scan_lifts(
                 // Set the new Lift wallet height.
                 {
                     let mut _lift_wallet = lift_wallet.lock().await;
-                    _lift_wallet.set_height(height_to_sync);
+                    _lift_wallet.set_bitcoin_sync_height(height_to_sync);
                 }
             }
         }

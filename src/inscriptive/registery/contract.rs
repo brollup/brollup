@@ -5,9 +5,7 @@ use tokio::sync::Mutex;
 type RegisteryIndex = u32;
 
 /// Directory for the contract registeries.
-#[allow(dead_code)]
 pub struct ContractRegistery {
-    network: Network,
     // In-memory list.
     contracts: HashMap<RegisteryIndex, Contract>,
     // In-storage db.
@@ -29,11 +27,7 @@ impl ContractRegistery {
             }
         }
 
-        let registery = ContractRegistery {
-            network,
-            contracts,
-            db,
-        };
+        let registery = ContractRegistery { contracts, db };
 
         Some(Arc::new(Mutex::new(registery)))
     }

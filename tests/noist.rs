@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
-    use brollup::lp::dir::LPDirectory;
+    use brollup::lp_dir::dir::LPDirectory;
     use brollup::musig::session::MusigSessionCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;

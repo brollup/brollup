@@ -56,7 +56,7 @@ impl VTXOWallet {
         // Insert in-db.
         match self
             .db
-            .insert(outpoint.bytes(), vtxo.to_owned().serialize())
+            .insert(&outpoint.bytes(), vtxo.to_owned().serialize())
         {
             Ok(_) => return true,
             Err(_) => return false,
@@ -83,7 +83,7 @@ impl VTXOWallet {
         self.set.remove(index);
 
         // Remove in-db.
-        match self.db.remove(outpoint.bytes()) {
+        match self.db.remove(&outpoint.bytes()) {
             Ok(_) => return true,
             Err(_) => return false,
         }

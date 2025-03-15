@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 /// Wallet for storing bare Lift outputs.
 pub struct LiftWallet {
-    height: u64,
+    bitcoin_sync_height: u64,
     // In-memory list.
     set: Vec<Lift>,
     // In-storage db.
@@ -18,45 +18,53 @@ impl LiftWallet {
 
         let mut set = Vec::<Lift>::new();
 
-        let height = match db.get([0x00]) {
-            Ok(val) => match val {
-                Some(val) => u64::from_be_bytes(val.as_ref().try_into().ok()?),
-                None => 0,
-            },
-            Err(_) => return None,
-        };
+        let bitcoin_sync_height: u64 = db
+            .get(b"bitcoin_sync_height")
+            .ok()
+            .flatten()
+            .and_then(|val| val.as_ref().try_into().ok().map(u64::from_be_bytes))
+            .unwrap_or(0);
 
-        for lookup in db.iter() {
-            if let Ok((key, val)) = lookup {
-                // Skip the key allocated for 'height' value.
-                if key == [0x00] {
-                    continue;
-                }
+        for lookup in db.iter().flatten() {
+            let (key, val) = lookup;
 
-                let lift: Lift = serde_json::from_slice(&val).ok()?;
+            // Skip the key allocated for 'bitcoin_sync_height' value.
+            if key.as_ref() == b"bitcoin_sync_height" {
+                continue;
+            }
+
+            if let Ok(lift) = serde_json::from_slice::<Lift>(&val) {
                 set.push(lift);
+            } else {
+                eprintln!("Failed to deserialize Lift from DB");
             }
         }
 
-        let wallet = LiftWallet { height, set, db };
+        let wallet = LiftWallet {
+            bitcoin_sync_height,
+            set,
+            db,
+        };
 
         Some(Arc::new(Mutex::new(wallet)))
     }
 
-    pub fn height(&self) -> u64 {
-        self.height
+    pub fn bitcoin_sync_height(&self) -> u64 {
+        self.bitcoin_sync_height
     }
 
-    pub fn set_height(&mut self, height: u64) {
-        self.height = height;
-        let _ = self.db.insert([0x00], height.to_be_bytes().to_vec());
+    pub fn set_bitcoin_sync_height(&mut self, height: u64) {
+        self.bitcoin_sync_height = height;
+        let _ = self
+            .db
+            .insert(b"bitcoin_sync_height", height.to_be_bytes().to_vec());
     }
 
     pub fn set(&self) -> Vec<Lift> {
         self.set.clone()
     }
 
-    /// Inserts a new Lift into wallet.
+    /// Inserts a new Lift into the wallet.
     pub fn insert(&mut self, lift: &Lift) -> bool {
         let outpoint = match lift.outpoint() {
             Some(outpoint) => outpoint,
@@ -64,12 +72,7 @@ impl LiftWallet {
         };
 
         // Check if there is an overlap in the set.
-
-        if self
-            .set
-            .iter()
-            .any(|lift| lift.outpoint() == Some(outpoint))
-        {
+        if self.set.iter().any(|l| l.outpoint() == Some(outpoint)) {
             return false;
         }
 
@@ -79,10 +82,10 @@ impl LiftWallet {
         // Insert in-db.
         match self
             .db
-            .insert(outpoint.bytes(), lift.to_owned().serialize())
+            .insert(&outpoint.bytes(), lift.to_owned().serialize())
         {
-            Ok(_) => return true,
-            Err(_) => return false,
+            Ok(_) => true,
+            Err(_) => false,
         }
     }
 
@@ -94,11 +97,7 @@ impl LiftWallet {
         };
 
         // Check if there is one in the set.
-        let Some(index) = self
-            .set
-            .iter()
-            .position(|lift| lift.outpoint() == Some(outpoint))
-        else {
+        let Some(index) = self.set.iter().position(|l| l.outpoint() == Some(outpoint)) else {
             return false;
         };
 
@@ -106,9 +105,9 @@ impl LiftWallet {
         self.set.remove(index);
 
         // Remove in-db.
-        match self.db.remove(outpoint.bytes()) {
-            Ok(_) => return true,
-            Err(_) => return false,
+        match self.db.remove(&outpoint.bytes()) {
+            Ok(_) => true,
+            Err(_) => false,
         }
     }
 }

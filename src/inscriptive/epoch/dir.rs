@@ -6,7 +6,6 @@ use tokio::sync::Mutex;
 
 /// Directory for the operator quorum epoches.
 pub struct EpochDirectory {
-    network: Network,
     // In-memory list.
     epochs: HashMap<u64, Epoch>,
     // In-storage db.
@@ -29,11 +28,7 @@ impl EpochDirectory {
             }
         }
 
-        let epoch_dir = EpochDirectory {
-            network,
-            epochs,
-            db,
-        };
+        let epoch_dir = EpochDirectory { epochs, db };
 
         Some(Arc::new(Mutex::new(epoch_dir)))
     }
@@ -78,12 +73,12 @@ impl EpochDirectory {
         }
     }
 
-    pub fn operator_set(&self) -> Vec<Point> {
+    pub fn operator_set(&self, network: Network) -> Vec<Point> {
         let mut operator_set = Vec::<Point>::new();
 
         // Fill with the initial operator set.
         {
-            let initial_operator_set = match self.network {
+            let initial_operator_set = match network {
                 Network::Signet => baked::INITIAL_SIGNET_OPERATOR_SET,
                 Network::Mainnet => baked::INITIAL_MAINNET_OPERATOR_SET,
             };

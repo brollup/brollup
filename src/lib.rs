@@ -1,13 +1,14 @@
 #![allow(non_camel_case_types)]
 
 use blacklist::BlacklistDirectory;
-use epoch::dir::EpochDirectory;
-use lp::dir::LPDirectory;
+use epoch_dir::dir::EpochDirectory;
+use lp_dir::dir::LPDirectory;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
 };
 use registery::{account::AccountRegistery, contract::ContractRegistery};
+use rollup_dir::dir::RollupDirectory;
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -30,7 +31,7 @@ type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
 type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
-
+type ROLLUP_DIRECTORY = Arc<Mutex<RollupDirectory>>;
 // Registeries
 type ACCOUNT_REGISTERY = Arc<Mutex<AccountRegistery>>;
 type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
@@ -42,11 +43,13 @@ pub mod baked;
 #[path = "inscriptive/blacklist.rs"]
 pub mod blacklist;
 #[path = "inscriptive/epoch/mod.rs"]
-pub mod epoch;
+pub mod epoch_dir;
 #[path = "inscriptive/lp/mod.rs"]
-pub mod lp;
+pub mod lp_dir;
 #[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
+#[path = "inscriptive/rollup/mod.rs"]
+pub mod rollup_dir;
 #[path = "inscriptive/wallet/mod.rs"]
 pub mod wallet;
 
@@ -73,12 +76,14 @@ pub mod coordinator;
 // Operating modes.
 #[path = "operative/mode/coordinator/dkgops.rs"]
 pub mod dkgops;
+#[path = "operative/sync/lift.rs"]
+pub mod lift_sync;
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
 #[path = "operative/mode/operator/operator.rs"]
 pub mod operator;
-#[path = "operative/mode/node/scanner.rs"]
-pub mod scanner;
+#[path = "operative/sync/rollup.rs"]
+pub mod rollup_sync;
 #[path = "operative/session/mod.rs"]
 pub mod session;
 

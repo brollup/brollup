@@ -6,9 +6,7 @@ use tokio::sync::Mutex;
 type RegisteryIndex = u32;
 
 /// Directory for the account registeries.
-#[allow(dead_code)]
 pub struct AccountRegistery {
-    network: Network,
     // In-memory list.
     accounts: HashMap<RegisteryIndex, Account>,
     // In-storage db.
@@ -30,11 +28,7 @@ impl AccountRegistery {
             }
         }
 
-        let registery = AccountRegistery {
-            network,
-            accounts,
-            db,
-        };
+        let registery = AccountRegistery { accounts, db };
 
         Some(Arc::new(Mutex::new(registery)))
     }
