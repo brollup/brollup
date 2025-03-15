@@ -5,6 +5,7 @@ use tokio::sync::Mutex;
 type RegisteryIndex = u32;
 
 /// Directory for the contract registeries.
+#[allow(dead_code)]
 pub struct ContractRegistery {
     network: Network,
     // In-memory list.

@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 type RegisteryIndex = u32;
 
 /// Directory for the account registeries.
+#[allow(dead_code)]
 pub struct AccountRegistery {
     network: Network,
     // In-memory list.
