@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
+use super::package::{PackageKind, TCPPackage};
 use crate::key::ToNostrKeyStr;
 use crate::nns::client::NNSClient;
-use crate::{baked, SOCKET};
+use crate::{baked, Network, SOCKET};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::time::{Duration, Instant};
 use std::{io, vec};
@@ -10,7 +11,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::sleep;
 
-use super::package::{PackageKind, TCPPackage};
+pub const TCP_RESPONSE_TIMEOUT: u64 = 3;
 
 #[derive(Debug, Copy, Clone)]
 pub enum TCPError {
@@ -20,10 +21,19 @@ pub enum TCPError {
     Timeout,
 }
 
-pub async fn open_port() -> bool {
+pub fn port_number(network: Network) -> u16 {
+    match network {
+        Network::Signet => baked::SIGNET_PORT,
+        Network::Mainnet => baked::MAINNET_PORT,
+    }
+}
+
+pub async fn open_port(network: Network) -> bool {
+    let port_number = port_number(network);
+
     let upnp_config = UpnpConfig {
         address: None,
-        port: baked::PORT,
+        port: port_number,
         protocol: PortMappingProtocol::TCP,
         duration: 100_000_000,
         comment: format!("{} {}", baked::PROJECT_TAG, "Transport Layer"),
@@ -38,8 +48,9 @@ pub async fn open_port() -> bool {
     false
 }
 
-pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
-    let addr = format!("{}:{}", ip_address, baked::PORT);
+pub async fn connect(ip_address: &str, network: Network) -> Result<TcpStream, TCPError> {
+    let port_number = port_number(network);
+    let addr = format!("{}:{}", ip_address, port_number);
     let timeout = tokio::time::sleep(Duration::from_millis(3_000));
     let connect = TcpStream::connect(&addr);
 
@@ -54,7 +65,11 @@ pub async fn connect(ip_address: &str) -> Result<TcpStream, TCPError> {
     }
 }
 
-pub async fn connect_nns(nns_key: [u8; 32], nns_client: &NNSClient) -> Result<TcpStream, TCPError> {
+pub async fn connect_nns(
+    nns_key: [u8; 32],
+    nns_client: &NNSClient,
+    network: Network,
+) -> Result<TcpStream, TCPError> {
     let npub = match nns_key.to_npub() {
         Some(npub) => npub,
         None => return Err(TCPError::ConnErr),
@@ -65,7 +80,7 @@ pub async fn connect_nns(nns_key: [u8; 32], nns_client: &NNSClient) -> Result<Tc
         None => return Err(TCPError::ConnErr),
     };
 
-    connect(&ip_address).await
+    connect(&ip_address, network).await
 }
 pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<TCPPackage> {
     let start = Instant::now();
@@ -210,7 +225,7 @@ pub async fn request(
 
 pub async fn connectivity() -> bool {
     match tokio::time::timeout(
-        Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT),
+        Duration::from_secs(TCP_RESPONSE_TIMEOUT),
         TcpStream::connect("8.8.8.8:53"),
     )
     .await

@@ -1,24 +1,28 @@
 use crate::blacklist::BlacklistDirectory;
 use crate::dkgops::DKGOps;
+use crate::epoch::dir::EpochDirectory;
+use crate::into::IntoPointByteVec;
+use crate::key::KeyHolder;
+use crate::lp::dir::LPDirectory;
 use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
-use crate::peer_manager::PeerManager;
+use crate::peer_manager::{coordinator_key, PeerManager};
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
-use crate::tcp::tcp::open_port;
-use crate::{baked, key::KeyHolder};
+use crate::tcp::tcp::{open_port, port_number};
+use crate::valtype::account::Account;
 use crate::{
     ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
-    PEER_MANAGER,
+    EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER,
 };
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
 
 #[tokio::main]
-pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
+pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Coordinator;
 
     // #1 Validate Bitcoin RPC.
@@ -27,24 +31,54 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         return;
     }
 
-    // #2 Check if this is a valid coordinator.
-    if keys.public_key().serialize_xonly() != baked::COORDINATOR_WELL_KNOWN {
+    // #2 Check if this is the coordinator.
+    if key_holder.public_key().serialize_xonly() != coordinator_key(network) {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
     }
 
+    // #3 Initialize Epoch directory.
+    let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing epoch directory.".red());
+            return;
+        }
+    };
+
+    // #4 Initialize LP directory.
+    let lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing LP directory.".red());
+            return;
+        }
+    };
+
+    // #5 Construct account.
+    let _account = match Account::new(key_holder.public_key(), None) {
+        Some(account) => account,
+        None => {
+            println!("{}", "Error initializing account.".red());
+            return;
+        }
+    };
+
     println!("{}", "Initializing coordinator..");
 
-    // #3 Initialize NNS client.
-    let nns_client = NNSClient::new(&keys).await;
+    // #6 Initialize NNS client.
+    let nns_client = NNSClient::new(&key_holder).await;
 
-    // #4 Open port 6272 for incoming connections.
-    match open_port().await {
-        true => println!("{}", format!("Opened port '{}'.", baked::PORT).green()),
+    // #7 Open port 6272 for incoming connections.
+    match open_port(network).await {
+        true => println!(
+            "{}",
+            format!("Opened port '{}'.", port_number(network)).green()
+        ),
         false => (),
     }
 
-    // #5 Run NNS server.
+    // #8 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -52,24 +86,27 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         });
     }
 
-    // #6 Initialize peer manager.
-    let operator_set = baked::OPERATOR_SET.to_vec();
+    // #9 Initialize peer manager.
+    let operator_set = {
+        let _epoch_dir = epoch_dir.lock().await;
+        _epoch_dir.operator_set().into_xpoint_vec().expect("")
+    };
     let mut peer_manager: PEER_MANAGER =
-        match PeerManager::new(&nns_client, PeerKind::Operator, &operator_set).await {
+        match PeerManager::new(network, &nns_client, PeerKind::Operator, &operator_set).await {
             Some(manager) => manager,
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
 
-    // #7 Initialize DKG Manager.
-    let mut dkg_manager: DKG_MANAGER = match DKGManager::new() {
+    // #10 Initialize DKG Manager.
+    let mut dkg_manager: DKG_MANAGER = match DKGManager::new(&lp_dir) {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // #8 Run background preprocessing for the DKG Manager.
+    // #11 Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // #9 Construct blacklist directory.
+    // #12 Construct blacklist directory.
     let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(network) {
         Some(blacklist_dir) => blacklist_dir,
         None => {
@@ -81,11 +118,11 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         }
     };
 
-    // #10 Construct CSession.
+    // #13 Construct CSession.
     let csession: CSESSION_CTX =
         CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir);
 
-    // #11 Run CSession.
+    // #14 Run CSession.
     {
         let csession = Arc::clone(&csession);
         let _ = tokio::spawn(async move {
@@ -93,18 +130,26 @@ pub async fn run(keys: KeyHolder, network: Network, rpc_holder: RPCHolder) {
         });
     }
 
-    // #12 Run TCP server.
+    // #15 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
         let csession = Arc::clone(&csession);
 
         let _ = tokio::spawn(async move {
-            let _ = tcp::server::run(mode, &nns_client, &keys, &dkg_manager, Some(csession)).await;
+            let _ = tcp::server::run(
+                mode,
+                network,
+                &nns_client,
+                &key_holder,
+                &dkg_manager,
+                Some(csession),
+            )
+            .await;
         });
     }
 
-    // #13 Initialize CLI
+    // #16 Initialize CLI
     cli(&mut peer_manager, &mut dkg_manager, &mut blacklist_dir).await;
 }
 

@@ -1,5 +1,5 @@
 use super::package::{PackageKind, TCPPackage};
-use super::tcp;
+use super::tcp::{self, port_number};
 use crate::into::IntoPointVec;
 use crate::key::{KeyHolder, ToNostrKeyStr};
 use crate::musig::session::MusigSessionCtx;
@@ -7,6 +7,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::dkg::package::DKGPackage;
 use crate::noist::dkg::session::DKGSession;
 use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
+use crate::peer_manager::coordinator_key;
 use crate::schnorr::Authenticable;
 use crate::session::ccontext::CSessionStage;
 use crate::session::commit::NSessionCommit;
@@ -14,7 +15,9 @@ use crate::session::opcov::CSessionOpCov;
 use crate::session::uphold::NSessionUphold;
 use crate::session::upholdack::CSessionUpholdAck;
 use crate::session::upholdnack::CSessionUpholdNack;
-use crate::{baked, liquidity, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
+use crate::{
+    Network, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, LP_DIRECTORY, SOCKET,
+};
 use colored::Colorize;
 use secp::Scalar;
 use std::{sync::Arc, time::Duration};
@@ -27,13 +30,14 @@ pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
 pub async fn run(
     mode: OperatingMode,
+    network: Network,
     nns_client: &NNSClient,
     keys: &KeyHolder,
     dkg_manager: &DKG_MANAGER,
     csession_ctx: Option<CSESSION_CTX>,
 ) {
-    let addr = format!("{}:{}", "0.0.0.0", baked::PORT);
-
+    let port_number = port_number(network);
+    let addr = format!("{}:{}", "0.0.0.0", port_number);
     let listener = match TcpListener::bind(&addr).await {
         Ok(listener) => listener,
         Err(_) => {
@@ -75,7 +79,8 @@ pub async fn run(
                 return; // This is not an operator job.
             }
 
-            let coordinator_npub = match baked::COORDINATOR_WELL_KNOWN.to_npub() {
+            let coordinator_key = coordinator_key(network);
+            let coordinator_npub = match coordinator_key.to_npub() {
                 Some(npub) => npub,
                 None => return,
             };
@@ -264,7 +269,13 @@ async fn handle_package(
             OperatingMode::Operator => match package.kind() {
                 PackageKind::Ping => handle_ping(package.timestamp(), &package.payload()).await,
                 PackageKind::RequestVSEKeymap => {
-                    handle_request_vse_keymap(package.timestamp(), &package.payload(), keys).await
+                    handle_request_vse_keymap(
+                        package.timestamp(),
+                        &package.payload(),
+                        keys,
+                        dkg_manager,
+                    )
+                    .await
                 }
 
                 PackageKind::DeliverVSESetup => {
@@ -325,14 +336,24 @@ async fn handle_request_vse_keymap(
     timestamp: i64,
     payload: &[u8],
     keys: &KeyHolder,
+    dkg_manager: &mut DKG_MANAGER,
 ) -> Option<TCPPackage> {
     let signatory_keys: Vec<[u8; 32]> = match serde_json::from_slice(payload) {
         Ok(no) => no,
         Err(_) => return None,
     };
 
-    if !liquidity::provider::is_valid_subset(&signatory_keys) {
-        return None;
+    // Check if requested signatory keys are within the subset of liquidity providers.
+    {
+        let lp_dir: LP_DIRECTORY = {
+            let _dkg_manager = dkg_manager.lock().await;
+            _dkg_manager.lp_directory()
+        };
+
+        let _lp_dir = lp_dir.lock().await;
+        if !_lp_dir.is_valid_subset(&signatory_keys) {
+            return None;
+        }
     }
 
     let signatories = signatory_keys.into_point_vec().ok()?;

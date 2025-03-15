@@ -1,12 +1,11 @@
 use crate::{
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
-    liquidity,
     musig::session::MusigSessionCtx,
     noist::{dkg::session::DKGSession, session::NOISTSessionCtx, setup::setup::VSESetup},
     peer::PeerConnection,
     peer_manager::PeerManagerExt,
     tcp::client::TCPClient,
-    DKG_DIRECTORY, DKG_MANAGER, DKG_SESSION, PEER, PEER_MANAGER,
+    DKG_DIRECTORY, DKG_MANAGER, DKG_SESSION, LP_DIRECTORY, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -59,28 +58,35 @@ impl DKGOps for DKG_MANAGER {
         };
 
         // #2 Retrieve the liquidity provider list.
-        let lp_keys = liquidity::provider::provider_list();
+        let lp_rank_key_list = {
+            let lp_dir: LP_DIRECTORY = {
+                let _dkg_manager = self.lock().await;
+                _dkg_manager.lp_directory()
+            };
+            let _p_dir = lp_dir.lock().await;
+            _p_dir.lp_rank_key_list(1024)
+        };
 
         // #3 Connect to liquidity providers (if possible).
         let lp_peers: Vec<PEER> = match {
             peer_manager
-                .add_peers(crate::peer::PeerKind::Operator, &lp_keys)
+                .add_peers(crate::peer::PeerKind::Operator, &lp_rank_key_list)
                 .await;
 
             let mut _peer_manager = peer_manager.lock().await;
-            _peer_manager.retrieve_peers(&lp_keys)
+            _peer_manager.retrieve_peers(&lp_rank_key_list)
         } {
             Some(some) => some,
             None => return Err(DKGSetupError::PeerRetrievalErr),
         };
 
         // #4 Check if there are enough peer connections.
-        if lp_peers.len() <= lp_keys.len() / 20 {
+        if lp_peers.len() <= lp_rank_key_list.len() / 20 {
             return Err(DKGSetupError::InsufficientPeers);
         }
 
         // #5 Convert LP keys into secp Points.
-        let lp_key_points = match lp_keys.into_point_vec() {
+        let lp_key_points = match lp_rank_key_list.into_point_vec() {
             Ok(points) => points,
             Err(_) => return Err(DKGSetupError::PreSetupInitErr),
         };
@@ -97,7 +103,7 @@ impl DKGOps for DKG_MANAGER {
 
             for lp_peer in lp_peers.clone() {
                 let vse_setup_ = Arc::clone(&vse_setup_);
-                let lp_keys = lp_keys.clone();
+                let lp_keys = lp_rank_key_list.clone();
 
                 let lp_key = lp_peer.key().await;
 

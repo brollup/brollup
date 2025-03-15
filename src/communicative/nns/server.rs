@@ -1,4 +1,5 @@
-use crate::{baked, OperatingMode};
+use super::client::NNSClient;
+use crate::{tcp::tcp::TCP_RESPONSE_TIMEOUT, OperatingMode};
 use colored::Colorize;
 use std::{
     fs::{self, OpenOptions},
@@ -8,9 +9,7 @@ use std::{
 };
 use tokio::time::timeout;
 
-use super::client::NNSClient;
-
-const IP_ADDR_FILE_PATH: &str = "nns_ip_addr.txt";
+const IP_ADDR_FILE_PATH: &str = "db/nns/address.txt";
 
 /// Executes a persistent task that monitors changes
 /// in the dynamic IP address of the running machine.
@@ -31,7 +30,7 @@ pub async fn run(nns_client: &NNSClient, mode: OperatingMode) {
 
     // Enter the periodic check loop.
     loop {
-        match timeout(Duration::from_secs(baked::TCP_RESPONSE_TIMEOUT), check_ip()).await {
+        match timeout(Duration::from_secs(TCP_RESPONSE_TIMEOUT), check_ip()).await {
             Ok(response) => {
                 match response {
                     Ok(option) => match option {

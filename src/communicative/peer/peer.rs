@@ -4,7 +4,7 @@ use crate::{
         client::TCPClient,
         tcp::{self, TCPError},
     },
-    PEER, SOCKET,
+    Network, PEER, SOCKET,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -30,6 +30,7 @@ impl PeerKind {
 
 #[derive(Clone)]
 pub struct Peer {
+    network: Network,
     kind: PeerKind,
     key: [u8; 32],
     nns_client: NNSClient,
@@ -38,12 +39,13 @@ pub struct Peer {
 
 impl Peer {
     pub async fn connect(
+        network: Network,
         kind: PeerKind,
         key: [u8; 32],
         nns_client: &NNSClient,
     ) -> Result<PEER, TCPError> {
         let (socket_, addr) = {
-            match tcp::connect_nns(key, &nns_client).await {
+            match tcp::connect_nns(key, &nns_client, network).await {
                 Ok(socket) => {
                     let addr = match socket.peer_addr() {
                         Ok(addr) => addr,
@@ -61,6 +63,7 @@ impl Peer {
         let connection = Some((socket, addr));
 
         let peer_ = Peer {
+            network,
             kind,
             key,
             connection,
@@ -72,6 +75,10 @@ impl Peer {
         peer.set_uptimer().await;
 
         Ok(peer)
+    }
+
+    pub fn network(&self) -> Network {
+        self.network
     }
 
     pub fn kind(&self) -> PeerKind {
@@ -165,6 +172,11 @@ impl PeerConnection for PEER {
     }
 
     async fn reconnect(&self) {
+        let network = {
+            let _self = self.lock().await;
+            _self.network()
+        };
+
         let (socket_, addr) = {
             loop {
                 let (nns_key, nns_client) = {
@@ -172,7 +184,7 @@ impl PeerConnection for PEER {
                     (_peer.key(), _peer.nns_client())
                 };
 
-                match tcp::connect_nns(nns_key, &nns_client).await {
+                match tcp::connect_nns(nns_key, &nns_client, network).await {
                     Ok(socket) => {
                         let addr = match socket.peer_addr() {
                             Ok(addr) => addr,

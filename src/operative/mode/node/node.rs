@@ -1,13 +1,16 @@
 use crate::epoch::dir::EpochDirectory;
+use crate::lp::dir::LPDirectory;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
+use crate::peer_manager::coordinator_key;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::scanner::scan_lifts;
+use crate::valtype::account::Account;
 use crate::wallet::lift::LiftWallet;
 use crate::wallet::vtxo::VTXOWallet;
-use crate::{baked, key::KeyHolder, OperatingMode};
-use crate::{ncli, Network, EPOCH_DIRECTORY, VTXO_WALLET};
+use crate::{key::KeyHolder, OperatingMode};
+use crate::{ncli, Network, EPOCH_DIRECTORY, LP_DIRECTORY, VTXO_WALLET};
 use crate::{LIFT_WALLET, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -53,18 +56,33 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #5 Initialize NNS client.
+    // #5 Initialize LP directory.
+    let _lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing LP directory.".red());
+            return;
+        }
+    };
+
+    // #6 Construct account.
+    let _account = match Account::new(key_holder.public_key(), None) {
+        Some(account) => account,
+        None => {
+            println!("{}", "Error initializing account.".red());
+            return;
+        }
+    };
+
+    // #7 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #6 Connect to the coordinator.
+    // #8 Connect to the coordinator.
     let coordinator: PEER = {
+        let coordinator_key = coordinator_key(network);
+
         loop {
-            match Peer::connect(
-                PeerKind::Coordinator,
-                baked::COORDINATOR_WELL_KNOWN,
-                &nns_client,
-            )
-            .await
+            match Peer::connect(network, PeerKind::Coordinator, coordinator_key, &nns_client).await
             {
                 Ok(connection) => break connection,
                 Err(_) => {
@@ -76,7 +94,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Scan lifts.
+    // #9 Scan lifts.
     {
         let network = network.clone();
         let key_holder = key_holder.clone();
@@ -89,7 +107,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #8 CLI.
+    // #10 CLI.
     cli(&coordinator, &key_holder, &lift_wallet, &vtxo_wallet).await;
 }
 

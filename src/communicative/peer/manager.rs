@@ -1,26 +1,37 @@
 use crate::{
+    baked,
     nns::client::NNSClient,
     peer::{Peer, PeerConnection, PeerKind},
-    PEER, PEER_MANAGER, SOCKET,
+    Network, PEER, PEER_MANAGER, SOCKET,
 };
 use async_trait::async_trait;
 use futures::future::join_all;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
+pub fn coordinator_key(network: Network) -> [u8; 32] {
+    match network {
+        Network::Signet => baked::SIGNET_COORDINATOR,
+        Network::Mainnet => baked::MAINNET_COORDINATOR,
+    }
+}
+
 #[derive(Clone)]
 pub struct PeerManager {
+    network: Network,
     peers: HashMap<[u8; 32], PEER>,
     nns_client: NNSClient,
 }
 
 impl PeerManager {
     pub async fn new(
+        network: Network,
         nns_client: &NNSClient,
         kind: PeerKind,
         keys: &Vec<[u8; 32]>,
     ) -> Option<PEER_MANAGER> {
         let manager_ = PeerManager {
+            network,
             peers: HashMap::<[u8; 32], PEER>::new(),
             nns_client: nns_client.to_owned(),
         };
@@ -42,6 +53,10 @@ impl PeerManager {
         self.peers.insert(peer_key, Arc::clone(&peer));
 
         true
+    }
+
+    pub fn network(&self) -> Network {
+        self.network
     }
 
     pub fn peers(&self) -> HashMap<[u8; 32], PEER> {
@@ -103,6 +118,11 @@ pub trait PeerManagerExt {
 impl PeerManagerExt for PEER_MANAGER {
     /// Tries to connect to a list of peers and returns the number of peers connected.
     async fn add_peers(&mut self, kind: PeerKind, keys: &Vec<[u8; 32]>) -> u64 {
+        let network = {
+            let _self = self.lock().await;
+            _self.network()
+        };
+
         let peer_list_ = Arc::new(Mutex::new(Vec::<PEER>::new()));
 
         let mut tasks = vec![];
@@ -124,7 +144,7 @@ impl PeerManagerExt for PEER_MANAGER {
             };
 
             tasks.push(tokio::spawn(async move {
-                let peer: PEER = match Peer::connect(kind, key, &nns_client).await {
+                let peer: PEER = match Peer::connect(network, kind, key, &nns_client).await {
                     Ok(peer) => peer,
                     Err(_) => return,
                 };

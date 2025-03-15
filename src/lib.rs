@@ -2,6 +2,7 @@
 
 use blacklist::BlacklistDirectory;
 use epoch::dir::EpochDirectory;
+use lp::dir::LPDirectory;
 use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
@@ -19,9 +20,14 @@ type DKG_MANAGER = Arc<Mutex<DKGManager>>;
 type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
-type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
+
+// Wallets
 type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
 type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
+
+// Dirs
+type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
+type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
 
 // Inscriptive
@@ -32,6 +38,8 @@ pub mod baked;
 pub mod blacklist;
 #[path = "inscriptive/epoch/mod.rs"]
 pub mod epoch;
+#[path = "inscriptive/lp/mod.rs"]
+pub mod lp;
 #[path = "inscriptive/registery/mod.rs"]
 pub mod registery;
 #[path = "inscriptive/wallet/mod.rs"]
@@ -76,10 +84,6 @@ pub mod ccli;
 pub mod ncli;
 #[path = "operative/mode/operator/cli/mod.rs"]
 pub mod ocli;
-
-// Liquidity provision
-#[path = "operative/liquidity/mod.rs"]
-pub mod liquidity;
 
 // Networking.
 #[path = "communicative/nns/mod.rs"]

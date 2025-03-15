@@ -1,5 +1,5 @@
 use crate::{
-    baked::{MAINNET_LIFT_SCAN_HEIGHT_START, SIGNET_LIFT_SCAN_HEIGHT_START},
+    baked,
     key::KeyHolder,
     rpc::bitcoin_rpc::{get_block, get_chain_height},
     rpcholder::RPCHolder,
@@ -49,8 +49,8 @@ pub async fn scan_lifts(
     lift_wallet: &LIFT_WALLET,
 ) {
     let sync_start_height = match network {
-        Network::Signet => SIGNET_LIFT_SCAN_HEIGHT_START,
-        Network::Mainnet => MAINNET_LIFT_SCAN_HEIGHT_START,
+        Network::Signet => baked::SIGNET_SYNC_START_HEIGHT,
+        Network::Mainnet => baked::MAINNET_SYNC_START_HEIGHT,
     };
 
     loop {
