@@ -1,5 +1,8 @@
 use super::{dkg::directory::DKGDirectory, session::NOISTSessionCtx, setup::setup::VSESetup};
-use crate::{into::IntoPointByteVec, musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER};
+use crate::{
+    into::IntoPointByteVec, musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER,
+    LP_DIRECTORY,
+};
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -12,12 +15,13 @@ pub enum SessionCtxError {
 }
 
 pub struct DKGManager {
+    lp_dir: LP_DIRECTORY,
     directories: HashMap<u64, DKG_DIRECTORY>,
     setup_db: sled::Db,
 }
 
 impl DKGManager {
-    pub fn new() -> Option<DKG_MANAGER> {
+    pub fn new(lp_dir: &LP_DIRECTORY) -> Option<DKG_MANAGER> {
         let setup_db = sled::open("db/noist/setup").ok()?;
 
         let mut directories = HashMap::<u64, DKG_DIRECTORY>::new();
@@ -32,11 +36,16 @@ impl DKGManager {
         }
 
         let manager_ = Some(DKGManager {
+            lp_dir: Arc::clone(lp_dir),
             directories,
             setup_db,
         })?;
 
         Some(Arc::new(Mutex::new(manager_)))
+    }
+
+    pub fn lp_directory(&self) -> LP_DIRECTORY {
+        Arc::clone(&self.lp_dir)
     }
 
     pub fn directories(&self) -> HashMap<u64, DKG_DIRECTORY> {

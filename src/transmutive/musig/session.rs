@@ -168,22 +168,22 @@ impl MusigSessionCtx {
         Some(partial_sig)
     }
 
-    pub fn insert_partial_sig(&mut self, key: Point, partial_sig: Scalar) -> bool {
-        if let Some(_) = self.partial_sigs.get(&key) {
+    pub fn insert_partial_sig(&mut self, signer_key: Point, partial_sig: Scalar) -> bool {
+        if let Some(_) = self.partial_sigs.get(&signer_key) {
             return false;
         }
 
-        let key_coef = match self.key_agg_ctx.key_coef(key) {
+        let key_coef = match self.key_agg_ctx.key_coef(signer_key) {
             Some(coef) => coef,
             None => return false,
         };
 
-        let (hiding_public_nonce, binding_public_nonce) = match self.nonces.get(&key) {
+        let (hiding_public_nonce, binding_public_nonce) = match self.nonces.get(&signer_key) {
             Some(tuple) => tuple,
             None => return false,
         };
 
-        let mut key = key.negate_if(self.key_agg_ctx.agg_inner_key().parity());
+        let mut key = signer_key.negate_if(self.key_agg_ctx.agg_inner_key().parity());
 
         if let Some(_) = self.key_agg_ctx.tweak() {
             key = key.negate_if(self.key_agg_ctx.agg_key().parity());
@@ -219,7 +219,7 @@ impl MusigSessionCtx {
             return false;
         };
 
-        self.partial_sigs.insert(key, partial_sig);
+        self.partial_sigs.insert(signer_key, partial_sig);
 
         true
     }
@@ -237,10 +237,11 @@ impl MusigSessionCtx {
     }
 
     pub fn agg_sig(&self) -> Option<Scalar> {
+        println!("mara 0: {}", self.blame_list().len());
         if self.blame_list().len() != 0 {
             return None;
         }
-
+        println!("mara 1");
         let mut agg_sig = MaybeScalar::Zero;
 
         for (_, partial_sig) in self.partial_sigs.iter() {
@@ -269,7 +270,9 @@ impl MusigSessionCtx {
         let agg_nonce = self.agg_nonce?;
 
         let mut full_agg_sig = Vec::<u8>::with_capacity(64);
+
         full_agg_sig.extend(agg_nonce.serialize_xonly());
+
         full_agg_sig.extend(self.agg_sig()?.serialize());
 
         let sig: [u8; 64] = match full_agg_sig.try_into() {

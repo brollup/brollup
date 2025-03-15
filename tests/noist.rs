@@ -1,15 +1,16 @@
 #[cfg(test)]
 mod noist_tests {
     use brollup::hash::Hash;
+    use brollup::lp::dir::LPDirectory;
     use brollup::musig::session::MusigSessionCtx;
     use brollup::noist::dkg::package::DKGPackage;
     use brollup::noist::manager::DKGManager;
-    use brollup::schnorr;
     use brollup::txo::projector::{Projector, ProjectorTag};
     use brollup::{
         noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
         schnorr::Authenticable,
     };
+    use brollup::{schnorr, Network};
     use secp::{Point, Scalar};
 
     #[tokio::test]
@@ -41,7 +42,15 @@ mod noist_tests {
         let mut public_list = vec![signer_1_public, signer_2_public, signer_3_public];
         public_list.sort();
 
-        let manager_ = DKGManager::new().unwrap();
+        // #5 Initialize LP directory.
+        let lp_dir = match LPDirectory::new(Network::Signet) {
+            Some(dir) => dir,
+            None => {
+                return Err("Error initializing LP directory.".into());
+            }
+        };
+
+        let manager_ = DKGManager::new(&lp_dir).unwrap();
         let mut manager = manager_.lock().await;
 
         // Insert VSE setup to the manager.
