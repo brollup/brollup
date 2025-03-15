@@ -30,6 +30,13 @@ impl LP {
         self.lp
     }
 
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
+
     pub fn update_add(&mut self, liquidity_add: u64, lp_add: u64) -> bool {
         let new_liquidity = match self.liquidity.checked_add(liquidity_add) {
             Some(num) => num,

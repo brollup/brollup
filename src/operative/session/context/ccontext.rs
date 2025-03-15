@@ -7,7 +7,6 @@ use crate::{
     hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     noist::session::NOISTSessionCtx,
-    registery::account::account_registery_index,
     schnorr::{Authenticable, Sighash},
     session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
     tcp::client::TCPClient,
@@ -17,7 +16,8 @@ use crate::{
         projector::{self, Projector},
     },
     valtype::account::Account,
-    BLIST_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
+    ACCOUNT_REGISTERY, BLIST_DIRECTORY, CONTRACT_REGISTERY, CSESSION_CTX, DKG_DIRECTORY,
+    DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -45,10 +45,13 @@ pub enum CSessionStage {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     peer_manager: PEER_MANAGER,
     blacklist_dir: BLIST_DIRECTORY,
+    account_registery: ACCOUNT_REGISTERY,
+    contract_registery: CONTRACT_REGISTERY,
     //
     session_id: [u8; 32],
     stage: CSessionStage,
@@ -124,11 +127,15 @@ impl CSessionCtx {
         dkg_manager: &DKG_MANAGER,
         peer_manager: &PEER_MANAGER,
         blacklist_dir: &BLIST_DIRECTORY,
+        account_registery: &ACCOUNT_REGISTERY,
+        contract_registery: &CONTRACT_REGISTERY,
     ) -> CSESSION_CTX {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             peer_manager: Arc::clone(peer_manager),
             blacklist_dir: Arc::clone(blacklist_dir),
+            account_registery: Arc::clone(account_registery),
+            contract_registery: Arc::clone(contract_registery),
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             commit_pool: Vec::<NSessionCommit>::new(),
@@ -320,9 +327,26 @@ impl CSessionCtx {
         let commit = auth_commit.object();
         let mut account = commit.account();
 
-        // #3 Set registery index (if not set)
-        if let Some(registery_index) = account_registery_index(account.key()) {
-            account.set_registery_index(registery_index);
+        // #3 Registery index validation.
+        let given_registery_index = account.registery_index();
+        let local_registery_index = {
+            let _account_registery = self.account_registery.lock().await;
+            _account_registery.index_by_key(account.key())
+        };
+
+        match given_registery_index {
+            Some(given_registery_index) => {
+                if let Some(local_registery_index) = local_registery_index {
+                    if local_registery_index != given_registery_index {
+                        return Err(CSessionCommitNack::InvalidAccountRegisteryIndex);
+                    }
+                }
+            }
+            None => {
+                if let Some(local_registery_index) = local_registery_index {
+                    account.set_registery_index(local_registery_index);
+                }
+            }
         }
 
         // #4 Insert into commit pool.

@@ -21,4 +21,11 @@ impl Contract {
     pub fn registery_index(&self) -> u32 {
         self.registery_index
     }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        match serde_json::to_vec(self) {
+            Ok(bytes) => bytes,
+            Err(_) => vec![],
+        }
+    }
 }

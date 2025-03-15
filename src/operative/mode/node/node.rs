@@ -3,6 +3,8 @@ use crate::lp::dir::LPDirectory;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
 use crate::peer_manager::coordinator_key;
+use crate::registery::account::AccountRegistery;
+use crate::registery::contract::ContractRegistery;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::scanner::scan_lifts;
@@ -10,7 +12,10 @@ use crate::valtype::account::Account;
 use crate::wallet::lift::LiftWallet;
 use crate::wallet::vtxo::VTXOWallet;
 use crate::{key::KeyHolder, OperatingMode};
-use crate::{ncli, Network, EPOCH_DIRECTORY, LP_DIRECTORY, VTXO_WALLET};
+use crate::{
+    ncli, Network, ACCOUNT_REGISTERY, CONTRACT_REGISTERY, EPOCH_DIRECTORY, LP_DIRECTORY,
+    VTXO_WALLET,
+};
 use crate::{LIFT_WALLET, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -21,13 +26,13 @@ use std::time::Duration;
 pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder) {
     let _operating_mode = OperatingMode::Node;
 
-    println!("{}", "Initializing node..");
-
     // #1 Validate Bitcoin RPC.
     if let Err(err) = validate_rpc(&rpc_holder, network) {
         println!("{} {}", "Bitcoin RPC Error: ".red(), err);
         return;
     }
+
+    println!("{}", "Initializing node..");
 
     // #2 Initialize Lift wallet.
     let lift_wallet: LIFT_WALLET = match LiftWallet::new(network) {
@@ -65,7 +70,41 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #6 Construct account.
+    // #6 Initialize Account registery.
+    let _account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing account registery.".red());
+            return;
+        }
+    };
+
+    // #7 Initialize Contract registery.
+    let _contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing contract registery.".red());
+            return;
+        }
+    };
+
+    // #8 Sync rollup.
+    // TODO
+
+    // #9 Sync lifts.
+    {
+        let network = network.clone();
+        let key_holder = key_holder.clone();
+        let rpc_holder = rpc_holder.clone();
+        let epoch_dir = Arc::clone(&epoch_dir);
+        let lift_wallet = Arc::clone(&lift_wallet);
+
+        tokio::spawn(async move {
+            let _ = scan_lifts(network, &key_holder, &rpc_holder, &epoch_dir, &lift_wallet).await;
+        });
+    }
+
+    // #10 Construct account.
     let _account = match Account::new(key_holder.public_key(), None) {
         Some(account) => account,
         None => {
@@ -74,10 +113,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Initialize NNS client.
+    // #11 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #8 Connect to the coordinator.
+    // #12 Connect to the coordinator.
     let coordinator: PEER = {
         let coordinator_key = coordinator_key(network);
 
@@ -94,20 +133,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #9 Scan lifts.
-    {
-        let network = network.clone();
-        let key_holder = key_holder.clone();
-        let rpc_holder = rpc_holder.clone();
-        let epoch_dir = Arc::clone(&epoch_dir);
-        let lift_wallet = Arc::clone(&lift_wallet);
-
-        tokio::spawn(async move {
-            let _ = scan_lifts(network, &key_holder, &rpc_holder, &epoch_dir, &lift_wallet).await;
-        });
-    }
-
-    // #10 CLI.
+    // #13 CLI.
     cli(&coordinator, &key_holder, &lift_wallet, &vtxo_wallet).await;
 }
 

@@ -8,14 +8,16 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::{coordinator_key, PeerManager};
+use crate::registery::account::AccountRegistery;
+use crate::registery::contract::ContractRegistery;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::tcp::tcp::{open_port, port_number};
 use crate::valtype::account::Account;
 use crate::{
-    ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
-    EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER,
+    ccli, nns, tcp, Network, OperatingMode, ACCOUNT_REGISTERY, BLIST_DIRECTORY, CONTRACT_REGISTERY,
+    CSESSION_CTX, DKG_MANAGER, EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER,
 };
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -31,13 +33,9 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         return;
     }
 
-    // #2 Check if this is the coordinator.
-    if key_holder.public_key().serialize_xonly() != coordinator_key(network) {
-        eprintln!("{}", "Coordinator <nsec> does not match.".red());
-        return;
-    }
+    println!("{}", "Initializing coordinator..");
 
-    // #3 Initialize Epoch directory.
+    // #2 Initialize Epoch directory.
     let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
         Some(dir) => dir,
         None => {
@@ -46,7 +44,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #4 Initialize LP directory.
+    // #3 Initialize LP directory.
     let lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
         Some(dir) => dir,
         None => {
@@ -55,7 +53,28 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #5 Construct account.
+    // #4 Initialize Account registery.
+    let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing account registery.".red());
+            return;
+        }
+    };
+
+    // #5 Initialize Contract registery.
+    let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing contract registery.".red());
+            return;
+        }
+    };
+
+    // #6 Sync rollup.
+    // TODO
+
+    // #7 Construct account.
     let _account = match Account::new(key_holder.public_key(), None) {
         Some(account) => account,
         None => {
@@ -64,12 +83,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    println!("{}", "Initializing coordinator..");
+    // #8 Check if this is the coordinator.
+    if key_holder.public_key().serialize_xonly() != coordinator_key(network) {
+        eprintln!("{}", "Coordinator <nsec> does not match.".red());
+        return;
+    }
 
-    // #6 Initialize NNS client.
+    // #9 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #7 Open port 6272 for incoming connections.
+    // #10 Open port 6272 for incoming connections.
     match open_port(network).await {
         true => println!(
             "{}",
@@ -78,7 +101,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         false => (),
     }
 
-    // #8 Run NNS server.
+    // #11 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -86,7 +109,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #9 Initialize peer manager.
+    // #12 Initialize peer manager.
     let operator_set = {
         let _epoch_dir = epoch_dir.lock().await;
         _epoch_dir.operator_set().into_xpoint_vec().expect("")
@@ -97,16 +120,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
 
-    // #10 Initialize DKG Manager.
+    // #13 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new(&lp_dir) {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // #11 Run background preprocessing for the DKG Manager.
+    // #14 Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // #12 Construct blacklist directory.
+    // #15 Construct blacklist directory.
     let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(network) {
         Some(blacklist_dir) => blacklist_dir,
         None => {
@@ -118,23 +141,28 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #13 Construct CSession.
-    let csession: CSESSION_CTX =
-        CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir);
+    // #16 Construct CSession.
+    let csession_ctx: CSESSION_CTX = CSessionCtx::construct(
+        &dkg_manager,
+        &peer_manager,
+        &blacklist_dir,
+        &account_registery,
+        &contract_registery,
+    );
 
-    // #14 Run CSession.
+    // #17 Run CSession.
     {
-        let csession = Arc::clone(&csession);
+        let csession_ctx = Arc::clone(&csession_ctx);
         let _ = tokio::spawn(async move {
-            csession.run().await;
+            csession_ctx.run().await;
         });
     }
 
-    // #15 Run TCP server.
+    // #18 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
-        let csession = Arc::clone(&csession);
+        let csession_ctx = Arc::clone(&csession_ctx);
 
         let _ = tokio::spawn(async move {
             let _ = tcp::server::run(
@@ -143,13 +171,13 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                 &nns_client,
                 &key_holder,
                 &dkg_manager,
-                Some(csession),
+                Some(csession_ctx),
             )
             .await;
         });
     }
 
-    // #16 Initialize CLI
+    // #19 Initialize CLI
     cli(&mut peer_manager, &mut dkg_manager, &mut blacklist_dir).await;
 }
 

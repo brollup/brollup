@@ -7,6 +7,7 @@ use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
 };
+use registery::{account::AccountRegistery, contract::ContractRegistery};
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -29,6 +30,10 @@ type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
 type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
+
+// Registeries
+type ACCOUNT_REGISTERY = Arc<Mutex<AccountRegistery>>;
+type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
 
 // Inscriptive
 

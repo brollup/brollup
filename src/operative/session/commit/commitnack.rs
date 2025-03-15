@@ -12,6 +12,7 @@ pub enum CSessionCommitNack {
     Overlap,
     Allowance,
     InvalidLiftAccountKey,
+    InvalidAccountRegisteryIndex,
     InvalidLiftOperatorKey,
     MissingLiftOutpoint(),
     InvalidLiftOutpoint(Outpoint),

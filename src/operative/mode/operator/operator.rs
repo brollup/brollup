@@ -8,6 +8,8 @@ use crate::ocli;
 use crate::peer::Peer;
 use crate::peer::PeerKind;
 use crate::peer_manager::coordinator_key;
+use crate::registery::account::AccountRegistery;
+use crate::registery::contract::ContractRegistery;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::tcp;
@@ -16,6 +18,8 @@ use crate::tcp::tcp::port_number;
 use crate::valtype::account::Account;
 use crate::Network;
 use crate::OperatingMode;
+use crate::ACCOUNT_REGISTERY;
+use crate::CONTRACT_REGISTERY;
 use crate::DKG_MANAGER;
 use crate::EPOCH_DIRECTORY;
 use crate::LP_DIRECTORY;
@@ -35,6 +39,8 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         return;
     }
 
+    println!("{}", "Initializing operator..");
+
     // #2 Initialize Epoch directory.
     let _epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
         Some(epoch_dir) => epoch_dir,
@@ -53,7 +59,28 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #4 Construct account.
+    // #4 Initialize Account registery.
+    let _account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing account registery.".red());
+            return;
+        }
+    };
+
+    // #5 Initialize Contract registery.
+    let _contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
+        Some(dir) => dir,
+        None => {
+            println!("{}", "Error initializing contract registery.".red());
+            return;
+        }
+    };
+
+    // #6 Sync rollup.
+    // TODO
+
+    // #7 Construct account.
     let account = match Account::new(key_holder.public_key(), None) {
         Some(account) => account,
         None => {
@@ -62,7 +89,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #5 Check if this account is a liquidity provider.
+    // #8 Check if this account is a liquidity provider.
     {
         let _lp_dir = lp_dir.lock().await;
         if let None = _lp_dir.lp(account) {
@@ -74,12 +101,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     }
 
-    println!("{}", "Initializing operator..");
-
-    // #6 Initialize NNS client.
+    // #9 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #7 Open port 6272 for incoming connections.
+    // #10 Open port 6272 for incoming connections.
     match open_port(network).await {
         true => println!(
             "{}",
@@ -88,7 +113,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         false => (),
     }
 
-    // #8 Run NNS server.
+    // #11 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -96,7 +121,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #9 Connect to the coordinator.
+    // #12 Connect to the coordinator.
     let coordinator: PEER = {
         let coordinator_key = coordinator_key(network);
 
@@ -116,13 +141,13 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #10 Initialize DKG Manager.
+    // #13 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new(&lp_dir) {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // #11 Run TCP server.
+    // #14 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -133,7 +158,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #12 CLI
+    // #15 CLI
     cli(&mut dkg_manager, &coordinator).await;
 }
 

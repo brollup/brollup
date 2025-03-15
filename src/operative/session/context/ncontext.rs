@@ -1,3 +1,7 @@
+use super::{
+    commitack::CSessionCommitAck, uphold::NSessionUphold, upholdack::CSessionUpholdAck,
+    upholderr::NSessionUpholdError,
+};
 use crate::{
     entry::Entry,
     into::IntoScalar,
@@ -10,11 +14,6 @@ use crate::{
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use super::{
-    commitack::CSessionCommitAck, uphold::NSessionUphold, upholdack::CSessionUpholdAck,
-    upholderr::NSessionUpholdError,
-};
 
 pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
@@ -43,8 +42,8 @@ pub struct NSessionCtx {
 }
 
 impl NSessionCtx {
-    pub fn new(keys: KeyHolder, entry: Entry) -> Option<NSessionCtx> {
-        let secret_key = keys.secret_key();
+    pub fn new(key_holder: KeyHolder, entry: Entry) -> Option<NSessionCtx> {
+        let secret_key = key_holder.secret_key();
         let public_key = secret_key.base_point_mul();
 
         if entry.account().key() != public_key {
