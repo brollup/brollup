@@ -1,10 +1,10 @@
 use crate::{rpc::bitcoin_rpc::get_chain_height, rpcholder::RPCHolder, Network, ROLLUP_DIRECTORY};
-use async_trait::async_trait;
-use std::{sync::Arc, time::Duration};
-use tokio::{sync::Mutex, time::sleep};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// Directory for the rollup state.
 pub struct RollupDirectory {
+    synced: bool,
     // Bitcoin sync height.
     bitcoin_sync_height: u64,
     // Rollup sync height.
@@ -33,12 +33,21 @@ impl RollupDirectory {
             .unwrap_or(0);
 
         let rollup_dir = RollupDirectory {
+            synced: false,
             bitcoin_sync_height,
             rollup_sync_height,
             db,
         };
 
         Some(Arc::new(Mutex::new(rollup_dir)))
+    }
+
+    pub fn set_synced(&mut self, synced: bool) {
+        self.synced = synced;
+    }
+
+    pub fn is_synced(&self) -> bool {
+        self.synced
     }
 
     /// Returns the bitcoin sync height.
@@ -80,25 +89,6 @@ impl RollupDirectory {
             Err(_) => return false,
         };
 
-        self.bitcoin_sync_height == bitcoin_sync_height
-    }
-}
-
-#[async_trait]
-pub trait AwaitSync {
-    async fn await_sync(&self, rpc_holder: &RPCHolder);
-}
-
-#[async_trait]
-impl AwaitSync for ROLLUP_DIRECTORY {
-    async fn await_sync(&self, rpc_holder: &RPCHolder) {
-        loop {
-            let _self = self.lock().await;
-
-            match _self.is_fully_synced(rpc_holder) {
-                true => break,
-                false => sleep(Duration::from_secs(10)).await,
-            }
-        }
+        self.bitcoin_sync_height >= bitcoin_sync_height
     }
 }

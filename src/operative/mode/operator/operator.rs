@@ -10,10 +10,10 @@ use crate::peer::PeerKind;
 use crate::peer_manager::coordinator_key;
 use crate::registery::account::AccountRegistery;
 use crate::registery::contract::ContractRegistery;
-use crate::rollup_dir::dir::AwaitSync;
 use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
+use crate::sync::RollupSync;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::tcp::tcp::port_number;
@@ -45,7 +45,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     println!("{}", "Initializing operator..");
 
     // #2 Initialize Epoch directory.
-    let _epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
+    let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
         Some(epoch_dir) => epoch_dir,
         None => {
             println!("{}", "Error initializing epoch directory.".red());
@@ -63,7 +63,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #4 Initialize Account registery.
-    let _account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+    let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing account registery.".red());
@@ -72,7 +72,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #5 Initialize Contract registery.
-    let _contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
+    let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing contract registery.".red());
@@ -89,13 +89,39 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Spawn rollup syncer.
-    // TODO
+    // #7 Spawn syncer.
+    {
+        let network = network.clone();
+        let key_holder = key_holder.clone();
+        let rpc_holder = rpc_holder.clone();
+        let epoch_dir = Arc::clone(&epoch_dir);
+        let lp_dir = Arc::clone(&lp_dir);
+        let account_registery = Arc::clone(&account_registery);
+        let contract_registery = Arc::clone(&contract_registery);
+        let rollup_dir = Arc::clone(&rollup_dir);
+
+        tokio::spawn(async move {
+            let _ = rollup_dir
+                .sync(
+                    network,
+                    &rpc_holder,
+                    &key_holder,
+                    &epoch_dir,
+                    &lp_dir,
+                    &account_registery,
+                    &contract_registery,
+                    None,
+                )
+                .await;
+        });
+    }
 
     println!("{}", "Syncing rollup.");
 
     // #8 Await rollup to be fully synced.
-    rollup_dir.await_sync(&rpc_holder).await;
+    rollup_dir.await_sync().await;
+
+    println!("{}", "Syncing complete.");
 
     // #9 Construct account.
     let account = match Account::new(key_holder.public_key(), None) {

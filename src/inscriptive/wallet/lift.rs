@@ -4,7 +4,6 @@ use tokio::sync::Mutex;
 
 /// Wallet for storing bare Lift outputs.
 pub struct LiftWallet {
-    bitcoin_sync_height: u64,
     // In-memory list.
     set: Vec<Lift>,
     // In-storage db.
@@ -17,13 +16,6 @@ impl LiftWallet {
         let db = sled::open(path).ok()?;
 
         let mut set = Vec::<Lift>::new();
-
-        let bitcoin_sync_height: u64 = db
-            .get(b"bitcoin_sync_height")
-            .ok()
-            .flatten()
-            .and_then(|val| val.as_ref().try_into().ok().map(u64::from_be_bytes))
-            .unwrap_or(0);
 
         for lookup in db.iter().flatten() {
             let (key, val) = lookup;
@@ -40,24 +32,9 @@ impl LiftWallet {
             }
         }
 
-        let wallet = LiftWallet {
-            bitcoin_sync_height,
-            set,
-            db,
-        };
+        let wallet = LiftWallet { set, db };
 
         Some(Arc::new(Mutex::new(wallet)))
-    }
-
-    pub fn bitcoin_sync_height(&self) -> u64 {
-        self.bitcoin_sync_height
-    }
-
-    pub fn set_bitcoin_sync_height(&mut self, height: u64) {
-        self.bitcoin_sync_height = height;
-        let _ = self
-            .db
-            .insert(b"bitcoin_sync_height", height.to_be_bytes().to_vec());
     }
 
     pub fn set(&self) -> Vec<Lift> {

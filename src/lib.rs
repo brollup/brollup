@@ -76,16 +76,14 @@ pub mod coordinator;
 // Operating modes.
 #[path = "operative/mode/coordinator/dkgops.rs"]
 pub mod dkgops;
-#[path = "operative/sync/lift.rs"]
-pub mod lift_sync;
 #[path = "operative/mode/node/node.rs"]
 pub mod node;
 #[path = "operative/mode/operator/operator.rs"]
 pub mod operator;
-#[path = "operative/sync/rollup.rs"]
-pub mod rollup_sync;
 #[path = "operative/session/mod.rs"]
 pub mod session;
+#[path = "operative/sync/rollup.rs"]
+pub mod sync;
 
 // Command line.
 #[path = "operative/mode/coordinator/cli/mod.rs"]

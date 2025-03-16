@@ -1,14 +1,14 @@
 use crate::epoch_dir::dir::EpochDirectory;
-use crate::lift_sync::sync_lifts;
 use crate::lp_dir::dir::LPDirectory;
 use crate::nns::client::NNSClient;
 use crate::peer::{Peer, PeerKind};
 use crate::peer_manager::coordinator_key;
 use crate::registery::account::AccountRegistery;
 use crate::registery::contract::ContractRegistery;
-use crate::rollup_dir::dir::{AwaitSync, RollupDirectory};
+use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
+use crate::sync::RollupSync;
 use crate::valtype::account::Account;
 use crate::wallet::lift::LiftWallet;
 use crate::wallet::vtxo::VTXOWallet;
@@ -63,7 +63,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #5 Initialize LP directory.
-    let _lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
+    let lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing LP directory.".red());
@@ -72,7 +72,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #6 Initialize Account registery.
-    let _account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+    let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing account registery.".red());
@@ -81,7 +81,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #7 Initialize Contract registery.
-    let _contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
+    let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing contract registery.".red());
@@ -98,30 +98,42 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #9 Spawn rollup syncer.
-    // TODO
-
-    println!("{}", "Syncing rollup.");
-
-    // # 10 Await rollup to be fully synced.
-    rollup_dir.await_sync(&rpc_holder).await;
-
-    println!("{}", "Syncing lifts.");
-
-    // #11 Spawn lift syncer.
+    // #9 Spawn syncer
     {
         let network = network.clone();
         let key_holder = key_holder.clone();
         let rpc_holder = rpc_holder.clone();
         let epoch_dir = Arc::clone(&epoch_dir);
+        let lp_dir = Arc::clone(&lp_dir);
+        let account_registery = Arc::clone(&account_registery);
+        let contract_registery = Arc::clone(&contract_registery);
         let lift_wallet = Arc::clone(&lift_wallet);
+        let rollup_dir = Arc::clone(&rollup_dir);
 
         tokio::spawn(async move {
-            let _ = sync_lifts(network, &key_holder, &rpc_holder, &epoch_dir, &lift_wallet).await;
+            let _ = rollup_dir
+                .sync(
+                    network,
+                    &rpc_holder,
+                    &key_holder,
+                    &epoch_dir,
+                    &lp_dir,
+                    &account_registery,
+                    &contract_registery,
+                    Some(&lift_wallet),
+                )
+                .await;
         });
     }
 
-    // #12 Construct account.
+    println!("{}", "Syncing rollup.");
+
+    // # 10 Wait until rollup to be synced to the latest Bitcoin chain tip.
+    rollup_dir.await_sync().await;
+
+    println!("{}", "Syncing complete.");
+
+    // #11 Construct account.
     let _account = match Account::new(key_holder.public_key(), None) {
         Some(account) => account,
         None => {
@@ -130,10 +142,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #13 Initialize NNS client.
+    // #12 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #14 Connect to the coordinator.
+    // #13 Connect to the coordinator.
     let coordinator: PEER = {
         let coordinator_key = coordinator_key(network);
 
@@ -150,7 +162,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #15 CLI.
+    // #14 CLI.
     cli(&coordinator, &key_holder, &lift_wallet, &vtxo_wallet).await;
 }
 

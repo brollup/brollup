@@ -10,10 +10,11 @@ use crate::peer::PeerKind;
 use crate::peer_manager::{coordinator_key, PeerManager};
 use crate::registery::account::AccountRegistery;
 use crate::registery::contract::ContractRegistery;
-use crate::rollup_dir::dir::{AwaitSync, RollupDirectory};
+use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
+use crate::sync::RollupSync;
 use crate::tcp::tcp::{open_port, port_number};
 use crate::valtype::account::Account;
 use crate::{
@@ -81,13 +82,39 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Spawn rollup syncer.
-    // TODO
+    // #7 Spawn syncer.
+    {
+        let network = network.clone();
+        let key_holder = key_holder.clone();
+        let rpc_holder = rpc_holder.clone();
+        let epoch_dir = Arc::clone(&epoch_dir);
+        let lp_dir = Arc::clone(&lp_dir);
+        let account_registery = Arc::clone(&account_registery);
+        let contract_registery = Arc::clone(&contract_registery);
+        let rollup_dir = Arc::clone(&rollup_dir);
+
+        tokio::spawn(async move {
+            let _ = rollup_dir
+                .sync(
+                    network,
+                    &rpc_holder,
+                    &key_holder,
+                    &epoch_dir,
+                    &lp_dir,
+                    &account_registery,
+                    &contract_registery,
+                    None,
+                )
+                .await;
+        });
+    }
 
     println!("{}", "Syncing rollup.");
 
     // #8 Await rollup to be fully synced.
-    rollup_dir.await_sync(&rpc_holder).await;
+    rollup_dir.await_sync().await;
+
+    println!("{}", "Syncing complete.");
 
     // #9 Construct account.
     let _account = match Account::new(key_holder.public_key(), None) {
