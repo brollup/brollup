@@ -1,4 +1,4 @@
-use crate::{rpc::bitcoin_rpc::get_chain_height, rpcholder::RPCHolder, Network, ROLLUP_DIRECTORY};
+use crate::{Network, ROLLUP_DIRECTORY};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -80,15 +80,5 @@ impl RollupDirectory {
         let _ = self
             .db
             .insert(b"rollup_sync_height", height.to_be_bytes().to_vec());
-    }
-
-    /// Returns whether the rollup is fully synced.
-    pub fn is_fully_synced(&self, rpc_holder: &RPCHolder) -> bool {
-        let bitcoin_sync_height = match get_chain_height(rpc_holder) {
-            Ok(height) => height,
-            Err(_) => return false,
-        };
-
-        self.bitcoin_sync_height >= bitcoin_sync_height
     }
 }
