@@ -49,6 +49,25 @@ impl Swapout {
         }
     }
 
+    /// Creates a new swapout from a scriptPubKey.
+    pub fn from_spk(account: Account, amount: u32, spk: Vec<u8>) -> Option<Swapout> {
+        let swapout_type = match spk.len() {
+            22 => SwapoutType::P2WPKH(spk[2..].try_into().ok()?),
+            34 => match spk[0] {
+                0x00 => SwapoutType::P2WSH(spk[2..].try_into().ok()?),
+                0x51 => SwapoutType::P2TR(spk[2..].try_into().ok()?),
+                _ => return None,
+            },
+            _ => return None,
+        };
+
+        Some(Swapout {
+            account,
+            amount,
+            swapout_type,
+        })
+    }
+
     /// Returns the witness version for the swapout.
     pub fn witness_version(&self) -> u8 {
         match &self.swapout_type {
