@@ -102,4 +102,12 @@ impl EpochDirectory {
 
         operator_set
     }
+
+    pub fn latest_active_epoch(&self) -> Option<Epoch> {
+        self.epochs
+            .iter()
+            .filter(|(_, epoch)| epoch.active())
+            .max_by_key(|(height, _)| *height)
+            .map(|(_, epoch)| epoch.to_owned())
+    }
 }

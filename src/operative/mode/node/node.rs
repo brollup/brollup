@@ -163,14 +163,24 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #14 CLI.
-    cli(&coordinator, &key_holder, &lift_wallet, &vtxo_wallet).await;
+    cli(
+        network,
+        &coordinator,
+        &key_holder,
+        &lift_wallet,
+        &vtxo_wallet,
+        &epoch_dir,
+    )
+    .await;
 }
 
 pub async fn cli(
+    network: Network,
     coordinator_conn: &PEER,
     key_holder: &KeyHolder,
     lift_wallet: &LIFT_WALLET,
     vtxo_wallet: &VTXO_WALLET,
+    epoch_dir: &EPOCH_DIRECTORY,
 ) {
     println!(
         "{}",
@@ -201,8 +211,9 @@ pub async fn cli(
             "clear" => ncli::clear::command(),
             "conn" => ncli::conn::command(coordinator_conn).await,
             "ping" => ncli::ping::command(coordinator_conn).await,
-            "covj" => {
-                ncli::covj::command(
+            "addr" => ncli::addr::command(network, epoch_dir, key_holder).await,
+            "move" => {
+                ncli::r#move::command(
                     coordinator_conn,
                     lift_wallet,
                     vtxo_wallet,
