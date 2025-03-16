@@ -69,6 +69,8 @@ pub mod musig;
 pub mod noist;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
+#[path = "transmutive/address.rs"]
+pub mod address;
 
 // Operating modes.
 #[path = "operative/mode/coordinator/coordinator.rs"]
