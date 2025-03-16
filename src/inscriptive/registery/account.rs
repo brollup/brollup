@@ -35,15 +35,23 @@ impl AccountRegistery {
 
     /// Returns true if the given key is registered.
     pub fn is_registered(&self, key: Point) -> bool {
-        self.account_by_key(key).is_some()
+        self.account_by_key_registered(key).is_some()
     }
 
-    /// Returns the account by the given key.
-    pub fn account_by_key(&self, key: Point) -> Option<Account> {
+    /// Returns the account by the given key if it is registered.
+    pub fn account_by_key_registered(&self, key: Point) -> Option<Account> {
         self.accounts
             .iter()
             .find(|(_, account)| account.key() == key)
             .map(|(_, account)| account.clone())
+    }
+
+    /// Returns the account by the given key even if it is not registered.
+    pub fn account_by_key_maybe_registered(&self, key: Point) -> Option<Account> {
+        match self.account_by_key_registered(key) {
+            Some(account) => Some(account),
+            None => Account::new(key, None),
+        }
     }
 
     /// Returns the account by the given registery index.
@@ -84,7 +92,7 @@ impl AccountRegistery {
         }
 
         // Check if already registered.
-        if self.account_by_key(key).is_some() {
+        if self.is_registered(key) {
             return false;
         }
 

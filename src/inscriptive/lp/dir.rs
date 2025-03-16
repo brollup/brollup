@@ -42,6 +42,14 @@ impl LPDirectory {
         }
     }
 
+    /// Returns whether the given account is a liquidity provider.
+    pub fn is_lp(&self, account: Account) -> bool {
+        match self.lp(account) {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     /// Adds a new LP if not exists, otherwise updates the existing LP.
     fn update_add(&mut self, lp: &LP) {
         // Update in-memory.

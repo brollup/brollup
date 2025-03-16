@@ -1,5 +1,5 @@
 use super::epoch::Epoch;
-use crate::{baked, into::IntoPoint, Network, EPOCH_DIRECTORY};
+use crate::{baked, into::IntoPoint, valtype::account::Account, Network, EPOCH_DIRECTORY};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -73,6 +73,14 @@ impl EpochDirectory {
         }
     }
 
+    pub fn latest_active_epoch(&self) -> Option<Epoch> {
+        self.epochs
+            .iter()
+            .filter(|(_, epoch)| epoch.active())
+            .max_by_key(|(height, _)| *height)
+            .map(|(_, epoch)| epoch.to_owned())
+    }
+
     pub fn operator_set(&self, network: Network) -> Vec<Point> {
         let mut operator_set = Vec::<Point>::new();
 
@@ -103,11 +111,8 @@ impl EpochDirectory {
         operator_set
     }
 
-    pub fn latest_active_epoch(&self) -> Option<Epoch> {
-        self.epochs
-            .iter()
-            .filter(|(_, epoch)| epoch.active())
-            .max_by_key(|(height, _)| *height)
-            .map(|(_, epoch)| epoch.to_owned())
+    /// Returns whether the given account is an operator.
+    pub fn is_operator(&self, network: Network, account: Account) -> bool {
+        self.operator_set(network).contains(&account.key())
     }
 }

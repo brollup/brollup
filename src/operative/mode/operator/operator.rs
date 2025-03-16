@@ -17,7 +17,6 @@ use crate::sync::RollupSync;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::tcp::tcp::port_number;
-use crate::valtype::account::Account;
 use crate::Network;
 use crate::OperatingMode;
 use crate::ACCOUNT_REGISTERY;
@@ -124,21 +123,34 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     println!("{}", "Syncing complete.");
 
     // #9 Construct account.
-    let account = match Account::new(key_holder.public_key(), None) {
-        Some(account) => account,
-        None => {
-            println!("{}", "Error initializing account.".red());
-            return;
+    let account = {
+        let _account_registery = account_registery.lock().await;
+
+        match _account_registery.account_by_key_maybe_registered(key_holder.public_key()) {
+            Some(account) => account,
+            None => {
+                println!("{}", "Error constructing account.".red());
+                return;
+            }
         }
     };
 
-    // #10 Check if this account is a liquidity provider.
+    // #10 Check if this account is a liquidity provider or an operator.
     {
-        let _lp_dir = lp_dir.lock().await;
-        if let None = _lp_dir.lp(account) {
+        let is_lp = {
+            let _lp_dir = lp_dir.lock().await;
+            _lp_dir.is_lp(account)
+        };
+
+        let is_operator = {
+            let _epoch_dir = epoch_dir.lock().await;
+            _epoch_dir.is_operator(network, account)
+        };
+
+        if !is_lp || !is_operator {
             eprintln!(
                 "{}",
-                "This account is not an active liquidity provider.".red()
+                "This account is not an active liquidity provider or operator.".red()
             );
             return;
         }

@@ -134,11 +134,15 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     println!("{}", "Syncing complete.");
 
     // #11 Construct account.
-    let _account = match Account::new(key_holder.public_key(), None) {
-        Some(account) => account,
-        None => {
-            println!("{}", "Error initializing account.".red());
-            return;
+    let account = {
+        let _account_registery = account_registery.lock().await;
+
+        match _account_registery.account_by_key_maybe_registered(key_holder.public_key()) {
+            Some(account) => account,
+            None => {
+                println!("{}", "Error constructing account.".red());
+                return;
+            }
         }
     };
 
@@ -167,6 +171,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         network,
         &coordinator,
         &key_holder,
+        &account,
         &lift_wallet,
         &vtxo_wallet,
         &epoch_dir,
@@ -178,6 +183,7 @@ pub async fn cli(
     network: Network,
     coordinator_conn: &PEER,
     key_holder: &KeyHolder,
+    _account: &Account,
     lift_wallet: &LIFT_WALLET,
     vtxo_wallet: &VTXO_WALLET,
     epoch_dir: &EPOCH_DIRECTORY,
