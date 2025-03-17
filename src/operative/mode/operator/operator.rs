@@ -147,7 +147,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
             _epoch_dir.is_operator(network, account)
         };
 
-        if !is_lp || !is_operator {
+        if !is_lp && !is_operator {
             eprintln!(
                 "{}",
                 "This account is not an active liquidity provider or operator.".red()
