@@ -81,18 +81,13 @@ impl EpochDirectory {
             .map(|(_, epoch)| epoch.to_owned())
     }
 
-    pub fn operator_set(&self, network: Network) -> Vec<Point> {
+    pub fn operator_set(&self) -> Vec<Point> {
         let mut operator_set = Vec::<Point>::new();
 
         // Fill with the initial operator set.
         {
-            let initial_operator_set = match network {
-                Network::Signet => baked::INITIAL_SIGNET_OPERATOR_SET,
-                Network::Mainnet => baked::INITIAL_MAINNET_OPERATOR_SET,
-            };
-
             operator_set.extend(
-                initial_operator_set
+                baked::INITIAL_OPERATOR_SET
                     .into_iter()
                     .filter_map(|op| op.into_point().ok()),
             );
@@ -112,7 +107,7 @@ impl EpochDirectory {
     }
 
     /// Returns whether the given account is an operator.
-    pub fn is_operator(&self, network: Network, account: Account) -> bool {
-        self.operator_set(network).contains(&account.key())
+    pub fn is_operator(&self, account: Account) -> bool {
+        self.operator_set().contains(&account.key())
     }
 }

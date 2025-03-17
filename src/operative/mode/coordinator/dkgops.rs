@@ -1,4 +1,5 @@
 use crate::{
+    baked,
     into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     musig::session::MusigSessionCtx,
     noist::{dkg::session::DKGSession, session::NOISTSessionCtx, setup::setup::VSESetup},
@@ -58,7 +59,7 @@ impl DKGOps for DKG_MANAGER {
         };
 
         // #2 Retrieve the liquidity provider list.
-        let lp_rank_key_list = {
+        let mut lp_key_list = {
             let lp_dir: LP_DIRECTORY = {
                 let _dkg_manager = self.lock().await;
                 _dkg_manager.lp_directory()
@@ -67,26 +68,31 @@ impl DKGOps for DKG_MANAGER {
             _p_dir.lp_rank_key_list(1024)
         };
 
+        // TODO REMOVE
+        {
+            lp_key_list.extend(baked::INITIAL_OPERATOR_SET.to_vec());
+        }
+
         // #3 Connect to liquidity providers (if possible).
         let lp_peers: Vec<PEER> = match {
             peer_manager
-                .add_peers(crate::peer::PeerKind::Operator, &lp_rank_key_list)
+                .add_peers(crate::peer::PeerKind::Operator, &lp_key_list)
                 .await;
 
             let mut _peer_manager = peer_manager.lock().await;
-            _peer_manager.retrieve_peers(&lp_rank_key_list)
+            _peer_manager.retrieve_peers(&lp_key_list)
         } {
             Some(some) => some,
             None => return Err(DKGSetupError::PeerRetrievalErr),
         };
 
         // #4 Check if there are enough peer connections.
-        if lp_peers.len() <= lp_rank_key_list.len() / 20 {
+        if lp_peers.len() <= lp_key_list.len() / 20 {
             return Err(DKGSetupError::InsufficientPeers);
         }
 
         // #5 Convert LP keys into secp Points.
-        let lp_key_points = match lp_rank_key_list.into_point_vec() {
+        let lp_key_points = match lp_key_list.into_point_vec() {
             Ok(points) => points,
             Err(_) => return Err(DKGSetupError::PreSetupInitErr),
         };
@@ -103,7 +109,7 @@ impl DKGOps for DKG_MANAGER {
 
             for lp_peer in lp_peers.clone() {
                 let vse_setup_ = Arc::clone(&vse_setup_);
-                let lp_keys = lp_rank_key_list.clone();
+                let lp_keys = lp_key_list.clone();
 
                 let lp_key = lp_peer.key().await;
 

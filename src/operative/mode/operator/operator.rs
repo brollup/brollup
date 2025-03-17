@@ -144,7 +144,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
         let is_operator = {
             let _epoch_dir = epoch_dir.lock().await;
-            _epoch_dir.is_operator(network, account)
+            _epoch_dir.is_operator(account)
         };
 
         if !is_lp && !is_operator {

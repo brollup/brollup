@@ -144,10 +144,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     // #13 Initialize peer manager.
     let operator_set = {
         let _epoch_dir = epoch_dir.lock().await;
-        _epoch_dir
-            .operator_set(network)
-            .into_xpoint_vec()
-            .expect("")
+        _epoch_dir.operator_set().into_xpoint_vec().expect("")
     };
     let mut peer_manager: PEER_MANAGER =
         match PeerManager::new(network, &nns_client, PeerKind::Operator, &operator_set).await {
