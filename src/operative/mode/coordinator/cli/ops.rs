@@ -6,13 +6,21 @@ pub async fn command(peer_manager: &PEER_MANAGER) {
         _peer_manager.peers()
     };
 
-    for (index, (key, peer)) in peers.iter().enumerate() {
-        let _peer = peer.lock().await;
-        println!(
-            "Operator #{} ({}): {}",
-            index,
-            hex::encode(key),
-            _peer.addr()
-        );
+    match peers.len() {
+        0 => {
+            println!("None.");
+            return;
+        }
+        _ => {
+            for (index, (key, peer)) in peers.iter().enumerate() {
+                let _peer = peer.lock().await;
+                println!(
+                    "Operator #{} ({}): {}",
+                    index,
+                    hex::encode(key),
+                    _peer.addr()
+                );
+            }
+        }
     }
 }

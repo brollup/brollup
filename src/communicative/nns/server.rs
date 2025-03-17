@@ -9,7 +9,7 @@ use std::{
 };
 use tokio::time::timeout;
 
-const IP_ADDR_FILE_PATH: &str = "db/nns/address.txt";
+const IP_ADDR_FILE_PATH: &str = "nns_ip_address.txt";
 
 /// Executes a persistent task that monitors changes
 /// in the dynamic IP address of the running machine.

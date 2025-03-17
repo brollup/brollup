@@ -88,17 +88,21 @@ pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<TC
     // Read package kind.
     let mut package_kind_buffer = [0x00u8; 1];
     let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+
     read(socket, &mut package_kind_buffer, remaining_time)
         .await
         .ok()?;
+
     let package_kind = PackageKind::from_bytecode(package_kind_buffer[0])?;
 
     // Read timestamp.
     let mut timestamp_buffer = [0x00u8; 8];
     let remaining_time = timeout.and_then(|t| t.checked_sub(start.elapsed()));
+
     read(socket, &mut timestamp_buffer, remaining_time)
         .await
         .ok()?;
+
     let timestamp = i64::from_be_bytes(timestamp_buffer);
 
     // Read payload length.
@@ -126,6 +130,7 @@ pub async fn read(
 ) -> Result<(), TCPError> {
     if let Some(duration) = timeout {
         tokio::select! {
+
             result = socket.read_exact(buffer) => {
                 // Handle the result of read_exact
                 match result {
@@ -205,6 +210,7 @@ pub async fn request(
                 let remaining_time = timeout_duration
         .checked_sub(start.elapsed())
         .ok_or(TCPError::Timeout)?;
+
 
                 let response_package = match pop(&mut *_socket, Some(remaining_time)).await {
                     Some(package) => package,

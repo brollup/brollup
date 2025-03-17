@@ -154,76 +154,80 @@ async fn handle_socket(
     csession_ctx: &Option<CSESSION_CTX>,
 ) {
     loop {
-        let mut _socket = socket.lock().await;
+        let package = {
+            let mut _socket = socket.lock().await;
 
-        // Read package kind.
-        let mut package_kind_buffer = [0; 1];
-        match tcp::read(
-            &mut *_socket,
-            &mut package_kind_buffer,
-            Some(IDLE_CLIENT_TIMEOUT),
-        )
-        .await
-        {
-            Ok(_) => (),
-            Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
-            Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
-            Err(_) => continue,                   // Iterate on read errors.
-        }
-        let package_kind = match PackageKind::from_bytecode(package_kind_buffer[0]) {
-            Some(kind) => kind,
-            None => continue,
-        };
+            // Read package kind.
+            let mut package_kind_buffer = [0; 1];
+            match tcp::read(
+                &mut *_socket,
+                &mut package_kind_buffer,
+                Some(IDLE_CLIENT_TIMEOUT),
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => break, // Exit on IDLE_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
+            }
+            let package_kind = match PackageKind::from_bytecode(package_kind_buffer[0]) {
+                Some(kind) => kind,
+                None => continue,
+            };
 
-        // Start tracking elapsed time.
-        let start = Instant::now();
-        let timeout_duration = PAYLOAD_READ_TIMEOUT; // Default timeout: 3000 ms.
+            // Start tracking elapsed time.
+            let start = Instant::now();
+            let timeout_duration = PAYLOAD_READ_TIMEOUT; // Default timeout: 3000 ms.
 
-        // Read timestamp.
-        let mut timestamp_buffer = [0; 8];
-        match tcp::read(&mut *_socket, &mut timestamp_buffer, Some(timeout_duration)).await {
-            Ok(_) => (),
-            Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
-            Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
-            Err(_) => continue,                   // Iterate on read errors.
-        }
-        let timestamp = i64::from_be_bytes(timestamp_buffer);
+            // Read timestamp.
+            let mut timestamp_buffer = [0; 8];
+            match tcp::read(&mut *_socket, &mut timestamp_buffer, Some(timeout_duration)).await {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
+            }
+            let timestamp = i64::from_be_bytes(timestamp_buffer);
 
-        let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
-            Some(duration) => duration,
-            None => continue,
-        };
+            let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
+                Some(duration) => duration,
+                None => continue,
+            };
 
-        // Read payload length.
-        let mut payload_len_buffer = [0; 4];
-        match tcp::read(&mut *_socket, &mut payload_len_buffer, Some(remaining_time)).await {
-            Ok(_) => (),
-            Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
-            Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
-            Err(_) => continue,                   // Iterate on read errors.
-        }
-        let payload_len = u32::from_be_bytes(payload_len_buffer) as usize;
+            // Read payload length.
+            let mut payload_len_buffer = [0; 4];
+            match tcp::read(&mut *_socket, &mut payload_len_buffer, Some(remaining_time)).await {
+                Ok(_) => (),
+                Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
+                Err(_) => continue,                   // Iterate on read errors.
+            }
+            let payload_len = u32::from_be_bytes(payload_len_buffer) as usize;
 
-        let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
-            Some(duration) => duration,
-            None => continue,
-        };
+            let remaining_time = match timeout_duration.checked_sub(start.elapsed()) {
+                Some(duration) => duration,
+                None => continue,
+            };
 
-        // Read payload.
-        let mut payload_bufer = vec![0x00u8; u32::from_be_bytes(payload_len_buffer) as usize];
-        match payload_len {
-            0 => continue, // Iterate on empty payload.
-            _ => {
-                match tcp::read(&mut *_socket, &mut payload_bufer, Some(remaining_time)).await {
-                    Ok(_) => (),
-                    Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
-                    Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
-                    Err(_) => continue,                   // Iterate on read errors.
+            // Read payload.
+            let mut payload_bufer = vec![0x00u8; u32::from_be_bytes(payload_len_buffer) as usize];
+            match payload_len {
+                0 => continue, // Iterate on empty payload.
+                _ => {
+                    match tcp::read(&mut *_socket, &mut payload_bufer, Some(remaining_time)).await {
+                        Ok(_) => (),
+                        Err(tcp::TCPError::ConnErr) => break, // Exit on disconnection.
+                        Err(tcp::TCPError::Timeout) => continue, // Iterate on PAYLOAD_READ_TIMEOUT.
+                        Err(_) => continue,                   // Iterate on read errors.
+                    }
                 }
             }
-        }
 
-        let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
+            let package = TCPPackage::new(package_kind, timestamp, &payload_bufer);
+
+            package
+        };
 
         // Process the request kind.
         handle_package(package, socket, mode, keys, dkg_manager, csession_ctx).await;
