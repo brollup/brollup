@@ -53,5 +53,5 @@ pub const INITIAL_MAINNET_OPERATOR_SET: [[u8; 32]; 3] = [
 ];
 
 // Sync start heights
-pub const SIGNET_SYNC_START_HEIGHT: u64 = 239_528;
-pub const MAINNET_SYNC_START_HEIGHT: u64 = 887_820;
+pub const SIGNET_SYNC_START_HEIGHT: u64 = 239_679;
+pub const MAINNET_SYNC_START_HEIGHT: u64 = 888_116;
