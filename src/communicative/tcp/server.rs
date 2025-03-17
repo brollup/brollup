@@ -15,9 +15,7 @@ use crate::session::opcov::CSessionOpCov;
 use crate::session::uphold::NSessionUphold;
 use crate::session::upholdack::CSessionUpholdAck;
 use crate::session::upholdnack::CSessionUpholdNack;
-use crate::{
-    Network, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, LP_DIRECTORY, SOCKET,
-};
+use crate::{Network, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
 use colored::Colorize;
 use secp::Scalar;
 use std::{sync::Arc, time::Duration};
@@ -340,25 +338,26 @@ async fn handle_request_vse_keymap(
     timestamp: i64,
     payload: &[u8],
     keys: &KeyHolder,
-    dkg_manager: &mut DKG_MANAGER,
+    _dkg_manager: &mut DKG_MANAGER,
 ) -> Option<TCPPackage> {
     let signatory_keys: Vec<[u8; 32]> = match serde_json::from_slice(payload) {
         Ok(no) => no,
         Err(_) => return None,
     };
 
+    // TODO BRING BACK.
     // Check if requested signatory keys are within the subset of liquidity providers.
-    {
-        let lp_dir: LP_DIRECTORY = {
-            let _dkg_manager = dkg_manager.lock().await;
-            _dkg_manager.lp_directory()
-        };
+    //{
+    //let lp_dir: LP_DIRECTORY = {
+    //    let _dkg_manager = dkg_manager.lock().await;
+    //    _dkg_manager.lp_directory()
+    //};
 
-        let _lp_dir = lp_dir.lock().await;
-        if !_lp_dir.is_valid_subset(&signatory_keys) {
-            return None;
-        }
-    }
+    //let _lp_dir = lp_dir.lock().await;
+    //if !_lp_dir.is_valid_subset(&signatory_keys) {
+    //    return None;
+    //}
+    //}
 
     let signatories = signatory_keys.into_point_vec().ok()?;
 
