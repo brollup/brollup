@@ -32,5 +32,5 @@ pub async fn addr_command(network: Network, epoch_dir: &EPOCH_DIRECTORY, key_hol
         None => "-".to_string(),
     };
 
-    println!("Off-chain  : {}\nOn-chain   : {}", npub, lift_address);
+    println!("off-chain : {}\non-chain  : {}", npub, lift_address);
 }
