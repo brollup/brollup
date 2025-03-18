@@ -24,17 +24,13 @@ pub async fn lift_address(
     Some(address)
 }
 
-// move <npub> <amount>
-pub async fn command(network: Network, epoch_dir: &EPOCH_DIRECTORY, key_holder: &KeyHolder) {
+// addr
+pub async fn addr_command(network: Network, epoch_dir: &EPOCH_DIRECTORY, key_holder: &KeyHolder) {
     let npub = key_holder.npub();
     let lift_address = match lift_address(network, key_holder, epoch_dir).await {
         Some(address) => address,
-        None => {
-            println!("-");
-            return;
-        }
+        None => "-".to_string(),
     };
 
-    println!("On-chain deposit address: {}", lift_address);
-    println!("Off-chain deposit address: {}", npub);
+    println!("Off-chain  : {}\nOn-chain   : {}", npub, lift_address);
 }

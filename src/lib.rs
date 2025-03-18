@@ -12,7 +12,7 @@ use rollup_dir::dir::RollupDirectory;
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use wallet::{lift::LiftWallet, vtxo::VTXOWallet};
+use wallet::wallet::Wallet;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
@@ -24,8 +24,7 @@ type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
 // Wallets
-type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
-type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
+type WALLET = Arc<Mutex<Wallet>>;
 
 // Dirs
 type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
@@ -57,6 +56,8 @@ pub mod wallet;
 #[path = "inscriptive/encoding/mod.rs"]
 pub mod encoding;
 
+#[path = "transmutive/address.rs"]
+pub mod address;
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]
@@ -69,8 +70,6 @@ pub mod musig;
 pub mod noist;
 #[path = "transmutive/schnorr.rs"]
 pub mod schnorr;
-#[path = "transmutive/address.rs"]
-pub mod address;
 
 // Operating modes.
 #[path = "operative/mode/coordinator/coordinator.rs"]

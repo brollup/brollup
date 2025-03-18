@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Outpoint {
+    #[serde(
+        serialize_with = "serialize_prev",
+        deserialize_with = "deserialize_prev"
+    )]
     prev: [u8; 32],
     vout: u32,
 }
@@ -28,4 +32,21 @@ impl Outpoint {
         bytes[32..36].copy_from_slice(&self.vout_bytes());
         bytes
     }
+}
+
+// Custom function to serialize `prev` as a hex string
+fn serialize_prev<S>(bytes: &[u8; 32], serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&hex::encode(bytes))
+}
+
+fn deserialize_prev<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s: &str = serde::Deserialize::deserialize(deserializer)?;
+    let bytes = hex::decode(s).map_err(serde::de::Error::custom)?;
+    Ok(bytes.try_into().unwrap())
 }

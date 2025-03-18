@@ -7,7 +7,7 @@ use colored::Colorize;
 // dkg dir <height> sign <msg> (not supported)
 // dkg dir <height> sync
 
-pub async fn command(parts: Vec<&str>, coordinator: &PEER, dkg_manager: &mut DKG_MANAGER) {
+pub async fn dkg_command(parts: Vec<&str>, coordinator: &PEER, dkg_manager: &mut DKG_MANAGER) {
     match parts.get(1) {
         Some(part) => match part.to_owned() {
             "dir" => match parts.get(2) {

@@ -244,8 +244,8 @@ pub async fn cli(dkg_manager: &mut DKG_MANAGER, coordinator: &PEER) {
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => ocli::clear::command(),
-            "dkg" => ocli::dkg::command(parts, coordinator, dkg_manager).await,
+            "clear" => ocli::clear::clear_command(),
+            "dkg" => ocli::dkg::dkg_command(parts, coordinator, dkg_manager).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }

@@ -2,7 +2,7 @@ use crate::{valtype::account::Account, BLIST_DIRECTORY};
 use secp::Point;
 
 // blist <account> <until>
-pub async fn command(parts: Vec<&str>, blacklist_dir: &BLIST_DIRECTORY) {
+pub async fn blist_command(parts: Vec<&str>, blacklist_dir: &BLIST_DIRECTORY) {
     if parts.len() != 3 {
         return eprintln!("Incorrect usage.");
     }

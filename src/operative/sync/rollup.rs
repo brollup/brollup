@@ -6,8 +6,8 @@ use crate::{
     taproot::P2TR,
     txn::outpoint::Outpoint,
     txo::lift::Lift,
-    Network, ACCOUNT_REGISTERY, CONTRACT_REGISTERY, EPOCH_DIRECTORY, LIFT_WALLET, LP_DIRECTORY,
-    ROLLUP_DIRECTORY,
+    Network, ACCOUNT_REGISTERY, CONTRACT_REGISTERY, EPOCH_DIRECTORY, LP_DIRECTORY,
+    ROLLUP_DIRECTORY, WALLET,
 };
 use async_trait::async_trait;
 use bitcoincore_rpc::bitcoin::hashes::Hash;
@@ -54,7 +54,7 @@ pub trait RollupSync {
         _lp_dir: &LP_DIRECTORY,
         _account_registery: &ACCOUNT_REGISTERY,
         _contract_registery: &CONTRACT_REGISTERY,
-        lift_wallet: Option<&LIFT_WALLET>,
+        wallet: Option<&WALLET>,
     );
 
     /// Awaits the rollup to be synced to the latest Bitcoin chain tip.
@@ -86,7 +86,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
         _lp_dir: &LP_DIRECTORY,
         _account_registery: &ACCOUNT_REGISTERY,
         _contract_registery: &CONTRACT_REGISTERY,
-        lift_wallet: Option<&LIFT_WALLET>,
+        wallet: Option<&WALLET>,
     ) {
         let mut synced: bool = false;
 
@@ -104,10 +104,10 @@ impl RollupSync for ROLLUP_DIRECTORY {
             };
 
             let self_lifts = {
-                match lift_wallet {
-                    Some(lift_wallet) => {
-                        let _lift_wallet = lift_wallet.lock().await;
-                        _lift_wallet.set()
+                match wallet {
+                    Some(wallet) => {
+                        let _wallet = wallet.lock().await;
+                        _wallet.lifts()
                     }
                     None => vec![],
                 }
@@ -152,7 +152,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
                         }
                     };
 
-                    let lift_spks_to_scan = match lift_wallet {
+                    let lift_spks_to_scan = match wallet {
                         Some(_) => match lifts_spks_to_scan(key_holder, epoch_dir).await {
                             Some(spks) => spks,
                             None => vec![],
@@ -168,7 +168,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
                         // Iterate over inputs.
                         for input in inputs.iter() {
                             // Remove spent lifts from wallet.
-                            if let Some(lift_wallet) = lift_wallet {
+                            if let Some(wallet) = wallet {
                                 let txn_input_outpoint = {
                                     let prev: [u8; 32] =
                                         input.previous_output.txid.to_raw_hash().to_byte_array();
@@ -182,8 +182,8 @@ impl RollupSync for ROLLUP_DIRECTORY {
                                         if txn_input_outpoint == self_lift_outpoint {
                                             // Remove from lift wallet.
                                             {
-                                                let mut _lift_wallet = lift_wallet.lock().await;
-                                                _lift_wallet.remove(lift);
+                                                let mut _wallet = wallet.lock().await;
+                                                _wallet.remove_lift(lift);
                                             }
                                         }
                                     }
@@ -196,7 +196,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
                             let txn_output_spk = output.script_pubkey.as_bytes().to_vec();
 
                             // Compare to lift spks to scan.
-                            if let Some(lift_wallet) = lift_wallet {
+                            if let Some(wallet) = wallet {
                                 for (lift_spk, operator_group_key) in lift_spks_to_scan.iter() {
                                     if &txn_output_spk == lift_spk {
                                         let outpoint = {
@@ -220,8 +220,8 @@ impl RollupSync for ROLLUP_DIRECTORY {
 
                                         // Add to lift wallet.
                                         {
-                                            let mut _lift_wallet = lift_wallet.lock().await;
-                                            _lift_wallet.insert(&lift);
+                                            let mut _wallet = wallet.lock().await;
+                                            _wallet.insert_lift(&lift);
                                         }
                                     }
                                 }

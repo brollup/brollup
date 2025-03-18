@@ -1,2 +1,1 @@
-pub mod lift;
-pub mod vtxo;
+pub mod wallet;

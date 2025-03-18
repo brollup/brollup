@@ -10,14 +10,12 @@ use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::sync::RollupSync;
 use crate::valtype::account::Account;
-use crate::wallet::lift::LiftWallet;
-use crate::wallet::vtxo::VTXOWallet;
+use crate::wallet::wallet::Wallet;
 use crate::{key::KeyHolder, OperatingMode};
 use crate::{
-    ncli, Network, ACCOUNT_REGISTERY, CONTRACT_REGISTERY, EPOCH_DIRECTORY, LP_DIRECTORY,
-    ROLLUP_DIRECTORY, VTXO_WALLET,
+    ncli, Network, ACCOUNT_REGISTERY, CONTRACT_REGISTERY, EPOCH_DIRECTORY, LP_DIRECTORY, PEER,
+    ROLLUP_DIRECTORY, WALLET,
 };
-use crate::{LIFT_WALLET, PEER};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
@@ -35,25 +33,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     println!("{}", "Initializing node.");
 
-    // #2 Initialize Lift wallet.
-    let lift_wallet: LIFT_WALLET = match LiftWallet::new(network) {
-        Some(lift_wallet) => lift_wallet,
+    // #2 Initialize  wallet.
+    let wallet: WALLET = match Wallet::new(network, key_holder.public_key()) {
+        Some(wallet) => wallet,
         None => {
-            println!("{}", "Error initializing lift wallet.".red());
+            println!("{}", "Error initializing wallet.".red());
             return;
         }
     };
 
-    // #3 Initialize VTXO wallet.
-    let vtxo_wallet: VTXO_WALLET = match VTXOWallet::new(network) {
-        Some(vtxo_wallet) => vtxo_wallet,
-        None => {
-            println!("{}", "Error initializing vtxo wallet.".red());
-            return;
-        }
-    };
-
-    // #4 Initialize Epoch directory.
+    // #3 Initialize Epoch directory.
     let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
         Some(epoch_dir) => epoch_dir,
         None => {
@@ -62,7 +51,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #5 Initialize LP directory.
+    // #4 Initialize LP directory.
     let lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
         Some(dir) => dir,
         None => {
@@ -71,7 +60,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #6 Initialize Account registery.
+    // #5 Initialize Account registery.
     let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
         Some(dir) => dir,
         None => {
@@ -80,7 +69,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Initialize Contract registery.
+    // #6 Initialize Contract registery.
     let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
         Some(dir) => dir,
         None => {
@@ -89,7 +78,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #8 Initialize rollup directory.
+    // #7 Initialize rollup directory.
     let rollup_dir: ROLLUP_DIRECTORY = match RollupDirectory::new(network) {
         Some(dir) => dir,
         None => {
@@ -98,7 +87,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #9 Spawn syncer
+    // #8 Spawn syncer
     {
         let network = network.clone();
         let key_holder = key_holder.clone();
@@ -107,7 +96,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let lp_dir = Arc::clone(&lp_dir);
         let account_registery = Arc::clone(&account_registery);
         let contract_registery = Arc::clone(&contract_registery);
-        let lift_wallet = Arc::clone(&lift_wallet);
+        let wallet = Arc::clone(&wallet);
         let rollup_dir = Arc::clone(&rollup_dir);
 
         tokio::spawn(async move {
@@ -120,7 +109,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &account_registery,
                     &contract_registery,
-                    Some(&lift_wallet),
+                    Some(&wallet),
                 )
                 .await;
         });
@@ -128,12 +117,12 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     println!("{}", "Syncing rollup.");
 
-    // # 10 Wait until rollup to be synced to the latest Bitcoin chain tip.
+    // #9 Wait until rollup to be synced to the latest Bitcoin chain tip.
     rollup_dir.await_sync().await;
 
     println!("{}", "Syncing complete.");
 
-    // #11 Construct account.
+    // #10 Construct account.
     let account = {
         let _account_registery = account_registery.lock().await;
 
@@ -146,10 +135,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #12 Initialize NNS client.
+    // #11 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #13 Connect to the coordinator.
+    // #12 Connect to the coordinator.
     let coordinator: PEER = {
         let coordinator_key = coordinator_key(network);
 
@@ -166,14 +155,13 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #14 CLI.
+    // #13 CLI.
     cli(
         network,
         &coordinator,
         &key_holder,
         &account,
-        &lift_wallet,
-        &vtxo_wallet,
+        &wallet,
         &epoch_dir,
     )
     .await;
@@ -184,8 +172,7 @@ pub async fn cli(
     coordinator_conn: &PEER,
     key_holder: &KeyHolder,
     _account: &Account,
-    lift_wallet: &LIFT_WALLET,
-    vtxo_wallet: &VTXO_WALLET,
+    wallet: &WALLET,
     epoch_dir: &EPOCH_DIRECTORY,
 ) {
     println!(
@@ -214,15 +201,16 @@ pub async fn cli(
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => ncli::clear::command(),
-            "conn" => ncli::conn::command(coordinator_conn).await,
-            "ping" => ncli::ping::command(coordinator_conn).await,
-            "addr" => ncli::addr::command(network, epoch_dir, key_holder).await,
+            "clear" => ncli::clear::clear_command(),
+            "conn" => ncli::conn::conn_command(coordinator_conn).await,
+            "ping" => ncli::ping::ping_command(coordinator_conn).await,
+            "npub" => ncli::npub::npub_command(key_holder).await,
+            "addr" => ncli::addr::addr_command(network, epoch_dir, key_holder).await,
+            "lift" => ncli::lift::lift_command(wallet, epoch_dir, network, key_holder, parts).await,
             "move" => {
-                ncli::r#move::command(
+                ncli::r#move::move_command(
                     coordinator_conn,
-                    lift_wallet,
-                    vtxo_wallet,
+                    wallet,
                     key_holder.secret_key(),
                     key_holder.public_key(),
                 )

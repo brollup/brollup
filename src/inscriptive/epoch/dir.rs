@@ -19,6 +19,17 @@ impl EpochDirectory {
 
         let mut epochs = HashMap::<u64, Epoch>::new();
 
+        // Remove later
+        {
+            let test_group_key = Point::from_hex(
+                "032b4e599dcecb2ba1527cb47cb25e2fc704082d5ea6390ccc10183570febdbaa1",
+            )
+            .ok()
+            .unwrap();
+            let test_epoch = Epoch::new(1, true, test_group_key, vec![]);
+            epochs.insert(1, test_epoch);
+        }
+
         for lookup in db.iter() {
             if let Ok((key, val)) = lookup {
                 let height: u64 = u64::from_be_bytes(key.as_ref().try_into().ok()?);

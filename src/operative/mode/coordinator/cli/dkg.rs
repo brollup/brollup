@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 // dkg dir <height> sign <msg>
 // dkg dir <height> sync <key>
 
-pub async fn command(
+pub async fn dkg_command(
     parts: Vec<&str>,
     peer_manager: &mut PEER_MANAGER,
     dkg_manager: &mut DKG_MANAGER,

@@ -244,10 +244,10 @@ pub async fn cli(
         match parts[0] {
             // Main commands:
             "exit" => break,
-            "clear" => ccli::clear::command(),
-            "dkg" => ccli::dkg::command(parts, peer_manager, dkg_manager).await,
-            "ops" => ccli::ops::command(peer_manager).await,
-            "blist" => ccli::blist::command(parts, blacklist_dir).await,
+            "clear" => ccli::clear::clear_command(),
+            "dkg" => ccli::dkg::dkg_command(parts, peer_manager, dkg_manager).await,
+            "ops" => ccli::ops::ops_command(peer_manager).await,
+            "blist" => ccli::blist::blist_command(parts, blacklist_dir).await,
             _ => eprintln!("{}", format!("Unknown commmand.").yellow()),
         }
     }
