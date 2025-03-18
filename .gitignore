@@ -3,3 +3,4 @@
 .DS_Store
 Dockerfile
 .dockerignore
+nns_ip_address.txt
