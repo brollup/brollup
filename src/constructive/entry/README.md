@@ -13,7 +13,7 @@
 | Reserved 📁      | Fails the entry. Reserved for future upgrades.                                                |
 
 
-## Entry Encoding
+## Compact Payload Encoding for Entry
                                                     
     ┌──────────────────────────┐    ┌─────────────────────────────────────────────────────────────────────────────┐     
     │ Uppermost Left Branch    │    │ Uppermost Right Branch                                                      │
@@ -37,6 +37,8 @@
                                                                  └──────────┘└──────────┘  └──────────┘└──────────┘
 
 - `Uppermost Left Branch` and `Uppermost Right Branch` can be both set to `on`.
+- `Uppermost Left Branch` can be set to `on` and `Uppermost Right Branch` be set to `off`.
+- `Uppermost Left Branch` can be set to `off` and `Uppermost Right Branch` be set to `on`.
 
 - If `Uppermost Left Branch` set to `on`;
     - 1. `Liftup` and `Recharge` can be both set to `on`.

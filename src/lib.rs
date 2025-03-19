@@ -125,6 +125,8 @@ pub mod txn_old;
 pub mod txo;
 #[path = "constructive/valtype/mod.rs"]
 pub mod valtype;
+#[path = "constructive/cpe.rs"]
+pub mod cpe;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
