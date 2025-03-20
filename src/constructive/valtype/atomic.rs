@@ -1,9 +1,11 @@
 use crate::cpe::CompactPayloadEncoding;
 use bit_vec::BitVec;
-/// Atomic compact value representation from one to eight.
+use serde::{Deserialize, Serialize};
+
+/// Atomic compact value representation from zero to seven.
 ///
 /// Used for very small value representations such as contract method call indexes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AtomicVal {
     Zero,
     One,
