@@ -123,10 +123,12 @@ pub mod txn;
 pub mod txn_old;
 #[path = "constructive/txo/mod.rs"]
 pub mod txo;
-#[path = "constructive/valtype/mod.rs"]
-pub mod valtype;
+#[path = "constructive/entity/mod.rs"]
+pub mod entity;
 #[path = "constructive/cpe.rs"]
 pub mod cpe;
+#[path = "constructive/val/mod.rs"]
+pub mod val;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {

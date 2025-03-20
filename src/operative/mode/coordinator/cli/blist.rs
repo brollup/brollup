@@ -1,4 +1,4 @@
-use crate::{valtype::account::Account, BLIST_DIRECTORY};
+use crate::{entity::account::Account, BLIST_DIRECTORY};
 use secp::Point;
 
 // blist <account> <until>

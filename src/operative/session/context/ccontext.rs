@@ -3,6 +3,7 @@ use super::{
     uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdnack::CSessionUpholdNack,
 };
 use crate::{
+    entity::account::Account,
     entry::Entry,
     hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
@@ -15,7 +16,6 @@ use crate::{
         lift::Lift,
         projector::{self, Projector},
     },
-    valtype::account::Account,
     ACCOUNT_REGISTERY, BLIST_DIRECTORY, CONTRACT_REGISTERY, CSESSION_CTX, DKG_DIRECTORY,
     DKG_MANAGER, PEER, PEER_MANAGER,
 };

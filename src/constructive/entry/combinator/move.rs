@@ -1,7 +1,7 @@
 use crate::{
     hash::{Hash, HashTag},
     schnorr::Sighash,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use serde::{Deserialize, Serialize};
 

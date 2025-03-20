@@ -1,5 +1,5 @@
 use super::lp::LP;
-use crate::{into::IntoPointVec, valtype::account::Account, Network, LP_DIRECTORY};
+use crate::{into::IntoPointVec, entity::account::Account, Network, LP_DIRECTORY};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

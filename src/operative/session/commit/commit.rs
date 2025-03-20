@@ -2,7 +2,7 @@ use crate::entry::Entry;
 use crate::hash::{Hash, HashTag};
 use crate::schnorr::Sighash;
 use crate::txo::lift::Lift;
-use crate::valtype::account::Account;
+use crate::entity::account::Account;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

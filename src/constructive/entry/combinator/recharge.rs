@@ -2,7 +2,7 @@ use crate::{
     hash::{Hash, HashTag},
     schnorr::Sighash,
     txo::vtxo::VTXO,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use serde::{Deserialize, Serialize};
 

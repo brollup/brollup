@@ -1,4 +1,4 @@
-use crate::{txo::lift::Lift, valtype::account::Account};
+use crate::{txo::lift::Lift, entity::account::Account};
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

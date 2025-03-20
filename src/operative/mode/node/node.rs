@@ -9,7 +9,7 @@ use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::sync::RollupSync;
-use crate::valtype::account::Account;
+use crate::entity::account::Account;
 use crate::wallet::wallet::Wallet;
 use crate::{key::KeyHolder, OperatingMode};
 use crate::{

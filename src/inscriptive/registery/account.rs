@@ -1,4 +1,4 @@
-use crate::{valtype::account::Account, Network, ACCOUNT_REGISTERY};
+use crate::{entity::account::Account, Network, ACCOUNT_REGISTERY};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;

@@ -5,7 +5,7 @@ use crate::{
         recharge::Recharge, remove::Remove, reserved::Reserved, swapout::Swapout,
     },
     schnorr::Sighash,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use serde::{Deserialize, Serialize};
 

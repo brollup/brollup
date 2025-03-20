@@ -1,4 +1,4 @@
-use crate::{valtype::account::Account, Network, BLIST_DIRECTORY};
+use crate::{entity::account::Account, Network, BLIST_DIRECTORY};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 

@@ -1,5 +1,5 @@
 use super::epoch::Epoch;
-use crate::{baked, into::IntoPoint, valtype::account::Account, Network, EPOCH_DIRECTORY};
+use crate::{baked, into::IntoPoint, entity::account::Account, Network, EPOCH_DIRECTORY};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;

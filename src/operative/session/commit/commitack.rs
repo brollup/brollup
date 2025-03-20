@@ -4,7 +4,7 @@ use crate::{
     musig::session::MusigSessionCtx,
     schnorr::Sighash,
     txo::lift::Lift,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

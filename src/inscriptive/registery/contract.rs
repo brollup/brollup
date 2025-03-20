@@ -1,4 +1,4 @@
-use crate::{valtype::contract::Contract, Network, CONTRACT_REGISTERY};
+use crate::{entity::contract::Contract, Network, CONTRACT_REGISTERY};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 

@@ -9,7 +9,7 @@ use crate::{
     schnorr::{self, Authenticable},
     session::commit::NSessionCommit,
     txo::lift::Lift,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};

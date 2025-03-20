@@ -2,7 +2,7 @@ use crate::{
     hash::{Hash, HashTag},
     schnorr::Sighash,
     txo::lift::Lift,
-    valtype::account::Account,
+    entity::account::Account,
 };
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
