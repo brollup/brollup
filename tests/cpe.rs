@@ -3,7 +3,7 @@ mod cpe_tests {
     use bit_vec::BitVec;
     use brollup::{
         cpe::CompactPayloadEncoding,
-        val::{
+        valtype::{
             long::{LongVal, LongValTier},
             short::{ShortVal, ShortValTier},
         },

@@ -127,8 +127,8 @@ pub mod txo;
 pub mod entity;
 #[path = "constructive/cpe.rs"]
 pub mod cpe;
-#[path = "constructive/val/mod.rs"]
-pub mod val;
+#[path = "constructive/valtype/mod.rs"]
+pub mod valtype;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
