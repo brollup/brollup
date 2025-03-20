@@ -1,6 +1,6 @@
 use bit_vec::BitVec;
 
-/// Trait for encoding and decoding for compact Bitcoin-DA storage.
+/// Trait for encoding and decoding structs for compact Bitcoin-DA storage.
 pub trait CompactPayloadEncoding: Sized {
     /// Encode the struct into a bitvec.
     fn encode(&self) -> BitVec;
