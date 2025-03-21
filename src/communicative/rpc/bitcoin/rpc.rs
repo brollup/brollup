@@ -1,10 +1,7 @@
 use super::bitcoin_rpc_error::ValidateRPCError;
 use crate::{rpcholder::RPCHolder, Network};
-use bitcoincore_rpc::{
-    bitcoin::{self, Block, BlockHash},
-    json::GetBlockchainInfoResult,
-    Auth, Client, RpcApi,
-};
+use bitcoin::{Block, BlockHash};
+use bitcoincore_rpc::{json::GetBlockchainInfoResult, Auth, Client, RpcApi};
 
 pub fn validate_rpc(rpc_holder: &RPCHolder, network: Network) -> Result<(), ValidateRPCError> {
     let rpc_url = rpc_holder.url();

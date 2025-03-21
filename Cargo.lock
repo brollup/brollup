@@ -341,6 +341,7 @@ dependencies = [
  "async-trait",
  "bech32",
  "bit-vec",
+ "bitcoin",
  "bitcoincore-rpc",
  "chrono",
  "colored",

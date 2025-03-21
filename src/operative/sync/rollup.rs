@@ -11,7 +11,7 @@ use crate::{
     Network, EPOCH_DIRECTORY, LP_DIRECTORY, ROLLUP_DIRECTORY,
 };
 use async_trait::async_trait;
-use bitcoincore_rpc::bitcoin::hashes::Hash;
+use bitcoin::hashes::Hash;
 use secp::Point;
 use std::time::Duration;
 use tokio::time::sleep;
