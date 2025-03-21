@@ -63,7 +63,7 @@ impl Account {
     /// Decodes an `Account` from a bit stream and returns it along with the remaining bit stream.  
     pub async fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
-        registery: Option<REGISTERY>,
+        registery: REGISTERY,
     ) -> Result<(Account, bit_vec::Iter<'_>), CPEError> {
         // Check if the account is registered.
         let is_registered = bit_stream.next().ok_or(CPEError::IteratorError)?;
@@ -76,12 +76,9 @@ impl Account {
                 let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
 
                 // Get the account registery.
-                let account_registery: ACCOUNT_REGISTERY = match registery {
-                    Some(registery) => {
-                        let _registery = registery.lock().await;
-                        _registery.account_registery()
-                    }
-                    None => return Err(CPEError::RegisteryError),
+                let account_registery: ACCOUNT_REGISTERY = {
+                    let _registery = registery.lock().await;
+                    _registery.account_registery()
                 };
 
                 // Construct the registered account.

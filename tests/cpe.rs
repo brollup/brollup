@@ -254,26 +254,8 @@ mod cpe_tests {
     }
 
     #[tokio::test]
-    async fn unregistered_account_test() -> Result<(), String> {
-        let point =
-            Point::from_hex("022d69e8ef6a06ed3efcf433ee24dbe55e8e6dec5804957326b07c3902960af1f9")
-                .unwrap();
-
-        let account_to_encode = Account::new(point, None).unwrap();
-        let encoded = account_to_encode.encode_cpe();
-
-        let (account_decoded, _) = Account::decode_cpe(encoded.iter(), None).await.unwrap();
-        assert_eq!(account_to_encode, account_decoded);
-        assert_eq!(account_to_encode.key(), account_decoded.key());
-        assert_eq!(
-            account_to_encode.registery_index(),
-            account_decoded.registery_index()
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn registered_account_and_contract_test() -> Result<(), String> {
+    async fn account_and_contract_test() -> Result<(), String> {
+        // Get the registery.
         let registery = Registery::new(Network::Signet).unwrap();
 
         // Get the account registery.
@@ -281,6 +263,26 @@ mod cpe_tests {
             let mut _registery = registery.lock().await;
             _registery.account_registery()
         };
+
+        // Unregistered account test
+        let point =
+            Point::from_hex("021123864025e2c24bd82e6e19729eaa93cf02c57149bbfc84d239a0369f471316")
+                .unwrap();
+
+        let account_to_encode = Account::new(point, None).unwrap();
+        let encoded = account_to_encode.encode_cpe();
+
+        let (account_decoded, _) = Account::decode_cpe(encoded.iter(), Arc::clone(&registery))
+            .await
+            .unwrap();
+        assert_eq!(account_to_encode, account_decoded);
+        assert_eq!(account_to_encode.key(), account_decoded.key());
+        assert_eq!(
+            account_to_encode.registery_index(),
+            account_decoded.registery_index()
+        );
+
+        // Registered account test
 
         let point =
             Point::from_hex("022d69e8ef6a06ed3efcf433ee24dbe55e8e6dec5804957326b07c3902960af1f9")
@@ -298,14 +300,14 @@ mod cpe_tests {
         };
 
         let encoded = account.encode_cpe();
-        let (decoded, _) = Account::decode_cpe(encoded.iter(), Some(Arc::clone(&registery)))
+        let (decoded, _) = Account::decode_cpe(encoded.iter(), Arc::clone(&registery))
             .await
             .unwrap();
         assert_eq!(account, decoded);
         assert_eq!(account.key(), decoded.key());
         assert_eq!(account.registery_index(), decoded.registery_index());
 
-        // Contract
+        // Contract test
 
         let contract_id = [0xffu8; 32];
 
