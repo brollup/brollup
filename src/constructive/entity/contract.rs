@@ -1,6 +1,6 @@
 use crate::{
     cpe::{CPEDecodingError, CompactPayloadEncoding},
-    registery::{contract_registery::CONTRACT_REGISTERY, registery::REGISTERY},
+    registery::contract_registery::CONTRACT_REGISTERY,
     valtype::short::ShortVal,
 };
 use async_trait::async_trait;
@@ -41,20 +41,14 @@ impl Contract {
 
     /// Compact payload decoding for `Contract`.
     /// Decodes a `Contract` from a bit stream and returns it along with the remaining bit stream.
-    pub async fn decode_cpe(
-        bit_stream: bit_vec::Iter<'_>,
-        registery: REGISTERY,
-    ) -> Result<(Contract, bit_vec::Iter<'_>), CPEDecodingError> {
+    pub async fn decode_cpe<'a>(
+        bit_stream: bit_vec::Iter<'a>,
+        contract_registery: &'a CONTRACT_REGISTERY,
+    ) -> Result<(Contract, bit_vec::Iter<'a>), CPEDecodingError> {
         // Decode registery index.
         let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
 
-        // Get the contract registery.
-        let contract_registery: CONTRACT_REGISTERY = {
-            let _registery = registery.lock().await;
-            _registery.contract_registery()
-        };
-
-        // Construct the contract.
+        // Retrieve the contract.
         let contract = {
             let _contract_registery = contract_registery.lock().await;
             _contract_registery

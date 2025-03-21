@@ -12,7 +12,6 @@ mod cpe_tests {
         Network,
     };
     use secp::Point;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn cpe_single_short_val_test() -> Result<(), String> {
@@ -264,6 +263,12 @@ mod cpe_tests {
             _registery.account_registery()
         };
 
+        // Get the contract registery.
+        let contract_registery = {
+            let mut _registery = registery.lock().await;
+            _registery.contract_registery()
+        };
+
         // Unregistered account test
         let point =
             Point::from_hex("021123864025e2c24bd82e6e19729eaa93cf02c57149bbfc84d239a0369f471316")
@@ -272,7 +277,7 @@ mod cpe_tests {
         let account_to_encode = Account::new(point, None).unwrap();
         let encoded = account_to_encode.encode_cpe();
 
-        let (account_decoded, _) = Account::decode_cpe(encoded.iter(), Arc::clone(&registery))
+        let (account_decoded, _) = Account::decode_cpe(encoded.iter(), &account_registery)
             .await
             .unwrap();
         assert_eq!(account_to_encode, account_decoded);
@@ -300,7 +305,7 @@ mod cpe_tests {
         };
 
         let encoded = account.encode_cpe();
-        let (decoded, _) = Account::decode_cpe(encoded.iter(), Arc::clone(&registery))
+        let (decoded, _) = Account::decode_cpe(encoded.iter(), &account_registery)
             .await
             .unwrap();
         assert_eq!(account, decoded);
@@ -310,12 +315,6 @@ mod cpe_tests {
         // Contract test
 
         let contract_id = [0xffu8; 32];
-
-        // Get the contract registery.
-        let contract_registery = {
-            let mut _registery = registery.lock().await;
-            _registery.contract_registery()
-        };
 
         // Insert the contract into the registery.
         {
@@ -331,7 +330,7 @@ mod cpe_tests {
 
         let encoded = contract.encode_cpe();
 
-        let (decoded_contract, _) = Contract::decode_cpe(encoded.iter(), Arc::clone(&registery))
+        let (decoded_contract, _) = Contract::decode_cpe(encoded.iter(), &contract_registery)
             .await
             .unwrap();
         assert_eq!(contract, decoded_contract);

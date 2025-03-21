@@ -1,6 +1,6 @@
 use crate::{
     cpe::{CPEDecodingError, CompactPayloadEncoding},
-    registery::{account_registery::ACCOUNT_REGISTERY, registery::REGISTERY},
+    registery::account_registery::ACCOUNT_REGISTERY,
     valtype::short::ShortVal,
 };
 use async_trait::async_trait;
@@ -61,10 +61,10 @@ impl Account {
 
     /// Compact payload decoding for `Account`.
     /// Decodes an `Account` from a bit stream and returns it along with the remaining bit stream.  
-    pub async fn decode_cpe(
-        mut bit_stream: bit_vec::Iter<'_>,
-        registery: REGISTERY,
-    ) -> Result<(Account, bit_vec::Iter<'_>), CPEDecodingError> {
+    pub async fn decode_cpe<'a>(
+        mut bit_stream: bit_vec::Iter<'a>,
+        account_registery: &'a ACCOUNT_REGISTERY,
+    ) -> Result<(Account, bit_vec::Iter<'a>), CPEDecodingError> {
         // Check if the account is registered.
         let is_registered = bit_stream.next().ok_or(CPEDecodingError::IteratorError)?;
 
@@ -75,14 +75,8 @@ impl Account {
                 // Decode registery index.
                 let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
 
-                // Get the account registery.
-                let account_registery: ACCOUNT_REGISTERY = {
-                    let _registery = registery.lock().await;
-                    _registery.account_registery()
-                };
-
-                // Construct the registered account.
-                let registered_account = {
+                // Retrieve the account.
+                let account = {
                     let _account_registery = account_registery.lock().await;
                     _account_registery
                         .account_by_index(registery_index.value())
@@ -90,7 +84,7 @@ impl Account {
                 };
 
                 // Return the account and the remaining bit stream.
-                Ok((registered_account, bit_stream))
+                Ok((account, bit_stream))
             }
             false => {
                 // Account is unregistered.
