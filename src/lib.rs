@@ -7,12 +7,10 @@ use noist::{
     dkg::{directory::DKGDirectory, session::DKGSession},
     manager::DKGManager,
 };
-use registery::{account::AccountRegistery, contract::ContractRegistery};
 use rollup_dir::dir::RollupDirectory;
 use session::ccontext::CSessionCtx;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use wallet::wallet::Wallet;
 
 // Networking.
 type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
@@ -23,17 +21,11 @@ type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 type DKG_SESSION = Arc<Mutex<DKGSession>>;
 type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
-// Wallets
-type WALLET = Arc<Mutex<Wallet>>;
-
 // Dirs
 type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
 type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
 type ROLLUP_DIRECTORY = Arc<Mutex<RollupDirectory>>;
-// Registeries
-type ACCOUNT_REGISTERY = Arc<Mutex<AccountRegistery>>;
-type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
 
 // Inscriptive
 
@@ -111,6 +103,10 @@ pub mod tcp;
 // Constructive
 #[path = "constructive/entry/combinator/mod.rs"]
 pub mod combinator;
+#[path = "constructive/cpe.rs"]
+pub mod cpe;
+#[path = "constructive/entity/mod.rs"]
+pub mod entity;
 #[path = "constructive/entry/entry.rs"]
 pub mod entry;
 #[path = "constructive/txn/prevout.rs"]
@@ -123,10 +119,6 @@ pub mod txn;
 pub mod txn_old;
 #[path = "constructive/txo/mod.rs"]
 pub mod txo;
-#[path = "constructive/entity/mod.rs"]
-pub mod entity;
-#[path = "constructive/cpe.rs"]
-pub mod cpe;
 #[path = "constructive/valtype/mod.rs"]
 pub mod valtype;
 

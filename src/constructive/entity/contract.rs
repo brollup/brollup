@@ -1,13 +1,17 @@
+use crate::valtype::short::ShortVal;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
 pub struct Contract {
     contract_id: [u8; 32],
-    registery_index: u32,
+    registery_index: ShortVal,
 }
 
 impl Contract {
     pub fn new(contract_id: [u8; 32], registery_index: u32) -> Contract {
+        // Convert the registery index to a ShortVal.
+        let registery_index = ShortVal::new(registery_index);
+
         Contract {
             contract_id,
             registery_index,
@@ -19,7 +23,7 @@ impl Contract {
     }
 
     pub fn registery_index(&self) -> u32 {
-        self.registery_index
+        self.registery_index.value()
     }
 
     pub fn serialize(&self) -> Vec<u8> {

@@ -1,4 +1,8 @@
-use crate::cpe::CompactPayloadEncoding;
+use crate::{
+    cpe::{CPEError, CompactPayloadEncoding},
+    registery::registery::REGISTERY,
+};
+use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
@@ -73,6 +77,7 @@ impl AtomicVal {
     }
 }
 
+#[async_trait]
 impl CompactPayloadEncoding for AtomicVal {
     fn encode(&self) -> BitVec {
         let mut bits = BitVec::new();
@@ -131,30 +136,34 @@ impl CompactPayloadEncoding for AtomicVal {
         bits
     }
 
-    fn decode(bits: &BitVec) -> Option<(Self, BitVec)> {
+    async fn decode(
+        bits: &BitVec,
+        _registery: Option<&REGISTERY>,
+    ) -> Result<(Self, BitVec), CPEError> {
         let mut iter = bits.iter();
 
-        let value = match (iter.next()?, iter.next()?, iter.next()?) {
+        let value = match (iter.next(), iter.next(), iter.next()) {
             // 000 for 0
-            (false, false, false) => Self::Zero,
+            (Some(false), Some(false), Some(false)) => Self::Zero,
             // 001 for 1
-            (false, false, true) => Self::One,
+            (Some(false), Some(false), Some(true)) => Self::One,
             // 010 for 2
-            (false, true, false) => Self::Two,
+            (Some(false), Some(true), Some(false)) => Self::Two,
             // 011 for 3
-            (false, true, true) => Self::Three,
+            (Some(false), Some(true), Some(true)) => Self::Three,
             // 100 for 4
-            (true, false, false) => Self::Four,
+            (Some(true), Some(false), Some(false)) => Self::Four,
             // 101 for 5
-            (true, false, true) => Self::Five,
+            (Some(true), Some(false), Some(true)) => Self::Five,
             // 110 for 6
-            (true, true, false) => Self::Six,
+            (Some(true), Some(true), Some(false)) => Self::Six,
             // 111 for 7
-            (true, true, true) => Self::Seven,
+            (Some(true), Some(true), Some(true)) => Self::Seven,
+            _ => return Err(CPEError::IteratorError),
         };
 
         let remaining_bits = iter.collect::<BitVec>();
 
-        Some((value, remaining_bits))
+        Ok((value, remaining_bits))
     }
 }

@@ -1,4 +1,4 @@
-use crate::{key::KeyHolder, Network, EPOCH_DIRECTORY, WALLET};
+use crate::{key::KeyHolder, wallet::wallet::WALLET, Network, EPOCH_DIRECTORY};
 
 use super::addr::lift_address;
 
@@ -36,8 +36,13 @@ async fn lift_up(_wallet: &WALLET) {
 
 async fn lift_list(wallet: &WALLET) {
     let set = {
-        let _wallet = wallet.lock().await;
-        _wallet.lifts()
+        let lift_wallet = {
+            let _wallet = wallet.lock().await;
+            _wallet.lift_wallet()
+        };
+
+        let _lift_wallet = lift_wallet.lock().await;
+        _lift_wallet.lifts()
     };
 
     match serde_json::to_string_pretty(&set) {

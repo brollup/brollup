@@ -1,4 +1,8 @@
-use crate::cpe::CompactPayloadEncoding;
+use crate::{
+    cpe::{CPEError, CompactPayloadEncoding},
+    registery::registery::REGISTERY,
+};
+use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
@@ -78,6 +82,7 @@ impl ShortVal {
     }
 }
 
+#[async_trait]
 impl CompactPayloadEncoding for ShortVal {
     fn encode(&self) -> BitVec {
         let mut bits = BitVec::new();
@@ -113,14 +118,18 @@ impl CompactPayloadEncoding for ShortVal {
         bits
     }
 
-    fn decode(bits: &BitVec) -> Option<(ShortVal, BitVec)> {
+    async fn decode(
+        bits: &BitVec,
+        _registery: Option<&REGISTERY>,
+    ) -> Result<(ShortVal, BitVec), CPEError> {
         let mut iter = bits.iter();
 
-        let tier = match (iter.next()?, iter.next()?) {
-            (false, false) => ShortValTier::U8,
-            (false, true) => ShortValTier::U16,
-            (true, false) => ShortValTier::U24,
-            (true, true) => ShortValTier::U32,
+        let tier = match (iter.next(), iter.next()) {
+            (Some(false), Some(false)) => ShortValTier::U8,
+            (Some(false), Some(true)) => ShortValTier::U16,
+            (Some(true), Some(false)) => ShortValTier::U24,
+            (Some(true), Some(true)) => ShortValTier::U32,
+            _ => return Err(CPEError::IteratorError),
         };
 
         let bit_count = match tier {
@@ -132,14 +141,15 @@ impl CompactPayloadEncoding for ShortVal {
 
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(iter.next()?);
+            value_bits.push(iter.next().ok_or(CPEError::IteratorError)?);
         }
 
         let value_bytes = value_bits.to_bytes();
-        let short_val = ShortVal::from_compact_bytes(&value_bytes)?;
+        let short_val =
+            ShortVal::from_compact_bytes(&value_bytes).ok_or(CPEError::ConversionError)?;
 
         let remaining_bits = iter.collect::<BitVec>();
 
-        Some((short_val, remaining_bits))
+        Ok((short_val, remaining_bits))
     }
 }

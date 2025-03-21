@@ -1,4 +1,8 @@
-use crate::cpe::CompactPayloadEncoding;
+use crate::{
+    cpe::{CPEError, CompactPayloadEncoding},
+    registery::registery::REGISTERY,
+};
+use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
@@ -121,6 +125,7 @@ impl LongVal {
     }
 }
 
+#[async_trait]
 impl CompactPayloadEncoding for LongVal {
     fn encode(&self) -> BitVec {
         let mut bits = BitVec::new();
@@ -186,26 +191,30 @@ impl CompactPayloadEncoding for LongVal {
         bits
     }
 
-    fn decode(bits: &BitVec) -> Option<(LongVal, BitVec)> {
+    async fn decode(
+        bits: &BitVec,
+        _registery: Option<&REGISTERY>,
+    ) -> Result<(LongVal, BitVec), CPEError> {
         let mut iter = bits.iter();
 
-        let tier = match (iter.next()?, iter.next()?, iter.next()?) {
+        let tier = match (iter.next(), iter.next(), iter.next()) {
             // 000 for u8
-            (false, false, false) => LongValTier::U8,
+            (Some(false), Some(false), Some(false)) => LongValTier::U8,
             // 001 for u16
-            (false, false, true) => LongValTier::U16,
+            (Some(false), Some(false), Some(true)) => LongValTier::U16,
             // 010 for u24
-            (false, true, false) => LongValTier::U24,
+            (Some(false), Some(true), Some(false)) => LongValTier::U24,
             // 011 for u32
-            (false, true, true) => LongValTier::U32,
+            (Some(false), Some(true), Some(true)) => LongValTier::U32,
             // 100 for u40
-            (true, false, false) => LongValTier::U40,
+            (Some(true), Some(false), Some(false)) => LongValTier::U40,
             // 101 for u48
-            (true, false, true) => LongValTier::U48,
+            (Some(true), Some(false), Some(true)) => LongValTier::U48,
             // 110 for u56
-            (true, true, false) => LongValTier::U56,
+            (Some(true), Some(true), Some(false)) => LongValTier::U56,
             // 111 for u64
-            (true, true, true) => LongValTier::U64,
+            (Some(true), Some(true), Some(true)) => LongValTier::U64,
+            _ => return Err(CPEError::IteratorError),
         };
 
         let bit_count = match tier {
@@ -221,14 +230,15 @@ impl CompactPayloadEncoding for LongVal {
 
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(iter.next()?);
+            value_bits.push(iter.next().ok_or(CPEError::IteratorError)?);
         }
 
         let value_bytes = value_bits.to_bytes();
-        let long_val = LongVal::from_compact_bytes(&value_bytes)?;
+        let long_val =
+            LongVal::from_compact_bytes(&value_bytes).ok_or(CPEError::ConversionError)?;
 
         let remaining_bits = iter.collect::<BitVec>();
 
-        Some((long_val, remaining_bits))
+        Ok((long_val, remaining_bits))
     }
 }

@@ -8,8 +8,7 @@ use crate::nns::client::NNSClient;
 use crate::noist::manager::DKGManager;
 use crate::peer::PeerKind;
 use crate::peer_manager::{coordinator_key, PeerManager};
-use crate::registery::account::AccountRegistery;
-use crate::registery::contract::ContractRegistery;
+use crate::registery::registery::{Registery, REGISTERY};
 use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
@@ -17,8 +16,8 @@ use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::sync::RollupSync;
 use crate::tcp::tcp::{open_port, port_number};
 use crate::{
-    ccli, nns, tcp, Network, OperatingMode, ACCOUNT_REGISTERY, BLIST_DIRECTORY, CONTRACT_REGISTERY,
-    CSESSION_CTX, DKG_MANAGER, EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER, ROLLUP_DIRECTORY,
+    ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
+    EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER, ROLLUP_DIRECTORY,
 };
 use colored::Colorize;
 use std::io::{self, BufRead};
@@ -54,20 +53,11 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #4 Initialize Account registery.
-    let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+    // #4 Initialize Registery.
+    let registery: REGISTERY = match Registery::new(network) {
         Some(dir) => dir,
         None => {
-            println!("{}", "Error initializing account registery.".red());
-            return;
-        }
-    };
-
-    // #5 Initialize Contract registery.
-    let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
-        Some(dir) => dir,
-        None => {
-            println!("{}", "Error initializing contract registery.".red());
+            println!("{}", "Error initializing registery.".red());
             return;
         }
     };
@@ -88,8 +78,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let rpc_holder = rpc_holder.clone();
         let epoch_dir = Arc::clone(&epoch_dir);
         let lp_dir = Arc::clone(&lp_dir);
-        let account_registery = Arc::clone(&account_registery);
-        let contract_registery = Arc::clone(&contract_registery);
+        let registery = Arc::clone(&registery);
         let rollup_dir = Arc::clone(&rollup_dir);
 
         tokio::spawn(async move {
@@ -100,8 +89,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &key_holder,
                     &epoch_dir,
                     &lp_dir,
-                    &account_registery,
-                    &contract_registery,
+                    &registery,
                     None,
                 )
                 .await;
@@ -174,13 +162,8 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #17 Construct CSession.
-    let csession_ctx: CSESSION_CTX = CSessionCtx::construct(
-        &dkg_manager,
-        &peer_manager,
-        &blacklist_dir,
-        &account_registery,
-        &contract_registery,
-    );
+    let csession_ctx: CSESSION_CTX =
+        CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir, &registery);
 
     // #18 Run CSession.
     {

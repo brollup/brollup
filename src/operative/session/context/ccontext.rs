@@ -8,6 +8,7 @@ use crate::{
     hash::{Hash, HashTag},
     musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
     noist::session::NOISTSessionCtx,
+    registery::{account_registery::ACCOUNT_REGISTERY, registery::REGISTERY},
     schnorr::{Authenticable, Sighash},
     session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
     tcp::client::TCPClient,
@@ -16,8 +17,7 @@ use crate::{
         lift::Lift,
         projector::{self, Projector},
     },
-    ACCOUNT_REGISTERY, BLIST_DIRECTORY, CONTRACT_REGISTERY, CSESSION_CTX, DKG_DIRECTORY,
-    DKG_MANAGER, PEER, PEER_MANAGER,
+    BLIST_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -50,8 +50,7 @@ pub struct CSessionCtx {
     dkg_manager: DKG_MANAGER,
     peer_manager: PEER_MANAGER,
     blacklist_dir: BLIST_DIRECTORY,
-    account_registery: ACCOUNT_REGISTERY,
-    contract_registery: CONTRACT_REGISTERY,
+    registery: REGISTERY,
     //
     session_id: [u8; 32],
     stage: CSessionStage,
@@ -127,15 +126,13 @@ impl CSessionCtx {
         dkg_manager: &DKG_MANAGER,
         peer_manager: &PEER_MANAGER,
         blacklist_dir: &BLIST_DIRECTORY,
-        account_registery: &ACCOUNT_REGISTERY,
-        contract_registery: &CONTRACT_REGISTERY,
+        registery: &REGISTERY,
     ) -> CSESSION_CTX {
         let session = CSessionCtx {
             dkg_manager: Arc::clone(dkg_manager),
             peer_manager: Arc::clone(peer_manager),
             blacklist_dir: Arc::clone(blacklist_dir),
-            account_registery: Arc::clone(account_registery),
-            contract_registery: Arc::clone(contract_registery),
+            registery: Arc::clone(registery),
             session_id: [0xffu8; 32],
             stage: CSessionStage::Off,
             commit_pool: Vec::<NSessionCommit>::new(),
@@ -330,7 +327,12 @@ impl CSessionCtx {
         // #3 Registery index validation.
         let given_registery_index = account.registery_index();
         let local_registery_index = {
-            let _account_registery = self.account_registery.lock().await;
+            let account_registery: ACCOUNT_REGISTERY = {
+                let _registery = self.registery.lock().await;
+                _registery.account_registery()
+            };
+
+            let _account_registery = account_registery.lock().await;
             _account_registery.index_by_key(account.key())
         };
 

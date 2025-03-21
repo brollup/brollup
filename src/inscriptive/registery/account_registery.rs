@@ -1,9 +1,10 @@
-use crate::{entity::account::Account, Network, ACCOUNT_REGISTERY};
+use crate::{entity::account::Account, Network};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 type RegisteryIndex = u32;
+pub type ACCOUNT_REGISTERY = Arc<Mutex<AccountRegistery>>;
 
 /// Directory for the account registeries.
 pub struct AccountRegistery {

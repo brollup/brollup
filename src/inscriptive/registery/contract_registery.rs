@@ -1,8 +1,9 @@
-use crate::{entity::contract::Contract, Network, CONTRACT_REGISTERY};
+use crate::{entity::contract::Contract, Network};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 type RegisteryIndex = u32;
+pub type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
 
 /// Directory for the contract registeries.
 pub struct ContractRegistery {

@@ -8,8 +8,9 @@ use crate::ocli;
 use crate::peer::Peer;
 use crate::peer::PeerKind;
 use crate::peer_manager::coordinator_key;
-use crate::registery::account::AccountRegistery;
-use crate::registery::contract::ContractRegistery;
+use crate::registery::account_registery::ACCOUNT_REGISTERY;
+use crate::registery::registery::Registery;
+use crate::registery::registery::REGISTERY;
 use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
@@ -19,8 +20,6 @@ use crate::tcp::tcp::open_port;
 use crate::tcp::tcp::port_number;
 use crate::Network;
 use crate::OperatingMode;
-use crate::ACCOUNT_REGISTERY;
-use crate::CONTRACT_REGISTERY;
 use crate::DKG_MANAGER;
 use crate::EPOCH_DIRECTORY;
 use crate::LP_DIRECTORY;
@@ -61,20 +60,11 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #4 Initialize Account registery.
-    let account_registery: ACCOUNT_REGISTERY = match AccountRegistery::new(network) {
+    // #4 Initialize Registery.
+    let registery: REGISTERY = match Registery::new(network) {
         Some(dir) => dir,
         None => {
-            println!("{}", "Error initializing account registery.".red());
-            return;
-        }
-    };
-
-    // #5 Initialize Contract registery.
-    let contract_registery: CONTRACT_REGISTERY = match ContractRegistery::new(network) {
-        Some(dir) => dir,
-        None => {
-            println!("{}", "Error initializing contract registery.".red());
+            println!("{}", "Error initializing registery.".red());
             return;
         }
     };
@@ -95,8 +85,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let rpc_holder = rpc_holder.clone();
         let epoch_dir = Arc::clone(&epoch_dir);
         let lp_dir = Arc::clone(&lp_dir);
-        let account_registery = Arc::clone(&account_registery);
-        let contract_registery = Arc::clone(&contract_registery);
+        let registery = Arc::clone(&registery);
         let rollup_dir = Arc::clone(&rollup_dir);
 
         tokio::spawn(async move {
@@ -107,8 +96,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &key_holder,
                     &epoch_dir,
                     &lp_dir,
-                    &account_registery,
-                    &contract_registery,
+                    &registery,
                     None,
                 )
                 .await;
@@ -124,6 +112,11 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     // #9 Construct account.
     let account = {
+        let account_registery: ACCOUNT_REGISTERY = {
+            let _registery = registery.lock().await;
+            _registery.account_registery()
+        };
+
         let _account_registery = account_registery.lock().await;
 
         match _account_registery.account_by_key_maybe_registered(key_holder.public_key()) {
