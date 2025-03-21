@@ -38,37 +38,18 @@ impl Contract {
             Err(_) => vec![],
         }
     }
-}
 
-#[async_trait]
-impl CompactPayloadEncoding for Contract {
-    fn encode(&self) -> BitVec {
-        // Initialize the bitvec.
-        let mut bits = BitVec::new();
-
-        // Registery index bits.
-        let registery_index_bits = self.registery_index.encode();
-
-        // Extend registery index bits.
-        bits.extend(registery_index_bits);
-
-        bits
-    }
-
-    async fn decode(
-        bits: &BitVec,
-        registery: Option<&REGISTERY>,
-    ) -> Result<(Contract, BitVec), CPEError> {
+    pub async fn decode_cpe(
+        bit_stream: bit_vec::Iter<'_>,
+        registery: REGISTERY,
+    ) -> Result<(Contract, bit_vec::Iter<'_>), CPEError> {
         // Decode registery index.
-        let (registery_index, remaining_bits) = ShortVal::decode(&bits, None).await?;
+        let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
 
         // Get the contract registery.
-        let contract_registery: CONTRACT_REGISTERY = match registery {
-            Some(registery) => {
-                let _registery = registery.lock().await;
-                _registery.contract_registery()
-            }
-            None => return Err(CPEError::RegisteryError),
+        let contract_registery: CONTRACT_REGISTERY = {
+            let _registery = registery.lock().await;
+            _registery.contract_registery()
         };
 
         // Construct the contract.
@@ -79,6 +60,22 @@ impl CompactPayloadEncoding for Contract {
                 .ok_or(CPEError::RegisteryError)?
         };
 
-        Ok((contract, remaining_bits))
+        Ok((contract, bit_stream))
+    }
+}
+
+#[async_trait]
+impl CompactPayloadEncoding for Contract {
+    fn encode_cpe(&self) -> BitVec {
+        // Initialize the bitvec.
+        let mut bits = BitVec::new();
+
+        // Registery index bits.
+        let registery_index_bits = self.registery_index.encode_cpe();
+
+        // Extend registery index bits.
+        bits.extend(registery_index_bits);
+
+        bits
     }
 }

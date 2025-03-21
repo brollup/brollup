@@ -1,7 +1,4 @@
-use crate::{
-    cpe::{CPEError, CompactPayloadEncoding},
-    registery::registery::REGISTERY,
-};
+use crate::cpe::{CPEError, CompactPayloadEncoding};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -75,11 +72,41 @@ impl AtomicVal {
             Self::Seven => 7,
         }
     }
+
+    /// Compact payload decoding for `AtomicVal`.
+    /// Decodes an `AtomicVal` from a bit stream and returns it along with the remaining bit stream.
+    pub fn decode_cpe(
+        mut bit_stream: bit_vec::Iter<'_>,
+    ) -> Result<(AtomicVal, bit_vec::Iter<'_>), CPEError> {
+        // Decode the first 3 bits
+        let value = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
+            // 000 for 0
+            (Some(false), Some(false), Some(false)) => Self::Zero,
+            // 001 for 1
+            (Some(false), Some(false), Some(true)) => Self::One,
+            // 010 for 2
+            (Some(false), Some(true), Some(false)) => Self::Two,
+            // 011 for 3
+            (Some(false), Some(true), Some(true)) => Self::Three,
+            // 100 for 4
+            (Some(true), Some(false), Some(false)) => Self::Four,
+            // 101 for 5
+            (Some(true), Some(false), Some(true)) => Self::Five,
+            // 110 for 6
+            (Some(true), Some(true), Some(false)) => Self::Six,
+            // 111 for 7
+            (Some(true), Some(true), Some(true)) => Self::Seven,
+            _ => return Err(CPEError::IteratorError),
+        };
+
+        // Return the decoded value and the remaining bit stream.
+        Ok((value, bit_stream))
+    }
 }
 
 #[async_trait]
 impl CompactPayloadEncoding for AtomicVal {
-    fn encode(&self) -> BitVec {
+    fn encode_cpe(&self) -> BitVec {
         let mut bits = BitVec::new();
 
         match self {
@@ -134,36 +161,5 @@ impl CompactPayloadEncoding for AtomicVal {
         }
 
         bits
-    }
-
-    async fn decode(
-        bits: &BitVec,
-        _registery: Option<&REGISTERY>,
-    ) -> Result<(Self, BitVec), CPEError> {
-        let mut iter = bits.iter();
-
-        let value = match (iter.next(), iter.next(), iter.next()) {
-            // 000 for 0
-            (Some(false), Some(false), Some(false)) => Self::Zero,
-            // 001 for 1
-            (Some(false), Some(false), Some(true)) => Self::One,
-            // 010 for 2
-            (Some(false), Some(true), Some(false)) => Self::Two,
-            // 011 for 3
-            (Some(false), Some(true), Some(true)) => Self::Three,
-            // 100 for 4
-            (Some(true), Some(false), Some(false)) => Self::Four,
-            // 101 for 5
-            (Some(true), Some(false), Some(true)) => Self::Five,
-            // 110 for 6
-            (Some(true), Some(true), Some(false)) => Self::Six,
-            // 111 for 7
-            (Some(true), Some(true), Some(true)) => Self::Seven,
-            _ => return Err(CPEError::IteratorError),
-        };
-
-        let remaining_bits = iter.collect::<BitVec>();
-
-        Ok((value, remaining_bits))
     }
 }

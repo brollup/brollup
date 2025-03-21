@@ -58,65 +58,22 @@ impl Account {
             Err(_) => vec![],
         }
     }
-}
 
-impl PartialEq for Account {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key
-    }
-}
-
-impl Eq for Account {}
-
-#[async_trait]
-impl CompactPayloadEncoding for Account {
-    fn encode(&self) -> BitVec {
-        let mut bits = BitVec::new();
-
-        // Check registery status.
-        match self.registery_index {
-            Some(registery_index) => {
-                // True for registered.
-                bits.push(true);
-
-                // Registery index bits.
-                let registery_index_bits = registery_index.encode();
-
-                // Extend registery index bits.
-                bits.extend(registery_index_bits);
-            }
-            None => {
-                // False for unregistered.
-                bits.push(false);
-
-                // Public key bits.
-                let public_key_bits = BitVec::from_bytes(&self.key.serialize_xonly());
-
-                // Extend public key bits.
-                bits.extend(public_key_bits);
-            }
-        }
-
-        bits
-    }
-
-    async fn decode(
-        bits: &BitVec,
-        registery: Option<&REGISTERY>,
-    ) -> Result<(Account, BitVec), CPEError> {
-        let mut iter = bits.iter();
-
+    /// Compact payload decoding for `Account`.
+    /// Decodes an `Account` from a bit stream and returns it along with the remaining bit stream.  
+    pub async fn decode_cpe(
+        mut bit_stream: bit_vec::Iter<'_>,
+        registery: Option<REGISTERY>,
+    ) -> Result<(Account, bit_vec::Iter<'_>), CPEError> {
         // Check if the account is registered.
-        let is_registered = iter.next().ok_or(CPEError::IteratorError)?;
+        let is_registered = bit_stream.next().ok_or(CPEError::IteratorError)?;
 
         match is_registered {
             true => {
                 // Account is registered.
-                let remaining_bits = iter.collect::<BitVec>();
 
                 // Decode registery index.
-                let (registery_index, remaining_bits) =
-                    ShortVal::decode(&remaining_bits, None).await?;
+                let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
 
                 // Get the account registery.
                 let account_registery: ACCOUNT_REGISTERY = match registery {
@@ -136,13 +93,13 @@ impl CompactPayloadEncoding for Account {
                 };
 
                 // Return registered account and remaining bits.
-                Ok((registered_account, remaining_bits))
+                Ok((registered_account, bit_stream))
             }
             false => {
                 // Account is unregistered.
 
                 // Collect exactly 256 bits for the public key.
-                let public_key_bits: BitVec = iter.by_ref().take(256).collect();
+                let public_key_bits: BitVec = bit_stream.by_ref().take(256).collect();
 
                 // Ensure the collected bits are the correct length.
                 if public_key_bits.len() != 256 {
@@ -163,12 +120,50 @@ impl CompactPayloadEncoding for Account {
                     registery_index: None,
                 };
 
-                // Collect the remaining bits after the public key bits.
-                let remaining_bits: BitVec = iter.collect();
-
                 // Return unregistered account and remaining bits.
-                Ok((account, remaining_bits))
+                Ok((account, bit_stream))
             }
         }
+    }
+}
+
+impl PartialEq for Account {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl Eq for Account {}
+
+#[async_trait]
+impl CompactPayloadEncoding for Account {
+    fn encode_cpe(&self) -> BitVec {
+        let mut bits = BitVec::new();
+
+        // Check registery status.
+        match self.registery_index {
+            Some(registery_index) => {
+                // True for registered.
+                bits.push(true);
+
+                // Registery index bits.
+                let registery_index_bits = registery_index.encode_cpe();
+
+                // Extend registery index bits.
+                bits.extend(registery_index_bits);
+            }
+            None => {
+                // False for unregistered.
+                bits.push(false);
+
+                // Public key bits.
+                let public_key_bits = BitVec::from_bytes(&self.key.serialize_xonly());
+
+                // Extend public key bits.
+                bits.extend(public_key_bits);
+            }
+        }
+
+        bits
     }
 }
