@@ -3,7 +3,7 @@ mod cpe_tests {
     use bit_vec::BitVec;
     use brollup::{
         cpe::CompactPayloadEncoding,
-        entity::account::Account,
+        entity::{account::Account, contract::Contract},
         registery::registery::Registery,
         valtype::{
             long::{LongVal, LongValTier},
@@ -268,9 +268,10 @@ mod cpe_tests {
     }
 
     #[tokio::test]
-    async fn registered_account_test() -> Result<(), String> {
+    async fn registered_account_and_contract_test() -> Result<(), String> {
         let registery = Registery::new(Network::Signet).unwrap();
 
+        // Get the account registery.
         let account_registery = {
             let mut _registery = registery.lock().await;
             _registery.account_registery()
@@ -296,6 +297,38 @@ mod cpe_tests {
         assert_eq!(account, decoded);
         assert_eq!(account.key(), decoded.key());
         assert_eq!(account.registery_index(), decoded.registery_index());
+
+        // Contract
+
+        let contract_id = [0xffu8; 32];
+
+        // Get the contract registery.
+        let contract_registery = {
+            let mut _registery = registery.lock().await;
+            _registery.contract_registery()
+        };
+
+        // Insert the contract into the registery.
+        {
+            let mut _contract_registery = contract_registery.lock().await;
+            _contract_registery.insert(contract_id);
+        }
+
+        // Get the contract.
+        let contract = {
+            let _contract_registery = contract_registery.lock().await;
+            _contract_registery.contract_by_id(contract_id).unwrap()
+        };
+
+        let encoded = contract.encode();
+
+        let (decoded_contract, _) = Contract::decode(&encoded, Some(&registery)).await.unwrap();
+        assert_eq!(contract, decoded_contract);
+        assert_eq!(contract.contract_id(), decoded_contract.contract_id());
+        assert_eq!(
+            contract.registery_index(),
+            decoded_contract.registery_index()
+        );
 
         Ok(())
     }

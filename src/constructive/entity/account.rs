@@ -82,7 +82,7 @@ impl CompactPayloadEncoding for Account {
                 // Registery index bits.
                 let registery_index_bits = registery_index.encode();
 
-                // Encode registery index.
+                // Extend registery index bits.
                 bits.extend(registery_index_bits);
             }
             None => {
@@ -92,7 +92,7 @@ impl CompactPayloadEncoding for Account {
                 // Public key bits.
                 let public_key_bits = BitVec::from_bytes(&self.key.serialize_xonly());
 
-                // Encode public key bits.
+                // Extend public key bits.
                 bits.extend(public_key_bits);
             }
         }

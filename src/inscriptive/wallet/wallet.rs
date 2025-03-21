@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 
 pub type WALLET = Arc<Mutex<Wallet>>;
 
-/// Wallet for storing bare Lift outputs.
+/// Wallet for storing Lifts and VTXOs.
 pub struct Wallet {
     account_key: Point,
     // Lift wallet.
