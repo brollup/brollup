@@ -1,4 +1,4 @@
-use crate::cpe::{CPEError, CompactPayloadEncoding};
+use crate::cpe::{CPEDecodingError, CompactPayloadEncoding};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -125,7 +125,7 @@ impl LongVal {
     /// Decodes an `LongVal` from a bit stream and returns it along with the remaining bit stream.
     pub fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(LongVal, bit_vec::Iter<'_>), CPEError> {
+    ) -> Result<(LongVal, bit_vec::Iter<'_>), CPEDecodingError> {
         // Decode the tier.
         let tier = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for u8
@@ -144,7 +144,7 @@ impl LongVal {
             (Some(true), Some(true), Some(false)) => LongValTier::U56,
             // 111 for u64
             (Some(true), Some(true), Some(true)) => LongValTier::U64,
-            _ => return Err(CPEError::IteratorError),
+            _ => return Err(CPEDecodingError::IteratorError),
         };
 
         // Get the bit count for the tier.
@@ -162,7 +162,7 @@ impl LongVal {
         // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(bit_stream.next().ok_or(CPEError::IteratorError)?);
+            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::IteratorError)?);
         }
 
         // Convert the value bits to bytes.
@@ -170,7 +170,7 @@ impl LongVal {
 
         // Construct the long value.
         let long_val =
-            LongVal::from_compact_bytes(&value_bytes).ok_or(CPEError::ConversionError)?;
+            LongVal::from_compact_bytes(&value_bytes).ok_or(CPEDecodingError::ConversionError)?;
 
         // Return the long value and the remaining bit stream.
         Ok((long_val, bit_stream))

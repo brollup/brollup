@@ -3,7 +3,7 @@ use bit_vec::BitVec;
 
 /// Error type for compact payload decoding.
 #[derive(Debug, Clone)]
-pub enum CPEError {
+pub enum CPEDecodingError {
     RegisteryError,
     IteratorError,
     ConversionError,

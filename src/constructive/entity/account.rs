@@ -1,5 +1,5 @@
 use crate::{
-    cpe::{CPEError, CompactPayloadEncoding},
+    cpe::{CPEDecodingError, CompactPayloadEncoding},
     registery::{account_registery::ACCOUNT_REGISTERY, registery::REGISTERY},
     valtype::short::ShortVal,
 };
@@ -64,9 +64,9 @@ impl Account {
     pub async fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
         registery: REGISTERY,
-    ) -> Result<(Account, bit_vec::Iter<'_>), CPEError> {
+    ) -> Result<(Account, bit_vec::Iter<'_>), CPEDecodingError> {
         // Check if the account is registered.
-        let is_registered = bit_stream.next().ok_or(CPEError::IteratorError)?;
+        let is_registered = bit_stream.next().ok_or(CPEDecodingError::IteratorError)?;
 
         match is_registered {
             true => {
@@ -86,7 +86,7 @@ impl Account {
                     let _account_registery = account_registery.lock().await;
                     _account_registery
                         .account_by_index(registery_index.value())
-                        .ok_or(CPEError::RegisteryError)?
+                        .ok_or(CPEDecodingError::RegisteryError)?
                 };
 
                 // Return the account and the remaining bit stream.
@@ -100,7 +100,7 @@ impl Account {
 
                 // Ensure the collected bits are the correct length.
                 if public_key_bits.len() != 256 {
-                    return Err(CPEError::IteratorError);
+                    return Err(CPEDecodingError::IteratorError);
                 }
 
                 // Convert public key bits to an even public key bytes.
@@ -108,8 +108,8 @@ impl Account {
                 public_key_bytes.extend(public_key_bits.to_bytes());
 
                 // Construct the public key.
-                let public_key =
-                    Point::from_slice(&public_key_bytes).map_err(|_| CPEError::ConversionError)?;
+                let public_key = Point::from_slice(&public_key_bytes)
+                    .map_err(|_| CPEDecodingError::ConversionError)?;
 
                 // Construct the unregistered account.
                 let account = Account {

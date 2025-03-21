@@ -1,4 +1,4 @@
-use crate::cpe::{CPEError, CompactPayloadEncoding};
+use crate::cpe::{CPEDecodingError, CompactPayloadEncoding};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -82,14 +82,14 @@ impl ShortVal {
     /// Decodes a `ShortVal` from a bit stream and returns it along with the remaining bit stream.
     pub fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(ShortVal, bit_vec::Iter<'_>), CPEError> {
+    ) -> Result<(ShortVal, bit_vec::Iter<'_>), CPEDecodingError> {
         // Decode the tier.
         let tier = match (bit_stream.next(), bit_stream.next()) {
             (Some(false), Some(false)) => ShortValTier::U8,
             (Some(false), Some(true)) => ShortValTier::U16,
             (Some(true), Some(false)) => ShortValTier::U24,
             (Some(true), Some(true)) => ShortValTier::U32,
-            _ => return Err(CPEError::IteratorError),
+            _ => return Err(CPEDecodingError::IteratorError),
         };
 
         // Get the bit count for the tier.
@@ -103,7 +103,7 @@ impl ShortVal {
         // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(bit_stream.next().ok_or(CPEError::IteratorError)?);
+            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::IteratorError)?);
         }
 
         // Convert the value bits to bytes.
@@ -111,7 +111,7 @@ impl ShortVal {
 
         // Construct the short value.
         let short_val =
-            ShortVal::from_compact_bytes(&value_bytes).ok_or(CPEError::ConversionError)?;
+            ShortVal::from_compact_bytes(&value_bytes).ok_or(CPEDecodingError::ConversionError)?;
 
         // Return the short value and the remaining bit stream.
         Ok((short_val, bit_stream))

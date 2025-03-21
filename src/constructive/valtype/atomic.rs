@@ -1,4 +1,4 @@
-use crate::cpe::{CPEError, CompactPayloadEncoding};
+use crate::cpe::{CPEDecodingError, CompactPayloadEncoding};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -77,7 +77,7 @@ impl AtomicVal {
     /// Decodes an `AtomicVal` from a bit stream and returns it along with the remaining bit stream.
     pub fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(AtomicVal, bit_vec::Iter<'_>), CPEError> {
+    ) -> Result<(AtomicVal, bit_vec::Iter<'_>), CPEDecodingError> {
         // Decode the value.
         let value = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for 0
@@ -96,7 +96,7 @@ impl AtomicVal {
             (Some(true), Some(true), Some(false)) => Self::Six,
             // 111 for 7
             (Some(true), Some(true), Some(true)) => Self::Seven,
-            _ => return Err(CPEError::IteratorError),
+            _ => return Err(CPEDecodingError::IteratorError),
         };
 
         // Return the decoded value and the remaining bit stream.
