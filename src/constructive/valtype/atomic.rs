@@ -78,7 +78,7 @@ impl AtomicVal {
     pub fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
     ) -> Result<(AtomicVal, bit_vec::Iter<'_>), CPEError> {
-        // Decode the first 3 bits
+        // Decode the value.
         let value = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for 0
             (Some(false), Some(false), Some(false)) => Self::Zero,

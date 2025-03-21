@@ -126,6 +126,7 @@ impl LongVal {
     pub fn decode_cpe(
         mut bit_stream: bit_vec::Iter<'_>,
     ) -> Result<(LongVal, bit_vec::Iter<'_>), CPEError> {
+        // Decode the tier.
         let tier = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for u8
             (Some(false), Some(false), Some(false)) => LongValTier::U8,
@@ -146,6 +147,7 @@ impl LongVal {
             _ => return Err(CPEError::IteratorError),
         };
 
+        // Get the bit count for the tier.
         let bit_count = match tier {
             LongValTier::U8 => 8,
             LongValTier::U16 => 16,
@@ -157,15 +159,20 @@ impl LongVal {
             LongValTier::U64 => 64,
         };
 
+        // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
             value_bits.push(bit_stream.next().ok_or(CPEError::IteratorError)?);
         }
 
+        // Convert the value bits to bytes.
         let value_bytes = value_bits.to_bytes();
+
+        // Construct the long value.
         let long_val =
             LongVal::from_compact_bytes(&value_bytes).ok_or(CPEError::ConversionError)?;
 
+        // Return the long value and the remaining bit stream.
         Ok((long_val, bit_stream))
     }
 }
