@@ -89,7 +89,7 @@ impl Account {
                         .ok_or(CPEError::RegisteryError)?
                 };
 
-                // Return registered account and remaining bits.
+                // Return the account and the remaining bit stream.
                 Ok((registered_account, bit_stream))
             }
             false => {
@@ -117,7 +117,7 @@ impl Account {
                     registery_index: None,
                 };
 
-                // Return unregistered account and remaining bits.
+                // Return the account and remaining bits.
                 Ok((account, bit_stream))
             }
         }

@@ -39,6 +39,8 @@ impl Contract {
         }
     }
 
+    /// Compact payload decoding for `Contract`.
+    /// Decodes a `Contract` from a bit stream and returns it along with the remaining bit stream.
     pub async fn decode_cpe(
         bit_stream: bit_vec::Iter<'_>,
         registery: REGISTERY,
@@ -60,6 +62,7 @@ impl Contract {
                 .ok_or(CPEError::RegisteryError)?
         };
 
+        // Return the contract and the remaining bit stream.
         Ok((contract, bit_stream))
     }
 }
