@@ -15,6 +15,7 @@ use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
 use crate::sync::RollupSync;
 use crate::tcp::tcp::{open_port, port_number};
+use crate::utxoset::utxoset::{UTXOSet, UTXO_SET};
 use crate::{
     ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
     EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER, ROLLUP_DIRECTORY,
@@ -71,6 +72,15 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
+    // #7 Initialize UTXO set.
+    let utxoset: UTXO_SET = match UTXOSet::new(network) {
+        Some(utxoset) => utxoset,
+        None => {
+            println!("{}", "Error initializing utxoset.".red());
+            return;
+        }
+    };
+
     // #7 Spawn syncer.
     {
         let network = network.clone();
@@ -91,6 +101,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &registery,
                     None,
+                    &utxoset,
                 )
                 .await;
         });

@@ -6,6 +6,7 @@ use crate::{
     rpcholder::RPCHolder,
     taproot::P2TR,
     txo::lift::Lift,
+    utxoset::utxoset::UTXO_SET,
     wallet::wallet::WALLET,
     Network, EPOCH_DIRECTORY, LP_DIRECTORY, ROLLUP_DIRECTORY,
 };
@@ -54,6 +55,7 @@ pub trait RollupSync {
         _lp_dir: &LP_DIRECTORY,
         _registery: &REGISTERY,
         wallet: Option<&WALLET>,
+        utxoset: &UTXO_SET,
     );
 
     /// Awaits the rollup to be synced to the latest Bitcoin chain tip.
@@ -85,6 +87,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
         _lp_dir: &LP_DIRECTORY,
         _registery: &REGISTERY,
         wallet: Option<&WALLET>,
+        utxoset: &UTXO_SET,
     ) {
         let mut synced: bool = false;
 
@@ -167,15 +170,18 @@ impl RollupSync for ROLLUP_DIRECTORY {
                     for transaction in block.txdata.iter() {
                         let inputs = transaction.input.clone();
                         let outputs = transaction.output.clone();
+                        let txid = transaction.compute_txid();
 
                         // Iterate over inputs.
-                        for input in inputs.iter() {
+                        for txn_input in inputs.iter() {
+                            let txn_input_outpoint = txn_input.previous_output;
+
                             // Remove spent lifts from wallet.
                             if let Some(wallet) = wallet {
                                 // Compare to self lift outpoints.
                                 for lift in self_lifts.iter() {
                                     if let Some(self_lift_outpoint) = lift.outpoint() {
-                                        if input.previous_output == self_lift_outpoint {
+                                        if txn_input_outpoint == self_lift_outpoint {
                                             // Remove from lift wallet.
                                             {
                                                 let lift_wallet = {
@@ -190,29 +196,32 @@ impl RollupSync for ROLLUP_DIRECTORY {
                                     }
                                 }
                             }
+
+                            // Remove spent utxos from utxoset.
+                            {
+                                let mut _utxoset = utxoset.lock().await;
+                                _utxoset.remove_txout(&txn_input_outpoint);
+                            }
                         }
 
                         // Iterate over outputs.
-                        for (index, output) in outputs.iter().enumerate() {
-                            let txn_output_spk = output.script_pubkey.as_bytes().to_vec();
+                        for (txn_output_index, txn_output) in outputs.iter().enumerate() {
+                            let txn_output_spk = txn_output.script_pubkey.as_bytes().to_vec();
+                            let txn_output_val = txn_output.value.to_sat();
+                            let txn_output_outpoint = OutPoint::new(txid, txn_output_index as u32);
 
                             // Compare to lift spks to scan.
                             if let Some(wallet) = wallet {
                                 for (lift_spk, operator_group_key) in lift_spks_to_scan.iter() {
                                     if &txn_output_spk == lift_spk {
-                                        let outpoint =
-                                            OutPoint::new(transaction.compute_txid(), index as u32);
-
-                                        let value = output.value.to_sat();
-
                                         let self_key = key_holder.public_key();
                                         let operator_key = operator_group_key.to_owned();
 
                                         let lift = Lift::new(
                                             self_key,
                                             operator_key,
-                                            Some(outpoint),
-                                            Some(value),
+                                            Some(txn_output_outpoint),
+                                            Some(txn_output_val),
                                         );
 
                                         // Add to lift wallet.
@@ -228,6 +237,12 @@ impl RollupSync for ROLLUP_DIRECTORY {
                                     }
                                 }
                             }
+
+                            // Add to utxoset.
+                            {
+                                let mut _utxoset = utxoset.lock().await;
+                                _utxoset.insert_txout(&txn_output_outpoint, txn_output);
+                            }
                         }
                     }
 
@@ -240,6 +255,11 @@ impl RollupSync for ROLLUP_DIRECTORY {
                     // TODO set the new rollup sync height.
 
                     println!("Synced height #{}.", height_to_sync);
+
+                    {
+                        let _utxoset = utxoset.lock().await;
+                        println!("num utxos: {}", _utxoset.num_utxos());
+                    }
                 }
             }
         }

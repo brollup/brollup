@@ -18,6 +18,8 @@ use crate::sync::RollupSync;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::tcp::tcp::port_number;
+use crate::utxoset::utxoset::UTXOSet;
+use crate::utxoset::utxoset::UTXO_SET;
 use crate::Network;
 use crate::OperatingMode;
 use crate::DKG_MANAGER;
@@ -78,6 +80,15 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
+    // #7 Initialize UTXO set.
+    let utxoset: UTXO_SET = match UTXOSet::new(network) {
+        Some(utxoset) => utxoset,
+        None => {
+            println!("{}", "Error initializing utxoset.".red());
+            return;
+        }
+    };
+
     // #7 Spawn syncer.
     {
         let network = network.clone();
@@ -98,6 +109,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &registery,
                     None,
+                    &utxoset,
                 )
                 .await;
         });

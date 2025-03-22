@@ -1,4 +1,4 @@
-use crate::{txn::outpoint::OutpointExt, txo::lift::Lift, Network};
+use crate::{txn::ext::OutpointExt, txo::lift::Lift, Network};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

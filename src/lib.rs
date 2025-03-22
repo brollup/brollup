@@ -41,15 +41,16 @@ pub mod lp_dir;
 pub mod registery;
 #[path = "inscriptive/rollup/mod.rs"]
 pub mod rollup_dir;
+#[path = "inscriptive/utxoset/mod.rs"]
+pub mod utxoset;
 #[path = "inscriptive/wallet/mod.rs"]
 pub mod wallet;
 
 // Crypto modules.
-#[path = "inscriptive/encoding/mod.rs"]
-pub mod encoding;
-
 #[path = "transmutive/address.rs"]
 pub mod address;
+#[path = "inscriptive/encoding/mod.rs"]
+pub mod encoding;
 #[path = "transmutive/hash.rs"]
 pub mod hash;
 #[path = "transmutive/into.rs"]
