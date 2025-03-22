@@ -19,6 +19,19 @@ pub enum AtomicVal {
 }
 
 impl AtomicVal {
+    pub fn new_u8(value: u8) -> Option<AtomicVal> {
+        match value {
+            0 => Some(AtomicVal::Zero),
+            1 => Some(AtomicVal::One),
+            2 => Some(AtomicVal::Two),
+            3 => Some(AtomicVal::Three),
+            4 => Some(AtomicVal::Four),
+            5 => Some(AtomicVal::Five),
+            6 => Some(AtomicVal::Six),
+            7 => Some(AtomicVal::Seven),
+            _ => None,
+        }
+    }
     /// Returns the atomic value zero.
     pub fn zero() -> Self {
         Self::Zero
