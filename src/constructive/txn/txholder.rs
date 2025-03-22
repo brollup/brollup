@@ -98,8 +98,31 @@ impl TxHolder {
     }
 
     /// Returns the current input outpoint.
-    pub fn current_in_outpoint(&self) -> OutPoint {
+    pub fn current_in_outpoint(&self) -> Option<OutPoint> {
         let current_iter = self.iterator_in as usize;
-        self.tx.input[current_iter].previous_output
+        self.tx
+            .input
+            .get(current_iter)
+            .map(|input| input.previous_output)
+    }
+
+    /// Returns the current output script pubkey.
+    pub fn current_out_spk(&self) -> Option<Vec<u8>> {
+        let current_iter = self.iterator_out as usize;
+        self.tx
+            .output
+            .get(current_iter)
+            .map(|output| output.script_pubkey.to_bytes())
+    }
+
+    // TODO current input value
+
+    /// Returns the current output value.
+    pub fn current_out_value(&self) -> Option<u64> {
+        let current_iter = self.iterator_out as usize;
+        self.tx
+            .output
+            .get(current_iter)
+            .map(|output| output.value.to_sat())
     }
 }
