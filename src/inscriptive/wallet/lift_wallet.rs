@@ -1,4 +1,4 @@
-use crate::{txo::lift::Lift, Network};
+use crate::{txn::outpoint::OutpointExt, txo::lift::Lift, Network};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -60,7 +60,7 @@ impl LiftWallet {
         // Insert in-db.
         match self
             .lifts_db
-            .insert(&outpoint.bytes(), lift.to_owned().serialize())
+            .insert(&outpoint.bytes_36(), lift.to_owned().serialize())
         {
             Ok(_) => true,
             Err(_) => false,
@@ -87,7 +87,7 @@ impl LiftWallet {
         self.lifts.remove(index);
 
         // Remove in-db.
-        match self.lifts_db.remove(&outpoint.bytes()) {
+        match self.lifts_db.remove(&outpoint.bytes_36()) {
             Ok(_) => true,
             Err(_) => false,
         }

@@ -2,8 +2,8 @@ use crate::encoding::csv::CSVEncode;
 use crate::encoding::csv::CSVFlag;
 use crate::musig::keyagg::MusigKeyAggCtx;
 use crate::taproot::{TapLeaf, TapRoot};
-use crate::txn::outpoint::Outpoint;
 use crate::{into::IntoScalar, taproot::P2TR};
+use bitcoin::OutPoint;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +13,7 @@ type Bytes = Vec<u8>;
 pub struct VTXO {
     account: Point,
     operator: Point,
-    outpoint: Option<Outpoint>,
+    outpoint: Option<OutPoint>,
     value: Option<u64>,
 }
 
@@ -21,7 +21,7 @@ impl VTXO {
     pub fn new(
         account: Point,
         operator: Point,
-        outpoint: Option<Outpoint>,
+        outpoint: Option<OutPoint>,
         value: Option<u64>,
     ) -> VTXO {
         VTXO {
@@ -47,7 +47,7 @@ impl VTXO {
         self.operator
     }
 
-    pub fn outpoint(&self) -> Option<Outpoint> {
+    pub fn outpoint(&self) -> Option<OutPoint> {
         self.outpoint
     }
 

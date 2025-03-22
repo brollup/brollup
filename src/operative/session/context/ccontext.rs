@@ -294,7 +294,7 @@ impl CSessionCtx {
                     Some(_outpoint) => {
                         // TODO: check if this is a valid outpoint.
                     }
-                    None => return Err(CSessionCommitNack::MissingLiftOutpoint()),
+                    None => return Err(CSessionCommitNack::MissingLiftOutpoint),
                 };
             }
         }

@@ -1,4 +1,3 @@
-use crate::txn::outpoint::Outpoint;
 use serde::{Deserialize, Serialize};
 
 /// `CSessionCommitNack` is returned by the coordinator to the msg.senders
@@ -14,8 +13,8 @@ pub enum CSessionCommitNack {
     InvalidLiftAccountKey,
     InvalidAccountRegisteryIndex,
     InvalidLiftOperatorKey,
-    MissingLiftOutpoint(),
-    InvalidLiftOutpoint(Outpoint),
+    MissingLiftOutpoint,
+    InvalidLiftOutpoint,
     InsufficientConnectors,
     // Post commit-pool errors
     CommitPruned,

@@ -1,4 +1,4 @@
-use crate::{txo::vtxo::VTXO, Network};
+use crate::{txn::outpoint::OutpointExt, txo::vtxo::VTXO, Network};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -63,7 +63,7 @@ impl VTXOWallet {
         // Insert in-db.
         match self
             .vtxos_db
-            .insert(&outpoint.bytes(), vtxo.to_owned().serialize())
+            .insert(&outpoint.bytes_36(), vtxo.to_owned().serialize())
         {
             Ok(_) => return true,
             Err(_) => return false,
@@ -90,7 +90,7 @@ impl VTXOWallet {
         self.vtxos.remove(index);
 
         // Remove in-db.
-        match self.vtxos_db.remove(&outpoint.bytes()) {
+        match self.vtxos_db.remove(&outpoint.bytes_36()) {
             Ok(_) => return true,
             Err(_) => return false,
         }

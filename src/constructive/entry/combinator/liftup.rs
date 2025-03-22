@@ -1,9 +1,10 @@
 use crate::{
+    entity::account::Account,
     hash::{Hash, HashTag},
     schnorr::Sighash,
     txo::lift::Lift,
-    entity::account::Account,
 };
+use bitcoin::hashes::Hash as _;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -62,12 +63,13 @@ impl Sighash for Liftup {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         for prevtxo in self.lift_prevtxos.iter() {
-            let bytes = match prevtxo.outpoint() {
-                Some(outpoint) => outpoint.bytes(),
+            match prevtxo.outpoint() {
+                Some(outpoint) => {
+                    preimage.extend(outpoint.txid.to_byte_array());
+                    preimage.extend(outpoint.vout.to_le_bytes());
+                }
                 None => return [0; 32],
-            };
-
-            preimage.extend(bytes);
+            }
         }
 
         preimage.hash(Some(HashTag::SighashCombinator))

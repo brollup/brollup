@@ -1,9 +1,10 @@
 use crate::{
+    entity::account::Account,
     hash::{Hash, HashTag},
     schnorr::Sighash,
     txo::vtxo::VTXO,
-    entity::account::Account,
 };
+use bitcoin::hashes::Hash as _;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -62,12 +63,13 @@ impl Sighash for Recharge {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         for vtxo in self.recharge_vtxos.iter() {
-            let bytes = match vtxo.outpoint() {
-                Some(outpoint) => outpoint.bytes(),
+            match vtxo.outpoint() {
+                Some(outpoint) => {
+                    preimage.extend(outpoint.txid.to_byte_array());
+                    preimage.extend(outpoint.vout.to_le_bytes());
+                }
                 None => return [0; 32],
             };
-
-            preimage.extend(bytes);
         }
 
         preimage.hash(Some(HashTag::SighashCombinator))

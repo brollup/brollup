@@ -5,13 +5,12 @@ use crate::{
     rpc::bitcoin_rpc::{get_block, get_chain_height},
     rpcholder::RPCHolder,
     taproot::P2TR,
-    txn::outpoint::Outpoint,
     txo::lift::Lift,
     wallet::wallet::WALLET,
     Network, EPOCH_DIRECTORY, LP_DIRECTORY, ROLLUP_DIRECTORY,
 };
 use async_trait::async_trait;
-use bitcoin::hashes::Hash;
+use bitcoin::OutPoint;
 use secp::Point;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -173,17 +172,10 @@ impl RollupSync for ROLLUP_DIRECTORY {
                         for input in inputs.iter() {
                             // Remove spent lifts from wallet.
                             if let Some(wallet) = wallet {
-                                let txn_input_outpoint = {
-                                    let prev: [u8; 32] =
-                                        input.previous_output.txid.to_raw_hash().to_byte_array();
-                                    let vout = input.previous_output.vout;
-                                    Outpoint::new(prev, vout)
-                                };
-
                                 // Compare to self lift outpoints.
                                 for lift in self_lifts.iter() {
                                     if let Some(self_lift_outpoint) = lift.outpoint() {
-                                        if txn_input_outpoint == self_lift_outpoint {
+                                        if input.previous_output == self_lift_outpoint {
                                             // Remove from lift wallet.
                                             {
                                                 let lift_wallet = {
@@ -208,12 +200,8 @@ impl RollupSync for ROLLUP_DIRECTORY {
                             if let Some(wallet) = wallet {
                                 for (lift_spk, operator_group_key) in lift_spks_to_scan.iter() {
                                     if &txn_output_spk == lift_spk {
-                                        let outpoint = {
-                                            let txhash: [u8; 32] =
-                                                transaction.compute_txid().to_byte_array();
-                                            let vout = index as u32;
-                                            Outpoint::new(txhash, vout)
-                                        };
+                                        let outpoint =
+                                            OutPoint::new(transaction.compute_txid(), index as u32);
 
                                         let value = output.value.to_sat();
 
