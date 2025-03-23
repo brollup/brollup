@@ -87,10 +87,8 @@ impl AtomicVal {
     }
 
     /// Compact payload decoding for `AtomicVal`.
-    /// Decodes an `AtomicVal` from a bit stream and returns it along with the remaining bit stream.
-    pub fn decode_cpe(
-        mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(AtomicVal, bit_vec::Iter<'_>), CPEDecodingError> {
+    /// Decodes an `AtomicVal` from a bit stream.
+    pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<AtomicVal, CPEDecodingError> {
         // Decode the value.
         let value = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for 0
@@ -112,8 +110,8 @@ impl AtomicVal {
             _ => return Err(CPEDecodingError::BitVecIteratorError),
         };
 
-        // Return the decoded value and the remaining bit stream.
-        Ok((value, bit_stream))
+        // Return the `AtomicVal`.
+        Ok(value)
     }
 }
 

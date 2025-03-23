@@ -122,10 +122,8 @@ impl LongVal {
     }
 
     /// Compact payload decoding for `LongVal`.
-    /// Decodes an `LongVal` from a bit stream and returns it along with the remaining bit stream.
-    pub fn decode_cpe(
-        mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(LongVal, bit_vec::Iter<'_>), CPEDecodingError> {
+    /// Decodes an `LongVal` from a bit stream.
+    pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<LongVal, CPEDecodingError> {
         // Decode the tier.
         let tier = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
             // 000 for u8
@@ -162,7 +160,11 @@ impl LongVal {
         // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::BitVecIteratorError)?);
+            value_bits.push(
+                bit_stream
+                    .next()
+                    .ok_or(CPEDecodingError::BitVecIteratorError)?,
+            );
         }
 
         // Convert the value bits to bytes.
@@ -172,8 +174,8 @@ impl LongVal {
         let long_val =
             LongVal::from_compact_bytes(&value_bytes).ok_or(CPEDecodingError::ConversionError)?;
 
-        // Return the long value and the remaining bit stream.
-        Ok((long_val, bit_stream))
+        // Return the `LongVal`.
+        Ok(long_val)
     }
 }
 

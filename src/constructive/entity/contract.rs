@@ -45,13 +45,13 @@ impl Contract {
     }
 
     /// Compact payload decoding for `Contract`.
-    /// Decodes a `Contract` from a bit stream and returns it along with the remaining bit stream.
+    /// Decodes a `Contract` from a bit stream.
     pub async fn decode_cpe<'a>(
-        bit_stream: bit_vec::Iter<'a>,
+        bit_stream: &mut bit_vec::Iter<'a>,
         contract_registery: &'a CONTRACT_REGISTERY,
-    ) -> Result<(Contract, bit_vec::Iter<'a>), CPEDecodingError> {
+    ) -> Result<Contract, CPEDecodingError> {
         // Decode registery index.
-        let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
+        let registery_index = ShortVal::decode_cpe(bit_stream)?;
 
         // Retrieve the contract.
         let contract = {
@@ -61,8 +61,8 @@ impl Contract {
                 .ok_or(CPEDecodingError::RegisteryError)?
         };
 
-        // Return the contract and the remaining bit stream.
-        Ok((contract, bit_stream))
+        // Return the `Contract`.
+        Ok(contract)
     }
 }
 

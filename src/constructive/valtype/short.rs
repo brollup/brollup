@@ -79,10 +79,8 @@ impl ShortVal {
     }
 
     /// Compact payload decoding for `ShortVal`.
-    /// Decodes a `ShortVal` from a bit stream and returns it along with the remaining bit stream.
-    pub fn decode_cpe(
-        mut bit_stream: bit_vec::Iter<'_>,
-    ) -> Result<(ShortVal, bit_vec::Iter<'_>), CPEDecodingError> {
+    /// Decodes a `ShortVal` from a bit stream.
+    pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<ShortVal, CPEDecodingError> {
         // Decode the tier.
         let tier = match (bit_stream.next(), bit_stream.next()) {
             (Some(false), Some(false)) => ShortValTier::U8,
@@ -117,8 +115,8 @@ impl ShortVal {
         let short_val =
             ShortVal::from_compact_bytes(&value_bytes).ok_or(CPEDecodingError::ConversionError)?;
 
-        // Return the short value and the remaining bit stream.
-        Ok((short_val, bit_stream))
+        // Return the `ShortVal`.
+        Ok(short_val)
     }
 }
 

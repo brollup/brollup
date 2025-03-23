@@ -67,11 +67,11 @@ impl Account {
     }
 
     /// Compact payload decoding for `Account`.
-    /// Decodes an `Account` from a bit stream and returns it along with the remaining bit stream.  
+    /// Decodes an `Account` from a bit stream.  
     pub async fn decode_cpe<'a>(
-        mut bit_stream: bit_vec::Iter<'a>,
+        bit_stream: &mut bit_vec::Iter<'a>,
         account_registery: &'a ACCOUNT_REGISTERY,
-    ) -> Result<(Account, bit_vec::Iter<'a>), CPEDecodingError> {
+    ) -> Result<Account, CPEDecodingError> {
         // Check if the account is registered.
         let is_registered = bit_stream
             .next()
@@ -82,7 +82,7 @@ impl Account {
                 // Account is registered.
 
                 // Decode registery index.
-                let (registery_index, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
+                let registery_index = ShortVal::decode_cpe(bit_stream)?;
 
                 // Retrieve the account.
                 let account = {
@@ -92,8 +92,8 @@ impl Account {
                         .ok_or(CPEDecodingError::RegisteryError)?
                 };
 
-                // Return the account and the remaining bit stream.
-                Ok((account, bit_stream))
+                // Return the `Account`.
+                Ok(account)
             }
             false => {
                 // Account is unregistered.
@@ -120,8 +120,8 @@ impl Account {
                     registery_index: None,
                 };
 
-                // Return the account and remaining bits.
-                Ok((account, bit_stream))
+                // Return the `Account`.
+                Ok(account)
             }
         }
     }

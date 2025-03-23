@@ -71,15 +71,15 @@ impl Liftup {
     }
 
     /// Compact payload decoding for `Liftup`.
-    /// Decodes a `Liftup` from a bit stream and `TxHolder` returns it along with the remaining bit stream.
+    /// Decodes a `Liftup` from a bit stream and `TxHolder`.
     pub async fn decode_cpe<'a>(
-        bit_stream: bit_vec::Iter<'a>,
+        bit_stream: &mut bit_vec::Iter<'a>,
         txholder: &'a TxHolder,
         epoch_dir: &'a EPOCH_DIRECTORY,
         account_key: Point,
-    ) -> Result<(Liftup, bit_vec::Iter<'a>), CPEDecodingError> {
+    ) -> Result<Liftup, CPEDecodingError> {
         // Decode the number of lifts.
-        let (num_lifts, bit_stream) = ShortVal::decode_cpe(bit_stream)?;
+        let num_lifts = ShortVal::decode_cpe(bit_stream)?;
 
         // Initialize empty vector of lifts.
         let mut lifts = Vec::<Lift>::new();
@@ -159,11 +159,13 @@ impl Liftup {
             }
         }
 
+        // Construct the `Liftup`.
         let liftup = Liftup {
             lift_prevtxos: lifts,
         };
 
-        Ok((liftup, bit_stream))
+        // Return the `Liftup`.
+        Ok(liftup)
     }
 }
 
