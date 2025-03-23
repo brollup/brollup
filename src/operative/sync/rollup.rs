@@ -255,11 +255,6 @@ impl RollupSync for ROLLUP_DIRECTORY {
                     // TODO set the new rollup sync height.
 
                     println!("Synced height #{}.", height_to_sync);
-
-                    {
-                        let _utxoset = utxoset.lock().await;
-                        println!("num utxos: {}", _utxoset.num_utxos());
-                    }
                 }
             }
         }
