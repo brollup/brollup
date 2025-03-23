@@ -8,6 +8,7 @@ use bit_vec::BitVec;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 
+/// Represents an account; a user of the system.
 #[derive(Clone, Copy, Serialize, Deserialize, Hash, Debug)]
 pub struct Account {
     key: Point,
@@ -15,6 +16,7 @@ pub struct Account {
 }
 
 impl Account {
+    /// Creates a new account.
     pub fn new(key: Point, registery_index: Option<u32>) -> Option<Account> {
         let is_odd: bool = key.parity().into();
 
@@ -36,22 +38,27 @@ impl Account {
         Some(account)
     }
 
+    /// Sets the registery index of the account.
     pub fn set_registery_index(&mut self, registery_index: u32) {
         self.registery_index = Some(ShortVal::new(registery_index));
     }
 
+    /// Returns the key of the account.
     pub fn key(&self) -> Point {
         self.key
     }
 
+    /// Returns the registery index of the account.
     pub fn registery_index(&self) -> Option<u32> {
         Some(self.registery_index?.value())
     }
 
+    /// Returns true if the key is odd.
     pub fn is_odd_key(&self) -> bool {
         self.key.parity().into()
     }
 
+    /// Serializes the account.
     pub fn serialize(&self) -> Vec<u8> {
         match serde_json::to_vec(self) {
             Ok(bytes) => bytes,

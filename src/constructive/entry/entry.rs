@@ -1,14 +1,18 @@
+use crate::combinator::claim::Claim;
+use crate::combinator::deploy::Deploy;
+use crate::combinator::revive::Revive;
 use crate::hash::{Hash, HashTag};
 use crate::{
     combinator::{
         add::Add, call::Call, combinator::Combinator, liftup::Liftup, r#move::Move,
-        recharge::Recharge, remove::Remove, reserved::Reserved, swapout::Swapout,
+        recharge::Recharge, reserved::Reserved, sub::Sub, swapout::Swapout,
     },
-    schnorr::Sighash,
     entity::account::Account,
+    schnorr::Sighash,
 };
 use serde::{Deserialize, Serialize};
 
+/// The uppermost left branch of an entry.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UppermostLeftBranch {
     liftup: Option<Liftup>,
@@ -50,83 +54,164 @@ impl UppermostLeftBranch {
     }
 }
 
+/// The uppermost right branch of an entry.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Transact {
+pub enum UppermostRightBranch {
+    TransactiveBranch(TransactiveBranch),
+    UpperRightBranch(UpperRightBranch),
+}
+
+/// The transactive branch of an entry. Descend from the uppermost right branch.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TransactiveBranch {
     Move(Move),
     Call(Call),
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Liquidity {
-    Add(Add),
-    Remove(Remove),
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum RightBranch {
-    Swapout(Swapout),
-    Reserved(Reserved),
-}
-
+/// The uppermost right branch of an entry. Descend from the uppermost right branch.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum UpperRightBranch {
-    Liquidity(Liquidity),
+    LiquidityBranch(LiquidityBranch),
     RightBranch(RightBranch),
 }
 
+/// The liquidity branch of an entry. Descend from the upper right branch.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum UppermostRightBranch {
-    Transact(Transact),
-    UpperRightBranch(UpperRightBranch),
+pub enum LiquidityBranch {
+    Add(Add),
+    Sub(Sub),
+}
+
+/// The right branch of an entry. Descend from the upper right branch.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RightBranch {
+    LowerLeftBranch(LowerLeftBranch),
+    LowerRightBranch(LowerRightBranch),
+}
+
+/// The lower left branch of an entry. Descend from the right branch.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LowerLeftBranch {
+    Deploy(Deploy),
+    Swapout(Swapout),
+}
+
+/// The lower right branch of an entry. Descend from the right branch.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LowerRightBranch {
+    RecoveryBranch(RecoveryBranch),
+    Reserved(Reserved),
+}
+
+/// The recovery branch of an entry. Descend from the lower right branch.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RecoveryBranch {
+    Revive(Revive),
+    Claim(Claim),
 }
 
 impl UppermostRightBranch {
+    /// Create a branch containing a `Move` combinator.
     pub fn new_move(r#move: Move) -> Self {
-        Self::Transact(Transact::Move(r#move))
+        Self::TransactiveBranch(TransactiveBranch::Move(r#move))
     }
 
+    /// Create a branch containing a `Call` combinator.
     pub fn new_call(call: Call) -> Self {
-        Self::Transact(Transact::Call(call))
+        Self::TransactiveBranch(TransactiveBranch::Call(call))
     }
 
+    /// Create a branch containing a `Add` combinator.
     pub fn new_add(add: Add) -> Self {
-        Self::UpperRightBranch(UpperRightBranch::Liquidity(Liquidity::Add(add)))
+        Self::UpperRightBranch(UpperRightBranch::LiquidityBranch(LiquidityBranch::Add(add)))
     }
 
-    pub fn new_remove(remove: Remove) -> Self {
-        Self::UpperRightBranch(UpperRightBranch::Liquidity(Liquidity::Remove(remove)))
+    /// Create a branch containing a `Sub` combinator.
+    pub fn new_sub(sub: Sub) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::LiquidityBranch(LiquidityBranch::Sub(sub)))
     }
 
-    pub fn new_swapout(swapout: Swapout) -> Self {
-        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::Swapout(swapout)))
-    }
-
-    pub fn new_reserved(reserved: Reserved) -> Self {
-        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::Reserved(
-            reserved,
+    /// Create a branch containing a `Deploy` combinator.
+    pub fn new_deploy(deploy: Deploy) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::LowerLeftBranch(
+            LowerLeftBranch::Deploy(deploy),
         )))
     }
 
+    /// Create a branch containing a `Swapout` combinator.
+    pub fn new_swapout(swapout: Swapout) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(RightBranch::LowerLeftBranch(
+            LowerLeftBranch::Swapout(swapout),
+        )))
+    }
+
+    /// Create a branch containing a `Revive` combinator.
+    pub fn new_revive(revive: Revive) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(
+            RightBranch::LowerRightBranch(LowerRightBranch::RecoveryBranch(
+                RecoveryBranch::Revive(revive),
+            )),
+        ))
+    }
+
+    /// Create a branch containing a `Claim` combinator.
+    pub fn new_claim(claim: Claim) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(
+            RightBranch::LowerRightBranch(LowerRightBranch::RecoveryBranch(RecoveryBranch::Claim(
+                claim,
+            ))),
+        ))
+    }
+
+    /// Create a branch containing a `Reserved` combinator.
+    pub fn new_reserved(reserved: Reserved) -> Self {
+        Self::UpperRightBranch(UpperRightBranch::RightBranch(
+            RightBranch::LowerRightBranch(LowerRightBranch::Reserved(reserved)),
+        ))
+    }
+
+    /// Returns the main combinator of the branch.
     pub fn main_combinator(&self) -> Combinator {
         match self {
-            Self::Transact(transact) => match transact {
-                Transact::Move(r#move) => Combinator::Move(r#move.clone()),
-                Transact::Call(call) => Combinator::Call(call.clone()),
+            Self::TransactiveBranch(transactive_branch) => match transactive_branch {
+                TransactiveBranch::Move(r#move) => Combinator::Move(r#move.clone()),
+                TransactiveBranch::Call(call) => Combinator::Call(call.clone()),
             },
             Self::UpperRightBranch(upper_right_branch) => match upper_right_branch {
-                UpperRightBranch::Liquidity(liquidity) => match liquidity {
-                    Liquidity::Add(add) => Combinator::Add(add.clone()),
-                    Liquidity::Remove(remove) => Combinator::Remove(remove.clone()),
+                // Liquidity branch.
+                UpperRightBranch::LiquidityBranch(liquidity_branch) => match liquidity_branch {
+                    LiquidityBranch::Add(add) => Combinator::Add(add.clone()),
+                    LiquidityBranch::Sub(sub) => Combinator::Sub(sub.clone()),
                 },
+                // Right branch.
                 UpperRightBranch::RightBranch(right_branch) => match right_branch {
-                    RightBranch::Swapout(swapout) => Combinator::Swapout(swapout.clone()),
-                    RightBranch::Reserved(reserved) => Combinator::Reserved(reserved.clone()),
+                    // Lower left branch.
+                    RightBranch::LowerLeftBranch(lower_left_branch) => match lower_left_branch {
+                        LowerLeftBranch::Deploy(deploy) => Combinator::Deploy(deploy.clone()),
+                        LowerLeftBranch::Swapout(swapout) => Combinator::Swapout(swapout.clone()),
+                    },
+                    // Lower right branch.
+                    RightBranch::LowerRightBranch(lower_right_branch) => match lower_right_branch {
+                        // Recovery branch.
+                        LowerRightBranch::RecoveryBranch(recovery_branch) => {
+                            match recovery_branch {
+                                RecoveryBranch::Revive(revive) => {
+                                    Combinator::Revive(revive.clone())
+                                }
+                                RecoveryBranch::Claim(claim) => Combinator::Claim(claim.clone()),
+                            }
+                        }
+                        LowerRightBranch::Reserved(reserved) => {
+                            Combinator::Reserved(reserved.clone())
+                        }
+                    },
                 },
             },
         }
     }
 }
 
+/// The entry represents a transaction, containing one or more combinators.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Entry {
     account: Account,
@@ -135,6 +220,7 @@ pub struct Entry {
 }
 
 impl Entry {
+    /// Creates a new entry.
     fn new(
         account: Account,
         uppermost_left_branch: Option<UppermostLeftBranch>,
@@ -161,6 +247,7 @@ impl Entry {
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
+    /// Creates a new move entry.
     pub fn new_move(
         account: Account,
         r#move: Move,
@@ -175,7 +262,9 @@ impl Entry {
             }
         };
 
-        let uppermost_right_branch = Some(UppermostRightBranch::Transact(Transact::Move(r#move)));
+        let uppermost_right_branch = Some(UppermostRightBranch::TransactiveBranch(
+            TransactiveBranch::Move(r#move),
+        ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
@@ -192,10 +281,13 @@ impl Entry {
                 None
             }
         };
-        let uppermost_right_branch = Some(UppermostRightBranch::Transact(Transact::Call(call)));
+        let uppermost_right_branch = Some(UppermostRightBranch::TransactiveBranch(
+            TransactiveBranch::Call(call),
+        ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
+    /// Creates a new add entry.
     pub fn new_add(
         account: Account,
         add: Add,
@@ -210,14 +302,15 @@ impl Entry {
             }
         };
         let uppermost_right_branch = Some(UppermostRightBranch::UpperRightBranch(
-            UpperRightBranch::Liquidity(Liquidity::Add(add)),
+            UpperRightBranch::LiquidityBranch(LiquidityBranch::Add(add)),
         ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
-    pub fn new_remove(
+    /// Creates a new sub entry.
+    pub fn new_sub(
         account: Account,
-        remove: Remove,
+        sub: Sub,
         liftup: Option<Liftup>,
         recharge: Option<Recharge>,
     ) -> Entry {
@@ -229,11 +322,12 @@ impl Entry {
             }
         };
         let uppermost_right_branch = Some(UppermostRightBranch::UpperRightBranch(
-            UpperRightBranch::Liquidity(Liquidity::Remove(remove)),
+            UpperRightBranch::LiquidityBranch(LiquidityBranch::Sub(sub)),
         ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
+    /// Creates a new swapout entry.
     pub fn new_swapout(
         account: Account,
         swapout: Swapout,
@@ -248,11 +342,14 @@ impl Entry {
             }
         };
         let uppermost_right_branch = Some(UppermostRightBranch::UpperRightBranch(
-            UpperRightBranch::RightBranch(RightBranch::Swapout(swapout)),
+            UpperRightBranch::RightBranch(RightBranch::LowerLeftBranch(LowerLeftBranch::Swapout(
+                swapout,
+            ))),
         ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
+    /// Creates a new reserved entry.
     pub fn new_reserved(
         account: Account,
         reserved: Reserved,
@@ -267,15 +364,19 @@ impl Entry {
             }
         };
         let uppermost_right_branch = Some(UppermostRightBranch::UpperRightBranch(
-            UpperRightBranch::RightBranch(RightBranch::Reserved(reserved)),
+            UpperRightBranch::RightBranch(RightBranch::LowerRightBranch(
+                LowerRightBranch::Reserved(reserved),
+            )),
         ));
         Self::new(account, uppermost_left_branch, uppermost_right_branch)
     }
 
+    /// Returns the account of the entry.
     pub fn account(&self) -> Account {
         self.account.clone()
     }
 
+    /// Returns the liftup of the entry.
     pub fn liftup(&self) -> Option<Liftup> {
         let uppermost_left_branch = match &self.uppermost_left_branch {
             Some(uppermost_left_branch) => uppermost_left_branch,
@@ -285,6 +386,7 @@ impl Entry {
         uppermost_left_branch.liftup()
     }
 
+    /// Returns the recharge of the entry.
     pub fn recharge(&self) -> Option<Recharge> {
         let uppermost_left_branch = match &self.uppermost_left_branch {
             Some(uppermost_left_branch) => uppermost_left_branch,
@@ -294,6 +396,7 @@ impl Entry {
         uppermost_left_branch.recharge()
     }
 
+    /// Returns the main combinator of the entry.
     pub fn main_combinator(&self) -> Option<Combinator> {
         let uppermost_right_branch = match &self.uppermost_right_branch {
             Some(uppermost_right_branch) => uppermost_right_branch,
@@ -310,6 +413,7 @@ impl Entry {
         }
     }
 
+    /// Validates the account of the entry.
     pub fn validate_account(&self) -> bool {
         let account = self.account();
 
@@ -350,13 +454,28 @@ impl Entry {
                         return false;
                     }
                 }
-                Combinator::Remove(remove) => {
-                    if !remove.validate_account(account) {
+                Combinator::Sub(sub) => {
+                    if !sub.validate_account(account) {
+                        return false;
+                    }
+                }
+                Combinator::Deploy(deploy) => {
+                    if !deploy.validate_account(account) {
                         return false;
                     }
                 }
                 Combinator::Swapout(swapout) => {
                     if !swapout.validate_account(account) {
+                        return false;
+                    }
+                }
+                Combinator::Revive(revive) => {
+                    if !revive.validate_account(account) {
+                        return false;
+                    }
+                }
+                Combinator::Claim(claim) => {
+                    if !claim.validate_account(account) {
                         return false;
                     }
                 }
@@ -410,9 +529,14 @@ impl Sighash for Entry {
                     Combinator::Move(r#move) => preimage.extend(r#move.sighash()),
                     Combinator::Call(call) => preimage.extend(call.sighash()),
                     Combinator::Add(add) => preimage.extend(add.sighash()),
-                    Combinator::Remove(remove) => preimage.extend(remove.sighash()),
+                    Combinator::Sub(sub) => preimage.extend(sub.sighash()),
+                    Combinator::Deploy(deploy) => preimage.extend(deploy.sighash()),
                     Combinator::Swapout(swapout) => preimage.extend(swapout.sighash()),
+                    Combinator::Revive(revive) => preimage.extend(revive.sighash()),
+                    Combinator::Claim(claim) => preimage.extend(claim.sighash()),
+                    // Reserved is not covered.
                     Combinator::Reserved(_) => return [0xffu8; 32],
+                    // Liftup and recharge belong to the uppermost left branch.
                     Combinator::Liftup(_) => return [0xffu8; 32],
                     Combinator::Recharge(_) => return [0xffu8; 32],
                 }

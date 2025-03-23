@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
+/// Represents a contract; a program that can be executed on the system.
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Debug)]
 pub struct Contract {
     contract_id: [u8; 32],
@@ -14,6 +15,7 @@ pub struct Contract {
 }
 
 impl Contract {
+    /// Creates a new contract.
     pub fn new(contract_id: [u8; 32], registery_index: u32) -> Contract {
         // Convert the registery index to a ShortVal.
         let registery_index = ShortVal::new(registery_index);
@@ -24,14 +26,17 @@ impl Contract {
         }
     }
 
+    /// Returns the contract id.
     pub fn contract_id(&self) -> [u8; 32] {
         self.contract_id
     }
 
+    /// Returns the registery index.
     pub fn registery_index(&self) -> u32 {
         self.registery_index.value()
     }
 
+    /// Serializes the contract.
     pub fn serialize(&self) -> Vec<u8> {
         match serde_json::to_vec(self) {
             Ok(bytes) => bytes,
@@ -61,6 +66,7 @@ impl Contract {
     }
 }
 
+/// Compact payload encoding for `Contract`.
 #[async_trait]
 impl CompactPayloadEncoding for Contract {
     fn encode_cpe(&self) -> BitVec {

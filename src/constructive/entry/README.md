@@ -1,20 +1,5 @@
-# Combinators
-`Brollup` employs 11 types of combinators:
-
-| Entry Type       |  Description                                                          |
-|:-----------------|:----------------------------------------------------------------------|
-| Liftup ⬆️        | Lifts one or more `Lift` outputs.                                     |
-| Recharge 🔋      | Refreshes one or more `Channel` liquidity into a fresh, new `VTXO`.   |
-| Move 💸          | Moves sats from an `Account` to another `Account`.                    |
-| Call 📡          | Calls a `Contract`. This may internally involve moving sats.          |
-| Add ➕           | Adds liquidity.                                                       |
-| Sub ➖           | Removes liquidity.                                                    |
-| Deploy 🏗        | Deploys a `Contract`.                                                 |
-| Swapout 🚪       | Swaps sats into a bare P2TR, P2WSH, or P2WPKH address.                |
-| Revive 🪦        | Recovers all expired `VTXO`s back to their owner.                     |
-| Claim 🌐         | Recovers all expired `VTXO`s via social recovery.                     |
-| Reserved 📁      | Fails the entry. Reserved for future upgrades.                        |
-
+# Entry
+An `Entry` is a higher-level construct that groups together one or more `Combinator`. It acts as a container for specific actions, such as calling smart contracts or transferring value, which collectively influence the global state.
 
 ## Entry Tree
                                                     
@@ -40,7 +25,7 @@
                                                                  └──────────┘└──────────┘  └──────────────────────┘              └──────────────────────┘
                                                                                                  ┌────┘└────┐                   ┌───────────┘└───────────┐         
                                                                                            ┌──────────┐┌──────────┐ ┌──────────────────────┐ ┌──────────────────────┐
-                                                                                           │ Deploy   ││ Swapout  │ │ Recovery Branch      │ │ Reserved Branch      │
+                                                                                           │ Deploy   ││ Swapout  │ │ Recovery Branch      │ │ Reserved             │
                                                                                            │ b:0      ││ b:1      │ │ b:0                  │ │ b:1                  │
                                                                                            └──────────┘└──────────┘ └──────────────────────┘ └──────────────────────┘
                                                                                                                           ┌────┘└────┐       

@@ -6,14 +6,14 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Remove {
+pub struct Sub {
     account: Account,
     amount: u32,
 }
 
-impl Remove {
-    pub fn new(account: Account, amount: u32) -> Remove {
-        Remove { account, amount }
+impl Sub {
+    pub fn new(account: Account, amount: u32) -> Sub {
+        Sub { account, amount }
     }
 
     pub fn account(&self) -> Account {
@@ -36,7 +36,7 @@ impl Remove {
     }
 }
 
-impl Sighash for Remove {
+impl Sighash for Sub {
     fn sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
