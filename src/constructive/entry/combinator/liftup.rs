@@ -1,5 +1,5 @@
 use crate::{
-    cpe::{CPEDecodingError, CompactPayloadEncoding},
+    cpe::{CPEDecodingError, CompactPayloadEncoding, LiftupCPEDecodingError},
     entity::account::Account,
     hash::{Hash, HashTag},
     schnorr::Sighash,
@@ -74,7 +74,7 @@ impl Liftup {
     /// Decodes a `Liftup` from a bit stream and `TxHolder`.
     pub async fn decode_cpe<'a>(
         bit_stream: &mut bit_vec::Iter<'a>,
-        txholder: &'a TxHolder,
+        txholder: &'a mut TxHolder,
         epoch_dir: &'a EPOCH_DIRECTORY,
         account_key: Point,
     ) -> Result<Liftup, CPEDecodingError> {
@@ -90,19 +90,16 @@ impl Liftup {
             let (txin_outpoint, txin_txout) = match txholder.current_in().await {
                 Some((outpoint, txout)) => (outpoint, txout),
                 None => {
-                    let input_iter = txholder.iterator_in();
-                    return Err(CPEDecodingError::TxInIteratorErrorAt(input_iter));
+                    // Unable to find a matching `Lift` at the current transaction input iterator position.
+                    let input_iter_position = txholder.input_iter_position();
+                    return Err(CPEDecodingError::LiftupCPEDecodingError(
+                        LiftupCPEDecodingError::NoLiftAtInputIter(input_iter_position),
+                    ));
                 }
             };
 
             // Get the script pubkey of the transaction input being spent.
             let txin_spk = txin_txout.script_pubkey.to_bytes();
-
-            // Check if this is a P2TR output.
-            if txin_spk.len() != 34 || txin_spk[0..2] != [0x51, 0x20] {
-                let input_iter = txholder.iterator_in();
-                return Err(CPEDecodingError::InvalidLiftTxInAt(input_iter));
-            }
 
             // Check if spk matches to one of the operator key comibinations.
             let epoch_group_keys = {
@@ -125,13 +122,23 @@ impl Liftup {
                     Some(taproot) => match taproot.spk() {
                         Some(spk) => spk,
                         None => {
-                            let input_iter = txholder.iterator_in();
-                            return Err(CPEDecodingError::InvalidLiftTxInAt(input_iter));
+                            // Unable to re-construct `Lift` at the current transaction input iterator position.
+                            let input_iter_position = txholder.input_iter_position();
+                            return Err(CPEDecodingError::LiftupCPEDecodingError(
+                                LiftupCPEDecodingError::LiftReconstructionErrAtInputIter(
+                                    input_iter_position,
+                                ),
+                            ));
                         }
                     },
                     None => {
-                        let input_iter = txholder.iterator_in();
-                        return Err(CPEDecodingError::InvalidLiftTxInAt(input_iter));
+                        // Unable to re-construct `Lift` at the current transaction input iterator position.
+                        let input_iter_position = txholder.input_iter_position();
+                        return Err(CPEDecodingError::LiftupCPEDecodingError(
+                            LiftupCPEDecodingError::LiftReconstructionErrAtInputIter(
+                                input_iter_position,
+                            ),
+                        ));
                     }
                 };
 
@@ -139,15 +146,25 @@ impl Liftup {
                 match txin_spk == lift_spk {
                     true => {
                         lifts.push(lift);
+
+                        // Iterate TxHolder inputs by one.
+                        {
+                            let _ = txholder.iterate_input();
+                        }
+
                         break;
                     }
                     false => {
                         // Check if this is the last for loop iteration.
                         match epoch_lookup_index == epoch_group_keys.len() - 1 {
                             true => {
-                                // If this is the last iteration, return an error.
-                                let input_iter = txholder.iterator_in();
-                                return Err(CPEDecodingError::InvalidLiftTxInAt(input_iter));
+                                // Unable to find a matching `Lift` at the current transaction input iterator position.
+                                let input_iter_position = txholder.input_iter_position();
+                                return Err(CPEDecodingError::LiftupCPEDecodingError(
+                                    LiftupCPEDecodingError::NoMatchingLiftAtInputIter(
+                                        input_iter_position,
+                                    ),
+                                ));
                             }
                             false => {
                                 // If this is not the last iteration, continue to the next epoch group key.

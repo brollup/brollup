@@ -1,4 +1,4 @@
-use crate::cpe::{CPEDecodingError, CompactPayloadEncoding};
+use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, LongValCPEDecodingError};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -142,7 +142,11 @@ impl LongVal {
             (Some(true), Some(true), Some(false)) => LongValTier::U56,
             // 111 for u64
             (Some(true), Some(true), Some(true)) => LongValTier::U64,
-            _ => return Err(CPEDecodingError::BitVecIteratorError),
+            _ => {
+                return Err(CPEDecodingError::LongValCPEDecodingError(
+                    LongValCPEDecodingError::BitStreamIteratorError,
+                ))
+            }
         };
 
         // Get the bit count for the tier.
@@ -163,7 +167,9 @@ impl LongVal {
             value_bits.push(
                 bit_stream
                     .next()
-                    .ok_or(CPEDecodingError::BitVecIteratorError)?,
+                    .ok_or(CPEDecodingError::LongValCPEDecodingError(
+                        LongValCPEDecodingError::BitStreamIteratorError,
+                    ))?,
             );
         }
 
@@ -171,8 +177,11 @@ impl LongVal {
         let value_bytes = value_bits.to_bytes();
 
         // Construct the long value.
-        let long_val =
-            LongVal::from_compact_bytes(&value_bytes).ok_or(CPEDecodingError::ConversionError)?;
+        let long_val = LongVal::from_compact_bytes(&value_bytes).ok_or(
+            CPEDecodingError::LongValCPEDecodingError(
+                LongValCPEDecodingError::LongValConversionError,
+            ),
+        )?;
 
         // Return the `LongVal`.
         Ok(long_val)

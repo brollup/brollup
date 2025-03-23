@@ -1,4 +1,4 @@
-use crate::cpe::{CPEDecodingError, CompactPayloadEncoding};
+use crate::cpe::{AtomicValCPEDecodingError, CPEDecodingError, CompactPayloadEncoding};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
@@ -107,7 +107,11 @@ impl AtomicVal {
             (Some(true), Some(true), Some(false)) => Self::Six,
             // 111 for 7
             (Some(true), Some(true), Some(true)) => Self::Seven,
-            _ => return Err(CPEDecodingError::BitVecIteratorError),
+            _ => {
+                return Err(CPEDecodingError::AtomicValCPEDecodingError(
+                    AtomicValCPEDecodingError::BitStreamIteratorError,
+                ))
+            }
         };
 
         // Return the `AtomicVal`.

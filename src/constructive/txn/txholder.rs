@@ -56,23 +56,23 @@ impl TxHolder {
         self.extra_in.value_as_u8()
     }
 
-    /// Returns the current input iterator.
-    pub fn iterator_in(&self) -> u32 {
+    /// Returns the current input iterator position.
+    pub fn input_iter_position(&self) -> u32 {
         self.iterator_in
     }
 
-    /// Returns the current output iterator.
-    pub fn iterator_out(&self) -> u32 {
+    /// Returns the current output iterator position.
+    pub fn output_iter_position(&self) -> u32 {
         self.iterator_out
     }
 
     /// Iterates the input iterator by one.
-    pub fn iterate_in(&mut self) {
+    pub fn iterate_input(&mut self) {
         self.iterator_in += 1;
     }
 
     /// Iterates the output iterator by one.
-    pub fn iterate_out(&mut self) {
+    pub fn iterate_output(&mut self) {
         self.iterator_out += 1;
     }
 

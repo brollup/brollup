@@ -1,5 +1,5 @@
 use crate::{
-    cpe::{CPEDecodingError, CompactPayloadEncoding},
+    cpe::{AccountCPEDecodingError, CPEDecodingError, CompactPayloadEncoding},
     registery::account_registery::ACCOUNT_REGISTERY,
     valtype::short::ShortVal,
 };
@@ -75,35 +75,47 @@ impl Account {
         // Check if the account is registered.
         let is_registered = bit_stream
             .next()
-            .ok_or(CPEDecodingError::BitVecIteratorError)?;
+            .ok_or(CPEDecodingError::AccountCPEDecodingError(
+                AccountCPEDecodingError::FailedToIterateIsRegisteredBit,
+            ))?;
 
         match is_registered {
             true => {
                 // Account is registered.
 
                 // Decode registery index.
-                let registery_index = ShortVal::decode_cpe(bit_stream)?;
+                let registery_index = ShortVal::decode_cpe(bit_stream).map_err(|_| {
+                    CPEDecodingError::AccountCPEDecodingError(
+                        AccountCPEDecodingError::FailedToDecodeRegisteryIndex,
+                    )
+                })?;
 
-                // Retrieve the account.
+                // Retrieve the account given registery index.
                 let account = {
                     let _account_registery = account_registery.lock().await;
                     _account_registery
                         .account_by_index(registery_index.value())
-                        .ok_or(CPEDecodingError::RegisteryError)?
+                        .ok_or(CPEDecodingError::AccountCPEDecodingError(
+                            AccountCPEDecodingError::UnableToLocateAccountKeyGivenIndex(
+                                registery_index.value(),
+                            ),
+                        ))?
                 };
 
                 // Return the `Account`.
                 Ok(account)
             }
             false => {
-                // Account is unregistered.
+                // Account is not registered. This means we need to construct a new key and register it.
 
                 // Collect exactly 256 bits for the public key.
                 let public_key_bits: BitVec = bit_stream.by_ref().take(256).collect();
 
                 // Ensure the collected bits are the correct length.
                 if public_key_bits.len() != 256 {
-                    return Err(CPEDecodingError::BitVecIteratorError);
+                    return Err(CPEDecodingError::AccountCPEDecodingError(
+                        AccountCPEDecodingError::UnableToConstructNewKey,
+                    ));
                 }
 
                 // Convert public key bits to an even public key bytes.
@@ -111,8 +123,26 @@ impl Account {
                 public_key_bytes.extend(public_key_bits.to_bytes());
 
                 // Construct the public key.
-                let public_key = Point::from_slice(&public_key_bytes)
-                    .map_err(|_| CPEDecodingError::ConversionError)?;
+                let public_key = Point::from_slice(&public_key_bytes).map_err(|_| {
+                    CPEDecodingError::AccountCPEDecodingError(
+                        AccountCPEDecodingError::UnableToConstructNewKey,
+                    )
+                })?;
+
+                // Check if the key is already registered.
+                let is_registered = {
+                    let _account_registery = account_registery.lock().await;
+                    _account_registery.is_registered(public_key)
+                };
+
+                // If the key is already registered, return an error.
+                if is_registered {
+                    return Err(CPEDecodingError::AccountCPEDecodingError(
+                        AccountCPEDecodingError::AccountKeyAlreadyRegistered(
+                            public_key.serialize_xonly(),
+                        ),
+                    ));
+                }
 
                 // Construct the unregistered account.
                 let account = Account {

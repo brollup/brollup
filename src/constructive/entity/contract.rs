@@ -1,5 +1,5 @@
 use crate::{
-    cpe::{CPEDecodingError, CompactPayloadEncoding},
+    cpe::{CPEDecodingError, CompactPayloadEncoding, ContractCPEDecodingError},
     registery::contract_registery::CONTRACT_REGISTERY,
     valtype::short::ShortVal,
 };
@@ -51,14 +51,22 @@ impl Contract {
         contract_registery: &'a CONTRACT_REGISTERY,
     ) -> Result<Contract, CPEDecodingError> {
         // Decode registery index.
-        let registery_index = ShortVal::decode_cpe(bit_stream)?;
+        let registery_index = ShortVal::decode_cpe(bit_stream).map_err(|_| {
+            CPEDecodingError::ContractCPEDecodingError(
+                ContractCPEDecodingError::FailedToDecodeRegisteryIndex,
+            )
+        })?;
 
-        // Retrieve the contract.
+        // Retrieve the contract given registery index.
         let contract = {
             let _contract_registery = contract_registery.lock().await;
             _contract_registery
                 .contract_by_index(registery_index.value())
-                .ok_or(CPEDecodingError::RegisteryError)?
+                .ok_or(CPEDecodingError::ContractCPEDecodingError(
+                    ContractCPEDecodingError::UnableToLocateContractIdGivenIndex(
+                        registery_index.value(),
+                    ),
+                ))?
         };
 
         // Return the `Contract`.
