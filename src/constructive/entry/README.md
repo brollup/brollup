@@ -70,7 +70,7 @@
 
     - If `Upper Right Branch` is set to `on`;
         - 1. `Liquidity Branch` can be set to `on` and `Right Branch` be set to `off`.
-        - 2. 1. `Liquidity Branch` can be set to `off` and `Right Branch` be set to `on`.
+        - 2. `Liquidity Branch` can be set to `off` and `Right Branch` be set to `on`.
 
             - If `Liquidity Branch` is set to `on`;
                 - 1. `Add` can be set to `on` and `Remove` be set to `off`.
