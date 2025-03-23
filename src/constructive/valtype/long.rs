@@ -144,7 +144,7 @@ impl LongVal {
             (Some(true), Some(true), Some(false)) => LongValTier::U56,
             // 111 for u64
             (Some(true), Some(true), Some(true)) => LongValTier::U64,
-            _ => return Err(CPEDecodingError::IteratorError),
+            _ => return Err(CPEDecodingError::BitVecIteratorError),
         };
 
         // Get the bit count for the tier.
@@ -162,7 +162,7 @@ impl LongVal {
         // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::IteratorError)?);
+            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::BitVecIteratorError)?);
         }
 
         // Convert the value bits to bytes.

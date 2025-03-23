@@ -1,5 +1,5 @@
 use super::epoch::Epoch;
-use crate::{baked, into::IntoPoint, entity::account::Account, Network, EPOCH_DIRECTORY};
+use crate::{baked, entity::account::Account, into::IntoPoint, Network, EPOCH_DIRECTORY};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -58,14 +58,16 @@ impl EpochDirectory {
             Err(_) => return false,
         }
     }
-
-    pub fn group_keys(&self) -> Vec<Point> {
+    /// Returns the active group keys.
+    pub fn active_group_keys(&self) -> Vec<Point> {
         self.epochs
             .iter()
+            .filter(|(_, epoch)| epoch.active())
             .map(|(_, epoch)| epoch.group_key())
             .collect()
     }
 
+    /// Returns the current epoch height.
     pub fn current_epoch_height(&self) -> u64 {
         match self.epochs.iter().max_by_key(|(&k, _)| k) {
             Some((&height, _)) => height,
@@ -73,10 +75,12 @@ impl EpochDirectory {
         }
     }
 
+    /// Returns the next epoch height.
     pub fn next_epoch_height(&self) -> u64 {
         self.current_epoch_height() + 1
     }
 
+    /// Returns the current epoch.
     pub fn current_epoch(&self) -> Option<Epoch> {
         match self.epochs.iter().max_by_key(|(&k, _)| k) {
             Some((_, epoch)) => Some(epoch.to_owned()),
@@ -84,6 +88,7 @@ impl EpochDirectory {
         }
     }
 
+    /// Returns the latest active epoch.
     pub fn latest_active_epoch(&self) -> Option<Epoch> {
         self.epochs
             .iter()
@@ -92,6 +97,7 @@ impl EpochDirectory {
             .map(|(_, epoch)| epoch.to_owned())
     }
 
+    /// Returns the operator set.       
     pub fn operator_set(&self) -> Vec<Point> {
         let mut operator_set = Vec::<Point>::new();
 

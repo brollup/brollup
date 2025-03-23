@@ -66,7 +66,9 @@ impl Account {
         account_registery: &'a ACCOUNT_REGISTERY,
     ) -> Result<(Account, bit_vec::Iter<'a>), CPEDecodingError> {
         // Check if the account is registered.
-        let is_registered = bit_stream.next().ok_or(CPEDecodingError::IteratorError)?;
+        let is_registered = bit_stream
+            .next()
+            .ok_or(CPEDecodingError::BitVecIteratorError)?;
 
         match is_registered {
             true => {
@@ -94,7 +96,7 @@ impl Account {
 
                 // Ensure the collected bits are the correct length.
                 if public_key_bits.len() != 256 {
-                    return Err(CPEDecodingError::IteratorError);
+                    return Err(CPEDecodingError::BitVecIteratorError);
                 }
 
                 // Convert public key bits to an even public key bytes.

@@ -29,7 +29,7 @@ pub async fn lifts_spks_to_scan(
 
     let group_keys = {
         let _epoch_dir = epoch_dir.lock().await;
-        _epoch_dir.group_keys()
+        _epoch_dir.active_group_keys()
     };
 
     for operator_group_key in group_keys.iter() {

@@ -109,7 +109,7 @@ impl AtomicVal {
             (Some(true), Some(true), Some(false)) => Self::Six,
             // 111 for 7
             (Some(true), Some(true), Some(true)) => Self::Seven,
-            _ => return Err(CPEDecodingError::IteratorError),
+            _ => return Err(CPEDecodingError::BitVecIteratorError),
         };
 
         // Return the decoded value and the remaining bit stream.

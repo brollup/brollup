@@ -5,8 +5,11 @@ use bit_vec::BitVec;
 #[derive(Debug, Clone)]
 pub enum CPEDecodingError {
     RegisteryError,
-    IteratorError,
+    BitVecIteratorError,
     ConversionError,
+    TxInIteratorErrorAt(u32),
+    TxOutIteratorErrorAt(u32),
+    InvalidLiftTxInAt(u32),
 }
 
 /// Trait for encoding structs for compact Bitcoin-DA storage.

@@ -89,7 +89,7 @@ impl ShortVal {
             (Some(false), Some(true)) => ShortValTier::U16,
             (Some(true), Some(false)) => ShortValTier::U24,
             (Some(true), Some(true)) => ShortValTier::U32,
-            _ => return Err(CPEDecodingError::IteratorError),
+            _ => return Err(CPEDecodingError::BitVecIteratorError),
         };
 
         // Get the bit count for the tier.
@@ -103,7 +103,11 @@ impl ShortVal {
         // Collect the value bits.
         let mut value_bits = BitVec::new();
         for _ in 0..bit_count {
-            value_bits.push(bit_stream.next().ok_or(CPEDecodingError::IteratorError)?);
+            value_bits.push(
+                bit_stream
+                    .next()
+                    .ok_or(CPEDecodingError::BitVecIteratorError)?,
+            );
         }
 
         // Convert the value bits to bytes.
