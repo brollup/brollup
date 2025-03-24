@@ -29,6 +29,15 @@ pub enum CPEDecodingError {
     LiftupCPEDecodingError(LiftupCPEDecodingError),
 }
 
+/// Error type for `CommonNum` CPE decoding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CommonIntCPEDecodingError {
+    // Bit stream iteration error.
+    BitStreamIteratorError,
+    // Uncommon integer error.
+    UncommonInteger,
+}
+
 /// Error type for `AtomicVal` CPE decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AtomicValCPEDecodingError {
@@ -43,6 +52,8 @@ pub enum ShortValCPEDecodingError {
     BitStreamIteratorError,
     // Short value conversion error.
     ShortValConversionError,
+    // Common integer decoding error.
+    CommonIntDecodingError,
 }
 
 /// Error type for `LongVal` CPE decoding.

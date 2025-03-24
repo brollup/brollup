@@ -16,14 +16,15 @@ The value types are defined as follows:
 
 ## ShortVal
 
-`ShortVal` is a compact unsigned integer representation ranging from 0 (inclusive) to 4,294,967,295 (inclusive). It is used for representing small values such as contract or account registry indexes. `ShortVal` consumes a varying amount of space, calculated as `2 + 8n` bits, where `n` corresponds to the tier of `ShortVal`. There are four tiers:
+`ShortVal` is a compact unsigned integer representation ranging from 0 (inclusive) to 4,294,967,295 (inclusive). It is used for representing small values such as contract or account registry indexes. `ShortVal` consumes a varying amount of space, calculated as `2 + 8n` bits in the uncommon case, where `n` corresponds to the tier of `ShortVal`. There are four tiers:
 
 | ShortVal Tiers | Description                                | Bitsize |
 |----------------|--------------------------------------------|---------|
-| U8             | Represents values from 0 to 255.           | 10 bits |
-| U16            | Represents values from 0 to 65,535.        | 18 bits |
-| U24            | Represents values from 0 to 16,777,215.    | 26 bits |
-| U32            | Represents values from 0 to 4,294,967,295. | 34 bits |
+| Common         | Represents a common value.                 | 7 bits  |
+| U8             | Represents values from 0 to 255.           | 11 bits |
+| U16            | Represents values from 0 to 65,535.        | 19 bits |
+| U24            | Represents values from 0 to 16,777,215.    | 27 bits |
+| U32            | Represents values from 0 to 4,294,967,295. | 35 bits |
 
 ## LongVal
 

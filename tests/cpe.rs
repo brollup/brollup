@@ -7,7 +7,7 @@ mod cpe_tests {
         registery::registery::Registery,
         valtype::{
             long::{LongVal, LongValTier},
-            short::{ShortVal, ShortValTier},
+            short::{ShortVal, UncommonShortValTier},
         },
         Network,
     };
@@ -21,7 +21,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U8);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U8);
         assert_eq!(decoded.value(), 100);
 
         // Value 5_000 (u16) (256 < 5_000 < 65_536).
@@ -30,7 +30,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U16);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U16);
         assert_eq!(decoded.value(), 5000);
 
         // Value 100_000 (u24) (65_536 < 100_000 < 16_777_216).
@@ -39,7 +39,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U24);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U24);
         assert_eq!(decoded.value(), 100_000);
 
         // Value 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
@@ -48,7 +48,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U32);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U32);
         assert_eq!(decoded.value(), 50_000_000);
 
         Ok(())
@@ -88,19 +88,19 @@ mod cpe_tests {
         let mut bit_stream = full.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U8);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U8);
         assert_eq!(decoded.value(), 100);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U16);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U16);
         assert_eq!(decoded.value(), 5_000);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U24);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U24);
         assert_eq!(decoded.value(), 100_000);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.tier(), ShortValTier::U32);
+        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U32);
         assert_eq!(decoded.value(), 50_000_000);
 
         assert_eq!(bit_stream.len(), 5);
