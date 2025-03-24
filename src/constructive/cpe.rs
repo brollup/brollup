@@ -10,7 +10,24 @@ pub trait CompactPayloadEncoding {
 }
 
 /// Compact payload decoding is implemented individually for each struct that implements `CompactPayloadEncoding`, rather than using a trait.
-/// Refer to the CPE decoding error types listed below.
+/// Refer to the CPE decoding error types listed below:
+
+/// /// Error type for compact payload decoding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CPEDecodingError {
+    // Atomic value CPE decoding error.
+    AtomicValCPEDecodingError(AtomicValCPEDecodingError),
+    // Short value CPE decoding error.
+    ShortValCPEDecodingError(ShortValCPEDecodingError),
+    // Long value CPE decoding error.
+    LongValCPEDecodingError(LongValCPEDecodingError),
+    // Account CPE decoding error.
+    AccountCPEDecodingError(AccountCPEDecodingError),
+    // Contract CPE decoding error.
+    ContractCPEDecodingError(ContractCPEDecodingError),
+    // Liftup CPE decoding error.
+    LiftupCPEDecodingError(LiftupCPEDecodingError),
+}
 
 /// Error type for `AtomicVal` CPE decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,21 +87,4 @@ pub enum LiftupCPEDecodingError {
     LiftReconstructionErrAtInputIter(u32),
     // Unable to find a matching `Lift` at the given transaction input iterator position.
     NoMatchingLiftAtInputIter(u32),
-}
-
-/// Error type for compact payload decoding.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CPEDecodingError {
-    // Atomic value CPE decoding error.
-    AtomicValCPEDecodingError(AtomicValCPEDecodingError),
-    // Short value CPE decoding error.
-    ShortValCPEDecodingError(ShortValCPEDecodingError),
-    // Long value CPE decoding error.
-    LongValCPEDecodingError(LongValCPEDecodingError),
-    // Account CPE decoding error.
-    AccountCPEDecodingError(AccountCPEDecodingError),
-    // Contract CPE decoding error.
-    ContractCPEDecodingError(ContractCPEDecodingError),
-    // Liftup CPE decoding error.
-    LiftupCPEDecodingError(LiftupCPEDecodingError),
 }

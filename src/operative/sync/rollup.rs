@@ -4,9 +4,9 @@ use crate::{
     registery::registery::REGISTERY,
     rpc::bitcoin_rpc::{get_block, get_chain_height},
     rpcholder::RPCHolder,
+    set::set::COIN_SET,
     taproot::P2TR,
     txo::lift::Lift,
-    utxoset::utxoset::UTXO_SET,
     wallet::wallet::WALLET,
     Network, EPOCH_DIRECTORY, LP_DIRECTORY, ROLLUP_DIRECTORY,
 };
@@ -55,7 +55,7 @@ pub trait RollupSync {
         _lp_dir: &LP_DIRECTORY,
         _registery: &REGISTERY,
         wallet: Option<&WALLET>,
-        utxoset: &UTXO_SET,
+        coin_set: &COIN_SET,
     );
 
     /// Awaits the rollup to be synced to the latest Bitcoin chain tip.
@@ -87,7 +87,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
         _lp_dir: &LP_DIRECTORY,
         _registery: &REGISTERY,
         wallet: Option<&WALLET>,
-        utxoset: &UTXO_SET,
+        coin_set: &COIN_SET,
     ) {
         let mut synced: bool = false;
 
@@ -199,8 +199,13 @@ impl RollupSync for ROLLUP_DIRECTORY {
 
                             // Remove spent utxos from utxoset.
                             {
-                                let mut _utxoset = utxoset.lock().await;
-                                _utxoset.remove_txout(&txn_input_outpoint);
+                                let utxo_set = {
+                                    let _coin_set = coin_set.lock().await;
+                                    _coin_set.utxo_set()
+                                };
+
+                                let mut _utxo_set = utxo_set.lock().await;
+                                _utxo_set.remove_txout(&txn_input_outpoint);
                             }
                         }
 
@@ -240,8 +245,13 @@ impl RollupSync for ROLLUP_DIRECTORY {
 
                             // Add to utxoset.
                             {
-                                let mut _utxoset = utxoset.lock().await;
-                                _utxoset.insert_txout(&txn_output_outpoint, txn_output);
+                                let utxo_set = {
+                                    let _coin_set = coin_set.lock().await;
+                                    _coin_set.utxo_set()
+                                };
+
+                                let mut _utxo_set = utxo_set.lock().await;
+                                _utxo_set.insert_txout(&txn_output_outpoint, txn_output);
                             }
                         }
                     }

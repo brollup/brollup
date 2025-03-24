@@ -9,8 +9,8 @@ use crate::registery::registery::{Registery, REGISTERY};
 use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
+use crate::set::set::{CoinSet, COIN_SET};
 use crate::sync::RollupSync;
-use crate::utxoset::utxoset::{UTXOSet, UTXO_SET};
 use crate::wallet::wallet::{Wallet, WALLET};
 use crate::{key::KeyHolder, OperatingMode};
 use crate::{ncli, Network, EPOCH_DIRECTORY, LP_DIRECTORY, PEER, ROLLUP_DIRECTORY};
@@ -67,11 +67,11 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #6 Initialize UTXO set.
-    let utxoset: UTXO_SET = match UTXOSet::new(network) {
-        Some(utxoset) => utxoset,
+    // #6 Initialize the coin set.
+    let coin_set: COIN_SET = match CoinSet::new(network) {
+        Some(coin_set) => coin_set,
         None => {
-            println!("{}", "Error initializing utxoset.".red());
+            println!("{}", "Error initializing coin set.".red());
             return;
         }
     };
@@ -95,7 +95,8 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let registery = Arc::clone(&registery);
         let wallet = Arc::clone(&wallet);
         let rollup_dir = Arc::clone(&rollup_dir);
-        let utxoset = Arc::clone(&utxoset);
+        let coin_set = Arc::clone(&coin_set);
+
         tokio::spawn(async move {
             let _ = rollup_dir
                 .sync(
@@ -106,7 +107,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &registery,
                     Some(&wallet),
-                    &utxoset,
+                    &coin_set,
                 )
                 .await;
         });

@@ -1,4 +1,4 @@
-use crate::{utxoset::utxoset::UTXO_SET, valtype::atomic::AtomicVal};
+use crate::{set::utxo_set::UTXO_SET, valtype::atomic::AtomicVal};
 use bitcoin::{OutPoint, Transaction, TxOut};
 use std::sync::Arc;
 

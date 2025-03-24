@@ -13,9 +13,9 @@ use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
 use crate::session::ccontext::{CContextRunner, CSessionCtx};
+use crate::set::set::{CoinSet, COIN_SET};
 use crate::sync::RollupSync;
 use crate::tcp::tcp::{open_port, port_number};
-use crate::utxoset::utxoset::{UTXOSet, UTXO_SET};
 use crate::{
     ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
     EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER, ROLLUP_DIRECTORY,
@@ -72,16 +72,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Initialize UTXO set.
-    let utxoset: UTXO_SET = match UTXOSet::new(network) {
-        Some(utxoset) => utxoset,
+    // #7 Initialize the coin set.
+    let coin_set: COIN_SET = match CoinSet::new(network) {
+        Some(coin_set) => coin_set,
         None => {
-            println!("{}", "Error initializing utxoset.".red());
+            println!("{}", "Error initializing coin set.".red());
             return;
         }
     };
 
-    // #7 Spawn syncer.
+    // #8 Spawn syncer.
     {
         let network = network.clone();
         let key_holder = key_holder.clone();
@@ -90,7 +90,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let lp_dir = Arc::clone(&lp_dir);
         let registery = Arc::clone(&registery);
         let rollup_dir = Arc::clone(&rollup_dir);
-
+        let coin_set = Arc::clone(&coin_set);
         tokio::spawn(async move {
             let _ = rollup_dir
                 .sync(
@@ -101,7 +101,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &registery,
                     None,
-                    &utxoset,
+                    &coin_set,
                 )
                 .await;
         });
@@ -109,21 +109,21 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     println!("{}", "Syncing rollup.");
 
-    // #8 Await rollup to be fully synced.
+    // #9 Await rollup to be fully synced.
     rollup_dir.await_sync().await;
 
     println!("{}", "Syncing complete.");
 
-    // #9 Check if this is the coordinator.
+    // #10 Check if this is the coordinator.
     if key_holder.public_key().serialize_xonly() != coordinator_key(network) {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
     }
 
-    // #10 Initialize NNS client.
+    // #11 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #11 Open port 6272 for incoming connections.
+    // #12 Open port 6272 for incoming connections.
     match open_port(network).await {
         true => println!(
             "{}",
@@ -132,7 +132,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         false => (),
     }
 
-    // #12 Run NNS server.
+    // #13 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -140,7 +140,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #13 Initialize peer manager.
+    // #14 Initialize peer manager.
     let operator_set = {
         let _epoch_dir = epoch_dir.lock().await;
         _epoch_dir.operator_set().into_xpoint_vec().expect("")
@@ -151,16 +151,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
 
-    // #14 Initialize DKG Manager.
+    // #15 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new(&lp_dir) {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // #15 Run background preprocessing for the DKG Manager.
+    // #16 Run background preprocessing for the DKG Manager.
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
-    // #16 Construct blacklist directory.
+    // #17 Construct blacklist directory.
     let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(network) {
         Some(blacklist_dir) => blacklist_dir,
         None => {
@@ -172,11 +172,11 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #17 Construct CSession.
+    // #18 Construct CSession.
     let csession_ctx: CSESSION_CTX =
         CSessionCtx::construct(&dkg_manager, &peer_manager, &blacklist_dir, &registery);
 
-    // #18 Run CSession.
+    // #19 Run CSession.
     {
         let csession_ctx = Arc::clone(&csession_ctx);
         let _ = tokio::spawn(async move {
@@ -184,7 +184,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #19 Run TCP server.
+    // #20 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -203,7 +203,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #20 Initialize CLI.
+    // #21 Initialize CLI.
     cli(&mut peer_manager, &mut dkg_manager, &mut blacklist_dir).await;
 }
 

@@ -41,8 +41,8 @@ pub mod lp_dir;
 pub mod registery;
 #[path = "inscriptive/rollup/mod.rs"]
 pub mod rollup_dir;
-#[path = "inscriptive/utxoset/mod.rs"]
-pub mod utxoset;
+#[path = "inscriptive/set/mod.rs"]
+pub mod set;
 #[path = "inscriptive/wallet/mod.rs"]
 pub mod wallet;
 

@@ -14,12 +14,12 @@ use crate::registery::registery::REGISTERY;
 use crate::rollup_dir::dir::RollupDirectory;
 use crate::rpc::bitcoin_rpc::validate_rpc;
 use crate::rpcholder::RPCHolder;
+use crate::set::set::CoinSet;
+use crate::set::set::COIN_SET;
 use crate::sync::RollupSync;
 use crate::tcp;
 use crate::tcp::tcp::open_port;
 use crate::tcp::tcp::port_number;
-use crate::utxoset::utxoset::UTXOSet;
-use crate::utxoset::utxoset::UTXO_SET;
 use crate::Network;
 use crate::OperatingMode;
 use crate::DKG_MANAGER;
@@ -80,16 +80,16 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #7 Initialize UTXO set.
-    let utxoset: UTXO_SET = match UTXOSet::new(network) {
-        Some(utxoset) => utxoset,
+    // #7 Initialize the coin set.
+    let coin_set: COIN_SET = match CoinSet::new(network) {
+        Some(coin_set) => coin_set,
         None => {
-            println!("{}", "Error initializing utxoset.".red());
+            println!("{}", "Error initializing coin set.".red());
             return;
         }
     };
 
-    // #7 Spawn syncer.
+    // #8 Spawn syncer.
     {
         let network = network.clone();
         let key_holder = key_holder.clone();
@@ -98,6 +98,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let lp_dir = Arc::clone(&lp_dir);
         let registery = Arc::clone(&registery);
         let rollup_dir = Arc::clone(&rollup_dir);
+        let coin_set = Arc::clone(&coin_set);
 
         tokio::spawn(async move {
             let _ = rollup_dir
@@ -109,7 +110,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
                     &lp_dir,
                     &registery,
                     None,
-                    &utxoset,
+                    &coin_set,
                 )
                 .await;
         });
@@ -117,12 +118,12 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     println!("{}", "Syncing rollup.");
 
-    // #8 Await rollup to be fully synced.
+    // #9 Await rollup to be fully synced.
     rollup_dir.await_sync().await;
 
     println!("{}", "Syncing complete.");
 
-    // #9 Construct account.
+    // #10 Construct account.
     let account = {
         let account_registery: ACCOUNT_REGISTERY = {
             let _registery = registery.lock().await;
@@ -140,7 +141,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #10 Check if this account is a liquidity provider or an operator.
+    // #11 Check if this account is a liquidity provider or an operator.
     {
         let is_lp = {
             let _lp_dir = lp_dir.lock().await;
@@ -161,10 +162,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     }
 
-    // #11 Initialize NNS client.
+    // #12 Initialize NNS client.
     let nns_client = NNSClient::new(&key_holder).await;
 
-    // #12 Open port 6272 for incoming connections.
+    // #13 Open port 6272 for incoming connections.
     match open_port(network).await {
         true => println!(
             "{}",
@@ -173,7 +174,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         false => (),
     }
 
-    // #13 Run NNS server.
+    // #14 Run NNS server.
     {
         let nns_client = nns_client.clone();
         let _ = tokio::spawn(async move {
@@ -181,7 +182,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #14 Connect to the coordinator.
+    // #15 Connect to the coordinator.
     let coordinator: PEER = {
         let coordinator_key = coordinator_key(network);
 
@@ -201,13 +202,13 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         }
     };
 
-    // #15 Initialize DKG Manager.
+    // #16 Initialize DKG Manager.
     let mut dkg_manager: DKG_MANAGER = match DKGManager::new(&lp_dir) {
         Some(manager) => manager,
         None => return eprintln!("{}", "Error initializing DKG manager.".red()),
     };
 
-    // #16 Run TCP server.
+    // #17 Run TCP server.
     {
         let nns_client = nns_client.clone();
         let dkg_manager = Arc::clone(&dkg_manager);
@@ -218,7 +219,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         });
     }
 
-    // #17 CLI.
+    // #18 CLI.
     cli(&mut dkg_manager, &coordinator).await;
 }
 
