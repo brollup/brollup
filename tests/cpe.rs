@@ -7,7 +7,8 @@ mod cpe_tests {
         registery::registery::Registery,
         valtype::{
             long::{LongVal, LongValTier},
-            short::{CommonShortVal, ShortVal, UncommonShortValTier},
+            maybe_common::{common::CommonVal, maybe_common::MaybeCommon},
+            short::{ShortVal, ShortValTier},
         },
         Network,
     };
@@ -21,7 +22,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U8);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U8);
         assert_eq!(decoded.value(), 100);
 
         // Value 5_000 (u16) (256 < 5_000 < 65_536).
@@ -30,7 +31,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U16);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U16);
         assert_eq!(decoded.value(), 5000);
 
         // Value 100_000 (u24) (65_536 < 100_000 < 16_777_216).
@@ -39,7 +40,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U24);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U24);
         assert_eq!(decoded.value(), 100_000);
 
         // Value 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
@@ -48,7 +49,7 @@ mod cpe_tests {
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U32);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U32);
         assert_eq!(decoded.value(), 50_000_000);
 
         Ok(())
@@ -88,19 +89,19 @@ mod cpe_tests {
         let mut bit_stream = full.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U8);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U8);
         assert_eq!(decoded.value(), 100);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U16);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U16);
         assert_eq!(decoded.value(), 5_000);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U24);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U24);
         assert_eq!(decoded.value(), 100_000);
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.uncommon_tier(), UncommonShortValTier::U32);
+        assert_eq!(decoded.uncommon_tier(), ShortValTier::U32);
         assert_eq!(decoded.value(), 50_000_000);
 
         assert_eq!(bit_stream.len(), 5);
@@ -378,115 +379,142 @@ mod cpe_tests {
     async fn test_common_short_val() -> Result<(), String> {
         // Test 1
         let value = 1;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 2
         let value = 2;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 3
         let value = 3;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 5
         let value = 5;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
+
+        // Test 50
+        let value = 50;
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
+
+        assert_eq!(value, decoded.value());
 
         // Test 100
         let value = 100;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 500
         let value = 500;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 1000
         let value = 1000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 5000
         let value = 5000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 25000
         let value = 25000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 50000
         let value = 50000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 75000
         let value = 75000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 100000
         let value = 100000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 1000000
         let value = 1000000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 25000000
         let value = 25000000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 50000000
         let value = 50000000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
 
         // Test 1000000000
         let value = 1000000000;
-        let encoded = CommonShortVal::encode(value).unwrap();
-        let decoded = CommonShortVal::decode_cpe(&mut encoded.iter()).unwrap();
+        let encoded = CommonVal::new(value).unwrap().encode_cpe();
+        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
 
-        assert_eq!(value, decoded);
+        assert_eq!(value, decoded.value());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_maybe_common() -> Result<(), String> {
+        let short_val = ShortVal::new(50);
+        let long_val = LongVal::new(50);
+
+        println!("short_val: {}", short_val.value_u64());
+        println!("long_val: {}", long_val.value());
+
+        let maybe_common_short_val: MaybeCommon<ShortVal> = MaybeCommon::new(short_val);
+        let maybe_common_long_val: MaybeCommon<LongVal> = MaybeCommon::new(long_val);
+
+        println!("maybe_common_short_val: {}", maybe_common_short_val.value());
+        println!("maybe_common_long_val: {}", maybe_common_long_val.value());
+
+        //assert_eq!(short_val.value_u64(), maybe_common_short_val.value());
+        //assert_eq!(long_val.value(), maybe_common_long_val.value());
 
         Ok(())
     }

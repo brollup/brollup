@@ -15,6 +15,8 @@ pub trait CompactPayloadEncoding {
 /// /// Error type for compact payload decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CPEDecodingError {
+    // Maybe common CPE decoding error.
+    MaybeCommonCPEDecodingError(MaybeCommonCPEDecodingError),
     // Atomic value CPE decoding error.
     AtomicValCPEDecodingError(AtomicValCPEDecodingError),
     // Short value CPE decoding error.
@@ -31,11 +33,17 @@ pub enum CPEDecodingError {
 
 /// Error type for `CommonNum` CPE decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CommonIntCPEDecodingError {
+pub enum MaybeCommonCPEDecodingError {
     // Bit stream iteration error.
     BitStreamIteratorError,
     // Uncommon integer error.
     UncommonInteger,
+    // Common value CPE decoding error.
+    CommonValCPEDecodingError,
+    // Short uncommon value CPE decoding error.
+    ShortUncommonValCPEDecodingError,
+    // Long uncommon value CPE decoding error.
+    LongUncommonValCPEDecodingError,
 }
 
 /// Error type for `AtomicVal` CPE decoding.

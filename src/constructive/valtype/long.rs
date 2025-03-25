@@ -1,3 +1,4 @@
+use super::maybe_common::maybe_common::{Commonable, MaybeCommonType};
 use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, LongValCPEDecodingError};
 use async_trait::async_trait;
 use bit_vec::BitVec;
@@ -252,5 +253,11 @@ impl CompactPayloadEncoding for LongVal {
         bits.extend(value_bits);
 
         bits
+    }
+}
+
+impl Commonable for LongVal {
+    fn maybe_common_type(&self) -> MaybeCommonType {
+        MaybeCommonType::Long(self.clone())
     }
 }
