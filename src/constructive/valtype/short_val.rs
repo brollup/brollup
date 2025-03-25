@@ -23,12 +23,8 @@ impl ShortVal {
         Self(short_val)
     }
 
-    /// Returns the core value as a u64.
-    pub fn value(&self) -> u64 {
-        self.0 as u64
-    }
-
-    pub fn value_u32(&self) -> u32 {
+    /// Returns the core u32 value.
+    pub fn value(&self) -> u32 {
         self.0
     }
 
@@ -44,7 +40,7 @@ impl ShortVal {
 
     /// Returns the compact byte representation of the value.
     pub fn compact_bytes(&self) -> Vec<u8> {
-        let value = self.value_u32();
+        let value = self.value();
 
         match self.uncommon_tier() {
             // 1 byte

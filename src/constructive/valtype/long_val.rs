@@ -26,7 +26,7 @@ impl LongVal {
         Self(long_val)
     }
 
-    /// Returns the core value as a u64.
+    /// Returns the core u64 value.
     pub fn value(&self) -> u64 {
         self.0
     }
@@ -271,6 +271,6 @@ impl Commonable for LongVal {
 /// Implement `From` for `LongVal` from `ShortVal`.
 impl From<ShortVal> for LongVal {
     fn from(val: ShortVal) -> Self {
-        LongVal::new(val.value())
+        LongVal::new(val.value() as u64)
     }
 }

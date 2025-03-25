@@ -50,7 +50,7 @@ impl Account {
 
     /// Returns the registery index of the account.
     pub fn registery_index(&self) -> Option<u32> {
-        Some(self.registery_index?.value_u32())
+        Some(self.registery_index?.value())
     }
 
     /// Returns true if the key is odd.
@@ -94,10 +94,10 @@ impl Account {
                 let account = {
                     let _account_registery = account_registery.lock().await;
                     _account_registery
-                        .account_by_index(registery_index.value_u32())
+                        .account_by_index(registery_index.value())
                         .ok_or(CPEDecodingError::AccountCPEDecodingError(
                             AccountCPEDecodingError::UnableToLocateAccountKeyGivenIndex(
-                                registery_index.value_u32(),
+                                registery_index.value(),
                             ),
                         ))?
                 };

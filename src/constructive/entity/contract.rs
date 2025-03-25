@@ -33,7 +33,7 @@ impl Contract {
 
     /// Returns the registery index.
     pub fn registery_index(&self) -> u32 {
-        self.registery_index.value_u32()
+        self.registery_index.value()
     }
 
     /// Serializes the contract.
@@ -61,10 +61,10 @@ impl Contract {
         let contract = {
             let _contract_registery = contract_registery.lock().await;
             _contract_registery
-                .contract_by_index(registery_index.value_u32())
+                .contract_by_index(registery_index.value())
                 .ok_or(CPEDecodingError::ContractCPEDecodingError(
                     ContractCPEDecodingError::UnableToLocateContractIdGivenIndex(
-                        registery_index.value_u32(),
+                        registery_index.value(),
                     ),
                 ))?
         };

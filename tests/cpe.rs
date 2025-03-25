@@ -482,10 +482,13 @@ mod cpe_tests {
         assert_eq!(maybe_common_short_val.is_common(), true);
         assert_eq!(maybe_common_uncommon_short_val.is_common(), false);
 
-        assert_eq!(common_short_val.value(), maybe_common_short_val.value());
+        assert_eq!(
+            common_short_val.value(),
+            maybe_common_short_val.inner_val().value()
+        );
         assert_eq!(
             uncommon_short_val.value(),
-            maybe_common_uncommon_short_val.value()
+            maybe_common_uncommon_short_val.inner_val().value()
         );
 
         let maybe_common_short_val_encoded = maybe_common_short_val.encode_cpe();
@@ -495,20 +498,20 @@ mod cpe_tests {
         let mut maybe_common_uncommon_short_val_bit_stream =
             maybe_common_uncommon_short_val_encoded.iter();
 
-        let maybe_common_short_val_decoded =
-            MaybeCommon::<ShortVal>::decode_cpe(&mut maybe_common_short_val_bit_stream).unwrap();
+        let common_short_val_decoded: ShortVal =
+            MaybeCommon::<ShortVal>::decode_cpe(&mut maybe_common_short_val_bit_stream)
+                .unwrap()
+                .inner_val();
 
-        let maybe_common_uncommon_short_val_decoded =
+        let uncommon_short_val_decoded: ShortVal =
             MaybeCommon::<ShortVal>::decode_cpe(&mut maybe_common_uncommon_short_val_bit_stream)
-                .unwrap();
+                .unwrap()
+                .inner_val();
 
-        assert_eq!(
-            common_short_val.value(),
-            maybe_common_short_val_decoded.value()
-        );
+        assert_eq!(common_short_val.value(), common_short_val_decoded.value());
         assert_eq!(
             uncommon_short_val.value(),
-            maybe_common_uncommon_short_val_decoded.value()
+            uncommon_short_val_decoded.value()
         );
 
         Ok(())
@@ -526,10 +529,14 @@ mod cpe_tests {
         assert_eq!(maybe_common_long_val.is_common(), true);
         assert_eq!(maybe_common_uncommon_long_val.is_common(), false);
 
-        assert_eq!(common_long_val.value(), maybe_common_long_val.value());
+        assert_eq!(
+            common_long_val.value(),
+            maybe_common_long_val.inner_val().value()
+        );
+
         assert_eq!(
             uncommon_long_val.value(),
-            maybe_common_uncommon_long_val.value()
+            maybe_common_uncommon_long_val.inner_val().value()
         );
 
         let maybe_common_common_long_val_encoded = maybe_common_long_val.encode_cpe();
@@ -540,22 +547,18 @@ mod cpe_tests {
         let mut maybe_common_uncommon_long_val_bit_stream =
             maybe_common_uncommon_long_val_encoded.iter();
 
-        let maybe_common_common_long_val_decoded =
+        let common_long_val_decoded: LongVal =
             MaybeCommon::<LongVal>::decode_cpe(&mut maybe_common_common_long_val_bit_stream)
-                .unwrap();
+                .unwrap()
+                .inner_val();
 
-        let maybe_common_uncommon_long_val_decoded =
+        let uncommon_long_val_decoded: LongVal =
             MaybeCommon::<LongVal>::decode_cpe(&mut maybe_common_uncommon_long_val_bit_stream)
-                .unwrap();
+                .unwrap()
+                .inner_val();
 
-        assert_eq!(
-            common_long_val.value(),
-            maybe_common_common_long_val_decoded.value()
-        );
-        assert_eq!(
-            uncommon_long_val.value(),
-            maybe_common_uncommon_long_val_decoded.value()
-        );
+        assert_eq!(common_long_val.value(), common_long_val_decoded.value());
+        assert_eq!(uncommon_long_val.value(), uncommon_long_val_decoded.value());
 
         Ok(())
     }

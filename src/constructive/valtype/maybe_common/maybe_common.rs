@@ -45,7 +45,7 @@ where
         match val.maybe_common_type() {
             MaybeCommonType::Short(short_val) => {
                 // Check if the value is common.
-                match CommonVal::new(short_val.value_u32()) {
+                match CommonVal::new(short_val.value()) {
                     Some(common_val) => MaybeCommon::Common(common_val),
                     None => MaybeCommon::Uncommon(val),
                 }
@@ -67,14 +67,14 @@ where
         }
     }
 
-    /// Returns the u64 value of the `MaybeCommon` struct.
-    pub fn value(&self) -> u64 {
+    /// Returns the inner value which is either a `ShortVal` or a `LongVal`.
+    pub fn inner_val(&self) -> T {
         match self {
-            MaybeCommon::Common(common_val) => common_val.value() as u64,
-            MaybeCommon::Uncommon(uncommon_val) => match uncommon_val.maybe_common_type() {
-                MaybeCommonType::Short(short_val) => short_val.value(),
-                MaybeCommonType::Long(long_val) => long_val.value(),
+            MaybeCommon::Common(val) => match T::short_or_long() {
+                ShortOrLong::Short => ShortVal::new(val.value()).into(),
+                ShortOrLong::Long => LongVal::new(val.value() as u64).into(),
             },
+            MaybeCommon::Uncommon(val) => val.to_owned(),
         }
     }
 
