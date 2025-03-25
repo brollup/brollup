@@ -1,4 +1,5 @@
-use super::maybe_common::maybe_common::{Commonable, MaybeCommonType};
+use super::long_val::LongVal;
+use super::maybe_common::maybe_common::{Commonable, MaybeCommonType, ShortOrLong};
 use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, ShortValCPEDecodingError};
 use async_trait::async_trait;
 use bit_vec::BitVec;
@@ -22,19 +23,18 @@ impl ShortVal {
         Self(short_val)
     }
 
-    /// Returns the core u32 value.
-    pub fn value(&self) -> u32 {
-        self.0
+    /// Returns the core value as a u64.
+    pub fn value(&self) -> u64 {
+        self.0 as u64
     }
 
-    /// Returns the core u64 value.
-    pub fn value_u64(&self) -> u64 {
-        self.value() as u64
+    pub fn value_u32(&self) -> u32 {
+        self.0
     }
 
     /// Determines the tier based on the value range.
     pub fn uncommon_tier(&self) -> ShortValTier {
-        match self.value() {
+        match self.0 {
             0..=255 => ShortValTier::U8,
             256..=65535 => ShortValTier::U16,
             65536..=16777215 => ShortValTier::U24,
@@ -44,7 +44,7 @@ impl ShortVal {
 
     /// Returns the compact byte representation of the value.
     pub fn compact_bytes(&self) -> Vec<u8> {
-        let value = self.value();
+        let value = self.value_u32();
 
         match self.uncommon_tier() {
             // 1 byte
@@ -171,8 +171,20 @@ impl CompactPayloadEncoding for ShortVal {
     }
 }
 
+/// Implement `Commonable` for `ShortVal`.
 impl Commonable for ShortVal {
     fn maybe_common_type(&self) -> MaybeCommonType {
         MaybeCommonType::Short(self.clone())
+    }
+
+    fn short_or_long() -> ShortOrLong {
+        ShortOrLong::Short
+    }
+}
+
+/// Implement `From` for `ShortVal` from `LongVal`.
+impl From<LongVal> for ShortVal {
+    fn from(val: LongVal) -> Self {
+        ShortVal::new(val.value() as u32)
     }
 }

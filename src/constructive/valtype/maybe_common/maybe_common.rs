@@ -1,14 +1,18 @@
-use super::common::CommonVal;
+use super::common_val::CommonVal;
 use crate::{
     cpe::{CPEDecodingError, CompactPayloadEncoding, MaybeCommonCPEDecodingError},
-    valtype::{long::LongVal, short::ShortVal},
+    valtype::{long_val::LongVal, short_val::ShortVal},
 };
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// Trait to determine whether a value is `ShortOrLong`.
+/// Trait to determine whether a value is ShortOrLong.
 pub trait Commonable {
     fn maybe_common_type(&self) -> MaybeCommonType;
+    /// Associated function to return the type name as a string.
+    fn short_or_long() -> ShortOrLong
+    where
+        Self: Sized;
 }
 
 /// Enum to represent either `ShortVal` or `LongVal`.
@@ -34,14 +38,14 @@ pub enum MaybeCommon<T> {
 
 impl<T> MaybeCommon<T>
 where
-    T: Commonable + CompactPayloadEncoding + Clone,
+    T: Commonable + CompactPayloadEncoding + Clone + From<ShortVal> + From<LongVal>,
 {
-    /// Creates a new `MaybeCommon` for ShortVal or LongVal.
+    /// Creates a new `MaybeCommon` for `ShortVal` or `LongVal`.
     pub fn new(val: T) -> Self {
         match val.maybe_common_type() {
             MaybeCommonType::Short(short_val) => {
                 // Check if the value is common.
-                match CommonVal::new(short_val.value()) {
+                match CommonVal::new(short_val.value_u32()) {
                     Some(common_val) => MaybeCommon::Common(common_val),
                     None => MaybeCommon::Uncommon(val),
                 }
@@ -68,20 +72,22 @@ where
         match self {
             MaybeCommon::Common(common_val) => common_val.value() as u64,
             MaybeCommon::Uncommon(uncommon_val) => match uncommon_val.maybe_common_type() {
-                MaybeCommonType::Short(short_val) => short_val.value() as u64,
+                MaybeCommonType::Short(short_val) => short_val.value(),
                 MaybeCommonType::Long(long_val) => long_val.value(),
             },
         }
     }
 
+    /// Returns true if the `MaybeCommon` struct is common.
+    pub fn is_common(&self) -> bool {
+        match self {
+            MaybeCommon::Common(_) => true,
+            MaybeCommon::Uncommon(_) => false,
+        }
+    }
+
     /// Decodes a `MaybeCommon` from a bit stream.
-    pub fn decode_cpe(
-        bit_stream: &mut bit_vec::Iter<'_>,
-        short_or_long: ShortOrLong,
-    ) -> Result<Self, CPEDecodingError>
-    where
-        T: From<ShortVal> + From<LongVal>, // Ensure T can be created from ShortVal or LongVal
-    {
+    pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<Self, CPEDecodingError> {
         // Check if the value is common.
         let is_common = bit_stream
             .next()
@@ -89,36 +95,34 @@ where
                 MaybeCommonCPEDecodingError::BitStreamIteratorError,
             ))?;
 
-        // Match is common or uncommon.
-        match is_common {
-            // If the value is common, decode the common value.
-            true => {
-                let common_val = CommonVal::decode_cpe(bit_stream).map_err(|_| {
+        // If the value is common, decode it as `CommonVal`.
+        if is_common {
+            let common_val = CommonVal::decode_cpe(bit_stream).map_err(|_| {
+                CPEDecodingError::MaybeCommonCPEDecodingError(
+                    MaybeCommonCPEDecodingError::CommonValCPEDecodingError,
+                )
+            })?;
+            return Ok(MaybeCommon::Common(common_val));
+        }
+
+        // If the value is uncommon, decode it based on the type `T`.
+        match T::short_or_long() {
+            ShortOrLong::Short => {
+                let uncommon_val = ShortVal::decode_cpe(bit_stream).map_err(|_| {
                     CPEDecodingError::MaybeCommonCPEDecodingError(
-                        MaybeCommonCPEDecodingError::CommonValCPEDecodingError,
+                        MaybeCommonCPEDecodingError::ShortUncommonValCPEDecodingError,
                     )
                 })?;
-                Ok(MaybeCommon::Common(common_val))
+                Ok(MaybeCommon::Uncommon(T::from(uncommon_val)))
             }
-            // If the value is uncommon, decode the uncommon value.
-            false => match short_or_long {
-                ShortOrLong::Short => {
-                    let uncommon_val = ShortVal::decode_cpe(bit_stream).map_err(|_| {
-                        CPEDecodingError::MaybeCommonCPEDecodingError(
-                            MaybeCommonCPEDecodingError::ShortUncommonValCPEDecodingError,
-                        )
-                    })?;
-                    Ok(MaybeCommon::Uncommon(uncommon_val.into()))
-                }
-                ShortOrLong::Long => {
-                    let uncommon_val = LongVal::decode_cpe(bit_stream).map_err(|_| {
-                        CPEDecodingError::MaybeCommonCPEDecodingError(
-                            MaybeCommonCPEDecodingError::LongUncommonValCPEDecodingError,
-                        )
-                    })?;
-                    Ok(MaybeCommon::Uncommon(uncommon_val.into()))
-                }
-            },
+            ShortOrLong::Long => {
+                let uncommon_val = LongVal::decode_cpe(bit_stream).map_err(|_| {
+                    CPEDecodingError::MaybeCommonCPEDecodingError(
+                        MaybeCommonCPEDecodingError::LongUncommonValCPEDecodingError,
+                    )
+                })?;
+                Ok(MaybeCommon::Uncommon(T::from(uncommon_val)))
+            }
         }
     }
 }
@@ -126,10 +130,10 @@ where
 /// Compact payload encoding for `MaybeCommon`.
 impl<T> CompactPayloadEncoding for MaybeCommon<T>
 where
-    T: Commonable + CompactPayloadEncoding + Clone,
+    T: Commonable + CompactPayloadEncoding + Clone + From<ShortVal> + From<LongVal>,
 {
     fn encode_cpe(&self) -> BitVec {
-        // Create a new `BitVec`.
+        // Create a new BitVec.
         let mut bits = BitVec::new();
 
         match self {

@@ -1,4 +1,5 @@
-use super::maybe_common::maybe_common::{Commonable, MaybeCommonType};
+use super::maybe_common::maybe_common::{Commonable, MaybeCommonType, ShortOrLong};
+use super::short_val::ShortVal;
 use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, LongValCPEDecodingError};
 use async_trait::async_trait;
 use bit_vec::BitVec;
@@ -25,7 +26,7 @@ impl LongVal {
         Self(long_val)
     }
 
-    /// Returns the core u64 value.
+    /// Returns the core value as a u64.
     pub fn value(&self) -> u64 {
         self.0
     }
@@ -256,8 +257,20 @@ impl CompactPayloadEncoding for LongVal {
     }
 }
 
+/// Implement `Commonable` for `LongVal`.
 impl Commonable for LongVal {
     fn maybe_common_type(&self) -> MaybeCommonType {
         MaybeCommonType::Long(self.clone())
+    }
+
+    fn short_or_long() -> ShortOrLong {
+        ShortOrLong::Long
+    }
+}
+
+/// Implement `From` for `LongVal` from `ShortVal`.
+impl From<ShortVal> for LongVal {
+    fn from(val: ShortVal) -> Self {
+        LongVal::new(val.value())
     }
 }

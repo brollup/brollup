@@ -6,9 +6,9 @@ mod cpe_tests {
         entity::{account::Account, contract::Contract},
         registery::registery::Registery,
         valtype::{
-            long::{LongVal, LongValTier},
-            maybe_common::{common::CommonVal, maybe_common::MaybeCommon},
-            short::{ShortVal, ShortValTier},
+            long_val::{LongVal, LongValTier},
+            maybe_common::{common_val::CommonVal, maybe_common::MaybeCommon},
+            short_val::{ShortVal, ShortValTier},
         },
         Network,
     };
@@ -62,21 +62,33 @@ mod cpe_tests {
         // Insert 100 (u8) (0 < 100 < 256).
         let short_val = ShortVal::new(100);
         let encoded = short_val.encode_cpe();
+
+        assert_eq!(encoded.len(), 10);
+
         full.extend(&encoded);
 
         // Insert 5_000 (u16) (256 < 5_000 < 65_536).
         let short_val = ShortVal::new(5000);
         let encoded = short_val.encode_cpe();
+
+        assert_eq!(encoded.len(), 18);
+
         full.extend(&encoded);
 
         // Insert 100_000 (u24) (65_536 < 100_000 < 16_777_216).
         let short_val = ShortVal::new(100_000);
         let encoded = short_val.encode_cpe();
+
+        assert_eq!(encoded.len(), 26);
+
         full.extend(&encoded);
 
         // Insert 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
         let short_val = ShortVal::new(50_000_000);
         let encoded = short_val.encode_cpe();
+
+        assert_eq!(encoded.len(), 34);
+
         full.extend(&encoded);
 
         // Insert 5 garbage bits.
@@ -104,6 +116,7 @@ mod cpe_tests {
         assert_eq!(decoded.uncommon_tier(), ShortValTier::U32);
         assert_eq!(decoded.value(), 50_000_000);
 
+        // 5 garbage bits left.
         assert_eq!(bit_stream.len(), 5);
 
         Ok(())
@@ -377,41 +390,6 @@ mod cpe_tests {
 
     #[tokio::test]
     async fn test_common_short_val() -> Result<(), String> {
-        // Test 1
-        let value = 1;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
-
-        assert_eq!(value, decoded.value());
-
-        // Test 2
-        let value = 2;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
-
-        assert_eq!(value, decoded.value());
-
-        // Test 3
-        let value = 3;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
-
-        assert_eq!(value, decoded.value());
-
-        // Test 5
-        let value = 5;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
-
-        assert_eq!(value, decoded.value());
-
-        // Test 50
-        let value = 50;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
-
-        assert_eq!(value, decoded.value());
-
         // Test 100
         let value = 100;
         let encoded = CommonVal::new(value).unwrap().encode_cpe();
@@ -489,32 +467,95 @@ mod cpe_tests {
 
         assert_eq!(value, decoded.value());
 
-        // Test 1000000000
-        let value = 1000000000;
-        let encoded = CommonVal::new(value).unwrap().encode_cpe();
-        let decoded = CommonVal::decode_cpe(&mut encoded.iter()).unwrap();
+        Ok(())
+    }
 
-        assert_eq!(value, decoded.value());
+    #[tokio::test]
+    async fn test_maybe_common_short_val() -> Result<(), String> {
+        let common_short_val = ShortVal::new(1000);
+        let uncommon_short_val = ShortVal::new(34567);
+
+        let maybe_common_short_val: MaybeCommon<ShortVal> = MaybeCommon::new(common_short_val);
+        let maybe_common_uncommon_short_val: MaybeCommon<ShortVal> =
+            MaybeCommon::new(uncommon_short_val);
+
+        assert_eq!(maybe_common_short_val.is_common(), true);
+        assert_eq!(maybe_common_uncommon_short_val.is_common(), false);
+
+        assert_eq!(common_short_val.value(), maybe_common_short_val.value());
+        assert_eq!(
+            uncommon_short_val.value(),
+            maybe_common_uncommon_short_val.value()
+        );
+
+        let maybe_common_short_val_encoded = maybe_common_short_val.encode_cpe();
+        let maybe_common_uncommon_short_val_encoded = maybe_common_uncommon_short_val.encode_cpe();
+
+        let mut maybe_common_short_val_bit_stream = maybe_common_short_val_encoded.iter();
+        let mut maybe_common_uncommon_short_val_bit_stream =
+            maybe_common_uncommon_short_val_encoded.iter();
+
+        let maybe_common_short_val_decoded =
+            MaybeCommon::<ShortVal>::decode_cpe(&mut maybe_common_short_val_bit_stream).unwrap();
+
+        let maybe_common_uncommon_short_val_decoded =
+            MaybeCommon::<ShortVal>::decode_cpe(&mut maybe_common_uncommon_short_val_bit_stream)
+                .unwrap();
+
+        assert_eq!(
+            common_short_val.value(),
+            maybe_common_short_val_decoded.value()
+        );
+        assert_eq!(
+            uncommon_short_val.value(),
+            maybe_common_uncommon_short_val_decoded.value()
+        );
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_maybe_common() -> Result<(), String> {
-        let short_val = ShortVal::new(50);
-        let long_val = LongVal::new(50);
+    async fn test_maybe_common_long_val() -> Result<(), String> {
+        let common_long_val = LongVal::new(1000000);
+        let uncommon_long_val = LongVal::new(9274537803189203421);
 
-        println!("short_val: {}", short_val.value_u64());
-        println!("long_val: {}", long_val.value());
+        let maybe_common_long_val: MaybeCommon<LongVal> = MaybeCommon::new(common_long_val);
+        let maybe_common_uncommon_long_val: MaybeCommon<LongVal> =
+            MaybeCommon::new(uncommon_long_val);
 
-        let maybe_common_short_val: MaybeCommon<ShortVal> = MaybeCommon::new(short_val);
-        let maybe_common_long_val: MaybeCommon<LongVal> = MaybeCommon::new(long_val);
+        assert_eq!(maybe_common_long_val.is_common(), true);
+        assert_eq!(maybe_common_uncommon_long_val.is_common(), false);
 
-        println!("maybe_common_short_val: {}", maybe_common_short_val.value());
-        println!("maybe_common_long_val: {}", maybe_common_long_val.value());
+        assert_eq!(common_long_val.value(), maybe_common_long_val.value());
+        assert_eq!(
+            uncommon_long_val.value(),
+            maybe_common_uncommon_long_val.value()
+        );
 
-        //assert_eq!(short_val.value_u64(), maybe_common_short_val.value());
-        //assert_eq!(long_val.value(), maybe_common_long_val.value());
+        let maybe_common_common_long_val_encoded = maybe_common_long_val.encode_cpe();
+        let maybe_common_uncommon_long_val_encoded = maybe_common_uncommon_long_val.encode_cpe();
+
+        let mut maybe_common_common_long_val_bit_stream =
+            maybe_common_common_long_val_encoded.iter();
+        let mut maybe_common_uncommon_long_val_bit_stream =
+            maybe_common_uncommon_long_val_encoded.iter();
+
+        let maybe_common_common_long_val_decoded =
+            MaybeCommon::<LongVal>::decode_cpe(&mut maybe_common_common_long_val_bit_stream)
+                .unwrap();
+
+        let maybe_common_uncommon_long_val_decoded =
+            MaybeCommon::<LongVal>::decode_cpe(&mut maybe_common_uncommon_long_val_bit_stream)
+                .unwrap();
+
+        assert_eq!(
+            common_long_val.value(),
+            maybe_common_common_long_val_decoded.value()
+        );
+        assert_eq!(
+            uncommon_long_val.value(),
+            maybe_common_uncommon_long_val_decoded.value()
+        );
 
         Ok(())
     }

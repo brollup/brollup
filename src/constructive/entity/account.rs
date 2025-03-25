@@ -1,7 +1,7 @@
 use crate::{
     cpe::{AccountCPEDecodingError, CPEDecodingError, CompactPayloadEncoding},
     registery::account_registery::ACCOUNT_REGISTERY,
-    valtype::short::ShortVal,
+    valtype::short_val::ShortVal,
 };
 use async_trait::async_trait;
 use bit_vec::BitVec;
@@ -50,7 +50,7 @@ impl Account {
 
     /// Returns the registery index of the account.
     pub fn registery_index(&self) -> Option<u32> {
-        Some(self.registery_index?.value())
+        Some(self.registery_index?.value_u32())
     }
 
     /// Returns true if the key is odd.
@@ -94,10 +94,10 @@ impl Account {
                 let account = {
                     let _account_registery = account_registery.lock().await;
                     _account_registery
-                        .account_by_index(registery_index.value())
+                        .account_by_index(registery_index.value_u32())
                         .ok_or(CPEDecodingError::AccountCPEDecodingError(
                             AccountCPEDecodingError::UnableToLocateAccountKeyGivenIndex(
-                                registery_index.value(),
+                                registery_index.value_u32(),
                             ),
                         ))?
                 };

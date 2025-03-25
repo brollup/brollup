@@ -6,7 +6,7 @@ use crate::{
     taproot::P2TR,
     txn::txholder::TxHolder,
     txo::lift::Lift,
-    valtype::short::ShortVal,
+    valtype::short_val::ShortVal,
     EPOCH_DIRECTORY,
 };
 use bit_vec::BitVec;
