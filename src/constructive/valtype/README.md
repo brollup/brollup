@@ -62,11 +62,11 @@ A common value of `1000`, for instance, would fall into the U16 tier of `ShortVa
 | MaybeCommon LongVal Tiers | Description                                            | Bitsize|
 |---------------------------|--------------------------------------------------------|---------|
 | Common                    | Represents a list of 64 common values.                 | 7 bits  |
-| U8                        | Represents values from 0 to 255.                       | 12 bits |
-| U16                       | Represents values from 0 to 65,535.                    | 20 bits |
-| U24                       | Represents values from 0 to 16,777,215.                | 28 bits |
-| U32                       | Represents values from 0 to 4,294,967,295.             | 36 bits |
-| U40                       | Represents values from 0 to 1,099,511,627,775.         | 44 bits |
-| U48                       | Represents values from 0 to 281,474,976,710,655.       | 52 bits |
-| U56                       | Represents values from 0 to 72,057,594,037,927,935.    | 60 bits |
-| U64                       | Represents values from 0 to 18,446,744,073,709,551,615.| 68 bits |
+| Uncommon U8               | Represents values from 0 to 255.                       | 12 bits |
+| Uncommon U16              | Represents values from 0 to 65,535.                    | 20 bits |
+| Uncommon U24              | Represents values from 0 to 16,777,215.                | 28 bits |
+| Uncommon U32              | Represents values from 0 to 4,294,967,295.             | 36 bits |
+| Uncommon U40              | Represents values from 0 to 1,099,511,627,775.         | 44 bits |
+| Uncommon U48              | Represents values from 0 to 281,474,976,710,655.       | 52 bits |
+| Uncommon U56              | Represents values from 0 to 72,057,594,037,927,935.    | 60 bits |
+| Uncommon U64              | Represents values from 0 to 18,446,744,073,709,551,615.| 68 bits |
