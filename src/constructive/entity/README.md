@@ -1,5 +1,5 @@
 # Entity
-`Brollup` contains 2 types of entities who can interact with each other:
+`Brollup` supports 2 types of entities:
 
 | Entity           | Description                                                               |
 |:-----------------|:---------------------------------------------------------------------------|

@@ -48,7 +48,7 @@ impl Contract {
     /// Decodes a `Contract` from a bit stream.
     pub async fn decode_cpe<'a>(
         bit_stream: &mut bit_vec::Iter<'a>,
-        contract_registery: &'a CONTRACT_REGISTERY,
+        contract_registery: &CONTRACT_REGISTERY,
     ) -> Result<Contract, CPEDecodingError> {
         // Decode registery index.
         let registery_index = ShortVal::decode_cpe(bit_stream).map_err(|_| {

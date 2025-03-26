@@ -70,7 +70,7 @@ impl Account {
     /// Decodes an `Account` from a bit stream.  
     pub async fn decode_cpe<'a>(
         bit_stream: &mut bit_vec::Iter<'a>,
-        account_registery: &'a ACCOUNT_REGISTERY,
+        account_registery: &ACCOUNT_REGISTERY,
     ) -> Result<Account, CPEDecodingError> {
         // Check if the account is registered.
         let is_registered = bit_stream

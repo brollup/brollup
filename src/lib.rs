@@ -102,6 +102,8 @@ pub mod rpcholder;
 pub mod tcp;
 
 // Constructive
+#[path = "constructive/calldata/mod.rs"]
+pub mod calldata;
 #[path = "constructive/entry/combinator/mod.rs"]
 pub mod combinator;
 #[path = "constructive/cpe.rs"]

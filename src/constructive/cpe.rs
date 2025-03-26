@@ -29,6 +29,24 @@ pub enum CPEDecodingError {
     ContractCPEDecodingError(ContractCPEDecodingError),
     // Liftup CPE decoding error.
     LiftupCPEDecodingError(LiftupCPEDecodingError),
+    // Calldata CPE decoding error.
+    CalldataCPEDecodingError(CalldataCPEDecodingError),
+    // Unexpected error.
+    UnexpectedError,
+}
+
+/// Error type for `Calldata` CPE decoding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CalldataCPEDecodingError {
+    U8DecodingError,
+    U16DecodingError,
+    U32DecodingError(MaybeCommonCPEDecodingError),
+    U64DecodingError(MaybeCommonCPEDecodingError),
+    BoolDecodingError,
+    AccountDecodingError(AccountCPEDecodingError),
+    ContractDecodingError(ContractCPEDecodingError),
+    BytesDecodingError,
+    VarbytesDecodingError,
 }
 
 /// Error type for `CommonNum` CPE decoding.

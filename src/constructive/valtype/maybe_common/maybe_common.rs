@@ -23,7 +23,7 @@ pub enum MaybeCommonType {
 }
 
 /// Enum to represent either `ShortVal` or `LongVal`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ShortOrLong {
     Short,
     Long,

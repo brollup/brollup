@@ -105,8 +105,10 @@ impl ShortVal {
             ShortValTier::U32 => 32,
         };
 
-        // Collect the value bits.
+        // Initialize the value bits.
         let mut value_bits = BitVec::new();
+
+        // Collect the value bits.
         for _ in 0..bit_count {
             value_bits.push(bit_stream.next().ok_or(
                 CPEDecodingError::ShortValCPEDecodingError(
