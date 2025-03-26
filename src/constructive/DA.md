@@ -1,12 +1,12 @@
 ## DA Efficiency Analysis
 
-Brollup's design enables it to handle significantly more transactions compared to competitors like zkEVM and EVM. By optimizing multiple aspects of transaction encoding, indexing, and signature aggregation, Brollup achieves higher throughput and lower transaction costs, making it a highly scalable solution for Bitcoin applications.
+Brollup's design enables it to handle significantly more transactions compared to zkEVM and EVM. By optimizing multiple aspects of transaction encoding, indexing, and signature aggregation, Brollup achieves higher throughput and lower transaction costs, making it a highly scalable solution for Bitcoin applications.
 
-| VM Type | Encoding                        | Scope      | Value          | Signature   | Gas Price/Limit | Error-handling | Efficiency |
+| VM Type | Encoding                        | Scope      | Indexing       | Signature   | Gas Price/Limit | Error-handling | Efficiency |
 |:--------|:--------------------------------|:-----------|:---------------|:------------|:----------------|:---------------|:-----------|
-| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-indexed   | Negligible  | Absent          | Assertions     | 10.4x      |
-| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Order-indexed  | Negligible  | Present         | Failures       | 3.8x       |
-| EVM     | Recursive-length prefix (RLP)   | Byte-level | Literal        | 65 bytes    | Present         | Failures       | 1x         |
+| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Negligible  | Absent          | Assertions     | 10.4x      |
+| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Negligible  | Present         | Failures       | 3.8x       |
+| EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | 65 bytes    | Present         | Failures       | 1x         |
 
 Brollup's efficiency is attributed to 7 key areas:
 
@@ -15,20 +15,30 @@ Brollup uses bit-level encoding for transactions, as opposed to the standard byt
 
 Bit-level encoding isn't practical for zkEVMs due to the added complexity it introduces in generating ZKPs (zero-knowledge proofs). Brollup, on the other hand,  thanks to its use of bit-level encoding, achieves savings of 1-3 bytes for `u32` and 1-7 bytes for `u64`, with an added overhad of only 2-3 bits.
 
+See [Valtype](https://github.com/brollup/brollup/tree/main/src/constructive/valtype).
+
 #### 2. Rank-based Indexing
 Brollup indexes accounts and contracts based on how frequently they transact rather than when they are registered. Every time an account transacts or is called, the rank of that account or contract is incremented. This rank-based indexing, handled at the memory level, ensures that frequently-used contracts (e.g., AMM pools, Tether) consume only 1 byte, compared to zkEVM’s 4 bytes and EVM’s 20 bytes.
 
 #### 3. Common Value Lookup
-Brollup uses a lookup table to efficiently encode commonly used values like 100, 5,000, and 10,000,000. This method significantly reduces byte usage when contracts with fewer decimal places are called with these values. By leveraging the lookup table to encode frequent patterns, Brollup minimizes DA overhead at scale.
+Brollup uses a lookup table to efficiently encode commonly used values like 100, 5,000, and 10,000,000. This method significantly reduces byte usage when contracts with fewer decimal places are called with these values. By leveraging the lookup table to encode frequent patterns, Brollup minimizes DA overhead at scale. 
+
+See [CommonVal](https://github.com/brollup/brollup/blob/main/src/constructive/valtype/maybe_common/common_val.rs).
 
 #### 4. Signature Aggregation
-Brollup aggregates transaction signatures using `MuSig2`, resulting in a constant 64-byte aggregated signature, instead of using ZKPs, which typically take up around 500 bytes. This results in a saving of 436 bytes per block compared to zkEVMs.
+Brollup aggregates transaction signatures using `MuSig2`, resulting in a constant 64-byte aggregated signature, instead of using ZKPs, which typically take up around 500 bytes. This results in a saving of 436 bytes per block compared to zkEVMs. 
+
+See [Musig-nested-NOIST](https://blog.brollup.org/covenant-emulation-with-musig-nested-noist-784d428c7446).
 
 #### 5. Non-prefixed Calldata Encoding
-While Ethereum requires each calldata element to be prefixed with an `RLP` encoding (adding 1-2 bytes per element), Brollup directly maps calldata elements to pre-defined types with known lengths, eliminating the prefix overhead.
+While Ethereum requires each calldata element to be prefixed with an `RLP` encoding (adding 1-2 bytes per element), Brollup directly maps calldata elements to pre-defined types with known lengths, eliminating the prefix overhead. 
+
+See [Calldata](https://github.com/brollup/brollup/tree/main/src/constructive/calldata).
 
 #### 6. Removed Fields: Gas Price and Gas Limit
 Brollup replaces "gas" with "ops" (operations), simplifying transaction processing. The gas price and gas limit fields are removed because the transaction outcome is determined upon committing to a covenant session, where execution is inherently deterministic. Additionally, fee limits are enforced at the session level, not the block production level, further removing the need for these fields.
+
+See [Entry](https://github.com/brollup/brollup/tree/main/src/constructive/entry).
 
 #### 7. Assertions vs. Failures
 In Brollup, transactions are asserted, meaning that only valid transactions are included in blocks. Failed transactions are never recorded, resulting in a cleaner state and fewer invalid operations. In contrast, both zkEVM and Ethereum allow failed transactions to end up in blocks, which increases overhead and reduces overall efficiency. This means Brollup achieves an overall 5% historical block space savings in comparison.
