@@ -331,6 +331,11 @@ impl CalldataElement {
                 // Get the length value as u16.
                 let byte_length = u16::from_le_bytes(byte_length_bytes);
 
+                // If the length is 0, return an empty `Varbytes`.
+                if byte_length == 0 {
+                    return Ok(CalldataElement::Varbytes(vec![]));
+                }
+
                 // Convert to bit length.
                 let bit_length = byte_length as usize * 8;
 
@@ -490,6 +495,12 @@ impl CompactPayloadEncoding for CalldataElement {
 
                 // Extend the bit vector with the byte length.
                 bits.extend(byte_length_bits);
+
+                // If data length is 0, return the bit vector with length-bits-only.
+                // This is to avoid encoding empty data, as data can be empty.
+                if bytes.len() == 0 {
+                    return bits;
+                }
 
                 // Get the data bits.
                 let data_bits = BitVec::from_bytes(bytes);
