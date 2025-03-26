@@ -41,3 +41,6 @@ Taking an average AMM contract call as an example, Brollup beats zkEVMs by 2.7x 
 | Brollup | ~3 bytes     | 1 byte      | 3 bits      | -                | 6 bytes      | Negligible  | 10 bytes    | 94 bytes    |
 | zkEVM   | 4 bytes      | 4 bytes     | 1 byte      | 8 bytes          | 10 bytes     | Negligible  | 27 bytes    | 77 bytes    |
 | EVM     | -            | 20 bytes    | 1 byte      | 8 bytes          | 10 bytes     | 65 bytes    | 104 bytes   | -           |
+
+> [!NOTE]
+> This comparison excludes further savings from (3) common value lookup, (4) signature aggregation, and (7) assertions. Factoring in these optimizations, the efficiency is projected to surpass 3.0x compared to zkEVMs.
