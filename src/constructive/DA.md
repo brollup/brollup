@@ -8,26 +8,29 @@ Brollup's design enables it to handle significantly more transactions compared t
 | zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Order-indexed  | Negligible  | Present         | Failures       | 3.8x       |
 | EVM     | Recursive-length prefix (RLP)   | Byte-level | Literal        | 65 bytes    | Present         | Failures       | 1x         |
 
-Brollup's efficiency is attributed to 6 key areas:
+Brollup's efficiency is attributed to 7 key areas:
 
 #### 1. Bit-level CPE Encoding
-Brollup uses bit-level encoding for transactions, as opposed to the standard byte-level encoding used by zkEVM and EVM. zkEVMs and EVMs use `Recursive-Length Prefix (RLP) encoding`, which breaks data into chunks of 8 bits (1 byte), leading to higher overhead. For instance, `u32` and `u64` values in RLP encoding take up 4 and 8 bytes, respectively. In contrast, Brollup uses a `compact-payload encoding (CPE)` at the bit level, where values are encoded in smaller, more efficient units (2 to 3 bits of overhead per value), allowing more data to fit into the same space. 
+Brollup uses bit-level encoding for transactions, as opposed to the standard byte-level encoding used by zkEVM and EVM. zkEVMs and EVMs use `Recursive-Length Prefix (RLP) encoding`, which breaks data into chunks of 8 bits (1 byte), leading to higher overhead. For instance, `u32` and `u64` values in RLP encoding take up 4 and 8 bytes, respectively. In contrast, Brollup uses a `compact-payload encoding (CPE)` at the bit level, where values are encoded in smaller, more efficient units, allowing more data to fit into the same space. 
 
-Bit-level encoding isn't practical for zkEVMs due to the added complexity it introduces in generating ZKPs (zero-knowledge proofs). Brollup, on the other hand, achieves savings of 1-3 bytes for `u32` and 1-7 bytes for `u64`, thanks to its use of bit-level encoding.
+Bit-level encoding isn't practical for zkEVMs due to the added complexity it introduces in generating ZKPs (zero-knowledge proofs). Brollup, on the other hand,  thanks to its use of bit-level encoding, achieves savings of 1-3 bytes for `u32` and 1-7 bytes for `u64`, with an added overhad of only 2-3 bits.
 
-#### 2. Rank-based Ordering
+#### 2. Rank-based Indexing
 Brollup indexes accounts and contracts based on how frequently they transact rather than when they are registered. Every time an account transacts or is called, the rank of that account or contract is incremented. This rank-based indexing, handled at the memory level, ensures that frequently-used contracts (e.g., AMM pools, Tether) consume only 1 byte, compared to zkEVM’s 4 bytes and EVM’s 20 bytes.
 
-#### 3. Signature Aggregation
+#### 3. Common Value Lookup
+Brollup uses a lookup table to efficiently encode commonly used values like 100, 5,000, and 10,000,000. This method significantly reduces byte usage when contracts with fewer decimal places are called with these values. By leveraging the lookup table to encode frequent patterns, Brollup minimizes DA overhead at scale.
+
+#### 4. Signature Aggregation
 Brollup aggregates transaction signatures using `MuSig2`, resulting in a constant 64-byte aggregated signature, instead of using ZKPs, which typically take up around 500 bytes. This results in a saving of 436 bytes per block compared to zkEVMs.
 
-#### 4. Non-prefixed Calldata Encoding
+#### 5. Non-prefixed Calldata Encoding
 While Ethereum requires each calldata element to be prefixed with an `RLP` encoding (adding 1-2 bytes per element), Brollup directly maps calldata elements to pre-defined types with known lengths, eliminating the prefix overhead.
 
-#### 5. Removed Fields: Gas Price and Gas Limit
+#### 6. Removed Fields: Gas Price and Gas Limit
 Brollup replaces "gas" with "ops" (operations), simplifying transaction processing. The gas price and gas limit fields are removed because the transaction outcome is determined upon committing to a covenant session, where execution is inherently deterministic. Additionally, fee limits are enforced at the session level, not the block production level, further removing the need for these fields.
 
-#### 6. Assertions vs. Failures
+#### 7. Assertions vs. Failures
 In Brollup, transactions are asserted, meaning that only valid transactions are included in blocks. Failed transactions are never recorded, resulting in a cleaner state and fewer invalid operations. In contrast, both zkEVM and Ethereum allow failed transactions to end up in blocks, which increases overhead and reduces overall efficiency. This means Brollup achieves an overall 5% historical block space savings in comparison.
 
 ### Savings
