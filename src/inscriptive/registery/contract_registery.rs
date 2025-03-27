@@ -52,7 +52,11 @@ impl ContractRegistery {
                 // Value is the contract serialized in bytes.
 
                 // Deserialize the contract from value.
-                let contract: Contract = serde_json::from_slice(&val).ok()?;
+                let mut contract: Contract = serde_json::from_slice(&val).ok()?;
+
+                // Set the rank to None for now.
+                // It will shortly soon be set by `rank_contracts`.
+                contract.set_rank(None);
 
                 // Get the registery index.
                 let registery_index = contract.registery_index();
@@ -96,7 +100,7 @@ impl ContractRegistery {
         }
 
         // Return the list of top 64 ranked contracts.
-        let ranked_contracts = Self::rank_contracts(&contracts, &call_counters);
+        let ranked_contracts = Self::rank_contracts(&mut contracts, &call_counters);
 
         // Construct the contract registery.
         let registery = ContractRegistery {
@@ -113,7 +117,7 @@ impl ContractRegistery {
 
     /// Ranks the top 64 contracts by call counter, if equal by registery index.
     fn rank_contracts(
-        contracts: &HashMap<REGISTERY_INDEX, Contract>,
+        contracts: &mut HashMap<REGISTERY_INDEX, Contract>,
         call_counters: &HashMap<REGISTERY_INDEX, CALL_COUNTER>,
     ) -> HashMap<RANK, Contract> {
         // Initialize the ranked contracts list.
@@ -126,8 +130,15 @@ impl ContractRegistery {
 
         // Insert the ranked contracts into the ranked contracts list.
         for (rank, (registery_index, _)) in top_call_counters.into_iter().enumerate() {
-            if let Some(contract) = contracts.get(registery_index) {
-                ranked_contracts.insert(rank as RANK + 1, contract.to_owned());
+            if let Some(contract) = contracts.get_mut(registery_index) {
+                // Rank is rank index + 1.
+                let rank = rank as RANK + 1;
+
+                // Set the rank.
+                contract.set_rank(Some(rank));
+
+                // Insert into the ranked contracts list.
+                ranked_contracts.insert(rank, contract.to_owned());
             }
         }
 
@@ -169,8 +180,9 @@ impl ContractRegistery {
         let registery_index = self.registery_index_by_contract_id(contract_id)?;
 
         // If the contract is in the top 64, set the rank.
-        if let Some(rank) = self.rank_by_registery_index(registery_index) {
-            contract.set_rank(rank);
+        match self.rank_by_registery_index(registery_index) {
+            Some(rank) => contract.set_rank(Some(rank)),
+            None => contract.set_rank(None),
         }
 
         // Return the contract.
@@ -183,8 +195,9 @@ impl ContractRegistery {
         let mut contract = self.contracts.get(&registery_index)?.to_owned();
 
         // If the contract is in the top 64, set the rank index.
-        if let Some(rank) = self.rank_by_registery_index(registery_index) {
-            contract.set_rank(rank);
+        match self.rank_by_registery_index(registery_index) {
+            Some(rank) => contract.set_rank(Some(rank)),
+            None => contract.set_rank(None),
         }
 
         // Return the contract.
@@ -194,10 +207,7 @@ impl ContractRegistery {
     /// Returns the contract by the given rank if the contract is in the top 64.
     pub fn contract_by_rank(&self, rank: RANK) -> Option<Contract> {
         // Get the contract by the given rank.
-        let mut contract = self.ranked_contracts.get(&rank)?.to_owned();
-
-        // Set rank.
-        contract.set_rank(rank);
+        let contract = self.ranked_contracts.get(&rank)?.to_owned();
 
         // Return the contract.
         Some(contract)
@@ -290,7 +300,7 @@ impl ContractRegistery {
 
     /// Updates the ranked contracts.
     fn update_ranked_contracts(&mut self) {
-        self.ranked_contracts = Self::rank_contracts(&self.contracts, &self.call_counters);
+        self.ranked_contracts = Self::rank_contracts(&mut self.contracts, &self.call_counters);
     }
 
     /// Updates the registery in a single batch operation.

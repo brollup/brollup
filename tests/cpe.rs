@@ -408,6 +408,11 @@ mod cpe_tests {
         assert_eq!(contract_2.registery_index(), 2);
         assert_eq!(contract_3.registery_index(), 3);
 
+        // Check ranks.
+        assert_eq!(contract_1.rank(), Some(1));
+        assert_eq!(contract_2.rank(), Some(2));
+        assert_eq!(contract_3.rank(), Some(3));
+
         let contract_1_encoded = contract_1.encode_cpe();
         let contract_2_encoded = contract_2.encode_cpe();
         let contract_3_encoded = contract_3.encode_cpe();

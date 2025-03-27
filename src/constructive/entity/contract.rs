@@ -47,8 +47,8 @@ impl Contract {
     }
 
     /// Sets the rank index.
-    pub fn set_rank(&mut self, rank: u8) {
-        self.rank = Some(rank);
+    pub fn set_rank(&mut self, rank: Option<u8>) {
+        self.rank = rank;
     }
 
     /// Serializes the contract.
