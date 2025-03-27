@@ -1,7 +1,7 @@
 use crate::{
-    cpe::decode_error::{
-        entity_error::AccountCPEDecodingError, error::CPEDecodingError,
-        error::CompactPayloadEncoding,
+    cpe::{
+        cpe::CompactPayloadEncoding,
+        decode_error::{entity_error::AccountCPEDecodingError, error::CPEDecodingError},
     },
     registery::account_registery::ACCOUNT_REGISTERY,
     valtype::short_val::ShortVal,

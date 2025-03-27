@@ -1,6 +1,9 @@
-use crate::cpe::decode_error::{
-    calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
-    error::{CPEDecodingError, CompactPayloadEncoding},
+use crate::cpe::{
+    cpe::CompactPayloadEncoding,
+    decode_error::{
+        calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
+        error::CPEDecodingError,
+    },
 };
 use crate::entity::account::Account;
 use crate::entity::contract::Contract;

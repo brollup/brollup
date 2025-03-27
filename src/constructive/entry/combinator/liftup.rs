@@ -1,6 +1,7 @@
 use crate::{
-    cpe::decode_error::{
-        entry_error::LiftupCPEDecodingError, error::CPEDecodingError, error::CompactPayloadEncoding,
+    cpe::{
+        cpe::CompactPayloadEncoding,
+        decode_error::{entry_error::LiftupCPEDecodingError, error::CPEDecodingError},
     },
     entity::account::Account,
     hash::{Hash, HashTag},

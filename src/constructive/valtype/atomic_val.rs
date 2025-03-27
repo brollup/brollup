@@ -1,6 +1,6 @@
-use crate::cpe::decode_error::{
-    error::CPEDecodingError, error::CompactPayloadEncoding,
-    valtype_error::AtomicValCPEDecodingError,
+use crate::cpe::{
+    cpe::CompactPayloadEncoding,
+    decode_error::{error::CPEDecodingError, valtype_error::AtomicValCPEDecodingError},
 };
 use async_trait::async_trait;
 use bit_vec::BitVec;

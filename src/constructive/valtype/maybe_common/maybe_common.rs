@@ -1,8 +1,8 @@
 use super::common_val::CommonVal;
 use crate::{
-    cpe::decode_error::{
-        error::CPEDecodingError, error::CompactPayloadEncoding,
-        valtype_error::MaybeCommonCPEDecodingError,
+    cpe::{
+        cpe::CompactPayloadEncoding,
+        decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
     },
     valtype::{long_val::LongVal, short_val::ShortVal},
 };

@@ -2,7 +2,7 @@
 mod cpe_tests {
     use bit_vec::BitVec;
     use brollup::{
-        cpe::decode_error::error::CompactPayloadEncoding,
+        cpe::cpe::CompactPayloadEncoding,
         entity::{account::Account, contract::Contract},
         registery::registery::Registery,
         valtype::{

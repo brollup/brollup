@@ -1,6 +1,6 @@
-use crate::cpe::decode_error::{
-    error::CPEDecodingError, error::CompactPayloadEncoding,
-    valtype_error::MaybeCommonCPEDecodingError,
+use crate::cpe::{
+    cpe::CompactPayloadEncoding,
+    decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
 };
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};

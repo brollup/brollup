@@ -7,21 +7,9 @@ use super::{
         ShortValCPEDecodingError,
     },
 };
-use async_trait::async_trait;
-use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// Trait for encoding structs for compact Bitcoin-DA storage.
-#[async_trait]
-pub trait CompactPayloadEncoding {
-    /// Encode the struct into a bitvec.
-    fn encode_cpe(&self) -> BitVec;
-}
-
-/// Compact payload decoding is implemented individually for each struct that implements `CompactPayloadEncoding`, rather than using a trait.
-/// Refer to the CPE decoding error types listed below:
-
-/// /// Error type for compact payload decoding.
+/// Error type for compact payload decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CPEDecodingError {
     // Maybe common CPE decoding error.
