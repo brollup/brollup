@@ -13,6 +13,7 @@ mod cpe_tests {
         Network,
     };
     use secp::Point;
+    use std::collections::HashMap;
 
     #[tokio::test]
     async fn cpe_single_short_val_test() -> Result<(), String> {
@@ -351,38 +352,104 @@ mod cpe_tests {
         let account_decoded = Account::decode_cpe(&mut bit_stream, &account_registery)
             .await
             .unwrap();
+
         assert_eq!(account, account_decoded);
         assert_eq!(account.key(), account_decoded.key());
         assert_eq!(account.registery_index(), account_decoded.registery_index());
 
         // Contract test
 
-        let contract_id = [0xffu8; 32];
+        let contract_id_1 = [0xaau8; 32];
+        let contract_id_2 = [0xbbu8; 32];
+        let contract_id_3 = [0xccu8; 32];
 
         // Insert the contract into the registery.
         {
+            let empty_called_contracts = HashMap::<Contract, u64>::new();
+
             let mut _contract_registery = contract_registery.lock().await;
-            _contract_registery.insert(contract_id);
+            assert!(_contract_registery.batch_update(
+                vec![contract_id_1, contract_id_2, contract_id_3],
+                empty_called_contracts
+            ));
         }
 
-        // Get the contract.
-        let contract = {
+        // Get the contract #1.
+        let contract_1 = {
             let _contract_registery = contract_registery.lock().await;
-            _contract_registery.contract_by_id(contract_id).unwrap()
+            _contract_registery
+                .contract_by_contract_id(contract_id_1)
+                .unwrap()
         };
 
-        let encoded = contract.encode_cpe();
+        // Get the contract #2.
+        let contract_2 = {
+            let _contract_registery = contract_registery.lock().await;
+            _contract_registery
+                .contract_by_contract_id(contract_id_2)
+                .unwrap()
+        };
 
-        let mut bit_stream = encoded.iter();
+        // Get the contract #3.
+        let contract_3 = {
+            let _contract_registery = contract_registery.lock().await;
+            _contract_registery
+                .contract_by_contract_id(contract_id_3)
+                .unwrap()
+        };
 
-        let decoded_contract = Contract::decode_cpe(&mut bit_stream, &contract_registery)
-            .await
-            .unwrap();
-        assert_eq!(contract, decoded_contract);
-        assert_eq!(contract.contract_id(), decoded_contract.contract_id());
+        // Check contract IDs.
+        assert_eq!(contract_1.contract_id(), contract_id_1);
+        assert_eq!(contract_2.contract_id(), contract_id_2);
+        assert_eq!(contract_3.contract_id(), contract_id_3);
+
+        // Check registery index.
+        assert_eq!(contract_1.registery_index(), 1);
+        assert_eq!(contract_2.registery_index(), 2);
+        assert_eq!(contract_3.registery_index(), 3);
+
+        let contract_1_encoded = contract_1.encode_cpe();
+        let contract_2_encoded = contract_2.encode_cpe();
+        let contract_3_encoded = contract_3.encode_cpe();
+
+        let mut contract_1_bit_stream = contract_1_encoded.iter();
+        let mut contract_2_bit_stream = contract_2_encoded.iter();
+        let mut contract_3_bit_stream = contract_3_encoded.iter();
+
+        let contract_1_decoded =
+            Contract::decode_cpe(&mut contract_1_bit_stream, &contract_registery)
+                .await
+                .unwrap();
+
+        let contract_2_decoded =
+            Contract::decode_cpe(&mut contract_2_bit_stream, &contract_registery)
+                .await
+                .unwrap();
+
+        let contract_3_decoded =
+            Contract::decode_cpe(&mut contract_3_bit_stream, &contract_registery)
+                .await
+                .unwrap();
+
+        assert_eq!(contract_1, contract_1_decoded);
+        assert_eq!(contract_1.contract_id(), contract_1_decoded.contract_id());
         assert_eq!(
-            contract.registery_index(),
-            decoded_contract.registery_index()
+            contract_1.registery_index(),
+            contract_1_decoded.registery_index()
+        );
+
+        assert_eq!(contract_2, contract_2_decoded);
+        assert_eq!(contract_2.contract_id(), contract_2_decoded.contract_id());
+        assert_eq!(
+            contract_2.registery_index(),
+            contract_2_decoded.registery_index()
+        );
+
+        assert_eq!(contract_3, contract_3_decoded);
+        assert_eq!(contract_3.contract_id(), contract_3_decoded.contract_id());
+        assert_eq!(
+            contract_3.registery_index(),
+            contract_3_decoded.registery_index()
         );
 
         Ok(())
@@ -559,6 +626,65 @@ mod cpe_tests {
 
         assert_eq!(common_long_val.value(), common_long_val_decoded.value());
         assert_eq!(uncommon_long_val.value(), uncommon_long_val_decoded.value());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn varbytes_0_to_4096_12_bit_test() -> Result<(), String> {
+        // 0 to 4095
+        for i in 0..=4095 {
+            let value: u16 = i;
+
+            let value_bytes = value.to_le_bytes();
+
+            let mut value_bits = BitVec::new();
+            for i in 0..12 {
+                let byte_idx = i / 8;
+                let bit_idx = i % 8;
+                value_bits.push((value_bytes[byte_idx] >> bit_idx) & 1 == 1);
+            }
+
+            let mut decoded_value = 0u16;
+            for i in 0..12 {
+                let bit = value_bits[i];
+                if bit {
+                    decoded_value |= 1 << i;
+                }
+            }
+
+            assert_eq!(value, decoded_value);
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn rank_6_bit_test() -> Result<(), String> {
+        // 1 to 64
+        for i in 0..=63 {
+            // encode u8
+            let rank_index: u8 = i;
+
+            let rank_bytes = rank_index.to_le_bytes();
+
+            // Convert the rank (u8) into a BitVec.
+            let mut rank_bits = BitVec::new();
+            for i in 0..6 {
+                rank_bits.push((rank_bytes[0] >> i) & 1 == 1);
+            }
+
+            // Decode the rank directly from the BitVec.
+            let mut decoded_rank = 0u8;
+            for i in 0..6 {
+                let bit = rank_bits[i];
+                if bit {
+                    decoded_rank |= 1 << i;
+                }
+            }
+
+            assert_eq!(rank_index, decoded_rank);
+        }
 
         Ok(())
     }

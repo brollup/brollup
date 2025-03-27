@@ -11,4 +11,4 @@
 | Account          | `Account`              | Represents a possibly registered `Account`.                                                 | 11-257 bits   | 32 bytes       |
 | Contract         | `Contract`             | Represents a deployed `Contract`.                                                           | 10-34 bits    | 32 bytes       |
 | Bytes1-256       | [u8; 1-256]            | Represents a fixed-length byte array, ranging from 1 to 256 bytes.                          | 8-2048 bits   | 1-256 bytes    |
-| Varbytes         | Vec<u8>                | Represents a dynamic-length byte array, ranging from 0 to 4096 (max stack size) bytes.      | 16-32784 bits | 0-4096 bytes   |
+| Varbytes         | Vec<u8>                | Represents a dynamic-length byte array, ranging from 0 to 4095 (max stack size) bytes.      | 12-32780 bits | 0-4096 bytes   |

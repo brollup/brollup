@@ -109,10 +109,16 @@ pub enum AccountCPEDecodingError {
 /// Error type for `Contract` CPE decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ContractCPEDecodingError {
+    // Failed to collect the is ranked bit.
+    FailedToCollectIsRankedBit,
+    // Failed to collect the rank index bits.
+    FailedToCollectRankIndexBits,
+    // Failed to locate the ranked contract.
+    FailedToLocateContractGivenRankIndex(u8),
     // Failed to decode the registery index.
     FailedToDecodeRegisteryIndex,
-    // Unable to locate the contract ID from the registery index.
-    UnableToLocateContractIdGivenIndex(u32),
+    // Unable to locate the unranked contract.
+    FailedToLocateContractGivenRegisteryIndex(u32),
 }
 
 /// Error type for `Liftup` CPE decoding.
