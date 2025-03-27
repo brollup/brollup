@@ -1,4 +1,7 @@
-use crate::cpe::{CPEDecodingError, CalldataCPEDecodingError, CompactPayloadEncoding};
+use crate::cpe::decode_error::{
+    calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
+    error::{CPEDecodingError, CompactPayloadEncoding},
+};
 use crate::entity::account::Account;
 use crate::entity::contract::Contract;
 use crate::registery::account_registery::ACCOUNT_REGISTERY;
@@ -279,7 +282,9 @@ impl CalldataElement {
                 // Check if the data length is valid.
                 if byte_length < 1 || byte_length > 256 {
                     return Err(CPEDecodingError::CalldataCPEDecodingError(
-                        CalldataCPEDecodingError::BytesDecodingError,
+                        CalldataCPEDecodingError::BytesDecodingError(
+                            BytesDecodingError::InvalidBytesLength,
+                        ),
                     ));
                 }
 
@@ -291,7 +296,9 @@ impl CalldataElement {
                 for _ in 0..bit_length {
                     data_bits.push(bit_stream.next().ok_or(
                         CPEDecodingError::CalldataCPEDecodingError(
-                            CalldataCPEDecodingError::BytesDecodingError,
+                            CalldataCPEDecodingError::BytesDecodingError(
+                                BytesDecodingError::UnableToCollectBytesDataBits,
+                            ),
                         ),
                     )?);
                 }
@@ -316,7 +323,9 @@ impl CalldataElement {
                 for _ in 0..12 {
                     byte_length_bits.push(bit_stream.next().ok_or(
                         CPEDecodingError::CalldataCPEDecodingError(
-                            CalldataCPEDecodingError::VarbytesDecodingError,
+                            CalldataCPEDecodingError::VarbytesDecodingError(
+                                VarbytesDecodingError::UnableToCollectVarbytesLengthBits,
+                            ),
                         ),
                     )?);
                 }
@@ -333,7 +342,9 @@ impl CalldataElement {
                 // Return an error if the byte length is greater than 4095.
                 if byte_length > 4095 {
                     return Err(CPEDecodingError::CalldataCPEDecodingError(
-                        CalldataCPEDecodingError::VarbytesDecodingError,
+                        CalldataCPEDecodingError::VarbytesDecodingError(
+                            VarbytesDecodingError::VarbytesLengthGreaterThan4095,
+                        ),
                     ));
                 }
 
@@ -352,7 +363,9 @@ impl CalldataElement {
                 for _ in 0..bit_length {
                     data_bits.push(bit_stream.next().ok_or(
                         CPEDecodingError::CalldataCPEDecodingError(
-                            CalldataCPEDecodingError::VarbytesDecodingError,
+                            CalldataCPEDecodingError::VarbytesDecodingError(
+                                VarbytesDecodingError::UnableToCollectVarbytesDataBits,
+                            ),
                         ),
                     )?);
                 }

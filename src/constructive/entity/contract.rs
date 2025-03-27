@@ -1,5 +1,8 @@
 use crate::{
-    cpe::{CPEDecodingError, CompactPayloadEncoding, ContractCPEDecodingError},
+    cpe::decode_error::{
+        entity_error::ContractCPEDecodingError, error::CPEDecodingError,
+        error::CompactPayloadEncoding,
+    },
     registery::contract_registery::CONTRACT_REGISTERY,
     valtype::short_val::ShortVal,
 };
@@ -69,6 +72,7 @@ impl Contract {
                 ContractCPEDecodingError::FailedToCollectIsRankedBit,
             ))?;
 
+        // Check if the contract is top-ranked.
         match is_ranked {
             true => {
                 // Contract is one of the top 64 ranked contracts.

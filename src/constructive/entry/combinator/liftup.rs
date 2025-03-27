@@ -1,5 +1,7 @@
 use crate::{
-    cpe::{CPEDecodingError, CompactPayloadEncoding, LiftupCPEDecodingError},
+    cpe::decode_error::{
+        entry_error::LiftupCPEDecodingError, error::CPEDecodingError, error::CompactPayloadEncoding,
+    },
     entity::account::Account,
     hash::{Hash, HashTag},
     schnorr::Sighash,

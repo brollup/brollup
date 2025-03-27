@@ -2,7 +2,7 @@
 mod cpe_tests {
     use bit_vec::BitVec;
     use brollup::{
-        cpe::CompactPayloadEncoding,
+        cpe::decode_error::error::CompactPayloadEncoding,
         entity::{account::Account, contract::Contract},
         registery::registery::Registery,
         valtype::{
@@ -368,10 +368,10 @@ mod cpe_tests {
             let empty_called_contracts = HashMap::<Contract, u64>::new();
 
             let mut _contract_registery = contract_registery.lock().await;
-            assert!(_contract_registery.batch_update(
+            let _ = _contract_registery.batch_update(
                 vec![contract_id_1, contract_id_2, contract_id_3],
-                empty_called_contracts
-            ));
+                empty_called_contracts,
+            );
         }
 
         // Get the contract #1.

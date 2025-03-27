@@ -1,6 +1,8 @@
 use super::maybe_common::maybe_common::{Commonable, MaybeCommonType, ShortOrLong};
 use super::short_val::ShortVal;
-use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, LongValCPEDecodingError};
+use crate::cpe::decode_error::{
+    error::CPEDecodingError, error::CompactPayloadEncoding, valtype_error::LongValCPEDecodingError,
+};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};

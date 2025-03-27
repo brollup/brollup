@@ -106,7 +106,7 @@ pub mod tcp;
 pub mod calldata;
 #[path = "constructive/entry/combinator/mod.rs"]
 pub mod combinator;
-#[path = "constructive/cpe.rs"]
+#[path = "constructive/cpe/mod.rs"]
 pub mod cpe;
 #[path = "constructive/entity/mod.rs"]
 pub mod entity;

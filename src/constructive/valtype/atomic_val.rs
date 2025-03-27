@@ -1,4 +1,7 @@
-use crate::cpe::{AtomicValCPEDecodingError, CPEDecodingError, CompactPayloadEncoding};
+use crate::cpe::decode_error::{
+    error::CPEDecodingError, error::CompactPayloadEncoding,
+    valtype_error::AtomicValCPEDecodingError,
+};
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};

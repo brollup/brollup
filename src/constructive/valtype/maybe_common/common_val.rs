@@ -1,7 +1,9 @@
+use crate::cpe::decode_error::{
+    error::CPEDecodingError, error::CompactPayloadEncoding,
+    valtype_error::MaybeCommonCPEDecodingError,
+};
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
-
-use crate::cpe::{CPEDecodingError, CompactPayloadEncoding, MaybeCommonCPEDecodingError};
 
 /// `CommonVal` represents a common integer value.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
