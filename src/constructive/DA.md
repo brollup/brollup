@@ -1,14 +1,17 @@
-## DA Efficiency Analysis
+# Compact Payload Encoding
+`Compact Payload Encoding (CPE)` is a custom-tailored algorithm designed to optimize data availability (DA) efficiency for Bitcoin.
 
-Brollup's design enables it to handle significantly more transactions compared to zkEVM and EVM. By optimizing multiple aspects of transaction encoding, indexing, and signature aggregation, Brollup achieves higher throughput and lower transaction costs, making it a highly scalable solution for Bitcoin applications.
+`CPE` allows Brollup to pack as many transactions as possible into a Bitcoin block, enabling it to handle significantly more transactions compared to zkEVM and EVM. By optimizing transaction encoding, indexing, and signature aggregation, Brollup achieves higher throughput and lower transaction costs, making it a highly scalable solution for decentralized Bitcoin applications.
+
+### VM Comparsion
 
 | VM Type | Encoding                        | Scope      | Indexing       | Signature   | Gas Price/Limit | Error-handling | Efficiency |
 |:--------|:--------------------------------|:-----------|:---------------|:------------|:----------------|:---------------|:-----------|
-| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Negligible  | Absent          | Assertions     | 10.4x      |
-| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Negligible  | Present         | Failures       | 3.8x       |
+| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Aggregated  | -               | Assertions     | 10.4x      |
+| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Aggregated  | Present         | Failures       | 3.8x       |
 | EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | 65 bytes    | Present         | Failures       | 1x         |
 
-Brollup's efficiency is attributed to 7 key areas:
+`Compact Payload Encoding (CPE)`'s efficiency is attributed to 7 key areas:
 
 #### 1. Bit-level CPE Encoding
 Brollup uses bit-level encoding for transactions, as opposed to the standard byte-level encoding used by zkEVM and EVM. zkEVMs and EVMs use `Recursive-Length Prefix (RLP) encoding`, which breaks data into chunks of 8 bits (1 byte), leading to higher overhead. For instance, `u32` and `u64` values in RLP encoding take up 4 and 8 bytes, respectively. In contrast, Brollup uses a `compact-payload encoding (CPE)` at the bit level, where values are encoded in smaller, more efficient units, allowing more data to fit into the same space. 

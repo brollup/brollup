@@ -7,8 +7,8 @@
 
 | VM Type | Encoding                        | Scope      | Indexing       | Signature   | Gas Price/Limit | Error-handling | Efficiency |
 |:--------|:--------------------------------|:-----------|:---------------|:------------|:----------------|:---------------|:-----------|
-| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Negligible  | -               | Assertions     | 10.4x      |
-| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Negligible  | Present         | Failures       | 3.8x       |
+| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Aggregated  | -               | Assertions     | 10.4x      |
+| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Aggregated  | Present         | Failures       | 3.8x       |
 | EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | 65 bytes    | Present         | Failures       | 1x         |
 
 `Compact Payload Encoding (CPE)`'s efficiency is attributed to 7 key areas:
