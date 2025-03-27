@@ -311,8 +311,9 @@ impl CalldataElement {
                 // Initialize a bit vector to fill with byte length.
                 let mut byte_length_bits = BitVec::new();
 
-                // Collect 16 bits representing the byte length.
-                for _ in 0..16 {
+                // Collect 12 bits representing the byte length.
+                // Supported byte-length range: 0 to 4095.
+                for _ in 0..12 {
                     byte_length_bits.push(bit_stream.next().ok_or(
                         CPEDecodingError::CalldataCPEDecodingError(
                             CalldataCPEDecodingError::VarbytesDecodingError,
@@ -320,18 +321,23 @@ impl CalldataElement {
                     )?);
                 }
 
-                // Convert to 2-bytes.
-                let byte_length_bytes: [u8; 2] =
-                    byte_length_bits.to_bytes().try_into().map_err(|_| {
-                        CPEDecodingError::CalldataCPEDecodingError(
-                            CalldataCPEDecodingError::VarbytesDecodingError,
-                        )
-                    })?;
+                // Convert the byte length bits to a u16.
+                let mut byte_length = 0u16;
+                for i in 0..12 {
+                    let bit = byte_length_bits[i];
+                    if bit {
+                        byte_length |= 1 << i;
+                    }
+                }
 
-                // Get the length value as u16.
-                let byte_length = u16::from_le_bytes(byte_length_bytes);
+                // Return an error if the byte length is greater than 4095.
+                if byte_length > 4095 {
+                    return Err(CPEDecodingError::CalldataCPEDecodingError(
+                        CalldataCPEDecodingError::VarbytesDecodingError,
+                    ));
+                }
 
-                // If the length is 0, return an empty `Varbytes`.
+                // If the data length is 0, return an empty `Varbytes`.
                 if byte_length == 0 {
                     return Ok(CalldataElement::Varbytes(vec![]));
                 }
@@ -488,17 +494,24 @@ impl CompactPayloadEncoding for CalldataElement {
                 let byte_length = bytes.len() as u16;
 
                 // Byte length as 2 bytes.
-                let byte_length_bytes: [u8; 2] = byte_length.to_le_bytes();
+                let byte_length_bytes = byte_length.to_le_bytes();
+
+                // Initialize byte length bits.
+                let mut byte_length_bits = BitVec::new();
 
                 // Convert byte length to bits.
-                let byte_length_bits = BitVec::from_bytes(&byte_length_bytes);
+                for i in 0..12 {
+                    let byte_idx = i / 8;
+                    let bit_idx = i % 8;
+                    byte_length_bits.push((byte_length_bytes[byte_idx] >> bit_idx) & 1 == 1);
+                }
 
                 // Extend the bit vector with the byte length.
                 bits.extend(byte_length_bits);
 
                 // If data length is 0, return the bit vector with length-bits-only.
                 // This is to avoid encoding empty data, as data can be empty.
-                if bytes.len() == 0 {
+                if byte_length == 0 {
                     return bits;
                 }
 
