@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 /// Error type for `Account` CPE decoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AccountCPEDecodingError {
-    // Failed to iterate over the is-registered bit.
-    FailedToCollectIsRegisteredBit,
     // Failed to decode the rank.
     FailedToDecodeRank,
     // Failed to locate the ranked account.

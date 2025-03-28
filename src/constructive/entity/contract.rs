@@ -71,7 +71,7 @@ impl Contract {
         bit_stream: &mut bit_vec::Iter<'a>,
         contract_registery: &CONTRACT_REGISTERY,
     ) -> Result<Contract, CPEDecodingError> {
-        // Decode rank.
+        // Decode the rank value.
         let rank = ShortVal::decode_cpe(bit_stream)
             .map_err(|_| {
                 CPEDecodingError::ContractCPEDecodingError(

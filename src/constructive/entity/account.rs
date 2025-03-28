@@ -93,41 +93,20 @@ impl Account {
         bit_stream: &mut bit_vec::Iter<'a>,
         account_registery: &ACCOUNT_REGISTERY,
     ) -> Result<Account, CPEDecodingError> {
-        // Check if the account is registered.
-        let is_registered = bit_stream
-            .next()
-            .ok_or(CPEDecodingError::AccountCPEDecodingError(
-                AccountCPEDecodingError::FailedToCollectIsRegisteredBit,
-            ))?;
+        // Decode the rank value.
+        let rank = ShortVal::decode_cpe(bit_stream)
+            .map_err(|_| {
+                CPEDecodingError::AccountCPEDecodingError(
+                    AccountCPEDecodingError::FailedToDecodeRank,
+                )
+            })?
+            .value();
 
-        match is_registered {
-            true => {
-                // Account is registered.
-
-                // Decode rank.
-                let rank = ShortVal::decode_cpe(bit_stream)
-                    .map_err(|_| {
-                        CPEDecodingError::AccountCPEDecodingError(
-                            AccountCPEDecodingError::FailedToDecodeRank,
-                        )
-                    })?
-                    .value();
-
-                // Retrieve the account given registery index.
-                let account = {
-                    let _account_registery = account_registery.lock().await;
-                    _account_registery.account_by_rank(rank).ok_or(
-                        CPEDecodingError::AccountCPEDecodingError(
-                            AccountCPEDecodingError::FailedToLocateAccountGivenRank(rank),
-                        ),
-                    )?
-                };
-
-                // Return the `Account`.
-                Ok(account)
-            }
-            false => {
-                // Account is not registered. This means we need to construct a new key and register it.
+        // Match the rank value to determine if the account is registered or not.
+        // If rank is zero, then we interpret this as an unregistered account, otherwise it is a registered account.
+        match rank {
+            0 => {
+                // Unregistered account.
 
                 // Collect exactly 256 bits for the public key.
                 let public_key_bits: BitVec = bit_stream.by_ref().take(256).collect();
@@ -173,7 +152,23 @@ impl Account {
                 };
 
                 // Return the `Account`.
-                Ok(account)
+                return Ok(account);
+            }
+            _ => {
+                // Registered account.
+
+                // Retrieve the account given rank value.
+                let account = {
+                    let _account_registery = account_registery.lock().await;
+                    _account_registery.account_by_rank(rank).ok_or(
+                        CPEDecodingError::AccountCPEDecodingError(
+                            AccountCPEDecodingError::FailedToLocateAccountGivenRank(rank),
+                        ),
+                    )?
+                };
+
+                // Return the `Account`.
+                return Ok(account);
             }
         }
     }
@@ -192,18 +187,17 @@ impl CompactPayloadEncoding for Account {
     fn encode_cpe(&self) -> Option<BitVec> {
         let mut bits = BitVec::new();
 
-        // Check rank.
+        // Match on the rank value.
         match self.rank {
+            // If the rank is set, then we interpret this as a registered account.
             Some(rank) => {
-                // True for registered.
-                bits.push(true);
-
                 // Extend rank bits.
                 bits.extend(rank.encode_cpe()?);
             }
+            // If the rank is not set, then we interpret this as an unregistered account.
             None => {
-                // False for unregistered.
-                bits.push(false);
+                // Extend with the rank value zero.
+                bits.extend(ShortVal::new(0).encode_cpe()?);
 
                 // Public key bits.
                 let public_key_bits = BitVec::from_bytes(&self.key.serialize_xonly());
@@ -211,7 +205,7 @@ impl CompactPayloadEncoding for Account {
                 // Extend public key bits.
                 bits.extend(public_key_bits);
             }
-        }
+        };
 
         Some(bits)
     }
