@@ -35,7 +35,7 @@ Brollup aggregates transaction signatures using `MuSig2`, resulting in a constan
 See [Musig-nested-NOIST](https://blog.brollup.org/covenant-emulation-with-musig-nested-noist-784d428c7446).
 
 #### 5. Non-prefixed Calldata Items
-`CPE` maps calldata items directly to pre-defined types with fixed lengths, eliminating the prefix overhead. In contrast, the EVM requires each calldata item to be prefixed with an `RLP` encoding, adding 1-2 bytes per item.
+`CPE` maps calldata items directly to pre-defined types with known lengths, eliminating the prefix overhead. In contrast, the EVM requires each calldata item to be prefixed with an `RLP` encoding, adding 1-2 bytes per item.
 
 See [Calldata](https://github.com/brollup/brollup/tree/main/src/constructive/calldata).
 
