@@ -1,5 +1,5 @@
 use super::lp::LP;
-use crate::{into::IntoPointVec, entity::account::Account, Network, LP_DIRECTORY};
+use crate::{entity::account::Account, into::IntoPointVec, Network, LP_DIRECTORY};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -73,7 +73,7 @@ impl LPDirectory {
         };
 
         for key in key_vec.iter() {
-            let account = match Account::new(key.to_owned(), None) {
+            let account = match Account::new(key.to_owned(), None, None) {
                 Some(account) => account,
                 None => return false,
             };

@@ -426,7 +426,7 @@ impl CalldataElement {
 }
 
 impl CompactPayloadEncoding for CalldataElement {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         match self {
             CalldataElement::U8(u8_value) => {
                 // Get the u8 value.
@@ -439,7 +439,7 @@ impl CompactPayloadEncoding for CalldataElement {
                 let bits = BitVec::from_bytes(&byte);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::U16(u16_value) => {
                 // Get the u16 value.
@@ -452,21 +452,21 @@ impl CompactPayloadEncoding for CalldataElement {
                 let bits = BitVec::from_bytes(&bytes);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::U32(short_val) => {
                 // Encode the `ShortVal`.
-                let bits = short_val.encode_cpe();
+                let bits = short_val.encode_cpe()?;
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::U64(long_val) => {
                 // Encode the `LongVal`.
-                let bits = long_val.encode_cpe();
+                let bits = long_val.encode_cpe()?;
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::Bool(value) => {
                 // Get the bool value.
@@ -479,28 +479,28 @@ impl CompactPayloadEncoding for CalldataElement {
                 bits.push(bool);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::Account(account) => {
                 // Encode the `Account`.
-                let bits = account.encode_cpe();
+                let bits = account.encode_cpe()?;
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::Contract(contract) => {
                 // Encode the `Contract`.
-                let bits = contract.encode_cpe();
+                let bits = contract.encode_cpe()?;
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::Bytes(bytes) => {
                 // Encode the bytes.
                 let bits = BitVec::from_bytes(bytes);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             CalldataElement::Varbytes(bytes) => {
                 // Initialize bit vector to fill with length plus data.
@@ -528,7 +528,7 @@ impl CompactPayloadEncoding for CalldataElement {
                 // If data length is 0, return the bit vector with length-bits-only.
                 // This is to avoid encoding empty data, as data can be empty.
                 if byte_length == 0 {
-                    return bits;
+                    return Some(bits);
                 }
 
                 // Get the data bits.
@@ -538,7 +538,7 @@ impl CompactPayloadEncoding for CalldataElement {
                 bits.extend(data_bits);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
         }
     }

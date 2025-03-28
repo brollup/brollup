@@ -201,7 +201,7 @@ impl CommonVal {
 }
 
 impl CompactPayloadEncoding for CommonVal {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         // Get the index.
         let index = self.index();
 
@@ -212,6 +212,6 @@ impl CompactPayloadEncoding for CommonVal {
         }
 
         // Return the bits.
-        bits
+        Some(bits)
     }
 }

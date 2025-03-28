@@ -208,7 +208,7 @@ impl Sighash for Liftup {
 }
 
 impl CompactPayloadEncoding for Liftup {
-    fn encode_cpe(&self) -> bit_vec::BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         // Initialize empty bit vector.
         let mut bits = BitVec::new();
 
@@ -217,11 +217,11 @@ impl CompactPayloadEncoding for Liftup {
         let num_lifts_shortval = ShortVal::new(num_lifts as u32);
 
         // Encode the number of lifts.
-        bits.extend(num_lifts_shortval.encode_cpe());
+        bits.extend(num_lifts_shortval.encode_cpe()?);
 
         // That's it. We're not encoding the lifts themselves.
         // They are read directly from the on-chain transaction.
 
-        bits
+        Some(bits)
     }
 }

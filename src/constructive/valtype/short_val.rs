@@ -137,7 +137,7 @@ impl ShortVal {
 
 #[async_trait]
 impl CompactPayloadEncoding for ShortVal {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         let mut bits = BitVec::new();
         // Fill with tier bits.
         match self.uncommon_tier() {
@@ -168,7 +168,7 @@ impl CompactPayloadEncoding for ShortVal {
         bits.extend(value_bits);
 
         // Return the bits.
-        bits
+        Some(bits)
     }
 }
 

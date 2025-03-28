@@ -333,7 +333,10 @@ impl CSessionCtx {
             };
 
             let _account_registery = account_registery.lock().await;
-            _account_registery.index_by_key(account.key())
+            match _account_registery.account_by_key(account.key()) {
+                Some(account) => account.registery_index(),
+                None => None,
+            }
         };
 
         match given_registery_index {

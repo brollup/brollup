@@ -16,11 +16,12 @@ use serde::{Deserialize, Serialize};
 pub struct Account {
     key: Point,
     registery_index: Option<ShortVal>,
+    rank: Option<ShortVal>,
 }
 
 impl Account {
     /// Creates a new account.
-    pub fn new(key: Point, registery_index: Option<u32>) -> Option<Account> {
+    pub fn new(key: Point, registery_index: Option<u32>, rank: Option<u32>) -> Option<Account> {
         let is_odd: bool = key.parity().into();
 
         if is_odd {
@@ -33,12 +34,24 @@ impl Account {
             None => None,
         };
 
+        // Convert the rank to a ShortVal.
+        let rank = match rank {
+            Some(rank) => Some(ShortVal::new(rank)),
+            None => None,
+        };
+
         let account = Account {
             key,
             registery_index,
+            rank,
         };
 
         Some(account)
+    }
+
+    /// Returns the registery index of the account.
+    pub fn registery_index(&self) -> Option<u32> {
+        self.registery_index.map(|index| index.value())
     }
 
     /// Sets the registery index of the account.
@@ -46,14 +59,19 @@ impl Account {
         self.registery_index = Some(ShortVal::new(registery_index));
     }
 
+    /// Returns the rank (if set).
+    pub fn rank(&self) -> Option<u32> {
+        self.rank.map(|rank| rank.value())
+    }
+
+    /// Sets the rank index.
+    pub fn set_rank(&mut self, rank: Option<u32>) {
+        self.rank = rank.map(|rank| ShortVal::new(rank));
+    }
+
     /// Returns the key of the account.
     pub fn key(&self) -> Point {
         self.key
-    }
-
-    /// Returns the registery index of the account.
-    pub fn registery_index(&self) -> Option<u32> {
-        Some(self.registery_index?.value())
     }
 
     /// Returns true if the key is odd.
@@ -79,30 +97,30 @@ impl Account {
         let is_registered = bit_stream
             .next()
             .ok_or(CPEDecodingError::AccountCPEDecodingError(
-                AccountCPEDecodingError::FailedToIterateIsRegisteredBit,
+                AccountCPEDecodingError::FailedToCollectIsRegisteredBit,
             ))?;
 
         match is_registered {
             true => {
                 // Account is registered.
 
-                // Decode registery index.
-                let registery_index = ShortVal::decode_cpe(bit_stream).map_err(|_| {
-                    CPEDecodingError::AccountCPEDecodingError(
-                        AccountCPEDecodingError::FailedToDecodeRegisteryIndex,
-                    )
-                })?;
+                // Decode rank.
+                let rank = ShortVal::decode_cpe(bit_stream)
+                    .map_err(|_| {
+                        CPEDecodingError::AccountCPEDecodingError(
+                            AccountCPEDecodingError::FailedToDecodeRank,
+                        )
+                    })?
+                    .value();
 
                 // Retrieve the account given registery index.
                 let account = {
                     let _account_registery = account_registery.lock().await;
-                    _account_registery
-                        .account_by_index(registery_index.value())
-                        .ok_or(CPEDecodingError::AccountCPEDecodingError(
-                            AccountCPEDecodingError::UnableToLocateAccountKeyGivenIndex(
-                                registery_index.value(),
-                            ),
-                        ))?
+                    _account_registery.account_by_rank(rank).ok_or(
+                        CPEDecodingError::AccountCPEDecodingError(
+                            AccountCPEDecodingError::FailedToLocateAccountGivenRank(rank),
+                        ),
+                    )?
                 };
 
                 // Return the `Account`.
@@ -117,7 +135,7 @@ impl Account {
                 // Ensure the collected bits are the correct length.
                 if public_key_bits.len() != 256 {
                     return Err(CPEDecodingError::AccountCPEDecodingError(
-                        AccountCPEDecodingError::UnableToConstructNewKey,
+                        AccountCPEDecodingError::FailedToColletKeyBits,
                     ));
                 }
 
@@ -128,7 +146,7 @@ impl Account {
                 // Construct the public key.
                 let public_key = Point::from_slice(&public_key_bytes).map_err(|_| {
                     CPEDecodingError::AccountCPEDecodingError(
-                        AccountCPEDecodingError::UnableToConstructNewKey,
+                        AccountCPEDecodingError::FailedToConstructKey,
                     )
                 })?;
 
@@ -151,6 +169,7 @@ impl Account {
                 let account = Account {
                     key: public_key,
                     registery_index: None,
+                    rank: None,
                 };
 
                 // Return the `Account`.
@@ -170,20 +189,17 @@ impl Eq for Account {}
 
 #[async_trait]
 impl CompactPayloadEncoding for Account {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         let mut bits = BitVec::new();
 
-        // Check registery status.
-        match self.registery_index {
-            Some(registery_index) => {
+        // Check rank.
+        match self.rank {
+            Some(rank) => {
                 // True for registered.
                 bits.push(true);
 
-                // Registery index bits.
-                let registery_index_bits = registery_index.encode_cpe();
-
-                // Extend registery index bits.
-                bits.extend(registery_index_bits);
+                // Extend rank bits.
+                bits.extend(rank.encode_cpe()?);
             }
             None => {
                 // False for unregistered.
@@ -197,6 +213,6 @@ impl CompactPayloadEncoding for Account {
             }
         }
 
-        bits
+        Some(bits)
     }
 }

@@ -22,7 +22,7 @@ pub async fn blist_command(parts: Vec<&str>, blacklist_dir: &BLIST_DIRECTORY) {
                 Err(_) => return eprintln!("Invalid <account>."),
             };
 
-            let account = match Account::new(key, None) {
+            let account = match Account::new(key, None, None) {
                 Some(account) => account,
                 None => return eprintln!("Invalid <account>."),
             };

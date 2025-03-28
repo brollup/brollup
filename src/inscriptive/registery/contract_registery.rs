@@ -8,30 +8,23 @@ pub type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
 /// Registery index of a contract for efficient referencing (from 1 to U32::MAX).
 type REGISTERY_INDEX = u32;
 
-/// Call counter of a contract used to rank the top 64 contracts.
+/// Call counter of a contract used to rank contracts.
 type CALL_COUNTER = u64;
 
-/// Rank integer representing the position of a contract in the top 64 list (from 1 to 64).
-type RANK = u8;
-
-/// Number of top contracts to rank.
-const RANK_BY: u8 = 64;
+/// Rank integer representing the rank position of a contract (from 1 to U32::MAX).
+type RANK = u32;
 
 /// Directory for storing contracts and their call counters.
 /// There are two in-memory lists, one by registery index and one by call counter.
-/// The call counter is used to rank the top 64 contracts.
 pub struct ContractRegistery {
-    // In-memory list of contracts by registery index..
-    contracts: HashMap<REGISTERY_INDEX, Contract>,
+    // In-memory list of contracts by rank.
+    contracts: HashMap<RANK, Contract>,
     // In-storage db for storing the contracts.
     contracts_db: sled::Db,
-    // In-memory list of call counters.
+    // In-memory list of call counters registery index mapping to call counter.
     call_counters: HashMap<REGISTERY_INDEX, CALL_COUNTER>,
     // In-storage db for storing the call counters.
     call_counters_db: sled::Db,
-    // In-memory list of top 64 ranked contracts.
-    /// The rank is determined based on the call counter.
-    ranked_contracts: HashMap<RANK, Contract>,
 }
 
 impl ContractRegistery {
@@ -46,23 +39,18 @@ impl ContractRegistery {
         let mut contracts = HashMap::<REGISTERY_INDEX, Contract>::new();
 
         // Collect the in-memory list of contracts by registery index.
-        for lookup in contracts_db.iter() {
+        for (index, lookup) in contracts_db.iter().enumerate() {
             if let Ok((_, val)) = lookup {
                 // Key is the 32-byte contract id, but is ignored.
                 // Value is the contract serialized in bytes.
 
                 // Deserialize the contract from value.
-                let mut contract: Contract = serde_json::from_slice(&val).ok()?;
-
-                // Set the rank to None for now.
-                // It will shortly soon be set by `rank_contracts`.
-                contract.set_rank(None);
-
-                // Get the registery index.
-                let registery_index = contract.registery_index();
+                let contract: Contract = serde_json::from_slice(&val).ok()?;
 
                 // Insert into the in-memory contracts list.
-                contracts.insert(registery_index, contract);
+                // Set rank to index for now.
+                // It will shortly soon be set by `update_contracts_ranks`.
+                contracts.insert(index as REGISTERY_INDEX, contract);
             }
         }
 
@@ -99,59 +87,77 @@ impl ContractRegistery {
             }
         }
 
-        // Return the list of top 64 ranked contracts.
-        let ranked_contracts = Self::rank_contracts(&mut contracts, &call_counters);
-
         // Construct the contract registery.
-        let registery = ContractRegistery {
+        let mut registery = ContractRegistery {
             contracts,
             contracts_db,
             call_counters,
             call_counters_db,
-            ranked_contracts,
         };
+
+        // Update the contracts ranks which were initially set to 0.
+        if !registery.rank_contracts() {
+            return None;
+        }
 
         // Return the contract registery.
         Some(Arc::new(Mutex::new(registery)))
     }
 
-    /// Ranks the top 64 contracts by call counter, if equal by registery index.
-    fn rank_contracts(
-        contracts: &mut HashMap<REGISTERY_INDEX, Contract>,
+    /// Sorts the call counters.
+    fn sort_call_counters(
         call_counters: &HashMap<REGISTERY_INDEX, CALL_COUNTER>,
-    ) -> HashMap<RANK, Contract> {
+    ) -> Vec<(&REGISTERY_INDEX, &CALL_COUNTER)> {
+        // Sort the call counters by call counter, if equal by registery index.
+        let mut call_counters_sorted = call_counters.iter().collect::<Vec<_>>();
+        call_counters_sorted.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+
+        // Return the sorted call counters.
+        call_counters_sorted
+    }
+
+    /// Updates the in-memory list of contracts with their new rank.
+    fn rank_contracts(&mut self) -> bool {
+        // Sort the call counters.
+        let call_counters_sorted = Self::sort_call_counters(&self.call_counters);
+
         // Initialize the ranked contracts list.
         let mut ranked_contracts = HashMap::<RANK, Contract>::new();
 
-        // Collect top 64 contract orders by call counter, if equal by registery index.
-        let mut top_call_counters = call_counters.iter().collect::<Vec<_>>();
-        top_call_counters.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
-        top_call_counters.truncate(RANK_BY as usize);
-
         // Insert the ranked contracts into the ranked contracts list.
-        for (rank, (registery_index, _)) in top_call_counters.into_iter().enumerate() {
-            if let Some(contract) = contracts.get_mut(registery_index) {
-                // Rank is rank index + 1.
-                let rank = rank as RANK + 1;
+        for (index, (registery_index, _)) in call_counters_sorted.into_iter().enumerate() {
+            // Get the contract by registery index.
+            let contract = match self
+                .contracts
+                .iter_mut()
+                .find(|(_, contract)| &contract.registery_index() == registery_index)
+            {
+                Some((_, contract)) => contract,
+                None => return false,
+            };
 
-                // Set the rank.
-                contract.set_rank(Some(rank));
+            // Rank is index + 1.
+            let rank = index as u32 + 1;
 
-                // Insert into the ranked contracts list.
-                ranked_contracts.insert(rank, contract.to_owned());
-            }
+            // Set the rank.
+            contract.set_rank(Some(rank));
+
+            // Insert into the ranked contracts list.
+            ranked_contracts.insert(rank, contract.to_owned());
         }
 
-        // Return the list of ranked contracts.
-        ranked_contracts
+        // Update the ranked contracts.
+        self.contracts = ranked_contracts;
+
+        true
     }
 
     //////// READ OPERATIONS ////////
 
     pub fn print_ranked_contracts(&self) {
         // Convert the ranked contracts to a vector and sort it by rank.
-        let mut ordered_ranked_vector = self.ranked_contracts.iter().collect::<Vec<_>>();
-        ordered_ranked_vector.sort_by(|a, b| a.0.cmp(b.0));
+        let mut ordered_ranked_vector = self.contracts.iter().collect::<Vec<_>>();
+        ordered_ranked_vector.sort_by(|a, b| a.1.rank().cmp(&b.1.rank()));
 
         // Print the ranked contracts.
         for (rank, contract) in ordered_ranked_vector.iter() {
@@ -171,19 +177,11 @@ impl ContractRegistery {
 
     /// Returns the contract by the given contract id.
     pub fn contract_by_contract_id(&self, contract_id: [u8; 32]) -> Option<Contract> {
-        let mut contract = self
+        let contract = self
             .contracts
             .iter()
             .find(|(_, contract)| contract.contract_id() == contract_id)
             .map(|(_, contract)| contract.clone())?;
-
-        let registery_index = self.registery_index_by_contract_id(contract_id)?;
-
-        // If the contract is in the top 64, set the rank.
-        match self.rank_by_registery_index(registery_index) {
-            Some(rank) => contract.set_rank(Some(rank)),
-            None => contract.set_rank(None),
-        }
 
         // Return the contract.
         Some(contract)
@@ -191,50 +189,17 @@ impl ContractRegistery {
 
     /// Returns the contract by the given registery index.
     pub fn contract_by_registery_index(&self, registery_index: u32) -> Option<Contract> {
-        // Get the contract by the given registery index.
-        let mut contract = self.contracts.get(&registery_index)?.to_owned();
-
-        // If the contract is in the top 64, set the rank index.
-        match self.rank_by_registery_index(registery_index) {
-            Some(rank) => contract.set_rank(Some(rank)),
-            None => contract.set_rank(None),
-        }
-
-        // Return the contract.
-        Some(contract.to_owned())
-    }
-
-    /// Returns the contract by the given rank if the contract is in the top 64.
-    pub fn contract_by_rank(&self, rank: RANK) -> Option<Contract> {
-        // Get the contract by the given rank.
-        let contract = self.ranked_contracts.get(&rank)?.to_owned();
-
-        // Return the contract.
-        Some(contract)
-    }
-
-    /// Returns the rank by the given contract id if the contract is in the top 64.
-    pub fn rank_by_contract_id(&self, contract_id: [u8; 32]) -> Option<RANK> {
-        self.ranked_contracts
-            .iter()
-            .find(|(_, contract)| contract.contract_id() == contract_id)
-            .map(|(rank, _)| *rank)
-    }
-
-    /// Returns the rank by the given registery index.
-    pub fn rank_by_registery_index(&self, registery_index: u32) -> Option<RANK> {
-        self.ranked_contracts
-            .iter()
-            .find(|(_, contract)| contract.registery_index() == registery_index)
-            .map(|(rank, _)| *rank)
-    }
-
-    /// Returns the registery index by the given id.
-    pub fn registery_index_by_contract_id(&self, contract_id: [u8; 32]) -> Option<u32> {
         self.contracts
             .iter()
-            .find(|(_, contract)| contract.contract_id() == contract_id)
-            .map(|(index, _)| *index)
+            .find(|(_, contract)| contract.registery_index() == registery_index)
+            .map(|(_, contract)| contract.to_owned())
+    }
+
+    /// Returns the contract by the given rank.
+    pub fn contract_by_rank(&self, rank: RANK) -> Option<Contract> {
+        self.contracts
+            .get(&rank)
+            .map(|contract| contract.to_owned())
     }
 
     /// Returns the current registery index height.
@@ -298,11 +263,6 @@ impl ContractRegistery {
         true
     }
 
-    /// Updates the ranked contracts.
-    fn update_ranked_contracts(&mut self) {
-        self.ranked_contracts = Self::rank_contracts(&mut self.contracts, &self.call_counters);
-    }
-
     /// Updates the registery in a single batch operation.
     /// This is the only public operation that can be used to write/update the contract registery.
     pub fn batch_update(
@@ -344,8 +304,10 @@ impl ContractRegistery {
             }
         }
 
-        // Update the ranked contracts.
-        self.update_ranked_contracts();
+        // Update the contracts ranks.
+        if !self.rank_contracts() {
+            return false;
+        }
 
         true
     }

@@ -5,7 +5,7 @@ use bit_vec::BitVec;
 #[async_trait]
 pub trait CompactPayloadEncoding {
     /// Encode the struct into a bitvec.
-    fn encode_cpe(&self) -> BitVec;
+    fn encode_cpe(&self) -> Option<BitVec>;
 }
 
 // Compact payload decoding is implemented individually for each struct that implements `CompactPayloadEncoding`, rather than using a trait.

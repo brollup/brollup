@@ -197,7 +197,7 @@ impl LongVal {
 
 #[async_trait]
 impl CompactPayloadEncoding for LongVal {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         let mut bits = BitVec::new();
 
         // Fill with tier bits.
@@ -258,7 +258,7 @@ impl CompactPayloadEncoding for LongVal {
         let value_bits = BitVec::from_bytes(&self.compact_bytes());
         bits.extend(value_bits);
 
-        bits
+        Some(bits)
     }
 }
 

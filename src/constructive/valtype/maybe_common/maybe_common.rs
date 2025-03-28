@@ -135,7 +135,7 @@ impl<T> CompactPayloadEncoding for MaybeCommon<T>
 where
     T: Commonable + CompactPayloadEncoding + Clone + From<ShortVal> + From<LongVal>,
 {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         // Create a new BitVec.
         let mut bits = BitVec::new();
 
@@ -145,20 +145,20 @@ where
                 bits.push(true);
 
                 // Insert the common value.
-                bits.extend(common_val.encode_cpe());
+                bits.extend(common_val.encode_cpe()?);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
             MaybeCommon::Uncommon(uncommon_val) => {
                 // Insert false for uncommon.
                 bits.push(false);
 
                 // Insert the uncommon value.
-                bits.extend(uncommon_val.encode_cpe());
+                bits.extend(uncommon_val.encode_cpe()?);
 
                 // Return the bits.
-                bits
+                Some(bits)
             }
         }
     }

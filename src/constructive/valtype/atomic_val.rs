@@ -124,7 +124,7 @@ impl AtomicVal {
 
 #[async_trait]
 impl CompactPayloadEncoding for AtomicVal {
-    fn encode_cpe(&self) -> BitVec {
+    fn encode_cpe(&self) -> Option<BitVec> {
         let mut bits = BitVec::new();
 
         match self {
@@ -178,6 +178,6 @@ impl CompactPayloadEncoding for AtomicVal {
             }
         }
 
-        bits
+        Some(bits)
     }
 }
