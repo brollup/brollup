@@ -334,13 +334,7 @@ impl CalldataElement {
                 }
 
                 // Convert the byte length bits to a u16.
-                let mut byte_length = 0u16;
-                for i in 0..12 {
-                    let bit = byte_length_bits[i];
-                    if bit {
-                        byte_length |= 1 << i;
-                    }
-                }
+                let byte_length = convert_12_bits_to_u16(&byte_length_bits);
 
                 // Return an error if the byte length is greater than 4095.
                 if byte_length > 4095 {
@@ -510,17 +504,7 @@ impl CompactPayloadEncoding for CalldataElement {
                 let byte_length = bytes.len() as u16;
 
                 // Byte length as 2 bytes.
-                let byte_length_bytes = byte_length.to_le_bytes();
-
-                // Initialize byte length bits.
-                let mut byte_length_bits = BitVec::new();
-
-                // Convert byte length to bits.
-                for i in 0..12 {
-                    let byte_idx = i / 8;
-                    let bit_idx = i % 8;
-                    byte_length_bits.push((byte_length_bytes[byte_idx] >> bit_idx) & 1 == 1);
-                }
+                let byte_length_bits = convert_u16_to_12_bits(byte_length);
 
                 // Extend the bit vector with the byte length.
                 bits.extend(byte_length_bits);
@@ -542,4 +526,40 @@ impl CompactPayloadEncoding for CalldataElement {
             }
         }
     }
+}
+
+/// Converts a u16 to 12 bits.
+fn convert_u16_to_12_bits(value: u16) -> BitVec {
+    // Byte length as 2 bytes.
+    let byte_length_bytes = value.to_le_bytes();
+
+    // Initialize byte length bits.
+    let mut byte_length_bits = BitVec::new();
+
+    // Convert byte length to bits.
+    for i in 0..12 {
+        let byte_idx = i / 8;
+        let bit_idx = i % 8;
+        byte_length_bits.push((byte_length_bytes[byte_idx] >> bit_idx) & 1 == 1);
+    }
+
+    // Return the bits.
+    byte_length_bits
+}
+
+/// Converts 12 bits to a u16.
+fn convert_12_bits_to_u16(bits: &BitVec) -> u16 {
+    // Initialize a u16 value.
+    let mut byte_length = 0u16;
+
+    // Iterate over 12 bits.
+    for i in 0..12 {
+        let bit = bits[i];
+        if bit {
+            byte_length |= 1 << i;
+        }
+    }
+
+    // Return the u16 value.
+    byte_length
 }
