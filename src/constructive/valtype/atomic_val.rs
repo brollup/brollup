@@ -19,6 +19,14 @@ pub enum AtomicVal {
     Five,
     Six,
     Seven,
+    Eight,
+    Nine,
+    Ten,
+    Eleven,
+    Twelve,
+    Thirteen,
+    Fourteen,
+    Fifteen,
 }
 
 impl AtomicVal {
@@ -32,6 +40,14 @@ impl AtomicVal {
             5 => Some(AtomicVal::Five),
             6 => Some(AtomicVal::Six),
             7 => Some(AtomicVal::Seven),
+            8 => Some(AtomicVal::Eight),
+            9 => Some(AtomicVal::Nine),
+            10 => Some(AtomicVal::Ten),
+            11 => Some(AtomicVal::Eleven),
+            12 => Some(AtomicVal::Twelve),
+            13 => Some(AtomicVal::Thirteen),
+            14 => Some(AtomicVal::Fourteen),
+            15 => Some(AtomicVal::Fifteen),
             _ => None,
         }
     }
@@ -86,98 +102,88 @@ impl AtomicVal {
             Self::Five => 5,
             Self::Six => 6,
             Self::Seven => 7,
+            Self::Eight => 8,
+            Self::Nine => 9,
+            Self::Ten => 10,
+            Self::Eleven => 11,
+            Self::Twelve => 12,
+            Self::Thirteen => 13,
+            Self::Fourteen => 14,
+            Self::Fifteen => 15,
         }
     }
 
     /// Compact payload decoding for `AtomicVal`.
     /// Decodes an `AtomicVal` from a bit stream.
     pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<AtomicVal, CPEDecodingError> {
-        // Decode the value.
-        let value = match (bit_stream.next(), bit_stream.next(), bit_stream.next()) {
-            // 000 for 0
-            (Some(false), Some(false), Some(false)) => Self::Zero,
-            // 001 for 1
-            (Some(false), Some(false), Some(true)) => Self::One,
-            // 010 for 2
-            (Some(false), Some(true), Some(false)) => Self::Two,
-            // 011 for 3
-            (Some(false), Some(true), Some(true)) => Self::Three,
-            // 100 for 4
-            (Some(true), Some(false), Some(false)) => Self::Four,
-            // 101 for 5
-            (Some(true), Some(false), Some(true)) => Self::Five,
-            // 110 for 6
-            (Some(true), Some(true), Some(false)) => Self::Six,
-            // 111 for 7
-            (Some(true), Some(true), Some(true)) => Self::Seven,
-            _ => {
-                return Err(CPEDecodingError::AtomicValCPEDecodingError(
-                    AtomicValCPEDecodingError::BitStreamIteratorError,
-                ))
-            }
-        };
+        // Initialize a BitVec.
+        let mut bits = BitVec::new();
+
+        // Collect the 4 bits four times iteratively.
+        for _ in 0..4 {
+            bits.push(
+                bit_stream
+                    .next()
+                    .ok_or(CPEDecodingError::AtomicValCPEDecodingError(
+                        AtomicValCPEDecodingError::BitStreamIteratorError,
+                    ))?,
+            );
+        }
+
+        // Convert the 4 bits to a u8 value.
+        let value = convert_4_bits_to_u8(&bits);
+
+        // Convert the u8 value to an `AtomicVal`.
+        let atomic_val =
+            AtomicVal::new_u8(value).ok_or(CPEDecodingError::AtomicValCPEDecodingError(
+                AtomicValCPEDecodingError::AtomicValConversionError,
+            ))?;
 
         // Return the `AtomicVal`.
-        Ok(value)
+        Ok(atomic_val)
     }
 }
 
 #[async_trait]
 impl CompactPayloadEncoding for AtomicVal {
     fn encode_cpe(&self) -> Option<BitVec> {
-        let mut bits = BitVec::new();
+        // Convert the value to a 4-bit BitVec.
+        let bits = convert_u8_to_4_bits(self.value());
 
-        match self {
-            Self::Zero => {
-                // 000 for 0
-                bits.push(false);
-                bits.push(false);
-                bits.push(false);
-            }
-            Self::One => {
-                // 001 for 1
-                bits.push(false);
-                bits.push(false);
-                bits.push(true);
-            }
-            Self::Two => {
-                // 010 for 2
-                bits.push(false);
-                bits.push(true);
-                bits.push(false);
-            }
-            Self::Three => {
-                // 011 for 3
-                bits.push(false);
-                bits.push(true);
-                bits.push(true);
-            }
-            Self::Four => {
-                // 100 for 4
-                bits.push(true);
-                bits.push(false);
-                bits.push(false);
-            }
-            Self::Five => {
-                // 101 for 5
-                bits.push(true);
-                bits.push(false);
-                bits.push(true);
-            }
-            Self::Six => {
-                // 110 for 6
-                bits.push(true);
-                bits.push(true);
-                bits.push(false);
-            }
-            Self::Seven => {
-                // 111 for 7
-                bits.push(true);
-                bits.push(true);
-                bits.push(true);
-            }
-        }
-
+        // Return the BitVec.
         Some(bits)
     }
+}
+
+/// Convert a u8 to a 4-bit BitVec.
+fn convert_u8_to_4_bits(value: u8) -> BitVec {
+    let val_bytes = value.to_le_bytes();
+
+    // Initialize a BitVec.
+    let mut val_bits = BitVec::new();
+
+    // Iterate 4 times to push the 4 bits.
+    for i in 0..4 {
+        val_bits.push((val_bytes[0] >> i) & 1 == 1);
+    }
+
+    // Return the BitVec.
+    val_bits
+}
+
+/// Convert a 4-bit BitVec to a u8.
+fn convert_4_bits_to_u8(bits: &BitVec) -> u8 {
+    // Initialize a u8.
+    let mut decoded_val = 0u8;
+
+    // Iterate 4 times to decode the 4 bits.
+    for i in 0..4 {
+        let bit = bits[i];
+        if bit {
+            decoded_val |= 1 << i;
+        }
+    }
+
+    // Return the u8.
+    decoded_val
 }

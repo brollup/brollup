@@ -3,9 +3,9 @@
 
 The value types are defined as follows:
 
-| Value Type           | Description                                                                      |
+| Value Type           | Description                                                                     |
 |----------------------|---------------------------------------------------------------------------------|
-| AtomicVal            | A highly compact integer representation ranging from 0 to 7.                    |
+| AtomicVal            | A highly compact integer representation ranging from 0 to 15.                   |
 | ShortVal             | A flexible integer representation ranging from 0 to 4,294,967,295.              |
 | MaybeCommon ShortVal | A possibly common `ShortVal`.                                                   |
 | LongVal              | A scalable integer representation ranging from 0 to 18,446,744,073,709,551,615. |
@@ -13,7 +13,9 @@ The value types are defined as follows:
 
 ## AtomicVal
 
-`AtomicVal` is a compact unsigned integer representation ranging from 0 (inclusive) to 7 (inclusive). It is used for representing very small values, such as contract method call indexes. `AtomicVal` consumes only 3 bits, compared to the `ShortVal` equivalent (`u8`), which would require 10 bits. This results in a savings of 7 bits per `Entry` in the `Payload`, translating to approximately ~0.22 vBytes of block space savings.
+`AtomicVal` is a compact unsigned integer representation ranging from 0 (inclusive) to 15 (inclusive). It is used for representing very small values, such as contract `Contract` call methods. 
+
+`AtomicVal` consumes only 4 bits, compared to the `ShortVal` equivalent (`u8`), which would require 10 bits. This results in a savings of 6 bits per `Entry` in the `Payload`, translating to approximately ~0.20 vBytes of block space savings.
 
 ## ShortVal
 

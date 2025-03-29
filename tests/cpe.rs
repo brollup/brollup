@@ -6,6 +6,7 @@ mod cpe_tests {
         entity::{account::Account, contract::Contract},
         registery::registery::Registery,
         valtype::{
+            atomic_val::AtomicVal,
             long_val::{LongVal, LongValTier},
             maybe_common::{common_val::CommonVal, maybe_common::MaybeCommon},
             short_val::{ShortVal, ShortValTier},
@@ -14,6 +15,55 @@ mod cpe_tests {
     };
     use secp::Point;
     use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn cpe_atomic_val_test() -> Result<(), String> {
+        // Value 0 (u8) (0 < 0 <= 15).
+        let atomic_val = AtomicVal::new_u8(0).unwrap();
+        let encoded = atomic_val.encode_cpe().unwrap();
+        let mut bit_stream = encoded.iter();
+
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        assert_eq!(decoded.value(), 0);
+
+        // Value 1 (u8) (0 < 1 <= 15).
+        let atomic_val = AtomicVal::new_u8(1).unwrap();
+        let encoded = atomic_val.encode_cpe().unwrap();
+        let mut bit_stream = encoded.iter();
+
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        assert_eq!(decoded.value(), 1);
+
+        // Value 2 (u8) (0 < 5 <= 15).
+        let atomic_val = AtomicVal::new_u8(5).unwrap();
+        let encoded = atomic_val.encode_cpe().unwrap();
+        let mut bit_stream = encoded.iter();
+
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        assert_eq!(decoded.value(), 5);
+
+        // Value 3 (u8) (0 < 11 <= 15).
+        let atomic_val = AtomicVal::new_u8(11).unwrap();
+        let encoded = atomic_val.encode_cpe().unwrap();
+        let mut bit_stream = encoded.iter();
+
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        assert_eq!(decoded.value(), 11);
+
+        // Value 15 (u8) (0 < 15 <= 15).
+        let atomic_val = AtomicVal::new_u8(15).unwrap();
+        let encoded = atomic_val.encode_cpe().unwrap();
+        let mut bit_stream = encoded.iter();
+
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        assert_eq!(decoded.value(), 15);
+
+        // Value 16 (u8) (16 > 15) is not a valid AtomicVal.
+        let atomic_val = AtomicVal::new_u8(16);
+        assert!(atomic_val.is_none());
+
+        Ok(())
+    }
 
     #[tokio::test]
     async fn cpe_single_short_val_test() -> Result<(), String> {
@@ -758,30 +808,32 @@ mod cpe_tests {
     }
 
     #[tokio::test]
-    async fn rank_6_bit_test() -> Result<(), String> {
-        // 1 to 64
-        for i in 0..=63 {
+    async fn atomic_val_4_bit_test() -> Result<(), String> {
+        // 0 to 15
+        for i in 0..=15 {
             // encode u8
-            let rank_index: u8 = i;
+            let val: u8 = i;
 
-            let rank_bytes = rank_index.to_le_bytes();
+            let val_bytes = val.to_le_bytes();
 
             // Convert the rank (u8) into a BitVec.
-            let mut rank_bits = BitVec::new();
-            for i in 0..6 {
-                rank_bits.push((rank_bytes[0] >> i) & 1 == 1);
+            // 4 bits
+            let mut val_bits = BitVec::new();
+            for i in 0..4 {
+                val_bits.push((val_bytes[0] >> i) & 1 == 1);
             }
 
             // Decode the rank directly from the BitVec.
-            let mut decoded_rank = 0u8;
-            for i in 0..6 {
-                let bit = rank_bits[i];
+            // 4 bits
+            let mut decoded_val = 0u8;
+            for i in 0..4 {
+                let bit = val_bits[i];
                 if bit {
-                    decoded_rank |= 1 << i;
+                    decoded_val |= 1 << i;
                 }
             }
 
-            assert_eq!(rank_index, decoded_rank);
+            assert_eq!(val, decoded_val);
         }
 
         Ok(())

@@ -24,40 +24,21 @@ impl Program {
         self.contract_id
     }
 
-    /// Returns the methods.
-    pub fn methods(&self) -> Vec<Method> {
-        self.methods.clone()
+    /// Returns the method given the u8 index.
+    /// Up to 256 methods are supported per program.
+    pub fn method_by_index(&self, index: u8) -> Option<Method> {
+        self.methods.get(index as usize).cloned()
     }
 
-    /// Returns the callable methods.
-    pub fn callable_methods(&self) -> Vec<Method> {
-        self.methods
-            .iter()
-            .filter(|method| method.method_type == MethodType::Callable)
-            .cloned()
-            .collect()
-    }
-
-    /// Returns the callable method by index.
-    /// AtomicVal support from 8 values, meaning 8 callable methods are supported per program.
-    pub fn callable_method_by_call_method(&self, call_method: AtomicVal) -> Option<Method> {
+    /// Returns the method by given `AtomicVal` index, rather than a u8.
+    ///
+    /// `AtomicVal` is a compact value representing the method's index.
+    /// A CPE-decoded `AtomicVal` support 8 values, meaning first 8 methods should be organized as callable.
+    /// This means the first 8 methods in a deployed `Contract` are the only ones that can be called by an `Account`.
+    ///
+    /// A `Contract` calling another `Contract` is not bound by this constraint; it can call any of its (up to 256) methods.
+    pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<Method> {
         let call_method_index = call_method.value();
-
         self.methods.get(call_method_index as usize).cloned()
-    }
-
-    /// Returns the read-only methods.
-    pub fn read_only_methods(&self) -> Vec<Method> {
-        self.methods
-            .iter()
-            .filter(|method| method.method_type == MethodType::ReadOnly)
-            .cloned()
-            .collect()
-    }
-
-    /// Returns the read-only method by index.
-    /// Up to 256 read-only methods are supported per program.
-    pub fn read_only_method_by_index(&self, index: u8) -> Option<Method> {
-        self.read_only_methods().get(index as usize).cloned()
     }
 }

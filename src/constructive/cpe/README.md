@@ -56,7 +56,7 @@ Taking an average AMM contract call as an example, Brollup consumes only about 1
 
 | VM Type | From Account | To Contract | Call Method | Nonce     | Gas Price/Limit  | Calldata     | Signature   | Size        | Savings     |
 |:--------|:-------------|:------------|:------------|:----------|:-----------------|:-------------|:------------|:------------|:------------|
-| Brollup | ~3 bytes     | ~8 bits     | 3 bits      | -         | -                | 6 bytes      | Negligible  | ~10 bytes   | 97 bytes    |
+| Brollup | ~3 bytes     | ~8 bits     | 4 bits      | -         | -                | 6 bytes      | Negligible  | 10.5 bytes  | 97 bytes    |
 | zkEVM   | 4 bytes      | 4 bytes     | 1 byte      | ~3 bytes  | ~8 bytes         | 10 bytes     | Negligible  | 30 bytes    | 77 bytes    |
 | EVM     | -            | 20 bytes    | 1 byte      | ~3 bytes  | ~8 bytes         | 10 bytes     | 65 bytes    | 107 bytes   | -           |
 
