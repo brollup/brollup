@@ -1,4 +1,4 @@
-use super::method::method::{Method, MethodType};
+use super::method::method::Method;
 use crate::valtype::atomic_val::AtomicVal;
 
 /// A program associated with a `Contract`.

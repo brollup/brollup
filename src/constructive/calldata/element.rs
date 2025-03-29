@@ -33,52 +33,45 @@ pub enum CalldataElementType {
     // Represents a `Contract`.
     Contract,
     // Represents a byte array with a known length.
-    // Inner value is the byte length.
+    // Byte length is the inner value + 1.
     // Supported byte-length range: 1-256 bytes
-    Bytes(u16),
-    // Represents a byte array with varying length.
+    Bytes(u8),
+    // Represents a byte array with an unknown length.
     // Supported byte-length range: 0-4096 bytes
     Varbytes,
 }
 
 impl CalldataElementType {
     /// Returns the contract bytecode representation of the element type.
-    pub fn contract_bytecode(&self) -> [u8; 3] {
+    pub fn bytecode(&self) -> [u8; 2] {
         match self {
-            CalldataElementType::U8 => [0x01, 0x00, 0x00],
-            CalldataElementType::U16 => [0x02, 0x00, 0x00],
-            CalldataElementType::U32 => [0x03, 0x00, 0x00],
-            CalldataElementType::U64 => [0x04, 0x00, 0x00],
-            CalldataElementType::Bool => [0x05, 0x00, 0x00],
-            CalldataElementType::Account => [0x06, 0x00, 0x00],
-            CalldataElementType::Contract => [0x07, 0x00, 0x00],
+            CalldataElementType::U8 => [0x00, 0x00],
+            CalldataElementType::U16 => [0x01, 0x00],
+            CalldataElementType::U32 => [0x02, 0x00],
+            CalldataElementType::U64 => [0x03, 0x00],
+            CalldataElementType::Bool => [0x04, 0x00],
+            CalldataElementType::Account => [0x05, 0x00],
+            CalldataElementType::Contract => [0x06, 0x00],
             CalldataElementType::Bytes(index) => {
-                // Convert index to bytes.
-                let bytes = index.to_le_bytes();
-
                 // Return the bytes.
-                [0x08, bytes[0], bytes[1]]
+                [0x07, index.to_owned()]
             }
-            CalldataElementType::Varbytes => [0x09, 0x00, 0x00],
+            CalldataElementType::Varbytes => [0x08, 0x00],
         }
     }
 
     /// Returns the element type from the contract bytecode.
-    pub fn from_contract_bytecode(bytecode: [u8; 3]) -> Option<Self> {
+    pub fn from_bytecode(bytecode: [u8; 2]) -> Option<Self> {
         match bytecode {
-            [0x01, 0x00, 0x00] => Some(CalldataElementType::U8),
-            [0x02, 0x00, 0x00] => Some(CalldataElementType::U16),
-            [0x03, 0x00, 0x00] => Some(CalldataElementType::U32),
-            [0x04, 0x00, 0x00] => Some(CalldataElementType::U64),
-            [0x05, 0x00, 0x00] => Some(CalldataElementType::Bool),
-            [0x06, 0x00, 0x00] => Some(CalldataElementType::Account),
-            [0x07, 0x00, 0x00] => Some(CalldataElementType::Contract),
-            [0x08, byte_1, byte_2] => {
-                let length_bytes = [byte_1, byte_2];
-                let length = u16::from_le_bytes(length_bytes);
-                Some(CalldataElementType::Bytes(length))
-            }
-            [0x09, 0x00, 0x00] => Some(CalldataElementType::Varbytes),
+            [0x00, 0x00] => Some(CalldataElementType::U8),
+            [0x01, 0x00] => Some(CalldataElementType::U16),
+            [0x02, 0x00] => Some(CalldataElementType::U32),
+            [0x03, 0x00] => Some(CalldataElementType::U64),
+            [0x04, 0x00] => Some(CalldataElementType::Bool),
+            [0x05, 0x00] => Some(CalldataElementType::Account),
+            [0x06, 0x00] => Some(CalldataElementType::Contract),
+            [0x07, index] => Some(CalldataElementType::Bytes(index)),
+            [0x08, 0x00] => Some(CalldataElementType::Varbytes),
             _ => None,
         }
     }
@@ -281,7 +274,10 @@ impl CalldataElement {
             }
 
             // Decode the `Bytes1-256`.
-            CalldataElementType::Bytes(byte_length) => {
+            CalldataElementType::Bytes(index) => {
+                // Byte length is the index + 1.
+                let byte_length = index as usize + 1;
+
                 // Check if the data length is valid.
                 if byte_length < 1 || byte_length > 256 {
                     return Err(CPEDecodingError::CalldataCPEDecodingError(
@@ -389,7 +385,12 @@ impl CalldataElement {
             CalldataElement::Bool(_) => CalldataElementType::Bool,
             CalldataElement::Account(_) => CalldataElementType::Account,
             CalldataElement::Contract(_) => CalldataElementType::Contract,
-            CalldataElement::Bytes(bytes) => CalldataElementType::Bytes(bytes.len() as u16),
+            CalldataElement::Bytes(bytes) => {
+                // Byte length is the inner value + 1. So we need to subtract 1 from the length.
+                let index = bytes.len() as u8 - 1;
+                // Return the element type.
+                CalldataElementType::Bytes(index)
+            }
             CalldataElement::Varbytes(_) => CalldataElementType::Varbytes,
         }
     }
