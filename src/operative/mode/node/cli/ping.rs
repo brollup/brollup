@@ -1,4 +1,4 @@
-use crate::{tcp::client::TCPClient, PEER};
+use crate::{communicative::peer::peer::PEER, communicative::tcp::client::TCPClient};
 
 // ping
 pub async fn ping_command(coordinator: &PEER) {

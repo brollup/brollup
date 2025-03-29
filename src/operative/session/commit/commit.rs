@@ -1,8 +1,10 @@
-use crate::entry::Entry;
-use crate::hash::{Hash, HashTag};
-use crate::schnorr::Sighash;
-use crate::txo::lift::Lift;
-use crate::entity::account::Account;
+use crate::{
+    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    transmutive::{
+        hash::{Hash, HashTag},
+        schnorr::Sighash,
+    },
+};
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

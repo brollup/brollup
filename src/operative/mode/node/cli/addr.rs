@@ -1,10 +1,13 @@
 use crate::{
-    address::encode_p2tr, key::KeyHolder, taproot::P2TR, txo::lift::Lift, Network, EPOCH_DIRECTORY,
+    constructive::{taproot::P2TR, txo::lift::Lift},
+    inscriptive::epoch::dir::EPOCH_DIRECTORY,
+    transmutive::{address::encode_p2tr, key::KeyHolder},
+    Chain,
 };
 
 /// Returns the list of Taproot scriptpubkeys to scan.
 pub async fn lift_address(
-    network: Network,
+    chain: Chain,
     key_holder: &KeyHolder,
     epoch_dir: &EPOCH_DIRECTORY,
 ) -> Option<String> {
@@ -19,15 +22,15 @@ pub async fn lift_address(
     let taproot = lift.taproot()?;
     let taproot_key_bytes = taproot.tweaked_key()?.serialize_xonly();
 
-    let address = encode_p2tr(network, taproot_key_bytes)?;
+    let address = encode_p2tr(chain, taproot_key_bytes)?;
 
     Some(address)
 }
 
 // addr
-pub async fn addr_command(network: Network, epoch_dir: &EPOCH_DIRECTORY, key_holder: &KeyHolder) {
+pub async fn addr_command(chain: Chain, epoch_dir: &EPOCH_DIRECTORY, key_holder: &KeyHolder) {
     let npub = key_holder.npub();
-    let lift_address = match lift_address(network, key_holder, epoch_dir).await {
+    let lift_address = match lift_address(chain, key_holder, epoch_dir).await {
         Some(address) => address,
         None => "-".to_string(),
     };

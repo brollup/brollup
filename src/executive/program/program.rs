@@ -1,5 +1,5 @@
-use super::method::method::Method;
-use crate::valtype::atomic_val::AtomicVal;
+use super::method::method::ProgramMethod;
+use crate::constructive::valtype::atomic_val::AtomicVal;
 
 /// A program associated with a `Contract`.
 #[derive(Debug, Clone)]
@@ -7,12 +7,12 @@ pub struct Program {
     /// The contract id.
     contract_id: [u8; 32],
     /// The methods to execute.
-    methods: Vec<Method>,
+    methods: Vec<ProgramMethod>,
 }
 
 impl Program {
     /// Creates a new `Program` with the given contract id and list of methods.
-    pub fn new(contract_id: [u8; 32], methods: Vec<Method>) -> Self {
+    pub fn new(contract_id: [u8; 32], methods: Vec<ProgramMethod>) -> Self {
         Self {
             contract_id,
             methods,
@@ -26,7 +26,7 @@ impl Program {
 
     /// Returns the method given the u8 index.
     /// Up to 256 methods are supported per program.
-    pub fn method_by_index(&self, index: u8) -> Option<Method> {
+    pub fn method_by_index(&self, index: u8) -> Option<ProgramMethod> {
         self.methods.get(index as usize).cloned()
     }
 
@@ -37,7 +37,7 @@ impl Program {
     /// This means the first 16 methods in a deployed `Contract` are the only ones that can be called by an `Account`.
     ///
     /// A `Contract` calling another `Contract` is not bound by this constraint; it can call any of its (up to 256) methods.
-    pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<Method> {
+    pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<ProgramMethod> {
         let call_method_index = call_method.value();
         self.methods.get(call_method_index as usize).cloned()
     }

@@ -1,9 +1,10 @@
-use super::bitcoin_rpc_error::ValidateRPCError;
-use crate::{rpcholder::RPCHolder, Network};
+use crate::communicative::rpc::bitcoin::error::ValidateRPCError;
+use crate::communicative::rpc::bitcoin::rpcholder::RPCHolder;
+use crate::Chain;
 use bitcoin::{Block, BlockHash};
 use bitcoincore_rpc::{json::GetBlockchainInfoResult, Auth, Client, RpcApi};
 
-pub fn validate_rpc(rpc_holder: &RPCHolder, network: Network) -> Result<(), ValidateRPCError> {
+pub fn validate_rpc(rpc_holder: &RPCHolder, chain: Chain) -> Result<(), ValidateRPCError> {
     let rpc_url = rpc_holder.url();
     let rpc_user = rpc_holder.user();
     let rpc_password = rpc_holder.password();
@@ -20,12 +21,12 @@ pub fn validate_rpc(rpc_holder: &RPCHolder, network: Network) -> Result<(), Vali
 
     match blockchain_info.chain {
         bitcoin::network::Network::Bitcoin => {
-            if network != Network::Mainnet {
+            if chain != Chain::Mainnet {
                 return Err(ValidateRPCError::WrongChain);
             }
         }
         bitcoin::network::Network::Signet => {
-            if network != Network::Signet {
+            if chain != Chain::Signet {
                 return Err(ValidateRPCError::WrongChain);
             }
         }

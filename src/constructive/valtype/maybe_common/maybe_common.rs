@@ -1,13 +1,13 @@
-use super::common_val::CommonVal;
-use crate::{
-    cpe::{
-        cpe::CompactPayloadEncoding,
-        decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
-    },
-    valtype::{long_val::LongVal, short_val::ShortVal},
+use crate::constructive::cpe::{
+    cpe::CompactPayloadEncoding,
+    decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
 };
+use crate::constructive::valtype::long_val::LongVal;
+use crate::constructive::valtype::short_val::ShortVal;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
+
+use super::common_val::CommonVal;
 
 /// Trait to determine whether a value is ShortOrLong.
 pub trait Commonable {

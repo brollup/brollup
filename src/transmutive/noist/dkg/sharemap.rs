@@ -1,5 +1,5 @@
-use crate::{
-    hash::Hash,
+use crate::transmutive::{
+    hash::{Hash, HashTag},
     into::{IntoPoint, IntoScalar},
     noist::{
         core::{share::gen_polynomial, vse, vss},
@@ -26,10 +26,7 @@ impl DKGShareMap {
             let mut preimage = Vec::<u8>::new();
             preimage.extend(secret_key.serialize());
             preimage.extend(generate_secret());
-            preimage
-                .hash(Some(crate::hash::HashTag::SecretKey))
-                .into_scalar()
-                .ok()?
+            preimage.hash(Some(HashTag::SecretKey)).into_scalar().ok()?
         };
 
         let num_signatories = signatories.len() as u8;
@@ -230,6 +227,6 @@ impl Sighash for DKGShareMap {
             preimage.extend(share.1 .1.serialize());
         }
 
-        preimage.hash(Some(crate::hash::HashTag::Sighash))
+        preimage.hash(Some(HashTag::Sighash))
     }
 }

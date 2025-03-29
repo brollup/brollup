@@ -3,21 +3,32 @@ use super::{
     uphold::NSessionUphold, upholdack::CSessionUpholdAck, upholdnack::CSessionUpholdNack,
 };
 use crate::{
-    entity::account::Account,
-    entry::Entry,
-    hash::{Hash, HashTag},
-    musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-    noist::session::NOISTSessionCtx,
-    registery::{account_registery::ACCOUNT_REGISTERY, registery::REGISTERY},
-    schnorr::{Authenticable, Sighash},
-    session::{allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck},
-    tcp::client::TCPClient,
-    txo::{
-        connector::Connector,
-        lift::Lift,
-        projector::{self, Projector},
+    communicative::{
+        peer::{manager::PEER_MANAGER, peer::PEER},
+        tcp::client::TCPClient,
     },
-    BLIST_DIRECTORY, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
+    constructive::{
+        entity::account::Account,
+        entry::entry::Entry,
+        txo::{
+            connector::Connector,
+            lift::Lift,
+            projector::{Projector, ProjectorTag},
+        },
+    },
+    inscriptive::{
+        blacklist::BLIST_DIRECTORY,
+        registery::{account_registery::ACCOUNT_REGISTERY, registery::REGISTERY},
+    },
+    operative::session::{
+        allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck,
+    },
+    transmutive::{
+        hash::{Hash, HashTag},
+        musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
+        noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER, session::NOISTSessionCtx},
+        schnorr::{Authenticable, Sighash},
+    },
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -27,6 +38,10 @@ use tokio::{
     sync::Mutex,
     time::{sleep, Instant},
 };
+
+/// Guarded coordinator session context.
+#[allow(non_camel_case_types)]
+pub type CSESSION_CTX = Arc<Mutex<CSessionCtx>>;
 
 type DKGDirHeight = u64;
 type DKGNonceHeight = u64;
@@ -536,11 +551,8 @@ impl CSessionCtx {
 
                 let operator_key = noist_ctx.group_key();
 
-                let vtxo_projector = Projector::new(
-                    &remote_keys,
-                    operator_key,
-                    projector::ProjectorTag::VTXOProjector,
-                );
+                let vtxo_projector =
+                    Projector::new(&remote_keys, operator_key, ProjectorTag::VTXOProjector);
 
                 let key_agg_ctx = match vtxo_projector.key_agg_ctx() {
                     Some(ctx) => ctx,
@@ -598,11 +610,8 @@ impl CSessionCtx {
 
                 let operator_key = noist_ctx.group_key();
 
-                let connector_projector = Projector::new(
-                    &remote_keys,
-                    operator_key,
-                    projector::ProjectorTag::ConnectorProjector,
-                );
+                let connector_projector =
+                    Projector::new(&remote_keys, operator_key, ProjectorTag::ConnectorProjector);
 
                 let key_agg_ctx = match connector_projector.key_agg_ctx() {
                     Some(ctx) => ctx,

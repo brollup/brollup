@@ -1,6 +1,13 @@
 use crate::{
-    dkgops::DKGOps, peer::PeerKind, peer_manager::PeerManagerExt, tcp::client::TCPClient,
-    DKG_DIRECTORY, DKG_MANAGER, PEER, PEER_MANAGER,
+    communicative::{
+        peer::{
+            manager::{PeerManagerExt, PEER_MANAGER},
+            peer::{PeerKind, PEER},
+        },
+        tcp::client::TCPClient,
+    },
+    operative::mode::coordinator::dkgops::DKGOps,
+    transmutive::noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER},
 };
 use colored::Colorize;
 use std::time::{Duration, Instant};

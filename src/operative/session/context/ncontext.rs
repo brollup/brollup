@@ -1,20 +1,21 @@
 use super::{
-    commitack::CSessionCommitAck, uphold::NSessionUphold, upholdack::CSessionUpholdAck,
-    upholderr::NSessionUpholdError,
+    commit::NSessionCommit, commitack::CSessionCommitAck, uphold::NSessionUphold,
+    upholdack::CSessionUpholdAck, upholderr::NSessionUpholdError,
 };
 use crate::{
-    entry::Entry,
-    into::IntoScalar,
-    key::KeyHolder,
-    schnorr::{self, Authenticable},
-    session::commit::NSessionCommit,
-    txo::lift::Lift,
-    entity::account::Account,
+    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    transmutive::{
+        into::IntoScalar,
+        key::KeyHolder,
+        schnorr::{self, Authenticable},
+    },
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Extra number of connectors.
+#[allow(non_camel_case_types)]
 pub const CONNECTORS_EXTRA_IN: u8 = 10;
 
 #[derive(Clone, Serialize, Deserialize)]

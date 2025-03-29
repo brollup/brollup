@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod schnorr_tests {
-    use brollup::schnorr;
+    use brollup::transmutive::schnorr;
     use hex;
 
     #[test]

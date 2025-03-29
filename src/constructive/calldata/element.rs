@@ -1,18 +1,18 @@
-use crate::cpe::{
+use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{
         calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
         error::CPEDecodingError,
     },
 };
-use crate::entity::account::Account;
-use crate::entity::contract::Contract;
-use crate::registery::account_registery::ACCOUNT_REGISTERY;
-use crate::registery::contract_registery::CONTRACT_REGISTERY;
-use crate::registery::registery::REGISTERY;
-use crate::valtype::long_val::LongVal;
-use crate::valtype::maybe_common::maybe_common::MaybeCommon;
-use crate::valtype::short_val::ShortVal;
+use crate::constructive::entity::account::Account;
+use crate::constructive::entity::contract::Contract;
+use crate::constructive::valtype::long_val::LongVal;
+use crate::constructive::valtype::maybe_common::maybe_common::MaybeCommon;
+use crate::constructive::valtype::short_val::ShortVal;
+use crate::inscriptive::registery::account_registery::ACCOUNT_REGISTERY;
+use crate::inscriptive::registery::contract_registery::CONTRACT_REGISTERY;
+use crate::inscriptive::registery::registery::REGISTERY;
 use bit_vec::BitVec;
 
 /// Represents the type of a single element of calldata.

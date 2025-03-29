@@ -1,4 +1,4 @@
-use crate::PEER_MANAGER;
+use crate::communicative::peer::manager::PEER_MANAGER;
 
 pub async fn ops_command(peer_manager: &PEER_MANAGER) {
     let peers = {

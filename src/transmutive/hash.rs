@@ -1,6 +1,5 @@
+use crate::inscriptive::baked;
 use sha2::{Digest, Sha256};
-
-use crate::baked;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum HashTag {

@@ -1,4 +1,4 @@
-use crate::{wallet::wallet::WALLET, PEER};
+use crate::{communicative::peer::peer::PEER, inscriptive::wallet::wallet::WALLET};
 use secp::{Point, Scalar};
 
 // move <npub> <amount>

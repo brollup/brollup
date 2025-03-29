@@ -1,12 +1,20 @@
-use super::{dkg::directory::DKGDirectory, session::NOISTSessionCtx, setup::setup::VSESetup};
+use super::{
+    dkg::directory::{DKGDirectory, DKG_DIRECTORY},
+    session::NOISTSessionCtx,
+    setup::setup::VSESetup,
+};
 use crate::{
-    into::IntoPointByteVec, musig::session::MusigSessionCtx, DKG_DIRECTORY, DKG_MANAGER,
-    LP_DIRECTORY,
+    inscriptive::lp::dir::LP_DIRECTORY, transmutive::into::IntoPointByteVec,
+    transmutive::musig::session::MusigSessionCtx,
 };
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+
+/// Guarded DKG manager.
+#[allow(non_camel_case_types)]
+pub type DKG_MANAGER = Arc<Mutex<DKGManager>>;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SessionCtxError {

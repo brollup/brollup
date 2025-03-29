@@ -1,7 +1,11 @@
 use super::lp::LP;
-use crate::{entity::account::Account, into::IntoPointVec, Network, LP_DIRECTORY};
+use crate::{constructive::entity::account::Account, transmutive::into::IntoPointVec, Chain};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+/// Guarded liquidity provider directory.
+#[allow(non_camel_case_types)]
+pub type LP_DIRECTORY = Arc<Mutex<LPDirectory>>;
 
 /// Directory for the liquidity providers.
 pub struct LPDirectory {
@@ -12,8 +16,8 @@ pub struct LPDirectory {
 }
 
 impl LPDirectory {
-    pub fn new(network: Network) -> Option<LP_DIRECTORY> {
-        let path = format!("{}/{}/{}", "db", network.to_string(), "dir/lp");
+    pub fn new(chain: Chain) -> Option<LP_DIRECTORY> {
+        let path = format!("{}/{}/{}", "db", chain.to_string(), "dir/lp");
         let db = sled::open(path).ok()?;
 
         let mut lps = Vec::<LP>::new();

@@ -1,4 +1,4 @@
-use crate::PEER;
+use crate::communicative::peer::peer::PEER;
 
 // conn
 pub async fn conn_command(coordinator: &PEER) {

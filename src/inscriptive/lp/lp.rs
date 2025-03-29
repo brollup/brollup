@@ -1,4 +1,4 @@
-use crate::entity::account::Account;
+use crate::constructive::entity::account::Account;
 use serde::{Deserialize, Serialize};
 
 /// Liquidity provider

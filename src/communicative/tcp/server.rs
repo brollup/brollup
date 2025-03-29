@@ -1,21 +1,24 @@
 use super::package::{PackageKind, TCPPackage};
 use super::tcp::{self, port_number};
-use crate::into::IntoPointVec;
-use crate::key::{KeyHolder, ToNostrKeyStr};
-use crate::musig::session::MusigSessionCtx;
-use crate::nns::client::NNSClient;
-use crate::noist::dkg::package::DKGPackage;
-use crate::noist::dkg::session::DKGSession;
-use crate::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
-use crate::peer_manager::coordinator_key;
-use crate::schnorr::Authenticable;
-use crate::session::ccontext::CSessionStage;
-use crate::session::commit::NSessionCommit;
-use crate::session::opcov::CSessionOpCov;
-use crate::session::uphold::NSessionUphold;
-use crate::session::upholdack::CSessionUpholdAck;
-use crate::session::upholdnack::CSessionUpholdNack;
-use crate::{Network, OperatingMode, CSESSION_CTX, DKG_DIRECTORY, DKG_MANAGER, SOCKET};
+use crate::communicative::nns::client::NNSClient;
+use crate::communicative::peer::manager::coordinator_key;
+use crate::communicative::peer::peer::SOCKET;
+use crate::operative::session::ccontext::{CSessionStage, CSESSION_CTX};
+use crate::operative::session::commit::NSessionCommit;
+use crate::operative::session::opcov::CSessionOpCov;
+use crate::operative::session::uphold::NSessionUphold;
+use crate::operative::session::upholdack::CSessionUpholdAck;
+use crate::operative::session::upholdnack::CSessionUpholdNack;
+use crate::transmutive::into::IntoPointVec;
+use crate::transmutive::key::{KeyHolder, ToNostrKeyStr};
+use crate::transmutive::musig::session::MusigSessionCtx;
+use crate::transmutive::noist::dkg::directory::DKG_DIRECTORY;
+use crate::transmutive::noist::dkg::package::DKGPackage;
+use crate::transmutive::noist::dkg::session::DKGSession;
+use crate::transmutive::noist::manager::DKG_MANAGER;
+use crate::transmutive::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
+use crate::transmutive::schnorr::Authenticable;
+use crate::{Chain, OperatingMode};
 use colored::Colorize;
 use secp::Scalar;
 use std::{sync::Arc, time::Duration};
@@ -28,13 +31,13 @@ pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
 pub async fn run(
     mode: OperatingMode,
-    network: Network,
+    chain: Chain,
     nns_client: &NNSClient,
     keys: &KeyHolder,
     dkg_manager: &DKG_MANAGER,
     csession_ctx: Option<CSESSION_CTX>,
 ) {
-    let port_number = port_number(network);
+    let port_number = port_number(chain);
     let addr = format!("{}:{}", "0.0.0.0", port_number);
     let listener = match TcpListener::bind(&addr).await {
         Ok(listener) => listener,
@@ -77,7 +80,7 @@ pub async fn run(
                 return; // This is not an operator job.
             }
 
-            let coordinator_key = coordinator_key(network);
+            let coordinator_key = coordinator_key(chain);
             let coordinator_npub = match coordinator_key.to_npub() {
                 Some(npub) => npub,
                 None => return,

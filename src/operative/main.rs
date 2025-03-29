@@ -1,10 +1,10 @@
-#[allow(unused_imports)]
 use brollup::{
-    coordinator,
-    key::{FromNostrKeyStr, KeyHolder},
-    node, operator, Network,
+    communicative::rpc::bitcoin::rpcholder::RPCHolder,
+    operative::mode::{coordinator::coordinator, node::node, operator::operator},
+    transmutive::key::{FromNostrKeyStr, KeyHolder},
+    Chain, OperatingMode,
 };
-use brollup::{rpcholder::RPCHolder, OperatingMode};
+#[allow(unused_imports)]
 use colored::Colorize;
 use secp::Scalar;
 use std::{env, io::BufRead};
@@ -27,8 +27,8 @@ fn main() {
 
     // Network arg
     let network = match args[1].to_lowercase().as_str() {
-        "signet" => Network::Signet,
-        "mainnet" => Network::Mainnet,
+        "signet" => Chain::Signet,
+        "mainnet" => Chain::Mainnet,
         _ => {
             println!("{}", "Invalid <network>.".red());
             return;

@@ -1,10 +1,8 @@
-#![allow(dead_code)]
-
-use crate::hash::Hash;
-use crate::hash::HashTag;
-use crate::into::IntoPoint;
-use crate::into::IntoScalar;
-use crate::into::IntoSigTuple;
+use crate::transmutive::hash::Hash;
+use crate::transmutive::hash::HashTag;
+use crate::transmutive::into::IntoPoint;
+use crate::transmutive::into::IntoScalar;
+use crate::transmutive::into::IntoSigTuple;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};

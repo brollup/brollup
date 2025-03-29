@@ -1,15 +1,20 @@
 use crate::{
-    nns::client::NNSClient,
-    tcp::{
-        client::TCPClient,
-        tcp::{self, TCPError},
+    communicative::{
+        nns::client::NNSClient,
+        tcp::{
+            client::TCPClient,
+            tcp::{connect_nns, TCPError},
+        },
     },
-    Network, PEER, SOCKET,
+    Chain,
 };
 use async_trait::async_trait;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
+
+pub type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
+pub type PEER = Arc<Mutex<Peer>>;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum PeerKind {
@@ -30,7 +35,7 @@ impl PeerKind {
 
 #[derive(Clone)]
 pub struct Peer {
-    network: Network,
+    chain: Chain,
     kind: PeerKind,
     key: [u8; 32],
     nns_client: NNSClient,
@@ -39,13 +44,13 @@ pub struct Peer {
 
 impl Peer {
     pub async fn connect(
-        network: Network,
+        chain: Chain,
         kind: PeerKind,
         key: [u8; 32],
         nns_client: &NNSClient,
     ) -> Result<PEER, TCPError> {
         let (socket_, addr) = {
-            match tcp::connect_nns(key, &nns_client, network).await {
+            match connect_nns(key, &nns_client, chain).await {
                 Ok(socket) => {
                     let addr = match socket.peer_addr() {
                         Ok(addr) => addr,
@@ -63,7 +68,7 @@ impl Peer {
         let connection = Some((socket, addr));
 
         let peer_ = Peer {
-            network,
+            chain,
             kind,
             key,
             connection,
@@ -77,8 +82,8 @@ impl Peer {
         Ok(peer)
     }
 
-    pub fn network(&self) -> Network {
-        self.network
+    pub fn chain(&self) -> Chain {
+        self.chain
     }
 
     pub fn kind(&self) -> PeerKind {
@@ -172,9 +177,9 @@ impl PeerConnection for PEER {
     }
 
     async fn reconnect(&self) {
-        let network = {
+        let chain = {
             let _self = self.lock().await;
-            _self.network()
+            _self.chain()
         };
 
         let (socket_, addr) = {
@@ -184,7 +189,7 @@ impl PeerConnection for PEER {
                     (_peer.key(), _peer.nns_client())
                 };
 
-                match tcp::connect_nns(nns_key, &nns_client, network).await {
+                match connect_nns(nns_key, &nns_client, chain).await {
                     Ok(socket) => {
                         let addr = match socket.peer_addr() {
                             Ok(addr) => addr,

@@ -1,10 +1,15 @@
 use super::session::DKGSession;
 use crate::{
-    musig::session::MusigSessionCtx,
-    noist::{session::NOISTSessionCtx, setup::setup::VSESetup},
+    transmutive::musig::session::MusigSessionCtx,
+    transmutive::noist::{session::NOISTSessionCtx, setup::setup::VSESetup},
 };
 use secp::Point;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
+
+/// Guarded DKG directory.
+#[allow(non_camel_case_types)]
+pub type DKG_DIRECTORY = Arc<Mutex<DKGDirectory>>;
 
 #[derive(Clone)]
 pub struct DKGDirectory {

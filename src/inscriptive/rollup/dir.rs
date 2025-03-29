@@ -1,6 +1,9 @@
-use crate::{Network, ROLLUP_DIRECTORY};
+use crate::Chain;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+/// Guarded rollup directory.
+pub type ROLLUP_DIRECTORY = Arc<Mutex<RollupDirectory>>;
 
 /// Directory for the rollup state.
 pub struct RollupDirectory {
@@ -14,8 +17,8 @@ pub struct RollupDirectory {
 }
 
 impl RollupDirectory {
-    pub fn new(network: Network) -> Option<ROLLUP_DIRECTORY> {
-        let path = format!("{}/{}/{}", "db", network.to_string(), "dir/rollup");
+    pub fn new(chain: Chain) -> Option<ROLLUP_DIRECTORY> {
+        let path = format!("{}/{}/{}", "db", chain.to_string(), "dir/rollup");
         let db = sled::open(path).ok()?;
 
         let bitcoin_sync_height: u64 = db

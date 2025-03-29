@@ -1,7 +1,12 @@
-use crate::{txn::ext::OutpointExt, txo::lift::Lift, Network};
+use crate::{
+    constructive::{txn::ext::OutpointExt, txo::lift::Lift},
+    Chain,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Guarded lift wallet.
+#[allow(non_camel_case_types)]
 pub type LIFT_WALLET = Arc<Mutex<LiftWallet>>;
 
 /// Wallet for storing bare Lift outputs.
@@ -13,10 +18,10 @@ pub struct LiftWallet {
 }
 
 impl LiftWallet {
-    pub fn new(network: Network) -> Option<LIFT_WALLET> {
+    pub fn new(chain: Chain) -> Option<LIFT_WALLET> {
         // Collect lifts from db.
 
-        let lifts_path = format!("{}/{}/{}", "db", network.to_string(), "wallet/lift");
+        let lifts_path = format!("{}/{}/{}", "db", chain.to_string(), "wallet/lift");
         let lifts_db = sled::open(lifts_path).ok()?;
 
         let mut lift_set = Vec::<Lift>::new();

@@ -1,16 +1,20 @@
 use crate::{
-    cpe::{
-        cpe::CompactPayloadEncoding,
-        decode_error::{entry_error::LiftupCPEDecodingError, error::CPEDecodingError},
+    constructive::{
+        cpe::{
+            cpe::CompactPayloadEncoding,
+            decode_error::{entry_error::LiftupCPEDecodingError, error::CPEDecodingError},
+        },
+        entity::account::Account,
+        taproot::P2TR,
+        txn::txholder::TxHolder,
+        txo::lift::Lift,
+        valtype::short_val::ShortVal,
     },
-    entity::account::Account,
-    hash::{Hash, HashTag},
-    schnorr::Sighash,
-    taproot::P2TR,
-    txn::txholder::TxHolder,
-    txo::lift::Lift,
-    valtype::short_val::ShortVal,
-    EPOCH_DIRECTORY,
+    inscriptive::epoch::dir::EPOCH_DIRECTORY,
+    transmutive::{
+        hash::{Hash, HashTag},
+        schnorr::Sighash,
+    },
 };
 use bit_vec::BitVec;
 use bitcoin::hashes::Hash as _;

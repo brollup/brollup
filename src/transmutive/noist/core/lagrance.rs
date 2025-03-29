@@ -1,6 +1,5 @@
+use crate::transmutive::into::SecpError;
 use secp::{MaybeScalar, Point, Scalar};
-
-use crate::into::SecpError;
 
 pub fn interpolating_value(x_vec: &Vec<Scalar>, x_i: Scalar) -> Result<Scalar, SecpError> {
     if x_vec.len() == 0 || !x_vec.contains(&x_i) {

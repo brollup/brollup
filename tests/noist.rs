@@ -1,16 +1,20 @@
 #[cfg(test)]
 mod noist_tests {
-    use brollup::hash::Hash;
-    use brollup::lp_dir::dir::LPDirectory;
-    use brollup::musig::session::MusigSessionCtx;
-    use brollup::noist::dkg::package::DKGPackage;
-    use brollup::noist::manager::DKGManager;
-    use brollup::txo::projector::{Projector, ProjectorTag};
     use brollup::{
-        noist::setup::{keymap::VSEKeyMap, setup::VSESetup},
-        schnorr::Authenticable,
+        constructive::txo::projector::{Projector, ProjectorTag},
+        inscriptive::lp::dir::LPDirectory,
+        transmutive::{
+            hash::Hash,
+            musig::session::MusigSessionCtx,
+            noist::{
+                dkg::package::DKGPackage,
+                manager::DKGManager,
+                setup::{keymap::VSEKeyMap, setup::VSESetup},
+            },
+            schnorr::{self, Authenticable},
+        },
+        Chain,
     };
-    use brollup::{schnorr, Network};
     use secp::{Point, Scalar};
 
     #[tokio::test]
@@ -43,7 +47,7 @@ mod noist_tests {
         public_list.sort();
 
         // #5 Initialize LP directory.
-        let lp_dir = match LPDirectory::new(Network::Signet) {
+        let lp_dir = match LPDirectory::new(Chain::Signet) {
             Some(dir) => dir,
             None => {
                 return Err("Error initializing LP directory.".into());

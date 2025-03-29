@@ -1,12 +1,13 @@
 use crate::{
-    txn::ext::{OutpointExt, TxOutExt},
-    Network,
+    constructive::txn::ext::{OutpointExt, TxOutExt},
+    Chain,
 };
 use bitcoin::{OutPoint, TxOut};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 /// Guarded UTXO set.
+#[allow(non_camel_case_types)]
 pub type UTXO_SET = Arc<Mutex<UTXOSet>>;
 
 /// A lookup struct for storing bare UTXOs.
@@ -28,9 +29,9 @@ pub struct UTXOSet {
 
 impl UTXOSet {
     /// Creates the UTXOSet instance.
-    pub fn new(network: Network) -> Option<UTXO_SET> {
+    pub fn new(chain: Chain) -> Option<UTXO_SET> {
         // Collect UTXOs from db.
-        let utxos_path = format!("{}/{}/{}", "db", network.to_string(), "set/utxo");
+        let utxos_path = format!("{}/{}/{}", "db", chain.to_string(), "set/utxo");
         let utxos_db = sled::open(utxos_path).ok()?;
 
         let mut utxos = HashMap::<OutPoint, TxOut>::new();

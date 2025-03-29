@@ -1,4 +1,8 @@
-use crate::{key::KeyHolder, wallet::wallet::WALLET, Network, EPOCH_DIRECTORY};
+use crate::{
+    inscriptive::{epoch::dir::EPOCH_DIRECTORY, wallet::wallet::WALLET},
+    transmutive::key::KeyHolder,
+    Chain,
+};
 
 use super::addr::lift_address;
 
@@ -6,14 +10,14 @@ use super::addr::lift_address;
 pub async fn lift_command(
     wallet: &WALLET,
     epoch_dir: &EPOCH_DIRECTORY,
-    network: Network,
+    chain: Chain,
     key_holder: &KeyHolder,
     parts: Vec<&str>,
 ) {
     match parts.get(1) {
         Some(part) => match part.to_owned() {
             "list" => lift_list(wallet).await,
-            "addr" => lift_addr(network, key_holder, epoch_dir).await,
+            "addr" => lift_addr(chain, key_holder, epoch_dir).await,
             "up" => lift_up(wallet).await,
             _ => eprintln!("Unknown command."),
         },
@@ -21,8 +25,8 @@ pub async fn lift_command(
     }
 }
 
-async fn lift_addr(network: Network, key_holder: &KeyHolder, epoch_dir: &EPOCH_DIRECTORY) {
-    let lift_address = match lift_address(network, key_holder, epoch_dir).await {
+async fn lift_addr(chain: Chain, key_holder: &KeyHolder, epoch_dir: &EPOCH_DIRECTORY) {
+    let lift_address = match lift_address(chain, key_holder, epoch_dir).await {
         Some(address) => address,
         None => "-".to_string(),
     };

@@ -1,9 +1,7 @@
 use super::keyagg::MusigKeyAggCtx;
-use crate::{
-    hash::{Hash, HashTag},
-    into::IntoScalar,
-    schnorr::challenge,
-};
+use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutive::into::IntoScalar;
+use crate::transmutive::schnorr::{challenge, SigningMode};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -285,12 +283,7 @@ impl MusigSessionCtx {
 }
 
 fn compute_challenge(agg_nonce: Point, agg_key: Point, message: [u8; 32]) -> Option<Scalar> {
-    let challenge = match challenge(
-        agg_nonce,
-        agg_key,
-        message,
-        crate::schnorr::SigningMode::BIP340,
-    ) {
+    let challenge = match challenge(agg_nonce, agg_key, message, SigningMode::BIP340) {
         MaybeScalar::Valid(scalar) => scalar,
         MaybeScalar::Zero => return None,
     };

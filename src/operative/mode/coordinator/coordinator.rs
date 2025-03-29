@@ -1,35 +1,47 @@
-use crate::blacklist::BlacklistDirectory;
-use crate::dkgops::DKGOps;
-use crate::epoch_dir::dir::EpochDirectory;
-use crate::into::IntoPointByteVec;
-use crate::key::KeyHolder;
-use crate::lp_dir::dir::LPDirectory;
-use crate::nns::client::NNSClient;
-use crate::noist::manager::DKGManager;
-use crate::peer::PeerKind;
-use crate::peer_manager::{coordinator_key, PeerManager};
-use crate::registery::registery::{Registery, REGISTERY};
-use crate::rollup_dir::dir::RollupDirectory;
-use crate::rpc::bitcoin_rpc::validate_rpc;
-use crate::rpcholder::RPCHolder;
-use crate::session::ccontext::{CContextRunner, CSessionCtx};
-use crate::set::set::{CoinSet, COIN_SET};
-use crate::sync::RollupSync;
-use crate::tcp::tcp::{open_port, port_number};
-use crate::{
-    ccli, nns, tcp, Network, OperatingMode, BLIST_DIRECTORY, CSESSION_CTX, DKG_MANAGER,
-    EPOCH_DIRECTORY, LP_DIRECTORY, PEER_MANAGER, ROLLUP_DIRECTORY,
-};
+use crate::communicative::nns;
+use crate::communicative::nns::client::NNSClient;
+use crate::communicative::peer::manager::coordinator_key;
+use crate::communicative::peer::manager::PeerManager;
+use crate::communicative::peer::manager::PEER_MANAGER;
+use crate::communicative::peer::peer::PeerKind;
+use crate::communicative::rpc::bitcoin::rpc::validate_rpc;
+use crate::communicative::rpc::bitcoin::rpcholder::RPCHolder;
+use crate::communicative::tcp;
+use crate::communicative::tcp::tcp::open_port;
+use crate::communicative::tcp::tcp::port_number;
+use crate::inscriptive::blacklist::BlacklistDirectory;
+use crate::inscriptive::blacklist::BLIST_DIRECTORY;
+use crate::inscriptive::epoch::dir::EpochDirectory;
+use crate::inscriptive::epoch::dir::EPOCH_DIRECTORY;
+use crate::inscriptive::lp::dir::LPDirectory;
+use crate::inscriptive::lp::dir::LP_DIRECTORY;
+use crate::inscriptive::registery::registery::Registery;
+use crate::inscriptive::registery::registery::REGISTERY;
+use crate::inscriptive::rollup::dir::RollupDirectory;
+use crate::inscriptive::rollup::dir::ROLLUP_DIRECTORY;
+use crate::inscriptive::set::set::CoinSet;
+use crate::inscriptive::set::set::COIN_SET;
+use crate::operative::mode::ccli;
+use crate::operative::mode::coordinator::dkgops::DKGOps;
+use crate::operative::session::ccontext::CContextRunner;
+use crate::operative::session::ccontext::CSessionCtx;
+use crate::operative::session::ccontext::CSESSION_CTX;
+use crate::operative::sync::rollup::RollupSync;
+use crate::transmutive::into::IntoPointByteVec;
+use crate::transmutive::key::KeyHolder;
+use crate::transmutive::noist::manager::DKGManager;
+use crate::transmutive::noist::manager::DKG_MANAGER;
+use crate::{Chain, OperatingMode};
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;
 
 #[tokio::main]
-pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder) {
+pub async fn run(key_holder: KeyHolder, chain: Chain, rpc_holder: RPCHolder) {
     let mode = OperatingMode::Coordinator;
 
     // #1 Validate Bitcoin RPC.
-    if let Err(err) = validate_rpc(&rpc_holder, network) {
+    if let Err(err) = validate_rpc(&rpc_holder, chain) {
         println!("{} {}", "Bitcoin RPC Error: ".red(), err);
         return;
     }
@@ -37,7 +49,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     println!("{}", "Initializing coordinator.");
 
     // #2 Initialize Epoch directory.
-    let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(network) {
+    let epoch_dir: EPOCH_DIRECTORY = match EpochDirectory::new(chain) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing epoch directory.".red());
@@ -46,7 +58,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #3 Initialize LP directory.
-    let lp_dir: LP_DIRECTORY = match LPDirectory::new(network) {
+    let lp_dir: LP_DIRECTORY = match LPDirectory::new(chain) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing LP directory.".red());
@@ -55,7 +67,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #4 Initialize Registery.
-    let registery: REGISTERY = match Registery::new(network) {
+    let registery: REGISTERY = match Registery::new(chain) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing registery.".red());
@@ -64,7 +76,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #6 Initialize rollup directory.
-    let rollup_dir: ROLLUP_DIRECTORY = match RollupDirectory::new(network) {
+    let rollup_dir: ROLLUP_DIRECTORY = match RollupDirectory::new(chain) {
         Some(dir) => dir,
         None => {
             println!("{}", "Error initializing rollup directory.".red());
@@ -73,7 +85,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     };
 
     // #7 Initialize the coin set.
-    let coin_set: COIN_SET = match CoinSet::new(network) {
+    let coin_set: COIN_SET = match CoinSet::new(chain) {
         Some(coin_set) => coin_set,
         None => {
             println!("{}", "Error initializing coin set.".red());
@@ -83,7 +95,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
 
     // #8 Spawn syncer.
     {
-        let network = network.clone();
+        let chain = chain.clone();
         let key_holder = key_holder.clone();
         let rpc_holder = rpc_holder.clone();
         let epoch_dir = Arc::clone(&epoch_dir);
@@ -94,7 +106,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         tokio::spawn(async move {
             let _ = rollup_dir
                 .sync(
-                    network,
+                    chain,
                     &rpc_holder,
                     &key_holder,
                     &epoch_dir,
@@ -115,7 +127,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     println!("{}", "Syncing complete.");
 
     // #10 Check if this is the coordinator.
-    if key_holder.public_key().serialize_xonly() != coordinator_key(network) {
+    if key_holder.public_key().serialize_xonly() != coordinator_key(chain) {
         eprintln!("{}", "Coordinator <nsec> does not match.".red());
         return;
     }
@@ -124,10 +136,10 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     let nns_client = NNSClient::new(&key_holder).await;
 
     // #12 Open port 6272 for incoming connections.
-    match open_port(network).await {
+    match open_port(chain).await {
         true => println!(
             "{}",
-            format!("Opened port '{}'.", port_number(network)).green()
+            format!("Opened port '{}'.", port_number(chain)).green()
         ),
         false => (),
     }
@@ -146,7 +158,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         _epoch_dir.operator_set().into_xpoint_vec().expect("")
     };
     let mut peer_manager: PEER_MANAGER =
-        match PeerManager::new(network, &nns_client, PeerKind::Operator, &operator_set).await {
+        match PeerManager::new(chain, &nns_client, PeerKind::Operator, &operator_set).await {
             Some(manager) => manager,
             None => return eprintln!("{}", "Error initializing Peer manager.".red()),
         };
@@ -161,7 +173,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
     dkg_manager.run_preprocessing(&mut peer_manager).await;
 
     // #17 Construct blacklist directory.
-    let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(network) {
+    let mut blacklist_dir: BLIST_DIRECTORY = match BlacklistDirectory::new(chain) {
         Some(blacklist_dir) => blacklist_dir,
         None => {
             eprintln!(
@@ -193,7 +205,7 @@ pub async fn run(key_holder: KeyHolder, network: Network, rpc_holder: RPCHolder)
         let _ = tokio::spawn(async move {
             let _ = tcp::server::run(
                 mode,
-                network,
+                chain,
                 &nns_client,
                 &key_holder,
                 &dkg_manager,

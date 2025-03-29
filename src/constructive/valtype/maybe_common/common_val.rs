@@ -1,4 +1,4 @@
-use crate::cpe::{
+use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
 };

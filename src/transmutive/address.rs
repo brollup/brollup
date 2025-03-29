@@ -1,4 +1,4 @@
-use crate::Network;
+use crate::Chain;
 use bech32::{segwit, Hrp};
 
 type ScriptPubKey = Vec<u8>;
@@ -10,10 +10,10 @@ type ScriptPubKey = Vec<u8>;
 /// # Arguments
 ///
 
-fn hrp_from_network(network: Network) -> Option<Hrp> {
-    match network {
-        Network::Signet => Hrp::parse("tb").ok(),
-        Network::Mainnet => Hrp::parse("bc").ok(),
+fn hrp_from_chain(chain: Chain) -> Option<Hrp> {
+    match chain {
+        Chain::Signet => Hrp::parse("tb").ok(),
+        Chain::Mainnet => Hrp::parse("bc").ok(),
     }
 }
 
@@ -24,8 +24,8 @@ fn hrp_from_network(network: Network) -> Option<Hrp> {
 ///
 /// # Arguments
 ///
-pub fn encode_p2tr(network: Network, taproot_key: [u8; 32]) -> Option<String> {
-    let hrp = hrp_from_network(network)?;
+pub fn encode_p2tr(chain: Chain, taproot_key: [u8; 32]) -> Option<String> {
+    let hrp = hrp_from_chain(chain)?;
     let address = segwit::encode(hrp, segwit::VERSION_1, &taproot_key).ok()?;
 
     Some(address)
@@ -38,8 +38,8 @@ pub fn encode_p2tr(network: Network, taproot_key: [u8; 32]) -> Option<String> {
 ///
 /// # Arguments
 ///
-pub fn encode_p2wsh(network: Network, witness_program: [u8; 32]) -> Option<String> {
-    let hrp = hrp_from_network(network)?;
+pub fn encode_p2wsh(chain: Chain, witness_program: [u8; 32]) -> Option<String> {
+    let hrp = hrp_from_chain(chain)?;
     let address = segwit::encode(hrp, segwit::VERSION_0, &witness_program).ok()?;
 
     Some(address)
@@ -52,8 +52,8 @@ pub fn encode_p2wsh(network: Network, witness_program: [u8; 32]) -> Option<Strin
 ///
 /// # Arguments
 ///
-pub fn encode_p2wpkh(network: Network, witness_program: [u8; 20]) -> Option<String> {
-    let hrp = hrp_from_network(network)?;
+pub fn encode_p2wpkh(chain: Chain, witness_program: [u8; 20]) -> Option<String> {
+    let hrp = hrp_from_chain(chain)?;
     let address = segwit::encode(hrp, segwit::VERSION_0, &witness_program).ok()?;
 
     Some(address)
@@ -72,7 +72,7 @@ pub fn encode_p2wpkh(network: Network, witness_program: [u8; 20]) -> Option<Stri
 /// # Returns
 ///
 
-pub fn address_to_spk(network: Network, address: &str) -> Option<ScriptPubKey> {
+pub fn address_to_spk(chain: Chain, address: &str) -> Option<ScriptPubKey> {
     let mut spk = Vec::<u8>::new();
 
     let (hrp, version, program) = match segwit::decode(&address) {
@@ -81,13 +81,13 @@ pub fn address_to_spk(network: Network, address: &str) -> Option<ScriptPubKey> {
     };
 
     // Check if the network is valid
-    match network {
-        Network::Signet => {
+    match chain {
+        Chain::Signet => {
             if hrp != Hrp::parse("tb").expect("invalid hrp") {
                 return None;
             }
         }
-        Network::Mainnet => {
+        Chain::Mainnet => {
             if hrp != Hrp::parse("bc").expect("invalid hrp") {
                 return None;
             }

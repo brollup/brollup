@@ -1,9 +1,8 @@
-#![allow(dead_code)]
-
 use super::package::{PackageKind, TCPPackage};
-use crate::key::ToNostrKeyStr;
-use crate::nns::client::NNSClient;
-use crate::{baked, Network, SOCKET};
+use crate::communicative::nns::client::NNSClient;
+use crate::communicative::peer::peer::SOCKET;
+use crate::transmutive::key::ToNostrKeyStr;
+use crate::{inscriptive::baked, Chain};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::time::{Duration, Instant};
 use std::{io, vec};
@@ -21,15 +20,15 @@ pub enum TCPError {
     Timeout,
 }
 
-pub fn port_number(network: Network) -> u16 {
-    match network {
-        Network::Signet => baked::SIGNET_PORT,
-        Network::Mainnet => baked::MAINNET_PORT,
+pub fn port_number(chain: Chain) -> u16 {
+    match chain {
+        Chain::Signet => baked::SIGNET_PORT,
+        Chain::Mainnet => baked::MAINNET_PORT,
     }
 }
 
-pub async fn open_port(network: Network) -> bool {
-    let port_number = port_number(network);
+pub async fn open_port(chain: Chain) -> bool {
+    let port_number = port_number(chain);
 
     let upnp_config = UpnpConfig {
         address: None,
@@ -48,8 +47,8 @@ pub async fn open_port(network: Network) -> bool {
     false
 }
 
-pub async fn connect(ip_address: &str, network: Network) -> Result<TcpStream, TCPError> {
-    let port_number = port_number(network);
+pub async fn connect(ip_address: &str, chain: Chain) -> Result<TcpStream, TCPError> {
+    let port_number = port_number(chain);
     let addr = format!("{}:{}", ip_address, port_number);
     let timeout = tokio::time::sleep(Duration::from_millis(3_000));
     let connect = TcpStream::connect(&addr);
@@ -68,7 +67,7 @@ pub async fn connect(ip_address: &str, network: Network) -> Result<TcpStream, TC
 pub async fn connect_nns(
     nns_key: [u8; 32],
     nns_client: &NNSClient,
-    network: Network,
+    chain: Chain,
 ) -> Result<TcpStream, TCPError> {
     let npub = match nns_key.to_npub() {
         Some(npub) => npub,
@@ -80,7 +79,7 @@ pub async fn connect_nns(
         None => return Err(TCPError::ConnErr),
     };
 
-    connect(&ip_address, network).await
+    connect(&ip_address, chain).await
 }
 pub async fn pop(socket: &mut TcpStream, timeout: Option<Duration>) -> Option<TCPPackage> {
     let start = Instant::now();

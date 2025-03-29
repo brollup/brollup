@@ -1,8 +1,10 @@
-use super::long_val::LongVal;
-use super::maybe_common::maybe_common::{Commonable, MaybeCommonType, ShortOrLong};
-use crate::cpe::{
+use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{error::CPEDecodingError, valtype_error::ShortValCPEDecodingError},
+};
+use crate::constructive::valtype::long_val::LongVal;
+use crate::constructive::valtype::maybe_common::maybe_common::{
+    Commonable, MaybeCommonType, ShortOrLong,
 };
 use async_trait::async_trait;
 use bit_vec::BitVec;

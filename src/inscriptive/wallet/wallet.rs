@@ -2,7 +2,7 @@ use super::{
     lift_wallet::{LiftWallet, LIFT_WALLET},
     vtxo_wallet::{VTXOWallet, VTXO_WALLET},
 };
-use crate::Network;
+use crate::Chain;
 use colored::Colorize;
 use secp::Point;
 use std::sync::Arc;
@@ -20,10 +20,9 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn new(network: Network, account_key: Point) -> Option<WALLET> {
+    pub fn new(chain: Chain, account_key: Point) -> Option<WALLET> {
         // Retrieve account key from db.
-
-        let account_path = format!("{}/{}/{}", "db", network.to_string(), "wallet");
+        let account_path = format!("{}/{}/{}", "db", chain.to_string(), "wallet");
         let account_db = sled::open(account_path).ok()?;
 
         let account_key_from_db = match account_db.get(b"account_key") {
@@ -53,10 +52,10 @@ impl Wallet {
         }
 
         // Construct lift wallet.
-        let lift_wallet = LiftWallet::new(network)?;
+        let lift_wallet = LiftWallet::new(chain)?;
 
         // Construct vtxo wallet.
-        let vtxo_wallet = VTXOWallet::new(network)?;
+        let vtxo_wallet = VTXOWallet::new(chain)?;
 
         let wallet = Wallet {
             account_key,

@@ -1,12 +1,25 @@
 use crate::{
-    baked,
-    into::{IntoPoint, IntoPointByteVec, IntoPointVec},
-    musig::session::MusigSessionCtx,
-    noist::{dkg::session::DKGSession, session::NOISTSessionCtx, setup::setup::VSESetup},
-    peer::PeerConnection,
-    peer_manager::PeerManagerExt,
-    tcp::client::TCPClient,
-    DKG_DIRECTORY, DKG_MANAGER, DKG_SESSION, LP_DIRECTORY, PEER, PEER_MANAGER,
+    communicative::{
+        peer::{
+            manager::{PeerManagerExt, PEER_MANAGER},
+            peer::{PeerConnection, PeerKind, PEER},
+        },
+        tcp::client::TCPClient,
+    },
+    inscriptive::{baked::INITIAL_OPERATOR_SET, lp::dir::LP_DIRECTORY},
+    transmutive::{
+        into::{IntoPoint, IntoPointByteVec, IntoPointVec},
+        musig::session::MusigSessionCtx,
+        noist::{
+            dkg::{
+                directory::DKG_DIRECTORY,
+                session::{DKGSession, DKG_SESSION},
+            },
+            manager::DKG_MANAGER,
+            session::NOISTSessionCtx,
+            setup::setup::VSESetup,
+        },
+    },
 };
 use async_trait::async_trait;
 use colored::Colorize;
@@ -70,13 +83,13 @@ impl DKGOps for DKG_MANAGER {
 
         // TODO REMOVE
         {
-            lp_key_list.extend(baked::INITIAL_OPERATOR_SET.to_vec());
+            lp_key_list.extend(INITIAL_OPERATOR_SET.to_vec());
         }
 
         // #3 Connect to liquidity providers (if possible).
         let lp_peers: Vec<PEER> = match {
             peer_manager
-                .add_peers(crate::peer::PeerKind::Operator, &lp_key_list)
+                .add_peers(PeerKind::Operator, &lp_key_list)
                 .await;
 
             let mut _peer_manager = peer_manager.lock().await;
@@ -401,7 +414,7 @@ pub async fn preprocess(peer_manager: &mut PEER_MANAGER, dkg_directory: &DKG_DIR
     // #4 Connect to operator peers and return the list.
     let operator_peers: Vec<PEER> = loop {
         peer_manager
-            .add_peers(crate::peer::PeerKind::Operator, &operator_keys)
+            .add_peers(PeerKind::Operator, &operator_keys)
             .await;
 
         let peers: Vec<PEER> = match {

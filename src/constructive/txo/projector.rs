@@ -1,10 +1,7 @@
-use crate::encoding::csv::CSVEncode;
-use crate::encoding::csv::CSVFlag;
-use crate::into::IntoScalar;
-use crate::musig::keyagg::MusigKeyAggCtx;
-use crate::taproot::TapLeaf;
-use crate::taproot::TapRoot;
-use crate::taproot::P2TR;
+use crate::constructive::taproot::{TapLeaf, TapRoot, P2TR};
+use crate::inscriptive::encoding::csv::{CSVEncode, CSVFlag};
+use crate::transmutive::into::IntoScalar;
+use crate::transmutive::musig::keyagg::MusigKeyAggCtx;
 use secp::Point;
 use serde::Deserialize;
 use serde::Serialize;

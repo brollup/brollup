@@ -1,14 +1,14 @@
-use crate::combinator::claim::Claim;
-use crate::combinator::deploy::Deploy;
-use crate::combinator::revive::Revive;
-use crate::hash::{Hash, HashTag};
+use super::combinator::{
+    add::Add, call::Call, claim::Claim, combinator::Combinator, deploy::Deploy, liftup::Liftup,
+    r#move::Move, recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub,
+    swapout::Swapout,
+};
 use crate::{
-    combinator::{
-        add::Add, call::Call, combinator::Combinator, liftup::Liftup, r#move::Move,
-        recharge::Recharge, reserved::Reserved, sub::Sub, swapout::Swapout,
+    constructive::entity::account::Account,
+    transmutive::{
+        hash::{Hash, HashTag},
+        schnorr::Sighash,
     },
-    entity::account::Account,
-    schnorr::Sighash,
 };
 use serde::{Deserialize, Serialize};
 

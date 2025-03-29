@@ -1,7 +1,5 @@
-use crate::{
-    hash::{Hash, HashTag},
-    into::IntoScalar,
-};
+use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutive::into::IntoScalar;
 use secp::{MaybePoint, Point, Scalar};
 use serde::{Deserialize, Serialize};
 

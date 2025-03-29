@@ -1,11 +1,12 @@
+use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutive::into::SecpError;
+use crate::transmutive::schnorr::LiftScalar;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
-
-use crate::{hash::Hash, into::SecpError, schnorr::LiftScalar};
 
 pub fn encrypting_key_secret(self_secret: Scalar, to_public: Point) -> Scalar {
     let secret_point = self_secret.lift() * to_public;
     let secret_point_bytes = secret_point.serialize_uncompressed();
-    let secret_point_hash = secret_point_bytes.hash(Some(crate::hash::HashTag::SharedSecret));
+    let secret_point_hash = secret_point_bytes.hash(Some(HashTag::SharedSecret));
     let shared_secret = match MaybeScalar::reduce_from(&secret_point_hash) {
         MaybeScalar::Valid(scalar) => scalar.lift(),
         MaybeScalar::Zero => Scalar::reduce_from(&secret_point_hash).lift(),

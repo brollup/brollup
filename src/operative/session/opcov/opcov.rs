@@ -1,7 +1,7 @@
 use super::opcovack::OSessionOpCovAck;
 use crate::{
-    entry::Entry, key::KeyHolder, musig::session::MusigSessionCtx, txo::lift::Lift,
-    entity::account::Account, DKG_MANAGER,
+    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    transmutive::{key::KeyHolder, musig::session::MusigSessionCtx, noist::manager::DKG_MANAGER},
 };
 use secp::Scalar;
 use serde::{Deserialize, Serialize};

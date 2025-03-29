@@ -1,13 +1,19 @@
 use super::package::DKGPackage;
 use crate::{
-    hash::{Hash, HashTag},
-    into::IntoScalar,
-    noist::{core::vse, setup::setup::VSESetup},
-    schnorr::{Authenticable, LiftScalar, Sighash},
+    transmutive::hash::{Hash, HashTag},
+    transmutive::into::IntoScalar,
+    transmutive::noist::{core::vse, setup::setup::VSESetup},
+    transmutive::schnorr::{Authenticable, LiftScalar, Sighash},
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+/// Guarded DKG session.
+#[allow(non_camel_case_types)]
+pub type DKG_SESSION = Arc<Mutex<DKGSession>>;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DKGSession {
@@ -249,7 +255,7 @@ impl DKGSession {
             preimage.extend(package.binding().constant_point()?.serialize_uncompressed());
         }
 
-        Some(preimage.hash(Some(crate::hash::HashTag::GroupCommitment)))
+        Some(preimage.hash(Some(HashTag::GroupCommitment)))
     }
 
     pub fn binding_factors(
@@ -273,7 +279,7 @@ impl DKGSession {
                 preimage.extend(message);
             };
 
-            let binding_factor = preimage.hash(Some(crate::hash::HashTag::BindingFactor));
+            let binding_factor = preimage.hash(Some(HashTag::BindingFactor));
             binding_factors.push(binding_factor);
         }
         Some(binding_factors)

@@ -2,16 +2,18 @@
 mod cpe_tests {
     use bit_vec::BitVec;
     use brollup::{
-        cpe::cpe::CompactPayloadEncoding,
-        entity::{account::Account, contract::Contract},
-        registery::registery::Registery,
-        valtype::{
-            atomic_val::AtomicVal,
-            long_val::{LongVal, LongValTier},
-            maybe_common::{common_val::CommonVal, maybe_common::MaybeCommon},
-            short_val::{ShortVal, ShortValTier},
+        constructive::{
+            cpe::cpe::CompactPayloadEncoding,
+            entity::{account::Account, contract::Contract},
+            valtype::{
+                atomic_val::AtomicVal,
+                long_val::{LongVal, LongValTier},
+                maybe_common::{common_val::CommonVal, maybe_common::MaybeCommon},
+                short_val::{ShortVal, ShortValTier},
+            },
         },
-        Network,
+        inscriptive::registery::registery::Registery,
+        Chain,
     };
     use secp::Point;
     use std::collections::HashMap;
@@ -345,7 +347,7 @@ mod cpe_tests {
     #[tokio::test]
     async fn account_and_contract_test() -> Result<(), String> {
         // Get the registery.
-        let registery = Registery::new(Network::Signet).unwrap();
+        let registery = Registery::new(Chain::Signet).unwrap();
 
         // Get the account registery.
         let account_registery = {

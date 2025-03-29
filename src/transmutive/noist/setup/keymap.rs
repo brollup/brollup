@@ -1,8 +1,8 @@
 use crate::{
-    hash::{Hash, HashTag},
-    into::{FromSigTuple, IntoSigTuple},
-    noist::core::vse::encrypting_key_public,
-    schnorr::{self, Sighash},
+    transmutive::hash::{Hash, HashTag},
+    transmutive::into::{FromSigTuple, IntoSigTuple},
+    transmutive::noist::core::vse::encrypting_key_public,
+    transmutive::schnorr::{self, Sighash},
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};

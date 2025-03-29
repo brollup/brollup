@@ -1,4 +1,7 @@
-use crate::{tcp::client::TCPClient, DKG_DIRECTORY, DKG_MANAGER, PEER};
+use crate::{
+    communicative::peer::peer::PEER, communicative::tcp::client::TCPClient,
+    transmutive::noist::dkg::directory::DKG_DIRECTORY, transmutive::noist::manager::DKG_MANAGER,
+};
 use colored::Colorize;
 
 // dkg dirs

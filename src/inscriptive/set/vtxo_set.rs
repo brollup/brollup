@@ -1,4 +1,7 @@
-use crate::{entity::account::Account, txn::ext::OutpointExt, txo::vtxo::VTXO, Network};
+use crate::{
+    constructive::{entity::account::Account, txn::ext::OutpointExt, txo::vtxo::VTXO},
+    Chain,
+};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -7,6 +10,7 @@ use tokio::sync::Mutex;
 type AccountKey = Point;
 
 /// Guarded VTXO set.
+#[allow(non_camel_case_types)]
 pub type VTXO_SET = Arc<Mutex<VTXOSet>>;
 
 /// A lookup struct for storing virtual UTXOs (VTXOs).
@@ -19,9 +23,9 @@ pub struct VTXOSet {
 
 impl VTXOSet {
     /// Creates the VTXOSet instance.
-    pub fn new(network: Network) -> Option<VTXO_SET> {
+    pub fn new(chain: Chain) -> Option<VTXO_SET> {
         // Collect VTXOs from db.
-        let vtxos_path = format!("{}/{}/{}", "db", network.to_string(), "set/vtxo");
+        let vtxos_path = format!("{}/{}/{}", "db", chain.to_string(), "set/vtxo");
         let vtxos_db = sled::open(vtxos_path).ok()?;
 
         let mut global_vtxo_set = HashMap::<AccountKey, Vec<VTXO>>::new();

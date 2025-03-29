@@ -1,8 +1,9 @@
 use crate::{
-    entity::account::Account,
-    hash::{Hash, HashTag},
-    schnorr::Sighash,
-    txo::vtxo::VTXO,
+    constructive::{entity::account::Account, txo::vtxo::VTXO},
+    transmutive::{
+        hash::{Hash, HashTag},
+        schnorr::Sighash,
+    },
 };
 use bitcoin::hashes::Hash as _;
 use serde::{Deserialize, Serialize};

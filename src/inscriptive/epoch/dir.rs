@@ -1,8 +1,15 @@
 use super::epoch::Epoch;
-use crate::{baked, entity::account::Account, into::IntoPoint, Network, EPOCH_DIRECTORY};
+use crate::{
+    constructive::entity::account::Account, inscriptive::baked::INITIAL_OPERATOR_SET,
+    transmutive::into::IntoPoint, Chain,
+};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+
+/// Guarded epoch directory.
+#[allow(non_camel_case_types)]
+pub type EPOCH_DIRECTORY = Arc<Mutex<EpochDirectory>>;
 
 /// Directory for the operator quorum epoches.
 pub struct EpochDirectory {
@@ -13,8 +20,8 @@ pub struct EpochDirectory {
 }
 
 impl EpochDirectory {
-    pub fn new(network: Network) -> Option<EPOCH_DIRECTORY> {
-        let path = format!("{}/{}/{}", "db", network.to_string(), "dir/epoch");
+    pub fn new(chain: Chain) -> Option<EPOCH_DIRECTORY> {
+        let path = format!("{}/{}/{}", "db", chain.to_string(), "dir/epoch");
         let db = sled::open(path).ok()?;
 
         let mut epochs = HashMap::<u64, Epoch>::new();
@@ -104,7 +111,7 @@ impl EpochDirectory {
         // Fill with the initial operator set.
         {
             operator_set.extend(
-                baked::INITIAL_OPERATOR_SET
+                INITIAL_OPERATOR_SET
                     .into_iter()
                     .filter_map(|op| op.into_point().ok()),
             );

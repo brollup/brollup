@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod authenticable_tests {
     use brollup::{
-        hash::{Hash, HashTag},
-        schnorr::{Authenticable, Sighash},
+        transmutive::hash::{Hash, HashTag},
+        transmutive::schnorr::{Authenticable, Sighash},
     };
     use serde::{Deserialize, Serialize};
 

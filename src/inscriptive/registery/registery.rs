@@ -2,7 +2,7 @@ use super::{
     account_registery::{AccountRegistery, ACCOUNT_REGISTERY},
     contract_registery::{ContractRegistery, CONTRACT_REGISTERY},
 };
-use crate::Network;
+use crate::Chain;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -15,9 +15,9 @@ pub struct Registery {
 }
 
 impl Registery {
-    pub fn new(network: Network) -> Option<REGISTERY> {
-        let account_registery = AccountRegistery::new(network)?;
-        let contract_registery = ContractRegistery::new(network)?;
+    pub fn new(chain: Chain) -> Option<REGISTERY> {
+        let account_registery = AccountRegistery::new(chain)?;
+        let contract_registery = ContractRegistery::new(chain)?;
         let registery = Registery {
             account_registery,
             contract_registery,

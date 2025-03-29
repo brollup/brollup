@@ -1,8 +1,9 @@
 use crate::{
-    hash::{Hash, HashTag},
-    schnorr::Sighash,
-    txo::lift::Lift,
-    entity::account::Account,
+    constructive::{entity::account::Account, txo::lift::Lift},
+    transmutive::{
+        hash::{Hash, HashTag},
+        schnorr::Sighash,
+    },
 };
 use secp::Scalar;
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,7 @@ use std::collections::HashMap;
 
 /// `NSessionUphold` is a follow-up request from the msg.sender for the coordinator to uphold the session.
 /// It is sent by the msg.senders to the coordinator, who then responds with `CSessionUpholdAck`.
-/// `NSessionUphold` contains the covenant partial signatures and is returned by the msg.senders to the coordinator 
+/// `NSessionUphold` contains the covenant partial signatures and is returned by the msg.senders to the coordinator
 /// upon receiving `CSessionCommitAck` from the coordinator.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NSessionUphold {

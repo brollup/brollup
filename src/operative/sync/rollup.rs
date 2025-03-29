@@ -1,14 +1,15 @@
 use crate::{
-    baked,
-    key::KeyHolder,
-    registery::registery::REGISTERY,
-    rpc::bitcoin_rpc::{get_block, get_chain_height},
-    rpcholder::RPCHolder,
-    set::set::COIN_SET,
-    taproot::P2TR,
-    txo::lift::Lift,
-    wallet::wallet::WALLET,
-    Network, EPOCH_DIRECTORY, LP_DIRECTORY, ROLLUP_DIRECTORY,
+    communicative::rpc::bitcoin::{
+        rpc::{get_block, get_chain_height},
+        rpcholder::RPCHolder,
+    },
+    constructive::{taproot::P2TR, txo::lift::Lift},
+    inscriptive::{
+        baked, epoch::dir::EPOCH_DIRECTORY, lp::dir::LP_DIRECTORY, registery::registery::REGISTERY,
+        rollup::dir::ROLLUP_DIRECTORY, set::set::COIN_SET, wallet::wallet::WALLET,
+    },
+    transmutive::key::KeyHolder,
+    Chain,
 };
 use async_trait::async_trait;
 use bitcoin::OutPoint;
@@ -48,7 +49,7 @@ pub trait RollupSync {
     /// Continuously syncs the rollup.
     async fn sync(
         &self,
-        network: Network,
+        chain: Chain,
         rpc_holder: &RPCHolder,
         key_holder: &KeyHolder,
         _epoch_dir: &EPOCH_DIRECTORY,
@@ -80,7 +81,7 @@ impl RollupSync for ROLLUP_DIRECTORY {
 
     async fn sync(
         &self,
-        network: Network,
+        chain: Chain,
         rpc_holder: &RPCHolder,
         key_holder: &KeyHolder,
         epoch_dir: &EPOCH_DIRECTORY,
@@ -93,9 +94,9 @@ impl RollupSync for ROLLUP_DIRECTORY {
 
         let rollup_dir: &ROLLUP_DIRECTORY = self;
 
-        let sync_start_height = match network {
-            Network::Signet => baked::SIGNET_SYNC_START_HEIGHT,
-            Network::Mainnet => baked::MAINNET_SYNC_START_HEIGHT,
+        let sync_start_height = match chain {
+            Chain::Signet => baked::SIGNET_SYNC_START_HEIGHT,
+            Chain::Mainnet => baked::MAINNET_SYNC_START_HEIGHT,
         };
 
         loop {

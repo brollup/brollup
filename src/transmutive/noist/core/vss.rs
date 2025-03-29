@@ -1,6 +1,5 @@
+use crate::transmutive::into::SecpError;
 use secp::{MaybePoint, Point, Scalar};
-
-use crate::into::SecpError;
 
 #[allow(non_snake_case)]
 pub fn commit_shares(coeffs: &Vec<Scalar>) -> Result<Vec<Point>, SecpError> {

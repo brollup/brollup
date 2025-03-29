@@ -1,3 +1,4 @@
+/// RPC holder.
 #[derive(Clone)]
 pub struct RPCHolder {
     url: String,

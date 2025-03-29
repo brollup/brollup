@@ -1,5 +1,5 @@
 use super::tcp::{self, TCPError};
-use crate::SOCKET;
+use crate::communicative::peer::peer::SOCKET;
 use std::time::Duration;
 
 #[derive(Copy, Clone, PartialEq)]

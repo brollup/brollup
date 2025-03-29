@@ -1,4 +1,7 @@
-use crate::{entity::account::Account, schnorr::Sighash};
+use crate::{
+    constructive::entity::account::Account,
+    transmutive::{hash::HashTag, schnorr::Sighash},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]

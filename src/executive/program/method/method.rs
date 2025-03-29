@@ -1,4 +1,6 @@
-use crate::{calldata::element::CalldataElement, executive::stack::opcode::opcode::Opcode};
+use crate::{
+    constructive::calldata::element::CalldataElement, executive::stack::opcode::opcode::Opcode,
+};
 
 /// The type of method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,7 +15,7 @@ pub enum MethodType {
 
 /// A section of executable block in the `Contract`.
 #[derive(Debug, Clone)]
-pub struct Method {
+pub struct ProgramMethod {
     /// The type of method.
     pub method_type: MethodType,
     /// The data elements to input to the method.
@@ -22,7 +24,7 @@ pub struct Method {
     pub program: Vec<Opcode>,
 }
 
-impl Method {
+impl ProgramMethod {
     /// Create a new method.
     pub fn new(
         method_type: MethodType,

@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use super::op::{op_cat::OP_CAT, op_drop::OP_DROP, op_dup::OP_DUP};
 
 /// The set of opcodes that can be used in the stack.

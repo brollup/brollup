@@ -1,8 +1,6 @@
-use crate::{
-    hash::{Hash, HashTag},
-    schnorr::Sighash,
-    entity::{account::Account, contract::Contract},
-};
+use crate::constructive::{entity::account::Account, entity::contract::Contract};
+use crate::transmutive::hash::Hash;
+use crate::transmutive::{hash::HashTag, schnorr::Sighash};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]

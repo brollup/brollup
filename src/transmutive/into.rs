@@ -1,4 +1,4 @@
-use crate::schnorr::Bytes32;
+use crate::transmutive::schnorr::Bytes32;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
 pub enum ParseError {

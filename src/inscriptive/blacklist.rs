@@ -1,6 +1,10 @@
-use crate::{entity::account::Account, Network, BLIST_DIRECTORY};
+use crate::{constructive::entity::account::Account, Chain};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+
+/// Guarded blacklist directory.
+#[allow(non_camel_case_types)]
+pub type BLIST_DIRECTORY = Arc<Mutex<BlacklistDirectory>>;
 
 /// Unix timestamp which a particular account is banned until.
 type BlameCounter = u16;
@@ -18,13 +22,8 @@ pub struct BlacklistDirectory {
 }
 
 impl BlacklistDirectory {
-    pub fn new(network: Network) -> Option<BLIST_DIRECTORY> {
-        let path = format!(
-            "{}/{}/{}",
-            "db",
-            network.to_string(),
-            "coordinator/dir/blist"
-        );
+    pub fn new(chain: Chain) -> Option<BLIST_DIRECTORY> {
+        let path = format!("{}/{}/{}", "db", chain.to_string(), "coordinator/dir/blist");
         let db = sled::open(path).ok()?;
 
         let mut list = HashMap::<Account, (BlameCounter, BlacklistedUntil)>::new();

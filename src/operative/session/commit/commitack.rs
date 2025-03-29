@@ -1,10 +1,10 @@
 use crate::{
-    entry::Entry,
-    hash::{Hash, HashTag},
-    musig::session::MusigSessionCtx,
-    schnorr::Sighash,
-    txo::lift::Lift,
-    entity::account::Account,
+    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    transmutive::{
+        hash::{Hash, HashTag},
+        musig::session::MusigSessionCtx,
+        schnorr::Sighash,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

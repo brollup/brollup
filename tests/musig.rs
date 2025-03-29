@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod musig_standalone {
-    use brollup::{
+    use brollup::transmutive::{
         musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
         schnorr,
     };

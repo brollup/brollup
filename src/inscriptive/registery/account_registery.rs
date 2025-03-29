@@ -1,4 +1,6 @@
-use crate::{entity::account::Account, Network};
+#![allow(non_camel_case_types)]
+
+use crate::{constructive::entity::account::Account, Chain};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -29,10 +31,10 @@ pub struct AccountRegistery {
 }
 
 impl AccountRegistery {
-    pub fn new(network: Network) -> Option<ACCOUNT_REGISTERY> {
+    pub fn new(chain: Chain) -> Option<ACCOUNT_REGISTERY> {
         // Open the accounts db.
         let accounts_db = {
-            let path = format!("{}/{}/{}", "db", network.to_string(), "registery/account");
+            let path = format!("{}/{}/{}", "db", chain.to_string(), "registery/account");
             sled::open(path).ok()?
         };
 
@@ -60,7 +62,7 @@ impl AccountRegistery {
             let path = format!(
                 "{}/{}/{}",
                 "db",
-                network.to_string(),
+                chain.to_string(),
                 "registery/account/counter"
             );
 

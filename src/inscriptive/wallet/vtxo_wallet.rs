@@ -1,7 +1,12 @@
-use crate::{txn::ext::OutpointExt, txo::vtxo::VTXO, Network};
+use crate::{
+    constructive::{txn::ext::OutpointExt, txo::vtxo::VTXO},
+    Chain,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Guarded VTXO wallet.
+#[allow(non_camel_case_types)]
 pub type VTXO_WALLET = Arc<Mutex<VTXOWallet>>;
 
 /// Wallet for storing VTXOs.
@@ -13,10 +18,10 @@ pub struct VTXOWallet {
 }
 
 impl VTXOWallet {
-    pub fn new(network: Network) -> Option<VTXO_WALLET> {
+    pub fn new(chain: Chain) -> Option<VTXO_WALLET> {
         // Collect VTXOs from db.
 
-        let vtxos_path = format!("{}/{}/{}", "db", network.to_string(), "wallet/vtxo");
+        let vtxos_path = format!("{}/{}/{}", "db", chain.to_string(), "wallet/vtxo");
         let vtxos_db = sled::open(vtxos_path).ok()?;
 
         let mut vtxo_set = Vec::<VTXO>::new();

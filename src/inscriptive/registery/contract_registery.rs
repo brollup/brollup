@@ -1,4 +1,5 @@
-use crate::{entity::contract::Contract, Network};
+#![allow(non_camel_case_types)]
+use crate::{constructive::entity::contract::Contract, Chain};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -28,10 +29,10 @@ pub struct ContractRegistery {
 }
 
 impl ContractRegistery {
-    pub fn new(network: Network) -> Option<CONTRACT_REGISTERY> {
+    pub fn new(chain: Chain) -> Option<CONTRACT_REGISTERY> {
         // Open the contracts db.
         let contracts_db = {
-            let path = format!("{}/{}/{}", "db", network.to_string(), "registery/contract");
+            let path = format!("{}/{}/{}", "db", chain.to_string(), "registery/contract");
             sled::open(path).ok()?
         };
 
@@ -59,7 +60,7 @@ impl ContractRegistery {
             let path = format!(
                 "{}/{}/{}",
                 "db",
-                network.to_string(),
+                chain.to_string(),
                 "registery/contract/counter"
             );
 

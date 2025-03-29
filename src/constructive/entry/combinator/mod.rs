@@ -6,7 +6,7 @@ pub mod deploy;
 pub mod liftup;
 pub mod r#move;
 pub mod recharge;
-pub mod sub;
 pub mod reserved;
 pub mod revive;
+pub mod sub;
 pub mod swapout;

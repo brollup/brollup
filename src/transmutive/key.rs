@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-use crate::schnorr::Bytes32;
+use crate::transmutive::schnorr::Bytes32;
 use bech32::{Bech32, Hrp};
 use secp::{Point, Scalar};
 

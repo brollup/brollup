@@ -1,4 +1,4 @@
-use crate::entity::account::Account;
+use crate::constructive::entity::account::Account;
 
 pub fn allowance(_msg_sender: Account) -> bool {
     let is_even: bool = _msg_sender.key().parity().into();

@@ -1,9 +1,7 @@
+use super::vss::commit_shares;
+use crate::transmutive::into::SecpError;
 use rand::RngCore;
 use secp::{MaybeScalar, Point, Scalar};
-
-use crate::into::SecpError;
-
-use super::vss::commit_shares;
 
 pub fn gen_polynomial(
     secret: Scalar,
