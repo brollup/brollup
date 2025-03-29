@@ -31,4 +31,4 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "brollup"
-path = "src/executive/main.rs"
+path = "src/operative/main.rs"

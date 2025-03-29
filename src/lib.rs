@@ -123,6 +123,10 @@ pub mod txo;
 #[path = "constructive/valtype/mod.rs"]
 pub mod valtype;
 
+// Executive
+#[path = "executive/mod.rs"]
+pub mod executive;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Network {
     Signet,
