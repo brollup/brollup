@@ -3,6 +3,7 @@ mod noist_tests {
     use brollup::{
         constructive::txo::projector::{Projector, ProjectorTag},
         inscriptive::lp::dir::LPDirectory,
+        operative::Chain,
         transmutive::{
             hash::Hash,
             musig::session::MusigSessionCtx,
@@ -13,7 +14,6 @@ mod noist_tests {
             },
             schnorr::{self, Authenticable},
         },
-        Chain,
     };
     use secp::{Point, Scalar};
 

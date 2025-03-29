@@ -1,9 +1,10 @@
 use crate::communicative::rpc::bitcoin::error::ValidateRPCError;
 use crate::communicative::rpc::bitcoin::rpcholder::RPCHolder;
-use crate::Chain;
+use crate::operative::Chain;
 use bitcoin::{Block, BlockHash};
 use bitcoincore_rpc::{json::GetBlockchainInfoResult, Auth, Client, RpcApi};
 
+/// Validates the Bitcoin RPC.
 pub fn validate_rpc(rpc_holder: &RPCHolder, chain: Chain) -> Result<(), ValidateRPCError> {
     let rpc_url = rpc_holder.url();
     let rpc_user = rpc_holder.user();
@@ -40,6 +41,7 @@ pub fn validate_rpc(rpc_holder: &RPCHolder, chain: Chain) -> Result<(), Validate
     Ok(())
 }
 
+/// Returns the chain height.
 pub fn get_chain_height(rpc_holder: &RPCHolder) -> Result<u64, bitcoincore_rpc::Error> {
     let rpc_url = rpc_holder.url();
     let rpc_user = rpc_holder.user();

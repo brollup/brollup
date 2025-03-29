@@ -13,7 +13,7 @@ mod cpe_tests {
             },
         },
         inscriptive::registery::registery::Registery,
-        Chain,
+        operative::Chain,
     };
     use secp::Point;
     use std::collections::HashMap;

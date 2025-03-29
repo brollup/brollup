@@ -1,18 +1,21 @@
-#![allow(non_camel_case_types)]
-use crate::{constructive::entity::contract::Contract, Chain};
+use crate::{constructive::entity::contract::Contract, operative::Chain};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 /// Guarded registery of contracts.
+#[allow(non_camel_case_types)]
 pub type CONTRACT_REGISTERY = Arc<Mutex<ContractRegistery>>;
 
 /// Registery index of a contract for efficient referencing (from 1 to U32::MAX).
+#[allow(non_camel_case_types)]
 type REGISTERY_INDEX = u32;
 
 /// Call counter of a contract used to rank contracts.
+#[allow(non_camel_case_types)]
 type CALL_COUNTER = u64;
 
 /// Rank integer representing the rank position of a contract (from 1 to U32::MAX).
+#[allow(non_camel_case_types)]
 type RANK = u32;
 
 /// Directory for storing contracts and their call counters.

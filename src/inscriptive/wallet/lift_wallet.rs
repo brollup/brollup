@@ -1,6 +1,6 @@
 use crate::{
     constructive::{txn::ext::OutpointExt, txo::lift::Lift},
-    Chain,
+    operative::Chain,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;

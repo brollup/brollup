@@ -1,7 +1,7 @@
 use crate::{
     inscriptive::{epoch::dir::EPOCH_DIRECTORY, wallet::wallet::WALLET},
+    operative::Chain,
     transmutive::key::KeyHolder,
-    Chain,
 };
 
 use super::addr::lift_address;

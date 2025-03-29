@@ -1,8 +1,9 @@
-use crate::Chain;
+use crate::operative::Chain;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// Guarded rollup directory.
+#[allow(non_camel_case_types)]
 pub type ROLLUP_DIRECTORY = Arc<Mutex<RollupDirectory>>;
 
 /// Directory for the rollup state.

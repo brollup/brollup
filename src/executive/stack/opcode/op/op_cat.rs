@@ -2,6 +2,7 @@ use crate::executive::stack::stack::StackItem;
 
 /// The `OP_CAT` opcode.
 #[derive(Debug, Clone, Copy)]
+#[allow(non_camel_case_types)]
 pub struct OP_CAT;
 
 impl OP_CAT {

@@ -2,12 +2,14 @@ use super::{
     lift_wallet::{LiftWallet, LIFT_WALLET},
     vtxo_wallet::{VTXOWallet, VTXO_WALLET},
 };
-use crate::Chain;
+use crate::operative::Chain;
 use colored::Colorize;
 use secp::Point;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Guarded wallet.
+#[allow(non_camel_case_types)]
 pub type WALLET = Arc<Mutex<Wallet>>;
 
 /// Wallet for storing Lifts and VTXOs.

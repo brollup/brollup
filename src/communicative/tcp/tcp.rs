@@ -2,7 +2,7 @@ use super::package::{PackageKind, TCPPackage};
 use crate::communicative::nns::client::NNSClient;
 use crate::communicative::peer::peer::SOCKET;
 use crate::transmutive::key::ToNostrKeyStr;
-use crate::{inscriptive::baked, Chain};
+use crate::{inscriptive::baked, operative::Chain};
 use easy_upnp::{add_ports, PortMappingProtocol, UpnpConfig};
 use std::time::{Duration, Instant};
 use std::{io, vec};
@@ -10,8 +10,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::sleep;
 
+/// TCP response timeout.
+#[allow(non_camel_case_types)]
 pub const TCP_RESPONSE_TIMEOUT: u64 = 3;
 
+/// TCP error.
 #[derive(Debug, Copy, Clone)]
 pub enum TCPError {
     ConnErr,

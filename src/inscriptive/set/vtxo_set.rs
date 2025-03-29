@@ -1,6 +1,6 @@
 use crate::{
     constructive::{entity::account::Account, txn::ext::OutpointExt, txo::vtxo::VTXO},
-    Chain,
+    operative::Chain,
 };
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};

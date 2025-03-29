@@ -2,7 +2,7 @@ use super::{
     utxo_set::{UTXOSet, UTXO_SET},
     vtxo_set::{VTXOSet, VTXO_SET},
 };
-use crate::Chain;
+use crate::operative::Chain;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

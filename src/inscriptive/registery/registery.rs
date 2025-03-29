@@ -2,10 +2,12 @@ use super::{
     account_registery::{AccountRegistery, ACCOUNT_REGISTERY},
     contract_registery::{ContractRegistery, CONTRACT_REGISTERY},
 };
-use crate::Chain;
+use crate::operative::Chain;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Guarded registery.
+#[allow(non_camel_case_types)]
 pub type REGISTERY = Arc<Mutex<Registery>>;
 
 /// Directory for the account registeries.

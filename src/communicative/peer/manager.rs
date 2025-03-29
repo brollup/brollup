@@ -1,5 +1,5 @@
 use super::peer::{Peer, PeerConnection, PeerKind, PEER, SOCKET};
-use crate::{communicative::nns::client::NNSClient, inscriptive::baked, Chain};
+use crate::{communicative::nns::client::NNSClient, inscriptive::baked, operative::Chain};
 use async_trait::async_trait;
 use futures::future::join_all;
 use std::{collections::HashMap, sync::Arc};

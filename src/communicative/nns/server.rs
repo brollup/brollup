@@ -1,5 +1,5 @@
 use super::client::NNSClient;
-use crate::{communicative::tcp::tcp::TCP_RESPONSE_TIMEOUT, OperatingMode};
+use crate::{communicative::tcp::tcp::TCP_RESPONSE_TIMEOUT, operative::OperatingMode};
 use colored::Colorize;
 use std::{
     fs::{self, OpenOptions},
@@ -9,6 +9,8 @@ use std::{
 };
 use tokio::time::timeout;
 
+/// Path to the file that stores the IP address of the running machine.
+#[allow(non_camel_case_types)]
 const IP_ADDR_FILE_PATH: &str = "nns_ip_address.txt";
 
 /// Executes a persistent task that monitors changes

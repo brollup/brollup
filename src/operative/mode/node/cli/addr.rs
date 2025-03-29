@@ -1,8 +1,8 @@
 use crate::{
     constructive::{taproot::P2TR, txo::lift::Lift},
     inscriptive::epoch::dir::EPOCH_DIRECTORY,
+    operative::Chain,
     transmutive::{address::encode_p2tr, key::KeyHolder},
-    Chain,
 };
 
 /// Returns the list of Taproot scriptpubkeys to scan.

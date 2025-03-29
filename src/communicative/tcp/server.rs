@@ -9,6 +9,7 @@ use crate::operative::session::opcov::CSessionOpCov;
 use crate::operative::session::uphold::NSessionUphold;
 use crate::operative::session::upholdack::CSessionUpholdAck;
 use crate::operative::session::upholdnack::CSessionUpholdNack;
+use crate::operative::{Chain, OperatingMode};
 use crate::transmutive::into::IntoPointVec;
 use crate::transmutive::key::{KeyHolder, ToNostrKeyStr};
 use crate::transmutive::musig::session::MusigSessionCtx;
@@ -18,15 +19,22 @@ use crate::transmutive::noist::dkg::session::DKGSession;
 use crate::transmutive::noist::manager::DKG_MANAGER;
 use crate::transmutive::noist::setup::{keymap::VSEKeyMap, setup::VSESetup};
 use crate::transmutive::schnorr::Authenticable;
-use crate::{Chain, OperatingMode};
 use colored::Colorize;
 use secp::Scalar;
 use std::{sync::Arc, time::Duration};
 use tokio::time::{sleep, Instant};
 use tokio::{net::TcpListener, sync::Mutex};
 
+/// Idle client timeout.
+#[allow(non_camel_case_types)]
 pub const IDLE_CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Payload read timeout.
+#[allow(non_camel_case_types)]
 pub const PAYLOAD_READ_TIMEOUT: Duration = Duration::from_millis(3000);
+
+/// Payload write timeout.
+#[allow(non_camel_case_types)]
 pub const PAYLOAD_WRITE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
 pub async fn run(

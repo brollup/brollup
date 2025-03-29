@@ -1,20 +1,22 @@
-#![allow(non_camel_case_types)]
-
-use crate::{constructive::entity::account::Account, Chain};
+use crate::{constructive::entity::account::Account, operative::Chain};
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
 /// Guarded registery of accounts.
+#[allow(non_camel_case_types)]
 pub type ACCOUNT_REGISTERY = Arc<Mutex<AccountRegistery>>;
 
 /// Registery index of an account for efficient referencing (from 1 to U32::MAX).
+#[allow(non_camel_case_types)]
 type REGISTERY_INDEX = u32;
 
 /// Call counter of an account used to rank accounts.
+#[allow(non_camel_case_types)]
 type CALL_COUNTER = u64;
 
 /// Rank integer representing the rank position of a contract (from 1 to U32::MAX).
+#[allow(non_camel_case_types)]
 type RANK = u32;
 
 /// Directory for storing accounts and their call counters.

@@ -1,6 +1,6 @@
 use crate::{
     constructive::txn::ext::{OutpointExt, TxOutExt},
-    Chain,
+    operative::Chain,
 };
 use bitcoin::{OutPoint, TxOut};
 use std::{collections::HashMap, sync::Arc};

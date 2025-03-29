@@ -6,14 +6,19 @@ use crate::{
             tcp::{connect_nns, TCPError},
         },
     },
-    Chain,
+    operative::Chain,
 };
 use async_trait::async_trait;
 use colored::Colorize;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
+/// Guarded TCP socket.
+#[allow(non_camel_case_types)]
 pub type SOCKET = Arc<Mutex<tokio::net::TcpStream>>;
+
+/// Guarded peer.
+#[allow(non_camel_case_types)]
 pub type PEER = Arc<Mutex<Peer>>;
 
 #[derive(Copy, Clone, PartialEq)]

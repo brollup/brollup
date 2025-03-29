@@ -1,10 +1,11 @@
 use brollup::{
     communicative::rpc::bitcoin::rpcholder::RPCHolder,
-    operative::mode::{coordinator::coordinator, node::node, operator::operator},
+    operative::{
+        mode::{coordinator::coordinator, node::node, operator::operator},
+        Chain, OperatingMode,
+    },
     transmutive::key::{FromNostrKeyStr, KeyHolder},
-    Chain, OperatingMode,
 };
-#[allow(unused_imports)]
 use colored::Colorize;
 use secp::Scalar;
 use std::{env, io::BufRead};
@@ -68,7 +69,7 @@ fn main() {
 
             let nsec = parts[0];
 
-            secret_key_bytes = match nsec.from_nsec() {
+            secret_key_bytes = match nsec.from_npub() {
                 Some(secret_key) => secret_key,
                 None => {
                     eprintln!("{}", "Invalid nsec.".red());

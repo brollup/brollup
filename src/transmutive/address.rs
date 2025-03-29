@@ -1,4 +1,4 @@
-use crate::Chain;
+use crate::operative::Chain;
 use bech32::{segwit, Hrp};
 
 type ScriptPubKey = Vec<u8>;
