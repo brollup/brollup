@@ -76,7 +76,7 @@ impl AtomicVal {
     }
 
     /// Returns the value as a u8.
-    pub fn value_as_u8(&self) -> u8 {
+    pub fn value(&self) -> u8 {
         match self {
             Self::Zero => 0,
             Self::One => 1,

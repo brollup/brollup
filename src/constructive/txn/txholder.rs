@@ -53,7 +53,7 @@ impl TxHolder {
 
     /// Returns the number of extra inputs.
     pub fn extra_in(&self) -> u8 {
-        self.extra_in.value_as_u8()
+        self.extra_in.value()
     }
 
     /// Returns the current input iterator position.

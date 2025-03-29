@@ -5,7 +5,7 @@ use crate::executive::stack::stack::StackItem;
 pub struct OP_DROP;
 
 impl OP_DROP {
-    pub fn execute(item: StackItem) -> Option<StackItem> {
+    pub fn execute(_: StackItem) -> Option<StackItem> {
         None
     }
 }
