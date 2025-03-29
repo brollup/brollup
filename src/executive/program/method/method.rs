@@ -1,4 +1,4 @@
-use crate::executive::{calldata::element::CalldataElement, stack::opcode::opcode::Opcode};
+use crate::{calldata::element::CalldataElement, executive::stack::opcode::opcode::Opcode};
 
 /// The type of method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
