@@ -33,8 +33,8 @@ impl Program {
     /// Returns the method by given `AtomicVal` index, rather than a u8.
     ///
     /// `AtomicVal` is a compact value representing the method's index.
-    /// A CPE-decoded `AtomicVal` support 8 values, meaning first 8 methods should be organized as callable.
-    /// This means the first 8 methods in a deployed `Contract` are the only ones that can be called by an `Account`.
+    /// A CPE-decoded `AtomicVal` support 16 values, meaning first 16 methods should be organized as callable.
+    /// This means the first 16 methods in a deployed `Contract` are the only ones that can be called by an `Account`.
     ///
     /// A `Contract` calling another `Contract` is not bound by this constraint; it can call any of its (up to 256) methods.
     pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<Method> {

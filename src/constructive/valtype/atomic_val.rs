@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// Atomic compact value representation from zero to seven.
+/// Atomic compact value representation from zero to fifteen.
 ///
 /// Used for very small value representations such as contract method call indexes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
