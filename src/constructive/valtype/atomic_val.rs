@@ -2,125 +2,98 @@ use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{error::CPEDecodingError, valtype_error::AtomicValCPEDecodingError},
 };
-use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// Atomic compact value representation from zero to fifteen.
+/// The inner value `AtomicVal` represents.
+type Value = u8;
+
+/// The upper bound of the `AtomicVal`.
+type UpperBound = u8;
+
+/// Atomic compact value representation from 0 to 255.
 ///
 /// Used for very small value representations such as contract method call indexes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum AtomicVal {
-    Zero,
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Eleven,
-    Twelve,
-    Thirteen,
-    Fourteen,
-    Fifteen,
-}
+pub struct AtomicVal(Value, UpperBound);
 
 impl AtomicVal {
-    pub fn new_u8(value: u8) -> Option<AtomicVal> {
-        match value {
-            0 => Some(AtomicVal::Zero),
-            1 => Some(AtomicVal::One),
-            2 => Some(AtomicVal::Two),
-            3 => Some(AtomicVal::Three),
-            4 => Some(AtomicVal::Four),
-            5 => Some(AtomicVal::Five),
-            6 => Some(AtomicVal::Six),
-            7 => Some(AtomicVal::Seven),
-            8 => Some(AtomicVal::Eight),
-            9 => Some(AtomicVal::Nine),
-            10 => Some(AtomicVal::Ten),
-            11 => Some(AtomicVal::Eleven),
-            12 => Some(AtomicVal::Twelve),
-            13 => Some(AtomicVal::Thirteen),
-            14 => Some(AtomicVal::Fourteen),
-            15 => Some(AtomicVal::Fifteen),
-            _ => None,
+    /// Creates a new `AtomicVal`
+    pub fn new(value: Value, upper_bound: UpperBound) -> Self {
+        Self(value, upper_bound)
+    }
+
+    /// Returns the core u8 value.
+    pub fn value(&self) -> Value {
+        self.0
+    }
+
+    /// Returns the upper bound.
+    pub fn upper_bound(&self) -> UpperBound {
+        self.1
+    }
+
+    /// Returns the bitsize tier of `AtomicVal`.
+    fn bitsize(upper_bound: UpperBound) -> u8 {
+        match upper_bound {
+            0..=1 => 1,
+            2..=3 => 2,
+            4..=7 => 3,
+            8..=15 => 4,
+            16..=31 => 5,
+            32..=63 => 6,
+            64..=127 => 7,
+            128..=255 => 8,
         }
     }
-    /// Returns the atomic value zero.
-    pub fn zero() -> Self {
-        Self::Zero
-    }
 
-    /// Returns the atomic value one.
-    pub fn one() -> Self {
-        Self::One
-    }
+    /// Convert a u8 to a n-bit BitVec.
+    fn u8_to_bits(value: u8, bitsize: u8) -> BitVec {
+        let val_bytes = value.to_le_bytes();
 
-    /// Returns the atomic value two.
-    pub fn two() -> Self {
-        Self::Two
-    }
+        // Initialize a BitVec.
+        let mut val_bits = BitVec::new();
 
-    /// Returns the atomic value three.
-    pub fn three() -> Self {
-        Self::Three
-    }
-
-    /// Returns the atomic value four.
-    pub fn four() -> Self {
-        Self::Four
-    }
-
-    /// Returns the atomic value five.
-    pub fn five() -> Self {
-        Self::Five
-    }
-
-    /// Returns the atomic value six.
-    pub fn six() -> Self {
-        Self::Six
-    }
-
-    /// Returns the atomic value seven.
-    pub fn seven() -> Self {
-        Self::Seven
-    }
-
-    /// Returns the value as a u8.
-    pub fn value(&self) -> u8 {
-        match self {
-            Self::Zero => 0,
-            Self::One => 1,
-            Self::Two => 2,
-            Self::Three => 3,
-            Self::Four => 4,
-            Self::Five => 5,
-            Self::Six => 6,
-            Self::Seven => 7,
-            Self::Eight => 8,
-            Self::Nine => 9,
-            Self::Ten => 10,
-            Self::Eleven => 11,
-            Self::Twelve => 12,
-            Self::Thirteen => 13,
-            Self::Fourteen => 14,
-            Self::Fifteen => 15,
+        // Iterate bitsize number of times.
+        for i in 0..bitsize {
+            val_bits.push((val_bytes[0] >> i) & 1 == 1);
         }
+
+        // Return the BitVec.
+        val_bits
+    }
+
+    /// Converts bits to a u8.
+    fn bits_to_u8(bits: &BitVec, bitsize: u8) -> u8 {
+        // Initialize a u8.
+        let mut decoded_val = 0u8;
+
+        // Iterate bitsize number of times.
+        for i in 0..bitsize {
+            let bit = bits[i as usize];
+            if bit {
+                decoded_val |= 1 << i;
+            }
+        }
+
+        // Return the u8.
+        decoded_val
     }
 
     /// Compact payload decoding for `AtomicVal`.
     /// Decodes an `AtomicVal` from a bit stream.
-    pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<AtomicVal, CPEDecodingError> {
+    pub fn decode_cpe(
+        bit_stream: &mut bit_vec::Iter<'_>,
+        upper_bound: u8,
+    ) -> Result<AtomicVal, CPEDecodingError> {
         // Initialize a BitVec.
         let mut bits = BitVec::new();
 
-        // Collect the 4 bits four times iteratively.
-        for _ in 0..4 {
+        // Determine the bitsize of the `AtomicVal`.
+        let bitsize = AtomicVal::bitsize(upper_bound);
+
+        // Collect bitsize number of bits.
+        for _ in 0..bitsize {
             bits.push(
                 bit_stream
                     .next()
@@ -130,60 +103,28 @@ impl AtomicVal {
             );
         }
 
-        // Convert the 4 bits to a u8 value.
-        let value = convert_4_bits_to_u8(&bits);
+        // Convert the collected bits to a u8 value.
+        let value = AtomicVal::bits_to_u8(&bits, bitsize);
 
         // Convert the u8 value to an `AtomicVal`.
-        let atomic_val =
-            AtomicVal::new_u8(value).ok_or(CPEDecodingError::AtomicValCPEDecodingError(
-                AtomicValCPEDecodingError::AtomicValConversionError,
-            ))?;
+        let atomic_val = AtomicVal::new(value, upper_bound);
 
         // Return the `AtomicVal`.
         Ok(atomic_val)
     }
 }
 
-#[async_trait]
 impl CompactPayloadEncoding for AtomicVal {
+    /// Compact payload encoding for `AtomicVal`.
+    /// Encodes an `AtomicVal` to a bit stream.
     fn encode_cpe(&self) -> Option<BitVec> {
-        // Convert the value to a 4-bit BitVec.
-        let bits = convert_u8_to_4_bits(self.value());
+        // Determine the bitsize of the `AtomicVal`.
+        let bitsize = AtomicVal::bitsize(self.upper_bound());
+
+        // Convert the value to a n-bit BitVec.
+        let bits = AtomicVal::u8_to_bits(self.value(), bitsize);
 
         // Return the BitVec.
         Some(bits)
     }
-}
-
-/// Convert a u8 to a 4-bit BitVec.
-fn convert_u8_to_4_bits(value: u8) -> BitVec {
-    let val_bytes = value.to_le_bytes();
-
-    // Initialize a BitVec.
-    let mut val_bits = BitVec::new();
-
-    // Iterate 4 times to push the 4 bits.
-    for i in 0..4 {
-        val_bits.push((val_bytes[0] >> i) & 1 == 1);
-    }
-
-    // Return the BitVec.
-    val_bits
-}
-
-/// Convert a 4-bit BitVec to a u8.
-fn convert_4_bits_to_u8(bits: &BitVec) -> u8 {
-    // Initialize a u8.
-    let mut decoded_val = 0u8;
-
-    // Iterate 4 times to decode the 4 bits.
-    for i in 0..4 {
-        let bit = bits[i];
-        if bit {
-            decoded_val |= 1 << i;
-        }
-    }
-
-    // Return the u8.
-    decoded_val
 }

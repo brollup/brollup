@@ -20,49 +20,105 @@ mod cpe_tests {
 
     #[tokio::test]
     async fn cpe_atomic_val_test() -> Result<(), String> {
-        // Value 0 (u8) (0 < 0 <= 15).
-        let atomic_val = AtomicVal::new_u8(0).unwrap();
+        // Test 0 with upper bound 1.
+        let atomic_val = AtomicVal::new(0, 1);
         let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 1.
+        assert_eq!(encoded.len(), 1);
         let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 1).unwrap();
+        assert_eq!(decoded.value(), 0);
+        assert_eq!(decoded.upper_bound(), 1);
 
-        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        // Test 0 with upper bound 2.
+        let atomic_val = AtomicVal::new(0, 2);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 2.
+        assert_eq!(encoded.len(), 2);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 2).unwrap();
         assert_eq!(decoded.value(), 0);
 
-        // Value 1 (u8) (0 < 1 <= 15).
-        let atomic_val = AtomicVal::new_u8(1).unwrap();
+        // Test 1 with upper bound 4.
+        let atomic_val = AtomicVal::new(1, 4);
         let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 3.
+        assert_eq!(encoded.len(), 3);
         let mut bit_stream = encoded.iter();
-
-        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 4).unwrap();
         assert_eq!(decoded.value(), 1);
 
-        // Value 2 (u8) (0 < 5 <= 15).
-        let atomic_val = AtomicVal::new_u8(5).unwrap();
+        // Test 3 with upper bound 6.
+        let atomic_val = AtomicVal::new(3, 6);
         let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is still 3.
+        assert_eq!(encoded.len(), 3);
         let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 6).unwrap();
+        assert_eq!(decoded.value(), 3);
 
-        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.value(), 5);
-
-        // Value 3 (u8) (0 < 11 <= 15).
-        let atomic_val = AtomicVal::new_u8(11).unwrap();
+        // Test 11 with upper bound 15.
+        let atomic_val = AtomicVal::new(11, 15);
         let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 4.
+        assert_eq!(encoded.len(), 4);
         let mut bit_stream = encoded.iter();
-
-        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 15).unwrap();
         assert_eq!(decoded.value(), 11);
 
-        // Value 15 (u8) (0 < 15 <= 15).
-        let atomic_val = AtomicVal::new_u8(15).unwrap();
+        // Test 5 with upper bound 40.
+        let atomic_val = AtomicVal::new(5, 40);
         let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 6.
+        assert_eq!(encoded.len(), 6);
         let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 40).unwrap();
+        assert_eq!(decoded.value(), 5);
 
-        let decoded = AtomicVal::decode_cpe(&mut bit_stream).unwrap();
-        assert_eq!(decoded.value(), 15);
+        // Test 55 with upper bound 80.
+        let atomic_val = AtomicVal::new(55, 80);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 7.
+        assert_eq!(encoded.len(), 7);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 80).unwrap();
+        assert_eq!(decoded.value(), 55);
 
-        // Value 16 (u8) (16 > 15) is not a valid AtomicVal.
-        let atomic_val = AtomicVal::new_u8(16);
-        assert!(atomic_val.is_none());
+        // Test 30 with upper bound 127.
+        let atomic_val = AtomicVal::new(30, 127);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is still 7.
+        assert_eq!(encoded.len(), 7);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 127).unwrap();
+        assert_eq!(decoded.value(), 30);
+
+        // Test 199 with upper bound 200.
+        let atomic_val = AtomicVal::new(199, 200);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is 8.
+        assert_eq!(encoded.len(), 8);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 200).unwrap();
+        assert_eq!(decoded.value(), 199);
+
+        // Test 100 with upper bound 255.
+        let atomic_val = AtomicVal::new(100, 255);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is still 8.
+        assert_eq!(encoded.len(), 8);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 255).unwrap();
+        assert_eq!(decoded.value(), 100);
+
+        // Test 255 with upper bound 255.
+        let atomic_val = AtomicVal::new(255, 255);
+        let encoded = atomic_val.encode_cpe().unwrap();
+        // Expected bitsize length is still 8.
+        assert_eq!(encoded.len(), 8);
+        let mut bit_stream = encoded.iter();
+        let decoded = AtomicVal::decode_cpe(&mut bit_stream, 255).unwrap();
+        assert_eq!(decoded.value(), 255);
 
         Ok(())
     }

@@ -8,6 +8,9 @@ const DEFAULT_NUM_INS: u32 = 1;
 /// Default number of outputs: `Payload`, `VTXO Projector`, `Connector Projector`.
 const DEFAULT_NUM_OUTS: u32 = 3;
 
+/// Maximum 8 extra inputs are allowed.
+const MAX_EXTRA_INS: u8 = 8;
+
 /// A holder for a transaction, its extra inputs, and its input and output iterators.
 pub struct TxHolder {
     utxo_set: UTXO_SET,
@@ -33,7 +36,7 @@ impl TxHolder {
         );
 
         // Convert the extra inputs/outputs to their respective atomic values.
-        let extra_in = AtomicVal::new_u8(extra_in)?;
+        let extra_in = AtomicVal::new(extra_in, MAX_EXTRA_INS);
 
         let tx_holder = TxHolder {
             utxo_set: Arc::clone(&utxo_set),

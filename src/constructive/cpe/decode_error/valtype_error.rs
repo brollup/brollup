@@ -20,8 +20,6 @@ pub enum MaybeCommonCPEDecodingError {
 pub enum AtomicValCPEDecodingError {
     // Bit stream iteration error.
     BitStreamIteratorError,
-    // Atomic value conversion error.
-    AtomicValConversionError,
 }
 
 /// Error type for `ShortVal` CPE decoding.
