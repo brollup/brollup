@@ -5,17 +5,29 @@ The value types are defined as follows:
 
 | Value Type           | Description                                                                     |
 |----------------------|---------------------------------------------------------------------------------|
-| AtomicVal            | A highly compact integer representation ranging from 0 to 15.                   |
+| AtomicVal            | A highly compact integer representation ranging from 0 to 255.                  |
 | ShortVal             | A flexible integer representation ranging from 0 to 4,294,967,295.              |
 | MaybeCommon ShortVal | A possibly common `ShortVal`.                                                   |
 | LongVal              | A scalable integer representation ranging from 0 to 18,446,744,073,709,551,615. |
 | MaybeCommon LongVal  | A possibly common `LongVal`.                                                    |
 
 ## AtomicVal
+`AtomicVal` is a highly compact unsigned integer representation ranging from 0 to 255. It dynamically determines the number of bits it needs to collect based on an upper bound.
 
-`AtomicVal` is a compact unsigned integer representation ranging from 0 (inclusive) to 15 (inclusive). It is used for representing very small values, such as contract `Contract` call methods. 
+| AtomicVal Tiers | Description                        | Upper Bound Range | Bitsize |
+|-----------------|------------------------------------|-------------------|---------|
+| b1              | Represents values from 0 to 1.     | 0 <= x <= 1       | 1 bit   |
+| b2              | Represents values from 0 to 3.     | 1 <= x <= 3       | 2 bits  |
+| b3              | Represents values from 0 to 7.     | 3 <= x <= 7       | 3 bits  |
+| b4              | Represents values from 0 to 15.    | 7 <= x <= 15      | 4 bits  |
+| b5              | Represents values from 0 to 31.    | 15 <= x <= 31     | 5 bits  |
+| b6              | Represents values from 0 to 63.    | 31 <= x <= 63     | 6 bits  |
+| b7              | Represents values from 0 to 127.   | 63 <= x <= 127    | 7 bits  |
+| b8              | Represents values from 0 to 255.   | 127 <= x <= 255   | 8 bits  |
 
-`AtomicVal` consumes only 4 bits, compared to the `ShortVal` equivalent (`u8`), which would require 10 bits. This results in a savings of 6 bits per `Entry` in the `Payload`, translating to approximately ~0.20 vBytes of block space savings.
+`AtomicVal` is used for encoding very small values, such as `Contract` call methods.
+
+In the case of an average `Contract` with four callable methods, `AtomicVal` would typically fall into the `b2` tier, consuming only 2 bits. In contrast, traditional EVM function selectors require 4 bytes. This results in a savings of 30 bits per `Entry` in the `Payload`, translating to an approximate savings of ~0.93 vBytes in block space.
 
 ## ShortVal
 
