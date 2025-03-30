@@ -27,7 +27,7 @@ The value types are defined as follows:
 
 `AtomicVal` is used for encoding very small values, such as `Contract` call methods.
 
-In the case of an average `Contract` with four callable methods, `AtomicVal` would typically fall into the `b2` tier, consuming only 2 bits. In contrast, traditional EVM function selectors require 4 bytes. This results in a savings of 30 bits per `Entry` in the `Payload`, translating to an approximate savings of ~0.93 vBytes in block space.
+For an average `Contract` with four callable methods, `AtomicVal` falls into the b2 tier, and consume only 2 bits. Compared to traditional EVM `function selectors`, which use 4 bytes, this results in a savings of 30 bits per `Entry` in the `Payload`, translating to approximately ~0.93 vBytes in block space.
 
 ## ShortVal
 

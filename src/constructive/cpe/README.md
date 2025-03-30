@@ -63,7 +63,7 @@ In Brollup, transactions are asserted, meaning that only valid transactions are 
 ## Savings
 
 #### AMM Swap
-Taking an average AMM contract swap as an example, Brollup consumes only around ~10.5 bytes (~2.62 vBytes) of block space. In comparison, zkEVM requires 33 bytes, resulting in an approximate savings of 5.62 vBytes of block space. As a result, Brollup can handle about 3.1x times more AMM swaps than a zkEVM clone on Bitcoin, and approximately 10.5x times more transactions than a standard EVM.
+Taking an average AMM contract swap as an example, Brollup consumes only around ~10.5 bytes (~2.62 vBytes) of block space. In comparison, zkEVM requires 33 bytes, resulting in an approximate savings of 5.62 vBytes of block space. As a result, Brollup can handle about 3.1x times more AMM swaps than a zkEVM clone on Bitcoin, and approximately 10.5x times more than a standard EVM.
 
 | VM Type | From Account | To Contract | Value    | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Efficiency | TPS |
 |:--------|:-------------|:------------|:---------|:---------|:----------------|:------------|:-----------|:-----------|:-----------|:-----------|:----|
@@ -73,13 +73,13 @@ Taking an average AMM contract swap as an example, Brollup consumes only around 
 
 
 #### Token Transfer
-Taking a standard token transfer as an example, Brollup consumes only around ~7.5 bytes (~1.87 vBytes) of block space. In comparison, zkEVM requires 28 bytes, resulting in an approximate savings of 5.12 vBytes of block space. As a result, Brollup can handle about 3.8x times more token transfers than a zkEVM clone on Bitcoin, and approximately 14x times more transactions than a standard EVM.
+Taking a standard token transfer as an example, Brollup consumes only around ~9.5 bytes (~2.3 vBytes) of block space. In comparison, zkEVM requires 33 bytes, resulting in an approximate savings of 5.8 vBytes of block space. As a result, Brollup can handle about 3.5x times more token transfers than a zkEVM clone on Bitcoin, and approximately 13.2x times more than a standard EVM.
 
 | VM Type | From Account | To Contract | Value    | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Efficiency | TPS |
 |:--------|:-------------|:------------|:---------|:---------|-----------------|:------------|:-----------|:-----------|:-----------|:-----------|:----|
-| Brollup | ~3 bytes     | ~10 bits    | -        | -        | -               | 2 bits      | 3 bytes    | Negligible | 7.5 bytes  | 14.1x      | 888 |
-| zkEVM   | 4 bytes      | 4 bytes     | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 5 bytes    | Negligible | 29 bytes   | 3.6x       | 229 |
-| EVM     | -            | 20 bytes    | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 5 bytes    | 65 bytes   | 106 bytes  | 1x         | 62  |
+| Brollup | ~3 bytes     | ~10 bits    | -        | -        | -               | 2 bits      | 5 bytes    | Negligible | 9.5 bytes  | 13.2x      | 701 |
+| zkEVM   | 4 bytes      | 4 bytes     | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | Negligible | 33 bytes   | 3.8x       | 202 |
+| EVM     | -            | 20 bytes    | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 25 bytes   | 65 bytes   | 126 bytes  | 1x         | 52  |
 
 
 > [!NOTE]
