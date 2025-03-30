@@ -3,12 +3,12 @@
 
 `CPE` allows Brollup to pack as many transactions as possible into a Bitcoin block, enabling it to handle significantly more transactions compared to zkEVM and EVM. By optimizing transaction encoding, indexing, and signature aggregation, Brollup achieves higher throughput and lower transaction costs, making it a highly scalable solution for decentralized Bitcoin applications.
 
-### VM Comparsion
-| VM Type | Encoding                        | Scope      | Indexing       | Signature   | Nonce     | Gas Price/Limit | Error-handling | Efficiency |
-|:--------|:--------------------------------|:-----------|:---------------|:------------|:----------|:----------------|:---------------|:-----------|
-| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Aggregated  | -         | -               | Assertions     | 10.3x      |
-| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Aggregated  | Present   | Present         | Failures       | 3.0x       |
-| EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | 65 bytes    | Present   | Present         | Failures       | 1x         |
+## VM Comparsion
+| VM Type | Encoding                        | Scope      | Indexing       | Nonce     | Gas Price/Limit | Calldata     | Signature   | Error-handling |
+|:--------|:--------------------------------|:-----------|:---------------|-----------|:----------------|:-------------|:------------|:---------------|
+| Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | -         | -               | Non-prefixed | Aggregated  | Assertions     |
+| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Present   | Present         | Prefixed     | Aggregated  | Failures       |
+| EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | Present   | Present         | Prefixed     | 65 bytes    | Failures       |
 
 `Compact Payload Encoding (CPE)`'s efficiency is attributed to 8 key areas:
 
@@ -60,14 +60,27 @@ See [Entry](https://github.com/brollup/brollup/tree/main/src/constructive/entry)
 #### 8. Assertions
 In Brollup, transactions are asserted, meaning that only valid transactions are included in blocks. Failed transactions are never recorded, resulting in a cleaner state and fewer invalid operations. In contrast, both zkEVM and Ethereum allow failed transactions to end up in blocks, which increases overhead and reduces overall efficiency. This means Brollup achieves an overall 5% historical block space savings in comparison.
 
-### Savings
-Taking an average AMM contract call as an example, Brollup consumes only around ~10.5 bytes (~2.62 vBytes) of block space. In comparison, zkEVM requires 32 bytes, resulting in an approximate savings of 5.37 vBytes of block space. This makes Brollup roughly 3.0x times more efficient in terms of data availability. As a result, Brollup can handle about 3.0x times more transactions than a zkEVM clone on Bitcoin and approximately 10.3x times more transactions than a standard EVM.
+## Savings
 
-| VM Type | From Account | To Contract | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Savings    |
-|:--------|:-------------|:------------|:---------|-----------------|:------------|:-----------|:-----------|:-----------|:-----------|
-| Brollup | ~3 bytes     | ~10 bits    | -        | -               | 2 bits      | 6 bytes    | Negligible | 10.5 bytes | 99.4 bytes |
-| zkEVM   | 4 bytes      | 4 bytes     | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | Negligible | 32 bytes   | 77 bytes   |
-| EVM     | -            | 20 bytes    | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | 65 bytes   | 109 bytes  | -          |
+#### AMM Swap
+Taking an average AMM contract swap as an example, Brollup consumes only around ~10.5 bytes (~2.62 vBytes) of block space. In comparison, zkEVM requires 33 bytes, resulting in an approximate savings of 5.62 vBytes of block space. As a result, Brollup can handle about 3.1x times more AMM swaps than a zkEVM clone on Bitcoin, and approximately 10.5x times more transactions than a standard EVM.
+
+| VM Type | From Account | To Contract | Value    | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Efficiency | TPS |
+|:--------|:-------------|:------------|:---------|:---------|:----------------|:------------|:-----------|:-----------|:-----------|:-----------|:----|
+| Brollup | ~3 bytes     | ~10 bits    | -        | -        | -               | 2 bits      | 6 bytes    | Negligible | 10.5 bytes | 10.5x      | 634 |
+| zkEVM   | 4 bytes      | 4 bytes     | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | Negligible | 33 bytes   | 3.3x       | 202 |
+| EVM     | -            | 20 bytes    | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | 65 bytes   | 110 bytes  | 1x         | 60  |
+
+
+#### Token Transfer
+Taking a standard token transfer as an example, Brollup consumes only around ~7.5 bytes (~1.87 vBytes) of block space. In comparison, zkEVM requires 28 bytes, resulting in an approximate savings of 5.12 vBytes of block space. As a result, Brollup can handle about 3.8x times more token transfers than a zkEVM clone on Bitcoin, and approximately 14x times more transactions than a standard EVM.
+
+| VM Type | From Account | To Contract | Value    | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Efficiency | TPS |
+|:--------|:-------------|:------------|:---------|:---------|-----------------|:------------|:-----------|:-----------|:-----------|:-----------|:----|
+| Brollup | ~3 bytes     | ~10 bits    | -        | -        | -               | 2 bits      | 3 bytes    | Negligible | 7.5 bytes  | 14.1x      | 888 |
+| zkEVM   | 4 bytes      | 4 bytes     | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 5 bytes    | Negligible | 29 bytes   | 3.6x       | 229 |
+| EVM     | -            | 20 bytes    | 1 byte   | ~3 bytes | ~8 bytes        | 4 bytes     | 5 bytes    | 65 bytes   | 106 bytes  | 1x         | 62  |
+
 
 > [!NOTE]
-> This comparison excludes further savings from (3) common value lookup, (4) signature aggregation, and (7) assertions. Factoring in these optimizations, the efficiency is projected to surpass 3.0x compared to zkEVMs.
+> Comparisons excludes further savings from (3) common value lookup, (4) signature aggregation, and (7) assertions. Factoring in these optimizations, the efficiency is projected to surpass the estimate.
