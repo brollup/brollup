@@ -7,7 +7,7 @@
 | VM Type | Encoding                        | Scope      | Indexing       | Signature   | Nonce     | Gas Price/Limit | Error-handling | Efficiency |
 |:--------|:--------------------------------|:-----------|:---------------|:------------|:----------|:----------------|:---------------|:-----------|
 | Brollup | Compact-payload-encoding (CPE)  | Bit-level  | Rank-based     | Aggregated  | -         | -               | Assertions     | 10.3x      |
-| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Aggregated  | Present   | Present         | Failures       | 3.3x       |
+| zkEVM   | Recursive-length prefix (RLP)   | Byte-level | Registery-based| Aggregated  | Present   | Present         | Failures       | 3.0x       |
 | EVM     | Recursive-length prefix (RLP)   | Byte-level | -              | 65 bytes    | Present   | Present         | Failures       | 1x         |
 
 `Compact Payload Encoding (CPE)`'s efficiency is attributed to 8 key areas:
@@ -36,6 +36,8 @@ See [Calldata](https://github.com/brollup/brollup/tree/main/src/constructive/cal
 
 In the case of an average `Contract` with four callable methods, `AtomicVal` would consume only 2 bits. In contrast, traditional EVM function selectors require 4 bytes. This results in a savings of 30 bits per `Entry` in the `Payload`, translating to an approximate ~0.93 vBytes of block space savings.
 
+See [Atomicval](https://github.com/brollup/brollup/tree/main/src/constructive/valtype#atomicval).
+
 #### 5. Common Value Lookup
 `CPE` uses a lookup table to efficiently encode commonly used values like 100, 5,000, and 10,000,000. This method significantly reduces byte usage when contracts with fewer decimal places are called with these values. By leveraging the lookup table to encode frequent patterns, Brollup minimizes DA overhead at scale. 
 
@@ -59,13 +61,13 @@ See [Entry](https://github.com/brollup/brollup/tree/main/src/constructive/entry)
 In Brollup, transactions are asserted, meaning that only valid transactions are included in blocks. Failed transactions are never recorded, resulting in a cleaner state and fewer invalid operations. In contrast, both zkEVM and Ethereum allow failed transactions to end up in blocks, which increases overhead and reduces overall efficiency. This means Brollup achieves an overall 5% historical block space savings in comparison.
 
 ### Savings
-Taking an average AMM contract call as an example, Brollup consumes only around ~10.6 bytes (~2.65 vBytes) of block space. In comparison, zkEVM requires 33 bytes, resulting in an approximate savings of 5.6 vBytes of block space. This makes Brollup roughly 3.30x times more efficient in terms of data availability. As a result, Brollup can handle about 3.10x times more transactions than a zkEVM clone on Bitcoin and approximately x10.3 times more transactions than a standard EVM.
+Taking an average AMM contract call as an example, Brollup consumes only around ~10.5 bytes (~2.62 vBytes) of block space. In comparison, zkEVM requires 32 bytes, resulting in an approximate savings of 5.37 vBytes of block space. This makes Brollup roughly 3.0x times more efficient in terms of data availability. As a result, Brollup can handle about 3.0x times more transactions than a zkEVM clone on Bitcoin and approximately 10.3x times more transactions than a standard EVM.
 
-| VM Type | From Account | To Contract | Call Method | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Savings    |
-|:--------|:-------------|:------------|:------------|:---------|:----------------|:------------|:-----------|:-----------|:-----------|:-----------|
-| Brollup | ~3 bytes     | ~10 bits    | 2 bits      | -        | -               | 2 bits      | 6 bytes    | Negligible | 10.6 bytes | 99.4 bytes |
-| zkEVM   | 4 bytes      | 4 bytes     | 1 byte      | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | Negligible | 33 bytes   | 77 bytes   |
-| EVM     | -            | 20 bytes    | 1 byte      | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | 65 bytes   | 110 bytes  | -          |
+| VM Type | From Account | To Contract | Nonce    | Gas Price/Limit | Call Method | Calldata   | Signature  | Size       | Savings    |
+|:--------|:-------------|:------------|:---------|-----------------|:------------|:-----------|:-----------|:-----------|:-----------|
+| Brollup | ~3 bytes     | ~10 bits    | -        | -               | 2 bits      | 6 bytes    | Negligible | 10.5 bytes | 99.4 bytes |
+| zkEVM   | 4 bytes      | 4 bytes     | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | Negligible | 32 bytes   | 77 bytes   |
+| EVM     | -            | 20 bytes    | ~3 bytes | ~8 bytes        | 4 bytes     | 9 bytes    | 65 bytes   | 109 bytes  | -          |
 
 > [!NOTE]
-> This comparison excludes further savings from (3) common value lookup, (4) signature aggregation, and (7) assertions. Factoring in these optimizations, the efficiency is projected to surpass 3.10x compared to zkEVMs.
+> This comparison excludes further savings from (3) common value lookup, (4) signature aggregation, and (7) assertions. Factoring in these optimizations, the efficiency is projected to surpass 3.0x compared to zkEVMs.
