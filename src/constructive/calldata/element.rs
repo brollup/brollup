@@ -174,7 +174,7 @@ impl CalldataElement {
                             }),
                         )
                     })?
-                    .inner_val();
+                    .value();
 
                 // Construct the `CalldataElement`.
                 let element = CalldataElement::U32(short_val);
@@ -195,7 +195,7 @@ impl CalldataElement {
                             }),
                         )
                     })?
-                    .inner_val();
+                    .value();
 
                 let element = CalldataElement::U64(long_val);
 

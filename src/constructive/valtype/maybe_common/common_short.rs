@@ -1,22 +1,30 @@
 use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
-    decode_error::{error::CPEDecodingError, valtype_error::MaybeCommonCPEDecodingError},
+    decode_error::{
+        error::CPEDecodingError,
+        valtype_error::{CommonShortValCPEDecodingError, MaybeCommonCPEDecodingError},
+    },
 };
+use crate::constructive::valtype::u8_ext::U8Ext;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// `CommonVal` represents a common integer value.
+/// The bitsize of the `CommonShortVal`.
+const COMMON_SHORT_BITSIZE: u8 = 6;
+
+/// `CommonShortVal` represents a common u32 integer value.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CommonVal {
+pub struct CommonShortVal {
     value: u32,
     index: u8,
 }
 
-impl CommonVal {
-    /// Creates a new `CommonVal` from a `u32` integer.
-    pub fn new(value: u32) -> Option<CommonVal> {
+impl CommonShortVal {
+    /// Creates a new `CommonShortVal` from a `u32` integer.
+    pub fn new(value: u32) -> Option<CommonShortVal> {
         // Get the index.
         let index = match value {
+            50 => 0,
             100 => 1,
             200 => 2,
             250 => 3,
@@ -84,43 +92,55 @@ impl CommonVal {
             _ => return None, // Invalid value
         };
 
-        // Create a new `CommonVal`.
-        let common_short_val = CommonVal { value, index };
+        // Create a new `CommonShortVal`.
+        let common_short_val = CommonShortVal { value, index };
 
-        // Return the `CommonVal`.
+        // Return the `CommonShortVal`.
         Some(common_short_val)
     }
 
-    /// Returns the inner u32 value of the `CommonVal`.
+    /// Returns the inner u32 value of the `CommonShortVal`.
     pub fn value(&self) -> u32 {
         self.value
     }
 
-    /// Returns the index of the `CommonVal`.
+    /// Returns the index of the `CommonShortVal`.
     pub fn index(&self) -> u8 {
         self.index
     }
 
-    /// Compact payload encoding for `CommonInt`.
+    /// Compact payload encoding for `CommonShortVal`.
     /// Decodes a common u32 integer from a 6-bit `bit_vec::Iter`.
     pub fn decode_cpe(bit_stream: &mut bit_vec::Iter<'_>) -> Result<Self, CPEDecodingError> {
-        let mut index: u8 = 0;
+        // Initialize empty bitvec.
+        let mut bits = BitVec::new();
 
         // Collect 6 bits from the bit stream
-        for i in 0..6 {
-            match bit_stream.next() {
-                Some(true) => index |= 1 << i,
-                Some(false) => {}
-                None => {
-                    return Err(CPEDecodingError::MaybeCommonCPEDecodingError(
-                        MaybeCommonCPEDecodingError::BitStreamIteratorError,
-                    ))
-                }
-            }
+        for _ in 0..COMMON_SHORT_BITSIZE {
+            let bit = bit_stream
+                .next()
+                .ok_or(CPEDecodingError::MaybeCommonCPEDecodingError(
+                    MaybeCommonCPEDecodingError::CommonShortValCPEDecodingError(
+                        CommonShortValCPEDecodingError::BitStreamIteratorError,
+                    ),
+                ))?;
+
+            // Push the bit to the bitvec.
+            bits.push(bit);
         }
+
+        // Decode index.
+        let index = u8::from_bits(&bits, COMMON_SHORT_BITSIZE).ok_or(
+            CPEDecodingError::MaybeCommonCPEDecodingError(
+                MaybeCommonCPEDecodingError::CommonShortValCPEDecodingError(
+                    CommonShortValCPEDecodingError::U8BitCodecError,
+                ),
+            ),
+        )?;
 
         // Convert the 6-bit index to a CommonInt variant and its u32 value
         let value: u32 = match index {
+            0 => 50,
             1 => 100,
             2 => 200,
             3 => 250,
@@ -187,29 +207,28 @@ impl CommonVal {
 
             _ => {
                 return Err(CPEDecodingError::MaybeCommonCPEDecodingError(
-                    MaybeCommonCPEDecodingError::UncommonInteger,
+                    MaybeCommonCPEDecodingError::CommonShortValCPEDecodingError(
+                        CommonShortValCPEDecodingError::UncommonInteger,
+                    ),
                 ))
             }
         };
 
         // Create a new `CommonVal`.
-        let common_short_val = CommonVal { value, index };
+        let common_short_val = CommonShortVal { value, index };
 
         // Return the `CommonVal`.
         Ok(common_short_val)
     }
 }
 
-impl CompactPayloadEncoding for CommonVal {
+impl CompactPayloadEncoding for CommonShortVal {
     fn encode_cpe(&self) -> Option<BitVec> {
         // Get the index.
         let index = self.index();
 
-        // Create a 6-bit `BitVec` based on the bitcode.
-        let mut bits = BitVec::from_elem(6, false);
-        for bit in 0..6 {
-            bits.set(bit, (index & (1 << bit)) != 0);
-        }
+        // Convert index to a bits with the bitsize of 6.
+        let bits = u8::to_bits(index, COMMON_SHORT_BITSIZE)?;
 
         // Return the bits.
         Some(bits)

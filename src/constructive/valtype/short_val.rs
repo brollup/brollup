@@ -3,12 +3,12 @@ use crate::constructive::cpe::{
     decode_error::{error::CPEDecodingError, valtype_error::ShortValCPEDecodingError},
 };
 use crate::constructive::valtype::long_val::LongVal;
-use crate::constructive::valtype::maybe_common::maybe_common::{
-    Commonable, MaybeCommonType, ShortOrLong,
-};
+use crate::constructive::valtype::maybe_common::maybe_common::Commonable;
 use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
+
+use super::maybe_common::maybe_common::{MaybeCommonValue, MaybeCommonValueType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ShortVal(pub u32);
@@ -176,12 +176,12 @@ impl CompactPayloadEncoding for ShortVal {
 
 /// Implement `Commonable` for `ShortVal`.
 impl Commonable for ShortVal {
-    fn maybe_common_type(&self) -> MaybeCommonType {
-        MaybeCommonType::Short(self.clone())
+    fn maybe_common_value(&self) -> MaybeCommonValue {
+        MaybeCommonValue::Short(self.clone())
     }
 
-    fn short_or_long() -> ShortOrLong {
-        ShortOrLong::Short
+    fn maybe_common_value_type() -> MaybeCommonValueType {
+        MaybeCommonValueType::Short
     }
 }
 

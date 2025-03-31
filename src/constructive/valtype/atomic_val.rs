@@ -2,6 +2,7 @@ use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{error::CPEDecodingError, valtype_error::AtomicValCPEDecodingError},
 };
+use crate::constructive::valtype::u8_ext::U8Ext;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
@@ -47,39 +48,6 @@ impl AtomicVal {
         }
     }
 
-    /// Convert a u8 to a n-bit BitVec.
-    fn u8_to_bits(value: u8, bitsize: u8) -> BitVec {
-        let val_bytes = value.to_le_bytes();
-
-        // Initialize a BitVec.
-        let mut val_bits = BitVec::new();
-
-        // Iterate bitsize number of times.
-        for i in 0..bitsize {
-            val_bits.push((val_bytes[0] >> i) & 1 == 1);
-        }
-
-        // Return the BitVec.
-        val_bits
-    }
-
-    /// Converts bits to a u8.
-    fn bits_to_u8(bits: &BitVec, bitsize: u8) -> u8 {
-        // Initialize a u8.
-        let mut decoded_val = 0u8;
-
-        // Iterate bitsize number of times.
-        for i in 0..bitsize {
-            let bit = bits[i as usize];
-            if bit {
-                decoded_val |= 1 << i;
-            }
-        }
-
-        // Return the u8.
-        decoded_val
-    }
-
     /// Compact payload decoding for `AtomicVal`.
     /// Decodes an `AtomicVal` from a bit stream.
     pub fn decode_cpe(
@@ -104,7 +72,9 @@ impl AtomicVal {
         }
 
         // Convert the collected bits to a u8 value.
-        let value = AtomicVal::bits_to_u8(&bits, bitsize);
+        let value = u8::from_bits(&bits, bitsize).ok_or(
+            CPEDecodingError::AtomicValCPEDecodingError(AtomicValCPEDecodingError::U8BitCodecError),
+        )?;
 
         // Convert the u8 value to an `AtomicVal`.
         let atomic_val = AtomicVal::new(value, upper_bound);
@@ -122,7 +92,7 @@ impl CompactPayloadEncoding for AtomicVal {
         let bitsize = AtomicVal::bitsize(self.upper_bound());
 
         // Convert the value to a n-bit BitVec.
-        let bits = AtomicVal::u8_to_bits(self.value(), bitsize);
+        let bits = u8::to_bits(self.value(), bitsize)?;
 
         // Return the BitVec.
         Some(bits)

@@ -1,10 +1,9 @@
+use super::maybe_common::maybe_common::{MaybeCommonValue, MaybeCommonValueType};
 use crate::constructive::cpe::{
     cpe::CompactPayloadEncoding,
     decode_error::{error::CPEDecodingError, valtype_error::LongValCPEDecodingError},
 };
-use crate::constructive::valtype::maybe_common::maybe_common::{
-    Commonable, MaybeCommonType, ShortOrLong,
-};
+use crate::constructive::valtype::maybe_common::maybe_common::Commonable;
 use crate::constructive::valtype::short_val::ShortVal;
 use async_trait::async_trait;
 use bit_vec::BitVec;
@@ -266,12 +265,12 @@ impl CompactPayloadEncoding for LongVal {
 
 /// Implement `Commonable` for `LongVal`.
 impl Commonable for LongVal {
-    fn maybe_common_type(&self) -> MaybeCommonType {
-        MaybeCommonType::Long(self.clone())
+    fn maybe_common_value(&self) -> MaybeCommonValue {
+        MaybeCommonValue::Long(self.clone())
     }
 
-    fn short_or_long() -> ShortOrLong {
-        ShortOrLong::Long
+    fn maybe_common_value_type() -> MaybeCommonValueType {
+        MaybeCommonValueType::Long
     }
 }
 
