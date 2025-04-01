@@ -69,7 +69,7 @@ fn main() {
 
             let nsec = parts[0];
 
-            secret_key_bytes = match nsec.from_npub() {
+            secret_key_bytes = match nsec.from_nsec() {
                 Some(secret_key) => secret_key,
                 None => {
                     eprintln!("{}", "Invalid nsec.".red());
