@@ -1,52 +1,67 @@
 #[cfg(test)]
 mod stack_tests {
     use brollup::executive::stack::{
-        opcode::op::{op_2drop::OP_2DROP, op_cat::OP_CAT, op_drop::OP_DROP, op_dup::OP_DUP},
-        stack::{Stack, StackError, StackItem},
+        opcode::op::{
+            altstack::{op_fromaltstack1::OP_FROMALTSTACK1, op_toaltstack1::OP_TOALTSTACK1},
+            op_cat::OP_CAT,
+            op_equalverify::OP_EQUALVERIFY,
+        },
+        stack::{StackError, StackHolder, StackItem},
     };
 
     #[test]
     fn stack_test() -> Result<(), StackError> {
-        let mut stack = Stack::init();
+        let mut stack_holder = StackHolder::new();
 
-        // Push 0xaa
-        stack.push(StackItem::new(vec![0xaa]));
-
-        // Push 0xdead
-        stack.push(StackItem::new(vec![0xde, 0xad]));
+        // Initialize main stack.
 
         // Push 0xdeadbeef
-        stack.push(StackItem::new(vec![0xde, 0xad, 0xbe, 0xef]));
+        let _ = stack_holder.push(StackItem::new(vec![0xde, 0xad, 0xbe, 0xef]));
+
+        // Push 0xdead
+        let _ = stack_holder.push(StackItem::new(vec![0xde, 0xad]));
+
+        // Push 0xbeef
+        let _ = stack_holder.push(StackItem::new(vec![0xbe, 0xef]));
 
         // Print the stack.
-        println!("Stack: {}", stack);
+        println!("Stack: {}", stack_holder.main_stack());
 
-        // OP_DROP
-        OP_DROP::execute(&mut stack)?;
+        // OP_TOALTSTACK1
+        OP_TOALTSTACK1::execute(&mut stack_holder)?;
 
         // Print the stack.
-        println!("Stack: {}", stack);
+        println!("Stack: {}", stack_holder.main_stack());
+
+        // OP_TOALTSTACK1
+        OP_TOALTSTACK1::execute(&mut stack_holder)?;
+
+        // Print the stack.
+        println!("Stack: {}", stack_holder.main_stack());
+
+        // OP_FROMALTSTACK1
+        OP_FROMALTSTACK1::execute(&mut stack_holder)?;
+
+        // Print the stack.
+        println!("Stack: {}", stack_holder.main_stack());
+
+        // OP_FROMALTSTACK1
+        OP_FROMALTSTACK1::execute(&mut stack_holder)?;
+
+        // Print the stack.
+        println!("Stack: {}", stack_holder.main_stack());
 
         // OP_CAT
-        OP_CAT::execute(&mut stack)?;
+        OP_CAT::execute(&mut stack_holder)?;
 
         // Print the stack.
-        println!("Stack: {}", stack);
+        println!("Stack: {}", stack_holder.main_stack());
 
-        // OP_DUP
-        OP_DUP::execute(&mut stack)?;
-
-        // Print the stack.
-        println!("Stack: {}", stack);
-
-        // OP_2DROP
-        OP_2DROP::execute(&mut stack)?;
+        // OP_EQUALVERIFY
+        OP_EQUALVERIFY::execute(&mut stack_holder)?;
 
         // Print the stack.
-        println!("Stack: {}", stack);
-
-        // Assert the stack is empty.
-        assert_eq!(stack.len(), 0);
+        println!("Stack: {}", stack_holder.main_stack());
 
         Ok(())
     }

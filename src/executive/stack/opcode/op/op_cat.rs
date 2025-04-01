@@ -1,6 +1,4 @@
-use crate::executive::stack::stack::{
-    Stack, StackError, StackItem, MAX_STACK_ITEMS, MAX_STACK_ITEM_SIZE,
-};
+use crate::executive::stack::stack::{StackError, StackHolder, StackItem};
 
 /// The `OP_CAT` opcode.
 #[derive(Debug, Clone, Copy)]
@@ -8,31 +6,20 @@ use crate::executive::stack::stack::{
 pub struct OP_CAT;
 
 impl OP_CAT {
-    pub fn execute(stack: &mut Stack) -> Result<(), StackError> {
+    pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // Pop item one from stack.
-        let item_1 = stack.pop().ok_or(StackError::EmptyStack)?;
+        let item_1 = stack_holder.pop()?;
 
         // Pop item two from stack.
-        let item_2 = stack.pop().ok_or(StackError::EmptyStack)?;
-
-        // Check the combined value lengths.
-        let joined_length = match item_1.len().checked_add(item_2.len()) {
-            Some(len) if len <= MAX_STACK_ITEM_SIZE => len,
-            _ => return Err(StackError::StackItemTooLarge),
-        };
+        let item_2 = stack_holder.pop()?;
 
         // Join the two items
-        let mut joined = Vec::<u8>::with_capacity(joined_length as usize);
+        let mut joined = Vec::<u8>::with_capacity(item_1.len() as usize + item_2.len() as usize);
         joined.extend(item_2.bytes());
         joined.extend(item_1.bytes());
 
-        // Check the stack size.
-        if stack.len() > MAX_STACK_ITEMS {
-            return Err(StackError::StackTooLarge);
-        }
-
         // Push the joined item back to stack.
-        stack.push(StackItem::new(joined));
+        stack_holder.push(StackItem::new(joined))?;
 
         Ok(())
     }
