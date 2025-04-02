@@ -7,10 +7,10 @@ pub struct OP_CAT;
 
 impl OP_CAT {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop item one from stack.
+        // Pop item one from the main stack.
         let item_1 = stack_holder.pop()?;
 
-        // Pop item two from stack.
+        // Pop item two from the main stack.
         let item_2 = stack_holder.pop()?;
 
         // Join the two items
@@ -18,7 +18,7 @@ impl OP_CAT {
         joined.extend(item_2.bytes());
         joined.extend(item_1.bytes());
 
-        // Push the joined item back to stack.
+        // Push the joined item back to the main stack.
         stack_holder.push(StackItem::new(joined))?;
 
         Ok(())

@@ -7,7 +7,7 @@ pub struct OP_EQUAL;
 
 impl OP_EQUAL {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop two items from stack.
+        // Pop two items from the main stack.
         let item_1 = stack_holder.pop()?;
         let item_2 = stack_holder.pop()?;
 
@@ -17,7 +17,7 @@ impl OP_EQUAL {
             false => StackItem::new(vec![]),
         };
 
-        // Push the item to the stack.
+        // Push the item to the main stack.
         stack_holder.push(item_to_push)?;
 
         Ok(())

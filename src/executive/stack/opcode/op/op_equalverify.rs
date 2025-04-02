@@ -7,7 +7,7 @@ pub struct OP_EQUALVERIFY;
 
 impl OP_EQUALVERIFY {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop two items from stack.
+        // Pop two items from the main stack.
         let item_1 = stack_holder.pop()?;
         let item_2 = stack_holder.pop()?;
 

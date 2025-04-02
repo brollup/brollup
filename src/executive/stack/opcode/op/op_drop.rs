@@ -7,7 +7,7 @@ pub struct OP_DROP;
 
 impl OP_DROP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop the last item from stack.
+        // Pop the last stack item from the main stack.
         stack_holder.pop()?;
 
         Ok(())

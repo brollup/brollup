@@ -7,7 +7,7 @@ pub struct OP_2DROP;
 
 impl OP_2DROP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop two items from stack.
+        // Pop two items from the main stack.
         stack_holder.pop()?;
         stack_holder.pop()?;
 

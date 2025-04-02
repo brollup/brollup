@@ -1,23 +1,21 @@
 # Opcode Wishlist
 Feel free to open PRs to add new opcodes.
 
-## Global State
+## Memory
 
 | Opcode         | Bytecode | Input                      | Output                 | Description                                                                     |
 |----------------|----------|----------------------------|------------------------|---------------------------------------------------------------------------------|
-| SSTORE         | 0xb8     | x1 x2                      | Nothing                | Pops the storage key and value, and writes the value to the contract's storage. |
-| SLOAD          | 0xb9     | x1                         | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| MWRITE         | 0xb2     | x1 x2                      | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| MREAD          | 0xb3     | x1                         | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| MFREE          | 0xb4     | x1                         | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
 
-## Memory
+## Storage
 
-| Opcode         | Bytecode | Input                      | Output                 | Description                                                                   |
-|----------------|----------|----------------------------|------------------------|-------------------------------------------------------------------------------|
-| TOALTSTACK_1   | 0xb0     | x1                         | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
-| FROMALTSTACK_1 | 0xb3     | (alt)x1                    | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
-| TOALTSTACK_2   | 0xb4     | x1                         | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
-| FROMALTSTACK_2 | 0xb5     | (alt)x1                    | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
-| TOALTSTACK_3   | 0xb6     | x1                         | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
-| FROMALTSTACK_3 | 0xb7     | (alt)x1                    | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
+| Opcode         | Bytecode | Input                      | Output                 | Description                                                                     |
+|----------------|----------|----------------------------|------------------------|---------------------------------------------------------------------------------|
+| SWRITE         | 0xb5     | x1 x2                      | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| SREAD          | 0xb6     | x1                         | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| SFREE          | 0xb7     | x1                         | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Stack Element Manipulation
 
@@ -50,6 +48,8 @@ Feel free to open PRs to add new opcodes.
 | 2OVER          | 0x70     | x1 x2 x3 x4                | x1 x2 x3 x4 x1 x2      | Copies the pair of items two spaces back in the stack to the front.          |
 | 2ROT           | 0x71     | x1 x2 x3 x4 x5 x6          | x3 x4 x5 x6 x1 x2      | The fifth and sixth items back are moved to the top of the stack.            |
 | 2SWAP          | 0x72     | x1 x2 x3 x4                | x3 x4 x1 x2            | Swaps the top two pairs of items.                                            |
+| TOALTSTACK     | 0xb0     | x1                         | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
+| FROMALTSTACK   | 0xb1     | (alt)x1                    | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
 
 ## Arithmetics..
 

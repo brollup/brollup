@@ -7,10 +7,10 @@ pub struct OP_DUP;
 
 impl OP_DUP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Clone the last item from stack.
+        // Clone the last stack item from the main stack.
         let last_item = stack_holder.last_cloned()?;
 
-        // Push the cloned value back to stack.
+        // Push the cloned value back to the main stack.
         stack_holder.push(last_item)?;
 
         Ok(())

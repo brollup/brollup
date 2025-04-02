@@ -1,0 +1,59 @@
+use crate::executive::stack::stack::{
+    StackError, StackHolder, StackItem, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH,
+    MIN_VALUE_LENGTH,
+};
+
+/// The `OP_MWRITE` opcode.
+#[derive(Debug, Clone, Copy)]
+#[allow(non_camel_case_types)]
+pub struct OP_MWRITE;
+
+impl OP_MWRITE {
+    pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // Pop key
+        let key = stack_holder.pop()?;
+
+        // Make sure key is within the valid length range (1 to 40 bytes).
+        if key.len() < MIN_KEY_LENGTH || key.len() > MAX_KEY_LENGTH {
+            return Err(StackError::InvalidMemoryKeyLength(key.len() as u8));
+        }
+
+        // Pop value
+        let value = stack_holder.pop()?;
+
+        // Make sure value is within the valid length range (1 to 4095 bytes).
+        // NOTE: The maximum length of the value is bound by the stack item size limit.
+        if value.len() < MIN_VALUE_LENGTH {
+            return Err(StackError::InvalidMemoryValueLength(value.len() as u8));
+        }
+
+        // Get the contract's memory size.
+        let contract_memory_size = stack_holder.memory_size();
+
+        // New memory size.
+        let new_contract_memory_size = match contract_memory_size + key.len() + value.len() {
+            new_size if new_size < MAX_CONTRACT_MEMORY_SIZE => new_size,
+            _ => return Err(StackError::ContractMemorySizeLimitExceeded),
+        };
+
+        // Get contract memory.
+        let memory = stack_holder.memory_mut();
+
+        // Write to memory.
+        let insertion_result_item =
+            match memory.insert(key.bytes().to_vec(), value.bytes().to_vec()) {
+                // If the key already exists, push true value.
+                Some(_) => StackItem::new(vec![0x01]),
+                // If the key does not exist, push false value (empty vector).
+                None => StackItem::new(vec![]),
+            };
+
+        // Update the contract's memory size.
+        stack_holder.update_memory_size(new_contract_memory_size);
+
+        // Push result to stack.
+        stack_holder.push(insertion_result_item)?;
+
+        Ok(())
+    }
+}
