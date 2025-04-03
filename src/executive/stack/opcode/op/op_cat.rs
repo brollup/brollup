@@ -1,4 +1,7 @@
-use crate::executive::stack::stack::{StackError, StackHolder, StackItem};
+use crate::executive::stack::{
+    opcode::ops::OP_CAT_OPS,
+    stack::{StackError, StackHolder, StackItem},
+};
 
 /// The `OP_CAT` opcode.
 #[derive(Debug, Clone, Copy)]
@@ -17,6 +20,9 @@ impl OP_CAT {
         let mut joined = Vec::<u8>::with_capacity(item_1.len() as usize + item_2.len() as usize);
         joined.extend(item_2.bytes());
         joined.extend(item_1.bytes());
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_CAT_OPS)?;
 
         // Push the joined item back to the main stack.
         stack_holder.push(StackItem::new(joined))?;

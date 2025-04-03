@@ -6,3 +6,5 @@ pub mod op_drop;
 pub mod op_dup;
 pub mod op_equal;
 pub mod op_equalverify;
+pub mod op_pick;
+pub mod op_verify;

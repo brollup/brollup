@@ -1,4 +1,7 @@
-use crate::executive::stack::stack::{StackError, StackHolder};
+use crate::executive::stack::{
+    opcode::ops::OP_2DROP_OPS,
+    stack::{StackError, StackHolder},
+};
 
 /// The `OP_DROP` opcode.
 #[derive(Debug, Clone, Copy)]
@@ -10,6 +13,9 @@ impl OP_2DROP {
         // Pop two items from the main stack.
         stack_holder.pop()?;
         stack_holder.pop()?;
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_2DROP_OPS)?;
 
         Ok(())
     }

@@ -1,5 +1,6 @@
-use crate::executive::stack::stack::{
-    StackError, StackHolder, StackItem, MAX_KEY_LENGTH, MIN_KEY_LENGTH,
+use crate::executive::stack::{
+    opcode::ops::OP_MFREE_OPS,
+    stack::{StackError, StackHolder, StackItem, MAX_KEY_LENGTH, MIN_KEY_LENGTH},
 };
 
 /// The `OP_MSWEEP` opcode.
@@ -27,6 +28,9 @@ impl OP_MSWEEP {
             // If the key does not exist, push false value (empty vector).
             None => StackItem::new(vec![]),
         };
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_MFREE_OPS)?;
 
         // Push result to stack.
         stack_holder.push(sweep_result_item)?;

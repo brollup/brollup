@@ -18,6 +18,9 @@ pub const MIN_VALUE_LENGTH: u32 = 1;
 /// The maximum byte size of a contract memory.
 pub const MAX_CONTRACT_MEMORY_SIZE: u32 = 65_536;
 
+// Ops upper bound.
+pub const OPS_LIMIT: u32 = 100_000;
+
 /// The type of items in the stack.
 #[derive(Debug, Clone)]
 pub struct StackItem(Vec<u8>);
@@ -107,23 +110,66 @@ pub struct StackHolder {
     memory: HashMap<Vec<u8>, Vec<u8>>,
     // Contract memory size.
     memory_size: u32,
+    // Ops budget.
+    ops_budget: u32,
+    // Internal ops counter.
+    internal_ops_counter: u32,
+    // External ops counter.
+    external_ops_counter: u32,
 }
 
 impl StackHolder {
     /// Creates a new stack holder.
-    pub fn new(contract_id: [u8; 32]) -> Self {
+    pub fn new(contract_id: [u8; 32], ops_budget: u32, external_ops_counter: u32) -> Self {
         Self {
             contract_id,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
             memory: HashMap::new(),
             memory_size: 0,
+            ops_budget,
+            internal_ops_counter: 0,
+            external_ops_counter,
         }
     }
 
     /// Returns the contract id.
     pub fn contract_id(&self) -> [u8; 32] {
         self.contract_id
+    }
+
+    /// Returns the ops budget.
+    pub fn ops_budget(&self) -> u32 {
+        self.ops_budget
+    }
+
+    /// Returns the internal ops counter.
+    pub fn internal_ops_counter(&self) -> u32 {
+        self.internal_ops_counter
+    }
+
+    /// Returns the external ops counter.
+    pub fn external_ops_counter(&self) -> u32 {
+        self.external_ops_counter
+    }
+
+    pub fn increment_ops(&mut self, ops: u32) -> Result<(), StackError> {
+        let new_internal_ops_counter = self.internal_ops_counter + ops;
+
+        if new_internal_ops_counter > self.ops_budget {
+            return Err(StackError::InternalOpsBudgetExceeded);
+        }
+
+        let new_external_ops_counter = self.external_ops_counter + ops;
+
+        if new_external_ops_counter > OPS_LIMIT {
+            return Err(StackError::ExternalOpsLimitExceeded);
+        }
+
+        self.internal_ops_counter = new_internal_ops_counter;
+        self.external_ops_counter = new_external_ops_counter;
+
+        Ok(())
     }
 
     /// Returns the contract memory.
@@ -195,6 +241,15 @@ impl StackHolder {
     pub fn alt_stack_last_cloned(&self) -> Result<StackItem, StackError> {
         self.alt_stack.last_cloned()
     }
+
+    /// Returns the stack item by depth.
+    pub fn item_by_depth_cloned(&self, depth: u16) -> Result<StackItem, StackError> {
+        self.main_stack
+            .0
+            .get(depth as usize)
+            .cloned()
+            .ok_or(StackError::PickIndexError(depth))
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -205,8 +260,12 @@ pub enum StackError {
     StackItemTooLarge,
     /// The stack is too large.
     StackTooLarge,
+    /// The pick index is out of bounds.
+    PickIndexError(u16),
     // Equalverify error.
-    EqualVerifyError,
+    MandatoryEqualVerifyError,
+    // Verify error.
+    MandatoryVerifyError,
     // Invalid memory key length.
     InvalidMemoryKeyLength(u8),
     // Invalid memory value length.
@@ -217,4 +276,8 @@ pub enum StackError {
     InvalidStorageValueLength(u8),
     // Memory size limit exceeded.
     ContractMemorySizeLimitExceeded,
+    // Internal ops budget exceeded.
+    InternalOpsBudgetExceeded,
+    // External ops limit exceeded.
+    ExternalOpsLimitExceeded,
 }

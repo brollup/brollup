@@ -1,6 +1,9 @@
-use crate::executive::stack::stack::{
-    StackError, StackHolder, StackItem, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH,
-    MIN_VALUE_LENGTH,
+use crate::executive::stack::{
+    opcode::ops::OP_MWRITE_OPS,
+    stack::{
+        StackError, StackHolder, StackItem, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH,
+        MIN_KEY_LENGTH, MIN_VALUE_LENGTH,
+    },
 };
 
 /// The `OP_MWRITE` opcode.
@@ -47,6 +50,9 @@ impl OP_MWRITE {
                 // If the key does not exist, push false value (empty vector).
                 None => StackItem::new(vec![]),
             };
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_MWRITE_OPS)?;
 
         // Update the contract's memory size.
         stack_holder.update_memory_size(new_contract_memory_size);

@@ -1,4 +1,7 @@
-use crate::executive::stack::stack::{StackError, StackHolder};
+use crate::executive::stack::{
+    opcode::ops::OP_EQUALVERIFY_OPS,
+    stack::{StackError, StackHolder},
+};
 
 /// The `OP_EQUALVERIFY` opcode.
 #[derive(Debug, Clone, Copy)]
@@ -13,8 +16,11 @@ impl OP_EQUALVERIFY {
 
         // Check if the two items are equal.
         if item_1.bytes() != item_2.bytes() {
-            return Err(StackError::EqualVerifyError);
+            return Err(StackError::MandatoryEqualVerifyError);
         }
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_EQUALVERIFY_OPS)?;
 
         Ok(())
     }

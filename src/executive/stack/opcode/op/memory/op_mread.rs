@@ -1,5 +1,6 @@
-use crate::executive::stack::stack::{
-    StackError, StackHolder, StackItem, MAX_KEY_LENGTH, MIN_KEY_LENGTH,
+use crate::executive::stack::{
+    opcode::ops::OP_MREAD_OPS,
+    stack::{StackError, StackHolder, StackItem, MAX_KEY_LENGTH, MIN_KEY_LENGTH},
 };
 
 /// The `OP_MREAD` opcode.
@@ -27,6 +28,9 @@ impl OP_MREAD {
             // If the value does not exist, push false value (empty vector).
             None => StackItem::new(vec![]),
         };
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_MREAD_OPS)?;
 
         // Push result to stack.
         stack_holder.push(value)?;
