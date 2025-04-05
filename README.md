@@ -44,7 +44,7 @@ cargo run mainnet operator http://127.0.0.1:8332 user password
 
 ## Contributing
 
-Contributions are welcome! Please submit a pull request or open an issue if you encounter any problems.
+We welcome contributions! Please [check the areas where we need help](https://github.com/brollup/brollup/blob/main/CONTRIB.md) for more details on how you can contribute.
 
 ## License
 
