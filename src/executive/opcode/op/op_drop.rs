@@ -1,21 +1,20 @@
-use crate::executive::stack::{
-    opcode::ops::OP_2DROP_OPS,
-    stack::{StackError, StackHolder},
+use crate::executive::{
+    opcode::ops::OP_DROP_OPS,
+    stack::{stack::StackHolder, stack_error::StackError},
 };
 
 /// The `OP_DROP` opcode.
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
-pub struct OP_2DROP;
+pub struct OP_DROP;
 
-impl OP_2DROP {
+impl OP_DROP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop two items from the main stack.
-        stack_holder.pop()?;
+        // Pop the last stack item from the main stack.
         stack_holder.pop()?;
 
         // Increment the ops counter.
-        stack_holder.increment_ops(OP_2DROP_OPS)?;
+        stack_holder.increment_ops(OP_DROP_OPS)?;
 
         Ok(())
     }

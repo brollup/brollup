@@ -1,6 +1,6 @@
-use crate::executive::stack::{
+use crate::executive::{
     opcode::ops::OP_EQUAL_OPS,
-    stack::{StackError, StackHolder, StackItem},
+    stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
 };
 
 /// The `OP_EQUAL` opcode.

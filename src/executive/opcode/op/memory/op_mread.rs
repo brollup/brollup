@@ -1,6 +1,10 @@
-use crate::executive::stack::{
+use crate::executive::{
     opcode::ops::OP_MREAD_OPS,
-    stack::{StackError, StackHolder, StackItem, MAX_KEY_LENGTH, MIN_KEY_LENGTH},
+    stack::{
+        stack::{StackHolder, MAX_KEY_LENGTH, MIN_KEY_LENGTH},
+        stack_error::StackError,
+        stack_item::item::StackItem,
+    },
 };
 
 /// The `OP_MREAD` opcode.

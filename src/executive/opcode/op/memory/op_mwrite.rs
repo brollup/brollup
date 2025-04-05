@@ -1,8 +1,11 @@
-use crate::executive::stack::{
+use crate::executive::{
     opcode::ops::OP_MWRITE_OPS,
     stack::{
-        StackError, StackHolder, StackItem, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH,
-        MIN_KEY_LENGTH, MIN_VALUE_LENGTH,
+        stack::{
+            StackHolder, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH, MIN_VALUE_LENGTH,
+        },
+        stack_error::StackError,
+        stack_item::item::StackItem,
     },
 };
 

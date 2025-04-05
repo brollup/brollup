@@ -1,4 +1,4 @@
-use crate::executive::stack::stack::{StackError, StackHolder};
+use crate::executive::stack::{stack::StackHolder, stack_error::StackError};
 
 /// The `OP_PICK` opcode.
 #[derive(Debug, Clone, Copy)]

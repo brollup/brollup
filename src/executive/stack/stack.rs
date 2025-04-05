@@ -1,3 +1,4 @@
+use super::{stack_error::StackError, stack_item::item::StackItem};
 use std::{collections::HashMap, fmt};
 
 /// The maximum number of items in the stack.
@@ -20,33 +21,6 @@ pub const MAX_CONTRACT_MEMORY_SIZE: u32 = 65_536;
 
 // Ops upper bound.
 pub const OPS_LIMIT: u32 = 100_000;
-
-/// The type of items in the stack.
-#[derive(Debug, Clone)]
-pub struct StackItem(Vec<u8>);
-
-impl StackItem {
-    /// Creates a new stack item.
-    pub fn new(item: Vec<u8>) -> Self {
-        Self(item)
-    }
-
-    /// Returns the bytes of the stack item.
-    pub fn bytes(&self) -> &[u8] {
-        &self.0
-    }
-
-    /// Returns the length of the stack item.   
-    pub fn len(&self) -> u32 {
-        self.0.len() as u32
-    }
-}
-
-impl fmt::Display for StackItem {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{}", hex::encode(&self.0))
-    }
-}
 
 /// The stack newtype wrapper.
 #[derive(Debug, Clone)]
@@ -250,34 +224,4 @@ impl StackHolder {
             .cloned()
             .ok_or(StackError::PickIndexError(depth))
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum StackError {
-    /// The stack is empty.
-    EmptyStack,
-    /// The stack item is too large.
-    StackItemTooLarge,
-    /// The stack is too large.
-    StackTooLarge,
-    /// The pick index is out of bounds.
-    PickIndexError(u16),
-    // Equalverify error.
-    MandatoryEqualVerifyError,
-    // Verify error.
-    MandatoryVerifyError,
-    // Invalid memory key length.
-    InvalidMemoryKeyLength(u8),
-    // Invalid memory value length.
-    InvalidMemoryValueLength(u8),
-    // Invalid storage key length.
-    InvalidStorageKeyLength(u8),
-    // Invalid storage value length.
-    InvalidStorageValueLength(u8),
-    // Memory size limit exceeded.
-    ContractMemorySizeLimitExceeded,
-    // Internal ops budget exceeded.
-    InternalOpsBudgetExceeded,
-    // External ops limit exceeded.
-    ExternalOpsLimitExceeded,
 }

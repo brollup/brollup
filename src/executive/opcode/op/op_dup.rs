@@ -1,6 +1,6 @@
-use crate::executive::stack::{
+use crate::executive::{
     opcode::ops::OP_DUP_OPS,
-    stack::{StackError, StackHolder},
+    stack::{stack::StackHolder, stack_error::StackError},
 };
 
 /// The `OP_DUP` opcode.
