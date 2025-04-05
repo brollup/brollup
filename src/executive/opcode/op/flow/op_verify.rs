@@ -3,12 +3,12 @@ use crate::executive::{
     stack::{stack::StackHolder, stack_error::StackError},
 };
 
-/// The `OP_EQUALVERIFY` opcode.
-#[derive(Debug, Clone, Copy)]
+/// The `OP_VERIFY` opcode.
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_EQUALVERIFY;
+pub struct OP_VERIFY;
 
-impl OP_EQUALVERIFY {
+impl OP_VERIFY {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // Pop last from the main stack.
         let item = stack_holder.pop()?;

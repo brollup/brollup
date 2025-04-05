@@ -4,7 +4,7 @@ use crate::executive::{
 };
 
 /// The `OP_PICK` opcode.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_PICK;
 

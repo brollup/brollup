@@ -51,7 +51,7 @@ Feel free to open PRs to add new opcodes.
 | TOALTSTACK     | 1   | 0xb0     | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
 | FROMALTSTACK   | 1   | 0xb1     | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
 
-## Arithmetics
+## Arithmetic
 
 | Opcode         | Ops | Bytecode | Input          | Output                                  | Description                                                                  |
 |:---------------|:----|:---------|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
@@ -61,7 +61,3 @@ Feel free to open PRs to add new opcodes.
 | DIV            | 10  | 0x96     | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
 | ADDMOD         | 3   | 0x8d     | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
 | MULMOD         | 10  | 0x8e     | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
-
-
-
-
