@@ -28,6 +28,9 @@ impl OP_MUL {
             .to_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_MUL_OPS)?;
+
         // Multiply the two values.
         match item_1_uint.checked_mul(item_2_uint) {
             // If the result is an overflow, return False (an empty stack item).
