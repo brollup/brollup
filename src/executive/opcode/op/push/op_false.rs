@@ -1,5 +1,5 @@
 use crate::executive::{
-    opcode::{codec::OpcodeEncoder, opcode::Opcode, ops::OP_FALSE_OPS},
+    opcode::{codec::OpcodeEncoder, ops::OP_FALSE_OPS},
     stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
 };
 

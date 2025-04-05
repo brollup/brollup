@@ -50,8 +50,6 @@ where
                 let mut data_length = self.next()? as u16;
                 data_length |= (self.next()? as u16) << 8;
 
-                println!("Data length: {}", data_length);
-
                 // Collect the data.
                 let data = self.take(data_length as usize).collect::<Vec<u8>>();
 

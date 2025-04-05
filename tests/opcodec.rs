@@ -101,6 +101,9 @@ mod opcodec_tests {
         let decoded_opcode = OpcodeDecoder::decode(&mut opcodes_byte_stream).unwrap();
         assert_eq!(decoded_opcode, Opcode::OP_PUSHDATA(OP_PUSHDATA(deadbeef)));
 
+        // Byte stream should be empty now
+        assert_eq!(opcodes_byte_stream.len(), 0);
+
         Ok(())
     }
 }
