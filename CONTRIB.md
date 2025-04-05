@@ -4,7 +4,7 @@ We welcome contributions! If you encounter any issues or have suggestions, pleas
 ## Areas for Contribution
 
 ### Optimized Rank-Based Indexing ⭐⭐⭐⭐⭐
-Brollup uses a cached, rank-based indexing to efficiently encode and decode `Accounts` and `Contracts` via their compact integer reference values. For more context, see [CPE](https://github.com/brollup/brollup/tree/main/src/constructive/cpe).
+Brollup uses a cached, rank-based indexing to efficiently encode and decode `Accounts` and `Contracts` via their compact integer reference values. For more context, see [Rank-based Indexing](https://github.com/brollup/brollup/tree/main/src/constructive/cpe#2-rank-based-indexing).
 
 We are looking for a performance-optimized implementation for the [Account Registry](https://github.com/brollup/brollup/blob/main/src/inscriptive/registery/account_registery.rs) and [Contract Registry](https://github.com/brollup/brollup/blob/main/src/inscriptive/registery/contract_registery.rs) to handle this rank system, at the memory level as performance optimized as possible.
 
