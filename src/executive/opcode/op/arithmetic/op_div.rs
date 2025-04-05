@@ -31,24 +31,35 @@ impl OP_DIV {
             .to_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
-        // Check if the divisor is zero.
-        if item_2_uint == StackUint::zero() {
-            // Push False (an empty stack item) to the main stack.
-            stack_holder.push(StackItem::new(vec![]))?;
-            return Ok(());
-        }
-
-        // Divide the two values.
-        let (division, modulo) = item_1_uint.div_mod(item_2_uint);
-
         // Increment the ops counter.
         stack_holder.increment_ops(OP_DIV_OPS)?;
 
-        // Push the modulo result to the main stack.
-        stack_holder.push(StackItem::from_uint(modulo))?;
+        // Check if the divisor is zero.
+        match item_2_uint == StackUint::zero() {
+            true => {
+                // Push old value to the main stack.
+                stack_holder.push(item_1)?;
 
-        // Push the division result to the main stack.
-        stack_holder.push(StackItem::from_uint(division))?;
+                // Push old value to the main stack.
+                stack_holder.push(item_2)?;
+
+                // Push False (an empty stack item) to the main stack.
+                stack_holder.push(StackItem::new(vec![]))?;
+            }
+            false => {
+                // Divide the two values.
+                let (division, modulo) = item_1_uint.div_mod(item_2_uint);
+
+                // Push the modulo result to the main stack.
+                stack_holder.push(StackItem::from_uint(modulo))?;
+
+                // Push the division result to the main stack.
+                stack_holder.push(StackItem::from_uint(division))?;
+
+                // Push true to the main stack.
+                stack_holder.push(StackItem::new(vec![0x01]))?;
+            }
+        }
 
         Ok(())
     }

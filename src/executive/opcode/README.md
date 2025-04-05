@@ -53,14 +53,14 @@ Feel free to open PRs to add new opcodes.
 
 ## Arithmetics
 
-| Opcode         | Ops | Bytecode | Input                | Output                       | Description                                                                  |
-|:---------------|:----|:---------|:---------------------|:-----------------------------|:-----------------------------------------------------------------------------|
-| ADD            | 3   | 0x93     | x1 x2                | (x1 + x2) or False           | x1 is added to x2.                                                           |
-| SUB            | 3   | 0x94     | x1 x2                | (x1 - x2) or False           | x1 is subtracted from x2.                                                    |
-| MUL            | 10  | 0x95     | x1 x2                | (x1 * x2) or False           | x1 is multiplied by x2.                                                      |
-| DIV            | 10  | 0x96     | x1 x2                | (x1 % x2) (x1 / x2) or False | x1 is divided by x2.                                                         |
-| ADDMOD         | 3   | 0x8d     | x1 x2                | ((x1 + x2) % MAX::U256)      | x1 is added to x2 modulo MAX::U256.                                          |
-| MULMOD         | 10  | 0x8e     | x1 x2                | ((x1 * x2) % MAX::U256)      | x1 is multiplied by x2 modulo MAX::U256.                                     |
+| Opcode         | Ops | Bytecode | Input          | Output                                  | Description                                                                  |
+|:---------------|:----|:---------|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| ADD            | 3   | 0x93     | x1 x2          | (x1 + x2) True or x1 x2 False           | x1 is added to x2.                                                           |
+| SUB            | 3   | 0x94     | x1 x2          | (x1 - x2) True or x1 x2 False           | x1 is subtracted from x2.                                                    |
+| MUL            | 10  | 0x95     | x1 x2          | (x1 * x2) True or x1 x2 False           | x1 is multiplied by x2.                                                      |
+| DIV            | 10  | 0x96     | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
+| ADDMOD         | 3   | 0x8d     | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
+| MULMOD         | 10  | 0x8e     | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
 
 
 

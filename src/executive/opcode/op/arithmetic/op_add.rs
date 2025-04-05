@@ -28,19 +28,31 @@ impl OP_ADD {
             .to_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
-        // Add the two values.
-        let result = match item_1_uint.checked_add(item_2_uint) {
-            // If the result is an overflow, return False (an empty stack item).
-            None => StackItem::new(vec![]),
-            // If the result is not an overflow, return the result.
-            Some(result) => StackItem::from_uint(result),
-        };
-
         // Increment the ops counter.
         stack_holder.increment_ops(OP_ADD_OPS)?;
 
-        // Push the result to the main stack.
-        stack_holder.push(result)?;
+        // Add the two values.
+        match item_1_uint.checked_add(item_2_uint) {
+            // If the result is an overflow, return False (an empty stack item).
+            None => {
+                // Push old value to the main stack.
+                stack_holder.push(item_1)?;
+
+                // Push old value to the main stack.
+                stack_holder.push(item_2)?;
+
+                // Push False (an empty stack item) to the main stack.
+                stack_holder.push(StackItem::new(vec![]))?;
+            }
+            // If the result is not an overflow, return the result.
+            Some(result) => {
+                // Push the result to the main stack.
+                stack_holder.push(StackItem::from_uint(result))?;
+
+                // Push True to the main stack.
+                stack_holder.push(StackItem::new(vec![0x01]))?;
+            }
+        };
 
         Ok(())
     }
