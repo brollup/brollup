@@ -4,15 +4,15 @@ mod stack_tests {
     use brollup::executive::{
         opcode::op::{
             altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
-            op_cat::OP_CAT,
-            op_equalverify::OP_EQUALVERIFY,
+            bitwise::op_equalverify::OP_EQUALVERIFY,
+            splice::op_cat::OP_CAT,
         },
         stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
     };
 
     #[test]
     fn stack_test() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], 14, 0);
+        let mut stack_holder = StackHolder::new([0; 32], 50, 0);
 
         // Initialize main stack.
 

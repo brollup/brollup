@@ -1,11 +1,64 @@
 use super::item::StackItem;
 use uint::construct_uint;
 
-// Define a 256-bit unsigned integer type for the stack (4 x 64-bit words)
+// A 256-bit unsigned integer representation for the `StackItem` (4 x 64-bit words).
 construct_uint! {
     pub struct StackUint(4);
 }
 
+// A 320-bit unsigned integer type to deal with addmod and mulmod operations for `StackUint`.
+construct_uint! {
+    struct U320(5);
+}
+
+impl From<StackUint> for U320 {
+    fn from(value: StackUint) -> Self {
+        let mut result = U320::zero();
+        for i in 0..4 {
+            result.0[i] = value.0[i];
+        }
+        result
+    }
+}
+
+impl From<U320> for StackUint {
+    fn from(value: U320) -> Self {
+        let mut result = StackUint::zero();
+        for i in 0..4 {
+            result.0[i] = value.0[i];
+        }
+        result
+    }
+}
+
+impl StackUint {
+    /// Add two `StackUint` values and return the result modulo MAX::U256.
+    pub fn addmod(x: &StackUint, y: &StackUint) -> StackUint {
+        let max = U320::from(StackUint::max_value());
+
+        let x_as_u320 = U320::from(*x);
+        let y_as_u320 = U320::from(*y);
+
+        // Use overflowing_add to handle overflow safely
+        let result = x_as_u320 + y_as_u320;
+
+        let result_modulo_max = result % max;
+
+        StackUint::from(result_modulo_max)
+    }
+
+    /// Multiply two `StackUint` values and return the result modulo MAX::U256.
+    pub fn mulmod(x: &StackUint, y: &StackUint) -> StackUint {
+        let max = U320::from(StackUint::max_value());
+        let x_as_u320 = U320::from(*x);
+        let y_as_u320 = U320::from(*y);
+
+        let result = x_as_u320 * y_as_u320;
+        let result_modulo_max = result % max;
+
+        StackUint::from(result_modulo_max)
+    }
+}
 /// Extension trait for converting between `StackItem` and `StackUint`.
 ///
 /// Enables interpreting a `StackItem` as a `StackUint`, and constructing one from it.

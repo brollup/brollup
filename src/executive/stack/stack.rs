@@ -57,7 +57,7 @@ impl Stack {
     }
 
     /// Returns the last item from the stack.
-    pub fn last_cloned(&self) -> Result<StackItem, StackError> {
+    pub fn last_item(&self) -> Result<StackItem, StackError> {
         self.0.last().cloned().ok_or(StackError::EmptyStack)
     }
 }
@@ -207,21 +207,30 @@ impl StackHolder {
     }
 
     /// Returns the last stack item from main stack.
-    pub fn last_cloned(&self) -> Result<StackItem, StackError> {
-        self.main_stack.last_cloned()
+    pub fn last_item(&self) -> Result<StackItem, StackError> {
+        self.main_stack.last_item()
     }
 
     /// Returns the last stack item from alt stack.
-    pub fn alt_stack_last_cloned(&self) -> Result<StackItem, StackError> {
-        self.alt_stack.last_cloned()
+    pub fn alt_stack_last_item(&self) -> Result<StackItem, StackError> {
+        self.alt_stack.last_item()
     }
 
     /// Returns the stack item by depth.
-    pub fn item_by_depth_cloned(&self, depth: u16) -> Result<StackItem, StackError> {
+    pub fn item_by_depth(&self, depth: u32) -> Result<StackItem, StackError> {
         self.main_stack
             .0
             .get(depth as usize)
             .cloned()
             .ok_or(StackError::PickIndexError(depth))
+    }
+
+    /// Removes the stack item by depth.
+    pub fn remove_item_by_depth(&mut self, depth: u32) -> Result<(), StackError> {
+        if depth as usize >= self.main_stack.0.len() {
+            return Err(StackError::RemoveIndexError(depth));
+        }
+        self.main_stack.0.remove(depth as usize);
+        Ok(())
     }
 }

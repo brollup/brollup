@@ -7,7 +7,9 @@ pub enum StackError {
     /// The stack is too large.
     StackTooLarge,
     /// The pick index is out of bounds.
-    PickIndexError(u16),
+    PickIndexError(u32),
+    /// The remove index is out of bounds.
+    RemoveIndexError(u32),
     // Equalverify error.
     MandatoryEqualVerifyError,
     // Verify error.
@@ -26,4 +28,8 @@ pub enum StackError {
     InternalOpsBudgetExceeded,
     // External ops limit exceeded.
     ExternalOpsLimitExceeded,
+    // StackUint max overflow error.
+    StackUintMaxOverflowError,
+    // Division by zero error.
+    DivisionByZeroError,
 }
