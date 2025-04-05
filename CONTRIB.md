@@ -14,6 +14,6 @@ We are looking for a performance-optimized implementation for the [Account Regis
 We are looking for a dependency-free, performance-optimized implementation, along with the new updated [tests](https://github.com/brollup/brollup/blob/main/tests/stack_uint.rs) coverage.
 
 ### Opcodes ⭐⭐
-We strive to keep the platform as expressive as possible. As part of our open-source initiative, we encourage anyone to propose or implement new opcodes that are not yet present in the [wishlist](https://github.com/brollup/brollup/tree/main/src/executive/opcode), or suggest modifications to the existing list.
+We strive to keep Brollup as expressive as possible. As part of our open-source initiative, we encourage anyone to propose or implement new opcodes that are not yet present in the [wishlist](https://github.com/brollup/brollup/tree/main/src/executive/opcode), or suggest modifications to the existing list.
 
-Additionally, Brollup replaces gas with ops, and further [contributions](Feel free to contribute to ops) are needed to evaluate the cost of executing opcodes.
+Additionally, Brollup replaces `gas` with `ops`, and further [contributions](https://github.com/brollup/brollup/blob/main/src/executive/opcode/ops.rs) are needed to evaluate the cost of executing opcodes.
