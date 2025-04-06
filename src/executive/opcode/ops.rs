@@ -26,26 +26,26 @@ pub const OP_2DROP_OPS: u32 = 2;
 pub const OP_DUP_OPS: u32 = 1;
 pub const OP_2DUP_OPS: u32 = 2;
 
-// Bitwise 
+// Bitwise
 pub const OP_EQUAL_OPS: u32 = 1;
 pub const OP_EQUALVERIFY_OPS: u32 = 2;
 
 // Flow
 pub const OP_VERIFY_OPS: u32 = 1;
 
-// Alt stack 
+// Alt stack
 pub const OP_FROMALTSTACK_OPS: u32 = 1;
 pub const OP_TOALTSTACK_OPS: u32 = 1;
 
-// Memory 
+// Memory
 pub const OP_MREAD_OPS: u32 = 5;
 pub const OP_MWRITE_OPS: u32 = 5;
 pub const OP_MFREE_OPS: u32 = 1;
 
-// Splice 
-pub const OP_CAT_OPS: u32 = 10;
+// Splice
+pub const OP_CAT_OPS: u32 = 5;
 
-// Arithmetic 
+// Arithmetic
 pub const OP_ADD_OPS: u32 = 3;
 pub const OP_SUB_OPS: u32 = 3;
 pub const OP_MUL_OPS: u32 = 10;
