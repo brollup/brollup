@@ -1,5 +1,8 @@
 use crate::executive::{
-    opcode::{codec::OpcodeEncoder, ops::OP_FALSE_OPS},
+    opcode::{
+        codec::{OpcodeEncoder, OpcodeEncoderError},
+        ops::OP_FALSE_OPS,
+    },
     stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
 };
 
@@ -29,7 +32,7 @@ pub type OP_0 = OP_FALSE;
 
 /// Implement the `OpcodeEncoder` trait for `OP_FALSE`.
 impl OpcodeEncoder for OP_FALSE {
-    fn encode(&self) -> Vec<u8> {
-        vec![0x00]
+    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
+        Ok(vec![0x00])
     }
 }

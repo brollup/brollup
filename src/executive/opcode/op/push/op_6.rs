@@ -1,5 +1,8 @@
 use crate::executive::{
-    opcode::ops::OP_6_OPS,
+    opcode::{
+        codec::{OpcodeEncoder, OpcodeEncoderError},
+        ops::OP_6_OPS,
+    },
     stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
 };
 
@@ -20,5 +23,12 @@ impl OP_6 {
         stack_holder.push(item_to_push)?;
 
         Ok(())
+    }
+}
+
+/// Implement the `OpcodeEncoder` trait for `OP_6`.
+impl OpcodeEncoder for OP_6 {
+    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
+        Ok(vec![0x56])
     }
 }

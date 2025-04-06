@@ -6,10 +6,29 @@ use super::{
     },
     opcode::Opcode,
 };
+
 /// A trait for encoding opcodes.
 pub trait OpcodeEncoder {
     /// Encode the opcode into a vector of bytes.
-    fn encode(&self) -> Vec<u8>;
+    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError>;
+}
+
+/// An error for encoding opcodes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OpcodeEncoderError {
+    /// The push data length is not valid.
+    InvalidPushDataLength,
+}
+
+/// An error for decoding opcodes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OpcodeDecoderError {
+    /// The byte iterator error.
+    ByteIteratorError,
+    /// The push data length is not valid.
+    InvalidPushDataLength,
+    /// The reserved opcode error.
+    ReservedOpcodeError,
 }
 
 /// A trait for decoding opcodes from an iterator.
@@ -17,46 +36,86 @@ pub trait OpcodeDecoder<I>
 where
     I: Iterator<Item = u8>,
 {
-    fn decode(&mut self) -> Option<Opcode>;
+    fn decode(&mut self) -> Result<Opcode, OpcodeDecoderError>;
 }
 
 impl<I> OpcodeDecoder<I> for I
 where
     I: Iterator<Item = u8>,
 {
-    fn decode(&mut self) -> Option<Opcode> {
-        let byte = self.next()?; // get the next byte from iterator
+    fn decode(&mut self) -> Result<Opcode, OpcodeDecoderError> {
+        let byte = self.next().ok_or(OpcodeDecoderError::ByteIteratorError)?; // get the next byte from iterator
 
         match byte {
-            0x00 => Some(Opcode::OP_FALSE(OP_FALSE)),
-            0x01 => Some(Opcode::OP_TRUE(OP_TRUE)),
-            0x02 => Some(Opcode::OP_2(OP_2)),
-            0x03 => Some(Opcode::OP_3(OP_3)),
-            0x04 => Some(Opcode::OP_4(OP_4)),
-            0x05 => Some(Opcode::OP_5(OP_5)),
-            0x06 => Some(Opcode::OP_6(OP_6)),
-            0x07 => Some(Opcode::OP_7(OP_7)),
-            0x08 => Some(Opcode::OP_8(OP_8)),
-            0x09 => Some(Opcode::OP_9(OP_9)),
-            0x0a => Some(Opcode::OP_10(OP_10)),
-            0x0b => Some(Opcode::OP_11(OP_11)),
-            0x0c => Some(Opcode::OP_12(OP_12)),
-            0x0d => Some(Opcode::OP_13(OP_13)),
-            0x0e => Some(Opcode::OP_14(OP_14)),
-            0x0f => Some(Opcode::OP_15(OP_15)),
-            0x10 => Some(Opcode::OP_16(OP_16)),
-            0x11 => {
+            0x00 => Ok(Opcode::OP_FALSE(OP_FALSE)),
+            0x01..=0x4b => {
+                // Data length is the byte itself.
+                let data_length = byte as usize;
+
+                // Collect the data.
+                let data = self.take(data_length).collect::<Vec<u8>>();
+
+                // Check if the data length is valid.
+                if data.len() != data_length {
+                    return Err(OpcodeDecoderError::InvalidPushDataLength);
+                }
+
+                // Return the opcode.
+                Ok(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
+            }
+            0x4c => {
+                // Data length is the next byte.
+                let data_length =
+                    self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as usize;
+
+                // Collect the data.
+                let data = self.take(data_length).collect::<Vec<u8>>();
+
+                // Check if the data length is valid.
+                if data.len() != data_length {
+                    return Err(OpcodeDecoderError::InvalidPushDataLength);
+                }
+
+                // Return the opcode.
+                Ok(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
+            }
+            0x4d => {
                 // Collect two bytes for the data length in little endian order.
-                let mut data_length = self.next()? as u16;
-                data_length |= (self.next()? as u16) << 8;
+                let mut data_length =
+                    self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as u16;
+                data_length |=
+                    (self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as u16) << 8;
 
                 // Collect the data.
                 let data = self.take(data_length as usize).collect::<Vec<u8>>();
 
+                // Check if the data length is valid.
+                if data.len() != data_length as usize {
+                    return Err(OpcodeDecoderError::InvalidPushDataLength);
+                }
+
                 // Return the opcode.
-                Some(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
+                Ok(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
             }
-            _ => None,
+            0x4e => Err(OpcodeDecoderError::ReservedOpcodeError),
+            0x4f => Err(OpcodeDecoderError::ReservedOpcodeError),
+            0x51 => Ok(Opcode::OP_TRUE(OP_TRUE)),
+            0x52 => Ok(Opcode::OP_2(OP_2)),
+            0x53 => Ok(Opcode::OP_3(OP_3)),
+            0x54 => Ok(Opcode::OP_4(OP_4)),
+            0x55 => Ok(Opcode::OP_5(OP_5)),
+            0x56 => Ok(Opcode::OP_6(OP_6)),
+            0x57 => Ok(Opcode::OP_7(OP_7)),
+            0x58 => Ok(Opcode::OP_8(OP_8)),
+            0x59 => Ok(Opcode::OP_9(OP_9)),
+            0x5a => Ok(Opcode::OP_10(OP_10)),
+            0x5b => Ok(Opcode::OP_11(OP_11)),
+            0x5c => Ok(Opcode::OP_12(OP_12)),
+            0x5d => Ok(Opcode::OP_13(OP_13)),
+            0x5e => Ok(Opcode::OP_14(OP_14)),
+            0x5f => Ok(Opcode::OP_15(OP_15)),
+            0x60 => Ok(Opcode::OP_16(OP_16)),
+            _ => Err(OpcodeDecoderError::ReservedOpcodeError),
         }
     }
 }
