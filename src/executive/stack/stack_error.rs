@@ -32,4 +32,8 @@ pub enum StackError {
     StackUintMaxOverflowError,
     // Division by zero error.
     DivisionByZeroError,
+    // Fail error.
+    FailError,
+    // Error string conversion error.
+    ErrorStringConversionError,
 }

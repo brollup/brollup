@@ -1,6 +1,10 @@
 #![allow(non_camel_case_types)]
 
 use super::op::{
+    flow::{
+        op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
+        op_notif::OP_NOTIF, op_return::OP_RETURN, op_returnerr::OP_RETURNERR, op_verify::OP_VERIFY,
+    },
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
         op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7,
@@ -32,6 +36,16 @@ pub enum Opcode {
     OP_15(OP_15),
     OP_16(OP_16),
     OP_PUSHDATA(OP_PUSHDATA),
+    // Flow
+    OP_NOP(OP_NOP),
+    OP_IF(OP_IF),
+    OP_NOTIF(OP_NOTIF),
+    OP_ELSE(OP_ELSE),
+    OP_ENDIF(OP_ENDIF),
+    OP_VERIFY(OP_VERIFY),
+    OP_RETURN(OP_RETURN),
+    OP_FAIL(OP_FAIL),
+    OP_RETURNERR(OP_RETURNERR),
     // Stack
     /// Pushes a copy of the topmost element onto the stack.
     OP_DUP(OP_DUP),
@@ -42,33 +56,6 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Returns the bytecode for the opcode.
-    pub fn bytecode(&self) -> u8 {
-        match self {
-            Opcode::OP_FALSE(_) => 0x00,
-            Opcode::OP_TRUE(_) => 0x01,
-            Opcode::OP_2(_) => 0x02,
-            Opcode::OP_3(_) => 0x03,
-            Opcode::OP_4(_) => 0x04,
-            Opcode::OP_5(_) => 0x05,
-            Opcode::OP_6(_) => 0x06,
-            Opcode::OP_7(_) => 0x07,
-            Opcode::OP_8(_) => 0x08,
-            Opcode::OP_9(_) => 0x09,
-            Opcode::OP_10(_) => 0x0a,
-            Opcode::OP_11(_) => 0x0b,
-            Opcode::OP_12(_) => 0x0c,
-            Opcode::OP_13(_) => 0x0d,
-            Opcode::OP_14(_) => 0x0e,
-            Opcode::OP_15(_) => 0x0f,
-            Opcode::OP_16(_) => 0x10,
-            Opcode::OP_PUSHDATA(_) => 0x11,
-            Opcode::OP_DUP(_) => 0x76,
-            Opcode::OP_DROP(_) => 0x75,
-            Opcode::OP_CAT(_) => 0x7e,
-        }
-    }
-
     /// Returns the opcode for the given bytecode.
     pub fn from_bytecode(bytecode: u8) -> Option<Self> {
         match bytecode {

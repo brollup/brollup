@@ -1,5 +1,8 @@
 use crate::executive::{
-    opcode::ops::OP_VERIFY_OPS,
+    opcode::{
+        codec::{OpcodeEncoder, OpcodeEncoderError},
+        ops::OP_VERIFY_OPS,
+    },
     stack::{stack::StackHolder, stack_error::StackError},
 };
 
@@ -22,5 +25,11 @@ impl OP_VERIFY {
         stack_holder.increment_ops(OP_VERIFY_OPS)?;
 
         Ok(())
+    }
+}
+/// Implement the `OpcodeEncoder` trait for `OP_VERIFY`.
+impl OpcodeEncoder for OP_VERIFY {
+    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
+        Ok(vec![0x69])
     }
 }

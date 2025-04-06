@@ -1,10 +1,3 @@
-use crate::constructive::cpe::{
-    cpe::CompactPayloadEncoding,
-    decode_error::{
-        calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
-        error::CPEDecodingError,
-    },
-};
 use crate::constructive::entity::account::Account;
 use crate::constructive::entity::contract::Contract;
 use crate::constructive::valtype::long_val::LongVal;
@@ -13,6 +6,16 @@ use crate::constructive::valtype::short_val::ShortVal;
 use crate::inscriptive::registery::account_registery::ACCOUNT_REGISTERY;
 use crate::inscriptive::registery::contract_registery::CONTRACT_REGISTERY;
 use crate::inscriptive::registery::registery::REGISTERY;
+use crate::{
+    constructive::cpe::{
+        cpe::CompactPayloadEncoding,
+        decode_error::{
+            calldata_error::{BytesDecodingError, CalldataCPEDecodingError, VarbytesDecodingError},
+            error::CPEDecodingError,
+        },
+    },
+    executive::stack::stack_item::item::StackItem,
+};
 use bit_vec::BitVec;
 
 /// Represents the type of a single element of calldata.
@@ -396,26 +399,33 @@ impl CalldataElement {
     }
 
     /// Returns the element in the pure bytes format to be pushed/used for stack operations.
-    pub fn stack_bytes(&self) -> Vec<u8> {
+    pub fn stack_item(&self) -> StackItem {
         match self {
             // 1 byte in stack.
-            CalldataElement::U8(value) => vec![*value],
+            CalldataElement::U8(value) => StackItem::new(vec![*value]),
             // 2 bytes in stack.
-            CalldataElement::U16(value) => value.to_le_bytes().to_vec(),
+            CalldataElement::U16(value) => StackItem::new(value.to_le_bytes().to_vec()),
             // 4 bytes in stack.
-            CalldataElement::U32(value) => value.value().to_le_bytes().to_vec(),
+            CalldataElement::U32(value) => StackItem::new(value.value().to_le_bytes().to_vec()),
             // 8 bytes in stack.
-            CalldataElement::U64(value) => value.value().to_le_bytes().to_vec(),
+            CalldataElement::U64(value) => StackItem::new(value.value().to_le_bytes().to_vec()),
             // 1 byte in stack  .
-            CalldataElement::Bool(value) => vec![*value as u8],
+            CalldataElement::Bool(value) => match value {
+                // True is a single byte of 0x01.
+                true => StackItem::new(vec![0x01]),
+                // False is an empty stack item.
+                false => StackItem::new(vec![]),
+            },
             // 32 bytes in stack.
-            CalldataElement::Account(value) => value.key().serialize_xonly().to_vec(),
+            CalldataElement::Account(value) => {
+                StackItem::new(value.key().serialize_xonly().to_vec())
+            }
             // 32 bytes in stack.
-            CalldataElement::Contract(value) => value.contract_id().to_vec(),
+            CalldataElement::Contract(value) => StackItem::new(value.contract_id().to_vec()),
             // 1-256 bytes in stack.
-            CalldataElement::Bytes(bytes) => bytes.clone(),
+            CalldataElement::Bytes(bytes) => StackItem::new(bytes.clone()),
             // 0-4096 bytes in stack.
-            CalldataElement::Varbytes(bytes) => bytes.clone(),
+            CalldataElement::Varbytes(bytes) => StackItem::new(bytes.clone()),
         }
     }
 }

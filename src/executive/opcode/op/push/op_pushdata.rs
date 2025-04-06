@@ -52,6 +52,7 @@ impl OP_PUSHDATA {
     }
 }
 
+/// Implement the `OpcodeEncoder` trait for `OP_PUSHDATA`.
 impl OpcodeEncoder for OP_PUSHDATA {
     fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
         // Determine the pushdata type.

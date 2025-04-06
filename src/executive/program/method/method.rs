@@ -1,4 +1,4 @@
-use crate::{constructive::calldata::element::CalldataElement, executive::opcode::opcode::Opcode};
+use crate::executive::opcode::opcode::Opcode;
 
 /// The type of method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,26 +14,27 @@ pub enum MethodType {
 /// A section of executable block in the `Contract`.
 #[derive(Debug, Clone)]
 pub struct ProgramMethod {
+    /// The contract id.
+    contract_id: [u8; 32],
     /// The type of method.
-    pub method_type: MethodType,
-    /// The data elements to input to the method.
-    pub calldata_elements: Vec<CalldataElement>,
-    /// The program to execute.
-    pub program: Vec<Opcode>,
+    method_type: MethodType,
+    /// The script to execute.
+    script: Vec<Opcode>,
 }
 
 impl ProgramMethod {
     /// Create a new method.
-    pub fn new(
-        method_type: MethodType,
-        calldata_elements: Vec<CalldataElement>,
-        program: Vec<Opcode>,
-    ) -> Self {
+    pub fn new(contract_id: [u8; 32], method_type: MethodType, script: Vec<Opcode>) -> Self {
         Self {
-            program,
+            contract_id,
             method_type,
-            calldata_elements,
+            script,
         }
+    }
+
+    /// Returns the contract id.
+    pub fn contract_id(&self) -> [u8; 32] {
+        self.contract_id
     }
 
     /// Returns the method type.
@@ -41,13 +42,8 @@ impl ProgramMethod {
         self.method_type
     }
 
-    /// Returns the calldata elements.
-    pub fn calldata_elements(&self) -> Vec<CalldataElement> {
-        self.calldata_elements.clone()
-    }
-
-    /// Returns the program.
-    pub fn program(&self) -> Vec<Opcode> {
-        self.program.clone()
+    /// Returns the script.
+    pub fn script(&self) -> Vec<Opcode> {
+        self.script.clone()
     }
 }
