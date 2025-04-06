@@ -29,6 +29,10 @@ pub enum OpcodeDecoderError {
     InvalidPushDataLength,
     /// The reserved opcode error.
     ReservedOpcodeError,
+    /// The non minimal data push error.
+    NonMinimalDataPushError,
+    /// The invalid data push tier error.
+    InvalidDataPushTier,
 }
 
 /// A trait for decoding opcodes from an iterator.
@@ -60,6 +64,11 @@ where
                     return Err(OpcodeDecoderError::InvalidPushDataLength);
                 }
 
+                // Check if the data is a minimal push.
+                if data_length == 1 && !check_minimal_push(&data) {
+                    return Err(OpcodeDecoderError::NonMinimalDataPushError);
+                }
+
                 // Return the opcode.
                 Ok(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
             }
@@ -67,6 +76,12 @@ where
                 // Data length is the next byte.
                 let data_length =
                     self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as usize;
+
+                // Check if the data push is in tier 1.
+                if data_length <= 75 {
+                    // Should have been tier 0 (0x01..0x4b).
+                    return Err(OpcodeDecoderError::InvalidDataPushTier);
+                }
 
                 // Collect the data.
                 let data = self.take(data_length).collect::<Vec<u8>>();
@@ -85,6 +100,12 @@ where
                     self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as u16;
                 data_length |=
                     (self.next().ok_or(OpcodeDecoderError::ByteIteratorError)? as u16) << 8;
+
+                // Check if the data push is in tier 2.
+                if data_length <= 255 {
+                    // Should have been tier 1 (0x4c).
+                    return Err(OpcodeDecoderError::InvalidDataPushTier);
+                }
 
                 // Collect the data.
                 let data = self.take(data_length as usize).collect::<Vec<u8>>();
@@ -117,5 +138,26 @@ where
             0x60 => Ok(Opcode::OP_16(OP_16)),
             _ => Err(OpcodeDecoderError::ReservedOpcodeError),
         }
+    }
+}
+
+/// Check if the push data is a minimal push.
+fn check_minimal_push(data: &[u8]) -> bool {
+    match data.len() {
+        // Data should have been encoded as OP_FALSE (OP_0).
+        0 => false,
+        // Data might or might not be a minimal push.
+        1 => {
+            // Check if the data is a minimal push.
+            match data.get(0) {
+                // Should have been encoded as OP_0..OP_16.
+                Some(value) if value >= &0 && value <= &16 => false,
+                // Validation passes otherwise.
+                _ => true,
+            }
+        }
+        // Minimal push values are always single byte values.
+        // Check for multi-byte values are not needed.
+        _ => true,
     }
 }

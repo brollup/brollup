@@ -37,6 +37,11 @@ impl OP_PUSHDATA {
         // The data to be pushed is the inner data in the OP_PUSHDATA struct.
         let item_to_push = StackItem::new(self.0);
 
+        // Check if the data length is valid.
+        if item_to_push.len() > MAX_STACK_ITEM_SIZE {
+            return Err(StackError::StackItemTooLarge);
+        }
+
         // Increment the ops counter.
         stack_holder.increment_ops(OP_PUSHDATA_OPS)?;
 
@@ -120,10 +125,6 @@ impl OpcodeEncoder for OP_PUSHDATA {
                 Ok(encoded)
             }
             256..=65535 => {
-                if self.0.len() > MAX_STACK_ITEM_SIZE as usize {
-                    return Err(OpcodeEncoderError::InvalidPushDataLength);
-                }
-
                 // Initialize the encoded vector.
                 let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 3);
 

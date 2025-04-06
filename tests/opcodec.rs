@@ -3,7 +3,7 @@ mod opcodec_tests {
 
     use brollup::executive::{
         opcode::{
-            codec::{OpcodeDecoder, OpcodeEncoder},
+            codec::{OpcodeDecoder, OpcodeDecoderError, OpcodeEncoder},
             op::push::{
                 op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
                 op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6,
@@ -133,6 +133,309 @@ mod opcodec_tests {
         Ok(())
     }
 
+    /// Non-minimal OP_PUSHDATA decoding tests.
+    #[test]
+    fn test_non_minimal_decoding() -> Result<(), StackError> {
+        {
+            // Non minimal 0x00 push decoding must fail.
+            let data = vec![0x01, 0x00];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_FALSE (OP_0).
+            let data = vec![0x00];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x01 push decoding must fail.
+            let data = vec![0x01, 0x01];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_TRUE (OP_1).
+            let data = vec![0x51];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x02 push decoding must fail.
+            let data = vec![0x01, 0x02];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_2 (OP_2).
+            let data = vec![0x52];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x03 push decoding must fail.
+            let data = vec![0x01, 0x03];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_3 (OP_3).
+            let data = vec![0x53];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x04 push decoding must fail.
+            let data = vec![0x01, 0x04];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_4 (OP_4).
+            let data = vec![0x54];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x05 push decoding must fail.
+            let data = vec![0x01, 0x05];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_5 (OP_5).
+            let data = vec![0x55];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x06 push decoding must fail.
+            let data = vec![0x01, 0x06];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_6 (OP_6).
+            let data = vec![0x56];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x07 push decoding must fail.
+            let data = vec![0x01, 0x07];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_7 (OP_7).
+            let data = vec![0x57];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x08 push decoding must fail.
+            let data = vec![0x01, 0x08];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_8 (OP_8).
+            let data = vec![0x58];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x09 push decoding must fail.
+            let data = vec![0x01, 0x09];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_9 (OP_9).
+            let data = vec![0x59];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0a push decoding must fail.
+            let data = vec![0x01, 0x0a];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_10 (OP_10).
+            let data = vec![0x5a];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0b push decoding must fail.
+            let data = vec![0x01, 0x0b];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_11 (OP_11).
+            let data = vec![0x5b];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0c push decoding must fail.
+            let data = vec![0x01, 0x0c];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_12 (OP_12).
+            let data = vec![0x5c];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0d push decoding must fail.
+            let data = vec![0x01, 0x0d];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_13 (OP_13).
+            let data = vec![0x5d];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0e push decoding must fail.
+            let data = vec![0x01, 0x0e];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_14 (OP_14).
+            let data = vec![0x5e];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x0f push decoding must fail.
+            let data = vec![0x01, 0x0f];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_15 (OP_15).
+            let data = vec![0x5f];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // Non minimal 0x10 push decoding must fail.
+            let data = vec![0x01, 0x10];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            match decoded_opcode {
+                Ok(_) => panic!("Expected error"),
+                Err(e) => assert_eq!(e, OpcodeDecoderError::NonMinimalDataPushError),
+            }
+
+            // Should have been encoded as OP_16 (OP_16).
+            let data = vec![0x60];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        {
+            // 0x11 push decoding must pass.
+            let data = vec![0x01, 0x11];
+            let mut byte_stream = data.into_iter();
+            let decoded_opcode = OpcodeDecoder::decode(&mut byte_stream);
+            assert!(decoded_opcode.is_ok());
+        }
+
+        Ok(())
+    }
+
     /// Non-minimal, multi-tier OP_PUSHDATA encoding tests.
     #[test]
     fn test_pushdata_multi_tier_encoding() -> Result<(), StackError> {
@@ -255,24 +558,6 @@ mod opcodec_tests {
         expected_encoded.extend(vec![0xff; 257]);
         assert_eq!(pushdata.encode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
-        // Test 4094 bytes.
-        let pushdata = OP_PUSHDATA(vec![0xff; 4094]);
-
-        let mut expected_encoded = Vec::<u8>::new();
-        // Tier 2 byte.
-        expected_encoded.push(0x4d);
-        // 4094 is 0x0fff in little endian.
-        let length_bytes: [u8; 2] = {
-            let mut length_bytes = [0u8; 2];
-            length_bytes[0] = (4094 & 0xff) as u8;
-            length_bytes[1] = (4094 >> 8) as u8;
-            length_bytes
-        };
-        expected_encoded.extend(length_bytes);
-        expected_encoded.extend(vec![0xff; 4094]);
-
-        assert_eq!(pushdata.encode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
-
         // Test 4095 bytes (MAX STACK ITEM SIZE).
         let pushdata = OP_PUSHDATA(vec![0xff; 4095]);
         let mut expected_encoded = Vec::<u8>::new();
@@ -288,6 +573,44 @@ mod opcodec_tests {
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 4095]);
         assert_eq!(pushdata.encode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+
+        // Test 65534 bytes (MAX TIER 2 SIZE -1).
+        // This will be valid to encode/decode, but the opcode execution will fail (due to stack item size limit).
+        let pushdata = OP_PUSHDATA(vec![0xff; 65534]);
+        let mut expected_encoded = Vec::<u8>::new();
+        // Tier 2 byte.
+        expected_encoded.push(0x4d);
+        // 65534 is 0xfffe in little endian.
+        let length_bytes: [u8; 2] = {
+            let mut length_bytes = [0u8; 2];
+            length_bytes[0] = (65534 & 0xff) as u8;
+            length_bytes[1] = (65534 >> 8) as u8;
+            length_bytes
+        };
+        expected_encoded.extend(length_bytes);
+        expected_encoded.extend(vec![0xff; 65534]);
+        assert_eq!(pushdata.encode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+
+        // Test 65535 bytes (MAX TIER 2 SIZE).
+        // This will be valid to encode/decode, but the opcode execution will fail (due to stack item size limit).
+        let pushdata = OP_PUSHDATA(vec![0xff; 65535]);
+        let mut expected_encoded = Vec::<u8>::new();
+        // Tier 2 byte.
+        expected_encoded.push(0x4d);
+        // 65535 is 0xffff in little endian.
+        let length_bytes: [u8; 2] = {
+            let mut length_bytes = [0u8; 2];
+            length_bytes[0] = (65535 & 0xff) as u8;
+            length_bytes[1] = (65535 >> 8) as u8;
+            length_bytes
+        };
+        expected_encoded.extend(length_bytes);
+        expected_encoded.extend(vec![0xff; 65535]);
+        assert_eq!(pushdata.encode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+
+        // Testing 65536 bytes should fail. Tier 3 (>65535 bytes) is not supported.
+        let pushdata = OP_PUSHDATA(vec![0xff; 65536]);
+        assert!(pushdata.encode().is_err());
 
         Ok(())
     }
