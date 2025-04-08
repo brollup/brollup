@@ -1,20 +1,17 @@
-use crate::transmutive::hash::Hash;
-use crate::transmutive::hash::HashTag;
-use crate::transmutive::into::IntoPoint;
-use crate::transmutive::into::IntoScalar;
-use crate::transmutive::into::IntoSigTuple;
+use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutive::secp::into::IntoSigTuple;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
-use serde::{Deserialize, Serialize};
 
+/// The signing mode of Schnorr signatures.
 #[derive(Clone, PartialEq)]
-pub enum SigningMode {
+pub enum SchnorrSigningMode {
     Brollup,
     BIP340,
 }
 
 /// Signs a Schnorr message.
-pub fn sign(secret_key: [u8; 32], message: [u8; 32], mode: SigningMode) -> Option<[u8; 64]> {
+pub fn sign(secret_key: [u8; 32], message: [u8; 32], mode: SchnorrSigningMode) -> Option<[u8; 64]> {
     // Secret-public key pairs.
 
     let secret_key_scalar_ = secret_key.to_scalar()?;
@@ -53,7 +50,7 @@ pub fn verify(
     public_key: [u8; 32],
     message: [u8; 32],
     signature: [u8; 64],
-    mode: SigningMode,
+    mode: SchnorrSigningMode,
 ) -> bool {
     let public_key_point = match public_key.to_even_point() {
         Some(public_key_point_) => public_key_point_,
@@ -85,7 +82,7 @@ pub fn challenge(
     public_nonce: Point,
     public_key: Point,
     message: [u8; 32],
-    mode: SigningMode,
+    mode: SchnorrSigningMode,
 ) -> MaybeScalar {
     let mut challenge_preimage = Vec::<u8>::with_capacity(160);
 
@@ -94,8 +91,8 @@ pub fn challenge(
     challenge_preimage.extend(message);
 
     let challenge = match mode {
-        SigningMode::Brollup => challenge_preimage.hash(Some(HashTag::SignatureChallenge)),
-        SigningMode::BIP340 => challenge_preimage.hash(Some(HashTag::BIP340Challenge)),
+        SchnorrSigningMode::Brollup => challenge_preimage.hash(Some(HashTag::SignatureChallenge)),
+        SchnorrSigningMode::BIP340 => challenge_preimage.hash(Some(HashTag::BIP340Challenge)),
     };
 
     MaybeScalar::reduce_from(&challenge)
@@ -199,75 +196,4 @@ impl LiftScalar for Scalar {
         secret_to_lift = secret_to_lift.negate_if(point.parity());
         secret_to_lift
     }
-}
-
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub struct Authenticable<T> {
-    object: T,
-    sig: (Point, Scalar),
-    key: Point,
-}
-
-impl<T> Authenticable<T>
-where
-    T: Serialize + Sighash + Clone,
-{
-    pub fn new(object: T, secret_key: [u8; 32]) -> Option<Self> {
-        let key = secret_key.secret_to_public()?;
-        let key_point = key.into_point().ok()?;
-
-        let msg = object.sighash();
-
-        let sig = sign(secret_key, msg, SigningMode::Brollup)?;
-        let nonce = &sig[..32].to_vec().into_point().ok()?;
-        let s_com = &sig[32..].to_vec().into_scalar().ok()?;
-
-        Some(Self {
-            object,
-            sig: (nonce.to_owned(), s_com.to_owned()),
-            key: key_point,
-        })
-    }
-
-    pub fn serialize(&self) -> Vec<u8> {
-        match serde_json::to_vec(self) {
-            Ok(bytes) => bytes,
-            Err(_) => vec![],
-        }
-    }
-
-    pub fn object(&self) -> T {
-        self.object.clone()
-    }
-
-    pub fn msg(&self) -> Option<[u8; 32]> {
-        let authash = self.object().sighash();
-        Some(authash)
-    }
-
-    pub fn sig(&self) -> [u8; 64] {
-        let mut sig = Vec::<u8>::with_capacity(64);
-        sig.extend(self.sig.0.serialize_xonly());
-        sig.extend(self.sig.1.serialize());
-        sig.try_into().unwrap()
-    }
-
-    pub fn key(&self) -> [u8; 32] {
-        self.key.serialize_xonly()
-    }
-
-    pub fn authenticate(&self) -> bool {
-        let key = self.key();
-        let msg = match self.msg() {
-            Some(msg) => msg,
-            None => return false,
-        };
-        let sig = self.sig();
-
-        verify(key, msg, sig, SigningMode::Brollup)
-    }
-}
-
-pub trait Sighash {
-    fn sighash(&self) -> [u8; 32];
 }

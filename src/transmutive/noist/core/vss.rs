@@ -1,4 +1,4 @@
-use crate::transmutive::into::SecpError;
+use crate::transmutive::secp::error::SecpError;
 use secp::{MaybePoint, Point, Scalar};
 
 #[allow(non_snake_case)]

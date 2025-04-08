@@ -5,9 +5,8 @@ use super::{
 use crate::{
     constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
     transmutive::{
-        into::IntoScalar,
         key::KeyHolder,
-        schnorr::{self, Authenticable},
+        secp::{authenticable::Authenticable, into::IntoScalar, schnorr::generate_secret},
     },
 };
 use secp::{Point, Scalar};
@@ -282,8 +281,8 @@ fn num_connectors(_entry: &Entry) -> u8 {
 }
 
 fn gen_nonce_tuple() -> Option<((Scalar, Scalar), (Point, Point))> {
-    let hiding_secret_nonce = schnorr::generate_secret().into_scalar().ok()?;
-    let binding_secret_nonce = schnorr::generate_secret().into_scalar().ok()?;
+    let hiding_secret_nonce = generate_secret().into_scalar().ok()?;
+    let binding_secret_nonce = generate_secret().into_scalar().ok()?;
 
     let hiding_public_nonce = hiding_secret_nonce.base_point_mul();
     let binding_public_nonce = binding_secret_nonce.base_point_mul();

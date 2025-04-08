@@ -1,7 +1,7 @@
 use super::epoch::Epoch;
 use crate::{
     constructive::entity::account::Account, inscriptive::baked::INITIAL_OPERATOR_SET,
-    operative::Chain, transmutive::into::IntoPoint,
+    operative::Chain, transmutive::secp::into::IntoPoint,
 };
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};

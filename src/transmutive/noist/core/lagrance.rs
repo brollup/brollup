@@ -1,4 +1,4 @@
-use crate::transmutive::into::SecpError;
+use crate::transmutive::secp::error::SecpError;
 use secp::{MaybeScalar, Point, Scalar};
 
 pub fn interpolating_value(x_vec: &Vec<Scalar>, x_i: Scalar) -> Result<Scalar, SecpError> {

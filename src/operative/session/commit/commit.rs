@@ -2,7 +2,7 @@ use crate::{
     constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use secp::Point;
@@ -95,12 +95,12 @@ impl NSessionCommit {
     }
 }
 
-impl Sighash for NSessionCommit {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for NSessionCommit {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         // Entry
-        preimage.extend(self.entry.sighash());
+        preimage.extend(self.entry.auth_sighash());
 
         // Payload auth nonces
         preimage.extend(self.payload_auth_nonces.0.serialize());

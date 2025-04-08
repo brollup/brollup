@@ -1,6 +1,6 @@
 use super::lp::LP;
 use crate::{
-    constructive::entity::account::Account, operative::Chain, transmutive::into::IntoPointVec,
+    constructive::entity::account::Account, operative::Chain, transmutive::secp::into::IntoPointVec,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;

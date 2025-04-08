@@ -2,7 +2,7 @@ use crate::{
     constructive::entity::account::Account,
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -38,8 +38,8 @@ impl Sub {
     }
 }
 
-impl Sighash for Sub {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Sub {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         preimage.extend(self.account.key().serialize_xonly());

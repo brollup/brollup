@@ -3,7 +3,7 @@ use crate::{
     transmutive::{
         hash::{Hash, HashTag},
         musig::session::MusigSessionCtx,
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -103,7 +103,7 @@ impl CSessionCommitAck {
 
         // Entries
         for (index, entry) in self.entries.iter().enumerate() {
-            let entry_sighash = entry.sighash();
+            let entry_sighash = entry.auth_sighash();
             preimage.extend((index as u32).to_le_bytes());
             preimage.extend(entry_sighash);
         }

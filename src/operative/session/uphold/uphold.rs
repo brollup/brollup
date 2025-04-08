@@ -2,7 +2,7 @@ use crate::{
     constructive::{entity::account::Account, txo::lift::Lift},
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use secp::Scalar;
@@ -81,8 +81,8 @@ impl NSessionUphold {
     }
 }
 
-impl Sighash for NSessionUphold {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for NSessionUphold {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         // Account

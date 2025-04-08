@@ -1,7 +1,7 @@
 use crate::{
     transmutive::hash::{Hash, HashTag},
     transmutive::noist::setup::setup::VSESetup,
-    transmutive::schnorr::Sighash,
+    transmutive::secp::authenticable::AuthSighash,
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -106,12 +106,12 @@ impl DKGPackage {
     }
 }
 
-impl Sighash for DKGPackage {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for DKGPackage {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
         preimage.extend(self.signatory.serialize_xonly());
-        preimage.extend(self.hiding.sighash());
-        preimage.extend(self.binding.sighash());
+        preimage.extend(self.hiding.auth_sighash());
+        preimage.extend(self.binding.auth_sighash());
         preimage.hash(Some(HashTag::Sighash))
     }
 }

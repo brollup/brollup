@@ -1,11 +1,14 @@
 use crate::transmutive::{
     hash::{Hash, HashTag},
-    into::{IntoPoint, IntoScalar},
     noist::{
         core::{share::gen_polynomial, vse, vss},
         setup::setup::VSESetup,
     },
-    schnorr::{generate_secret, Sighash},
+    secp::{
+        authenticable::AuthSighash,
+        into::{IntoPoint, IntoScalar},
+        schnorr::generate_secret,
+    },
 };
 use secp::{MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -212,8 +215,8 @@ impl DKGShareMap {
     }
 }
 
-impl Sighash for DKGShareMap {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for DKGShareMap {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
         preimage.extend(self.signatory.serialize_xonly());
 

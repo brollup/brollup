@@ -7,7 +7,7 @@ use crate::{
     constructive::entity::account::Account,
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -491,8 +491,8 @@ impl Entry {
     }
 }
 
-impl Sighash for Entry {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Entry {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         // Account
@@ -505,7 +505,7 @@ impl Sighash for Entry {
                 match &uppermost_left_branch.liftup {
                     Some(liftup) => {
                         preimage.push(0x01);
-                        preimage.extend(liftup.sighash());
+                        preimage.extend(liftup.auth_sighash());
                     }
                     None => preimage.push(0x00),
                 }
@@ -513,7 +513,7 @@ impl Sighash for Entry {
                 match &uppermost_left_branch.recharge {
                     Some(recharge) => {
                         preimage.push(0x01);
-                        preimage.extend(recharge.sighash());
+                        preimage.extend(recharge.auth_sighash());
                     }
                     None => preimage.push(0x00),
                 }
@@ -526,14 +526,14 @@ impl Sighash for Entry {
                 preimage.push(0x01);
 
                 match &uppermost_right_branch.main_combinator() {
-                    Combinator::Move(r#move) => preimage.extend(r#move.sighash()),
-                    Combinator::Call(call) => preimage.extend(call.sighash()),
-                    Combinator::Add(add) => preimage.extend(add.sighash()),
-                    Combinator::Sub(sub) => preimage.extend(sub.sighash()),
-                    Combinator::Deploy(deploy) => preimage.extend(deploy.sighash()),
-                    Combinator::Swapout(swapout) => preimage.extend(swapout.sighash()),
-                    Combinator::Revive(revive) => preimage.extend(revive.sighash()),
-                    Combinator::Claim(claim) => preimage.extend(claim.sighash()),
+                    Combinator::Move(r#move) => preimage.extend(r#move.auth_sighash()),
+                    Combinator::Call(call) => preimage.extend(call.auth_sighash()),
+                    Combinator::Add(add) => preimage.extend(add.auth_sighash()),
+                    Combinator::Sub(sub) => preimage.extend(sub.auth_sighash()),
+                    Combinator::Deploy(deploy) => preimage.extend(deploy.auth_sighash()),
+                    Combinator::Swapout(swapout) => preimage.extend(swapout.auth_sighash()),
+                    Combinator::Revive(revive) => preimage.extend(revive.auth_sighash()),
+                    Combinator::Claim(claim) => preimage.extend(claim.auth_sighash()),
                     // Reserved is not covered.
                     Combinator::Reserved(_) => return [0xffu8; 32],
                     // Liftup and recharge belong to the uppermost left branch.

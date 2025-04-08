@@ -75,7 +75,7 @@ A common value of `1000`, for instance, would fall into the U16 tier of `ShortVa
 
 | MaybeCommon LongVal Tiers | Description                                            | Bitsize|
 |---------------------------|--------------------------------------------------------|---------|
-| Common                    | Represents a list of 64 common values.                 | 7 bits  |
+| Common                    | Represents a list of 64 common values.                 | 8 bits  |
 | Uncommon U8               | Represents values from 0 to 255.                       | 12 bits |
 | Uncommon U16              | Represents values from 0 to 65,535.                    | 20 bits |
 | Uncommon U24              | Represents values from 0 to 16,777,215.                | 28 bits |

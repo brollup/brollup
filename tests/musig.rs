@@ -2,7 +2,7 @@
 mod musig_standalone {
     use brollup::transmutive::{
         musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
-        schnorr,
+        secp::schnorr::{self, SchnorrSigningMode},
     };
     use secp::{Point, Scalar};
 
@@ -173,7 +173,7 @@ mod musig_standalone {
             agg_key.serialize_xonly(),
             message,
             full_agg_sig,
-            schnorr::SigningMode::BIP340
+            SchnorrSigningMode::BIP340
         ));
 
         Ok(())

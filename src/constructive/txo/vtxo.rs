@@ -1,7 +1,7 @@
 use crate::constructive::taproot::{TapLeaf, TapRoot, P2TR};
-use crate::inscriptive::encoding::csv::{CSVEncode, CSVFlag};
-use crate::transmutive::into::IntoScalar;
+use crate::transmutive::codec::csv::{CSVEncode, CSVFlag};
 use crate::transmutive::musig::keyagg::MusigKeyAggCtx;
+use crate::transmutive::secp::into::IntoScalar;
 use bitcoin::OutPoint;
 use secp::Point;
 use serde::{Deserialize, Serialize};

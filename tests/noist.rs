@@ -12,7 +12,10 @@ mod noist_tests {
                 manager::DKGManager,
                 setup::{keymap::VSEKeyMap, setup::VSESetup},
             },
-            schnorr::{self, Authenticable},
+            secp::{
+                authenticable::Authenticable,
+                schnorr::{self, SchnorrSigningMode},
+            },
         },
     };
     use secp::{Point, Scalar};
@@ -204,7 +207,7 @@ mod noist_tests {
                 _ => [0xffu8; 64],
             };
 
-            if !schnorr::verify(group_key, message, agg_sig, schnorr::SigningMode::BIP340) {
+            if !schnorr::verify(group_key, message, agg_sig, SchnorrSigningMode::BIP340) {
                 return Err("Invalid aggregate schnorr signature.".into());
             }
         }
@@ -408,7 +411,7 @@ mod noist_tests {
             agg_key.serialize_xonly(),
             message,
             musig_agg_sig,
-            schnorr::SigningMode::BIP340
+            SchnorrSigningMode::BIP340
         ));
 
         Ok(())

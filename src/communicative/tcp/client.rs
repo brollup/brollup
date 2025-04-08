@@ -14,7 +14,7 @@ use crate::transmutive::noist::dkg::package::DKGPackage;
 use crate::transmutive::noist::dkg::session::DKGSession;
 use crate::transmutive::noist::setup::keymap::VSEKeyMap;
 use crate::transmutive::noist::setup::setup::VSESetup;
-use crate::transmutive::schnorr::Authenticable;
+use crate::transmutive::secp::authenticable::Authenticable;
 use async_trait::async_trait;
 use chrono::Utc;
 use secp::Scalar;

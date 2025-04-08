@@ -1,2 +1,2 @@
 # Inscriptive Files
-Project files related to encoding, database, and well-known values.
+Project files related to storage, database, and well-known values.

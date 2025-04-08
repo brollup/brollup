@@ -1,4 +1,6 @@
-use crate::{constructive::entity::account::Account, transmutive::schnorr::Sighash};
+use crate::{
+    constructive::entity::account::Account, transmutive::secp::authenticable::AuthSighash,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -15,8 +17,8 @@ impl Claim {
     }
 }
 
-impl Sighash for Claim {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Claim {
+    fn auth_sighash(&self) -> [u8; 32] {
         [0xffu8; 32]
     }
 }

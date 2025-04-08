@@ -1,4 +1,5 @@
-use crate::transmutive::schnorr::Bytes32;
+use super::error::SecpError;
+use crate::transmutive::secp::schnorr::Bytes32;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
 pub enum ParseError {
@@ -6,14 +7,6 @@ pub enum ParseError {
     ParseError33,
     ParseError64,
     ParseError65,
-}
-
-#[derive(Debug)]
-pub enum SecpError {
-    InvalidSignature,
-    InvalidScalar,
-    InvalidPoint,
-    SignatureParseError,
 }
 
 pub trait IntoByteArray {

@@ -1,8 +1,11 @@
-use crate::{
-    transmutive::hash::{Hash, HashTag},
-    transmutive::into::{FromSigTuple, IntoSigTuple},
-    transmutive::noist::core::vse::encrypting_key_public,
-    transmutive::schnorr::{self, Sighash},
+use crate::transmutive::{
+    hash::{Hash, HashTag},
+    noist::core::vse::encrypting_key_public,
+    secp::{
+        authenticable::AuthSighash,
+        into::{FromSigTuple, IntoSigTuple},
+        schnorr::{self, SchnorrSigningMode},
+    },
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -37,11 +40,8 @@ impl VSEKeyMap {
                 preimage.hash(Some(HashTag::VSEEncryptionAuth))
             };
 
-            let auth_sig = schnorr::sign(
-                secret_key.serialize(),
-                message,
-                schnorr::SigningMode::Brollup,
-            )?;
+            let auth_sig =
+                schnorr::sign(secret_key.serialize(), message, SchnorrSigningMode::Brollup)?;
             let auth_sig_tuple = auth_sig.into_sig_tuple()?;
 
             map.insert(signatory.to_owned(), (vse_public, auth_sig_tuple, None));
@@ -104,7 +104,7 @@ impl VSEKeyMap {
                 self.signatory.serialize_xonly(),
                 message,
                 signature,
-                schnorr::SigningMode::Brollup,
+                SchnorrSigningMode::Brollup,
             ) {
                 return false;
             }
@@ -159,8 +159,8 @@ impl VSEKeyMap {
     }
 }
 
-impl Sighash for VSEKeyMap {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for VSEKeyMap {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
         preimage.extend(self.signatory.serialize_xonly());
 

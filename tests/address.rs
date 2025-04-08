@@ -2,7 +2,7 @@
 mod address_tests {
     use brollup::{
         operative::Chain,
-        transmutive::address::{address_to_spk, encode_p2tr, encode_p2wpkh, encode_p2wsh},
+        transmutive::codec::address::{address_to_spk, encode_p2tr, encode_p2wpkh, encode_p2wsh},
     };
 
     #[test]

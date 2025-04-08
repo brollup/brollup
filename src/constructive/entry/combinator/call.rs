@@ -1,6 +1,6 @@
 use crate::constructive::{entity::account::Account, entity::contract::Contract};
 use crate::transmutive::hash::Hash;
-use crate::transmutive::{hash::HashTag, schnorr::Sighash};
+use crate::transmutive::{hash::HashTag, secp::authenticable::AuthSighash};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -43,8 +43,8 @@ impl Call {
     }
 }
 
-impl Sighash for Call {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Call {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         preimage.extend(self.from.key().serialize_xonly());

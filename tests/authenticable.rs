@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod authenticable_tests {
-    use brollup::{
-        transmutive::hash::{Hash, HashTag},
-        transmutive::schnorr::{Authenticable, Sighash},
+    use brollup::transmutive::{
+        hash::{Hash, HashTag},
+        secp::authenticable::{AuthSighash, Authenticable},
     };
     use serde::{Deserialize, Serialize};
 
@@ -12,8 +12,8 @@ mod authenticable_tests {
         pub field2: u32,
     }
 
-    impl Sighash for DemoStruct {
-        fn sighash(&self) -> [u8; 32] {
+    impl AuthSighash for DemoStruct {
+        fn auth_sighash(&self) -> [u8; 32] {
             let mut preimage: Vec<u8> = Vec::<u8>::new();
 
             preimage.extend(self.field1.as_bytes());

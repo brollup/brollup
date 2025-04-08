@@ -2,8 +2,8 @@ use super::{
     core::lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
     dkg::session::DKGSession,
 };
-use crate::transmutive::musig::session::MusigSessionCtx;
-use crate::transmutive::schnorr::challenge;
+use crate::transmutive::secp::schnorr::challenge;
+use crate::transmutive::{musig::session::MusigSessionCtx, secp::schnorr::SchnorrSigningMode};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
 
@@ -41,7 +41,7 @@ impl NOISTSessionCtx {
             challenge_nonce,
             challenge_key,
             message,
-            crate::transmutive::schnorr::SigningMode::BIP340,
+            SchnorrSigningMode::BIP340,
         ) {
             MaybeScalar::Valid(scalar) => scalar,
             MaybeScalar::Zero => return None,
@@ -79,7 +79,7 @@ impl NOISTSessionCtx {
             challenge_nonce,
             challenge_key,
             message,
-            crate::transmutive::schnorr::SigningMode::BIP340,
+            SchnorrSigningMode::BIP340,
         ) {
             MaybeScalar::Valid(scalar) => scalar,
             MaybeScalar::Zero => return false,

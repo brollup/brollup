@@ -27,7 +27,7 @@ use crate::{
         hash::{Hash, HashTag},
         musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
         noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER, session::NOISTSessionCtx},
-        schnorr::{Authenticable, Sighash},
+        secp::authenticable::{AuthSighash, Authenticable},
     },
 };
 use async_trait::async_trait;
@@ -443,7 +443,7 @@ impl CSessionCtx {
 
         // Entries
         for (index, entry) in self.entries.iter().enumerate() {
-            let entry_sighash = entry.sighash();
+            let entry_sighash = entry.auth_sighash();
             preimage.extend((index as u32).to_le_bytes());
             preimage.extend(entry_sighash);
         }

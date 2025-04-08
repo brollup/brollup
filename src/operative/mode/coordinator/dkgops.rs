@@ -8,7 +8,6 @@ use crate::{
     },
     inscriptive::{baked::INITIAL_OPERATOR_SET, lp::dir::LP_DIRECTORY},
     transmutive::{
-        into::{IntoPoint, IntoPointByteVec, IntoPointVec},
         musig::session::MusigSessionCtx,
         noist::{
             dkg::{
@@ -19,6 +18,7 @@ use crate::{
             session::NOISTSessionCtx,
             setup::setup::VSESetup,
         },
+        secp::into::{IntoPoint, IntoPointByteVec, IntoPointVec},
     },
 };
 use async_trait::async_trait;

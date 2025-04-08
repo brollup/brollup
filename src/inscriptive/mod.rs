@@ -1,6 +1,5 @@
 pub mod baked;
 pub mod blacklist;
-pub mod encoding;
 pub mod epoch;
 pub mod lp;
 pub mod registery;

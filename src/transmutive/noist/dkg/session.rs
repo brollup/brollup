@@ -1,9 +1,12 @@
 use super::package::DKGPackage;
-use crate::{
-    transmutive::hash::{Hash, HashTag},
-    transmutive::into::IntoScalar,
-    transmutive::noist::{core::vse, setup::setup::VSESetup},
-    transmutive::schnorr::{Authenticable, LiftScalar, Sighash},
+use crate::transmutive::{
+    hash::{Hash, HashTag},
+    noist::{core::vse, setup::setup::VSESetup},
+    secp::{
+        authenticable::{AuthSighash, Authenticable},
+        into::IntoScalar,
+        schnorr::LiftScalar,
+    },
 };
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
@@ -433,8 +436,8 @@ impl DKGSession {
     }
 }
 
-impl Sighash for DKGSession {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for DKGSession {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage = Vec::<u8>::new();
         preimage.extend(self.index().to_be_bytes());
 
@@ -447,7 +450,7 @@ impl Sighash for DKGSession {
 
         for (signatory, package) in self.ordered_packages().iter() {
             preimage.extend(signatory.serialize_xonly());
-            preimage.extend(package.sighash());
+            preimage.extend(package.auth_sighash());
         }
 
         preimage.hash(Some(HashTag::Sighash))

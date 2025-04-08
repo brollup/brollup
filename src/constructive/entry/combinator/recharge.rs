@@ -2,7 +2,7 @@ use crate::{
     constructive::{entity::account::Account, txo::vtxo::VTXO},
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use bitcoin::hashes::Hash as _;
@@ -59,8 +59,8 @@ impl Recharge {
     }
 }
 
-impl Sighash for Recharge {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Recharge {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         for vtxo in self.recharge_vtxos.iter() {

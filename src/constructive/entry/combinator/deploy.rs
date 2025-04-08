@@ -1,5 +1,5 @@
 use crate::constructive::entity::account::Account;
-use crate::transmutive::schnorr::Sighash;
+use crate::transmutive::secp::authenticable::AuthSighash;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -16,8 +16,8 @@ impl Deploy {
     }
 }
 
-impl Sighash for Deploy {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Deploy {
+    fn auth_sighash(&self) -> [u8; 32] {
         [0xffu8; 32]
     }
 }

@@ -13,7 +13,7 @@ use crate::{
     inscriptive::epoch::dir::EPOCH_DIRECTORY,
     transmutive::{
         hash::{Hash, HashTag},
-        schnorr::Sighash,
+        secp::authenticable::AuthSighash,
     },
 };
 use bit_vec::BitVec;
@@ -193,8 +193,8 @@ impl Liftup {
     }
 }
 
-impl Sighash for Liftup {
-    fn sighash(&self) -> [u8; 32] {
+impl AuthSighash for Liftup {
+    fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
         for prevtxo in self.lift_prevtxos.iter() {
