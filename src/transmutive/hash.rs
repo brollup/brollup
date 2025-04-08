@@ -23,6 +23,8 @@ pub enum HashTag {
     KeyAggList,
     KeyAggCoef,
     MusigNonceCoef,
+    // BLSSecretKey
+    BLSSecretKey,
 }
 
 impl HashTag {
@@ -47,6 +49,7 @@ impl HashTag {
             HashTag::KeyAggCoef => format!("KeyAgg coefficient"),
             HashTag::MusigNonceCoef => format!("MuSig/noncecoef"),
             HashTag::PayloadAuth => format!("{}/{}", baked::PROJECT_TAG, "payloadauth"),
+            HashTag::BLSSecretKey => format!("{}/{}", baked::PROJECT_TAG, "bls/secretkey"),
         }
     }
 }

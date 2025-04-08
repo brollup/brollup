@@ -80,15 +80,7 @@ fn main() {
             break;
         }
 
-        let secret_key = match Scalar::from_slice(&secret_key_bytes) {
-            Ok(scalar) => scalar,
-            Err(_) => {
-                eprintln!("{}", "Invalid nsec.".red());
-                return;
-            }
-        };
-
-        let key_holder = match KeyHolder::new(secret_key) {
+        let key_holder = match KeyHolder::new(secret_key_bytes) {
             Some(key_holder) => key_holder,
             None => {
                 eprintln!("{}", "Invalid nsec.".red());

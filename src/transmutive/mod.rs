@@ -1,4 +1,5 @@
 pub mod address;
+pub mod bls;
 pub mod hash;
 pub mod into;
 pub mod key;
