@@ -7,7 +7,6 @@ use brollup::{
     transmutive::key::{FromNostrKeyStr, KeyHolder},
 };
 use colored::Colorize;
-use secp::Scalar;
 use std::{env, io::BufRead};
 
 fn main() {

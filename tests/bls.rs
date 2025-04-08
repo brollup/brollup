@@ -1,9 +1,14 @@
 #[cfg(test)]
 mod bls_test {
 
-    use bls_on_arkworks as bls;
-    use brollup::transmutive::bls::bls::{
-        secret_key_bytes_to_bls_secret_key, secret_key_to_bls_public_key,
+    use brollup::transmutive::bls::{
+        agg::bls_aggregate,
+        key::{
+            secret_key_bytes_to_bls_secret_key, secret_key_to_bls_public_key, BLSPublicKey,
+            BLSSecretKey,
+        },
+        sign::bls_sign,
+        verify::{bls_verify, bls_verify_aggregate},
     };
 
     #[test]
@@ -35,57 +40,61 @@ mod bls_test {
 
     #[test]
     fn test_bls() -> Result<(), String> {
-        // Load known hex bytes (instead of generating a new random secret key like in the previous example)
-        let sk1 = bls::os2ip(&vec![
-            0x32, 0x83, 0x88, 0xaf, 0xf0, 0xd4, 0xa5, 0xb7, 0xdc, 0x92, 0x05, 0xab, 0xd3, 0x74,
-            0xe7, 0xe9, 0x8f, 0x3c, 0xd9, 0xf3, 0x41, 0x8e, 0xdb, 0x4e, 0xaf, 0xda, 0x5f, 0xb1,
-            0x64, 0x73, 0xd2, 0x16,
-        ]);
-        let sk2 = bls::os2ip(&vec![
-            0x47, 0xb8, 0x19, 0x2d, 0x77, 0xbf, 0x87, 0x1b, 0x62, 0xe8, 0x78, 0x59, 0xd6, 0x53,
-            0x92, 0x27, 0x25, 0x72, 0x4a, 0x5c, 0x03, 0x1a, 0xfe, 0xab, 0xc6, 0x0b, 0xce, 0xf5,
-            0xff, 0x66, 0x51, 0x38,
-        ]);
+        // Generate secret keys.
+        let secret_key_bytes_1: [u8; 32] =
+            hex::decode("5198e1eabd745dd9ca8a7dffbab9b1055d4e110eecb24bfb02231348c70bc248")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let secret_key_bytes_2: [u8; 32] =
+            hex::decode("7e70d9454d1db2af2b731487cbcf32e0d392bcac74113627af96f1931df07e2b")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        let secret_key_bytes_3: [u8; 32] =
+            hex::decode("3b3e17014556fd7ec3e616d7f3ab7759ebd592fc931752be95a7bb1fd0d6e476")
+                .unwrap()
+                .try_into()
+                .unwrap();
 
-        // Sign a message with the Ethereum Domain Separation Tag
-        let dst = bls::DST_ETHEREUM.as_bytes().to_vec();
+        // Convert the secret keys to BLS secret keys.
+        let bls_secret_key_1: BLSSecretKey = secret_key_bytes_to_bls_secret_key(secret_key_bytes_1);
+        let bls_secret_key_2: BLSSecretKey = secret_key_bytes_to_bls_secret_key(secret_key_bytes_2);
+        let bls_secret_key_3: BLSSecretKey = secret_key_bytes_to_bls_secret_key(secret_key_bytes_3);
 
-        println!("dst: {}", hex::encode(&dst));
+        // Convert the BLS secret keys to BLS public keys.
+        let bls_public_key_1: BLSPublicKey = secret_key_to_bls_public_key(bls_secret_key_1);
+        let bls_public_key_2: BLSPublicKey = secret_key_to_bls_public_key(bls_secret_key_2);
+        let bls_public_key_3: BLSPublicKey = secret_key_to_bls_public_key(bls_secret_key_3);
 
-        let message = "message to be signed by multiple parties"
-            .as_bytes()
-            .to_vec();
+        // Message to sign.
+        let message_1: [u8; 32] = [0xffu8; 32];
+        let message_2: [u8; 32] = [0xfeu8; 32];
+        let message_3: [u8; 32] = [0xfdu8; 32];
 
-        println!("message: {}", hex::encode(&message));
+        // Sign a message with the secret keys.
+        let signature_1: [u8; 96] = bls_sign(bls_secret_key_1, message_1);
+        let signature_2: [u8; 96] = bls_sign(bls_secret_key_2, message_2);
+        let signature_3: [u8; 96] = bls_sign(bls_secret_key_3, message_3);
 
-        let first_signature = bls::sign(sk1, &message, &dst).unwrap();
+        // Verify the signatures.
+        assert!(bls_verify(&bls_public_key_1, message_1, signature_1));
+        assert!(bls_verify(&bls_public_key_2, message_2, signature_2));
+        assert!(bls_verify(&bls_public_key_3, message_3, signature_3));
 
-        println!("first_signature: {}", hex::encode(&first_signature));
+        // Aggregate the signatures.
+        let aggregate_signature: [u8; 96] =
+            bls_aggregate(vec![signature_1, signature_2, signature_3])
+                .unwrap()
+                .try_into()
+                .unwrap();
 
-        let second_signature = bls::sign(sk2, &message, &dst).unwrap();
-
-        println!("second_signature: {}", hex::encode(&second_signature));
-
-        let aggregate = bls::aggregate(&vec![first_signature, second_signature]).unwrap();
-
-        println!("aggregate: {}", hex::encode(&aggregate));
-
-        // Derive a public key from our secret keys...
-        let pk1: Vec<u8> = bls::sk_to_pk(sk1);
-        let pk2: Vec<u8> = bls::sk_to_pk(sk2);
-
-        println!("pk1: {}", hex::encode(&pk1));
-        println!("pk2: {}", hex::encode(&pk2));
-
-        // ...and verify the aggregate signature we produced.
-        let verified = bls::aggregate_verify(
-            vec![pk1, pk2],
-            vec![message.clone(), message],
-            &aggregate,
-            &dst,
-        );
-
-        println!("verified: {}", verified);
+        // Verify the aggregate signature.
+        assert!(bls_verify_aggregate(
+            vec![bls_public_key_1, bls_public_key_2, bls_public_key_3],
+            vec![message_1, message_2, message_3],
+            aggregate_signature
+        ));
 
         Ok(())
     }

@@ -1,4 +1,4 @@
-use super::bls::bls::{
+use super::bls::key::{
     secret_key_bytes_to_bls_secret_key, secret_key_to_bls_public_key, BLSPublicKey, BLSSecretKey,
 };
 use crate::transmutive::schnorr::Bytes32;
