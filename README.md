@@ -1,7 +1,7 @@
 ![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
-Brollup is a rollup designed for trustless, Bitcoin-native smart contracts. A true layer two with unilateral exit, users retain full custody of their funds, while rollup operators solely function as service providers.
+Brollup is a Bitcoin layer two to enable bridgeless smart contract execution natively on Bitcoin. Providing a fully trustless execution environment with unilateral exit, Brollup ensures users retain complete control over their funds. By combining virtual UTXOs with a symmetric state channel architecture and leveraging Bitcoin DA, Brollup integrates Bitcoin payments directly into a virtual machine with global-state.
 > [!NOTE]
-> Brollup is currently in the early development process.
+> Brollup is currently in the early development phase.
 
 ## Installation
 
