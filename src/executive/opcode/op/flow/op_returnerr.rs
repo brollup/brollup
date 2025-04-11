@@ -13,6 +13,11 @@ pub struct OP_RETURNERR;
 
 impl OP_RETURNERR {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<StackItem, StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(StackItem::new(vec![]));
+        }
+
         // Pop the error item from the stack.
         let error_item = stack_holder.pop()?;
 

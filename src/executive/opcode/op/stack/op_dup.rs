@@ -10,6 +10,11 @@ pub struct OP_DUP;
 
 impl OP_DUP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Clone the last stack item from the main stack.
         let last_item = stack_holder.last_item()?;
 

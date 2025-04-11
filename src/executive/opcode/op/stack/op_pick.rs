@@ -10,6 +10,11 @@ pub struct OP_PICK;
 
 impl OP_PICK {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop the last item from stack.
         let last_item = stack_holder.pop()?;
 

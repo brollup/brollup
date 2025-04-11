@@ -10,6 +10,11 @@ pub struct OP_CAT;
 
 impl OP_CAT {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop item one from the main stack.
         let item_1 = stack_holder.pop()?;
 

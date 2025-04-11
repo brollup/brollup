@@ -13,6 +13,16 @@ pub struct OP_ENDIF;
 
 impl OP_ENDIF {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // Pop the latest flow encounter from the stack.
+        let _flow_encounter = stack_holder
+            .pop_flow_encounter()
+            .ok_or(StackError::OPElseEncounteredWithoutPrecedingIfNotif)?;
+
+        // Pop the latest execution flag.
+        let _execution_flag = stack_holder
+            .pop_execution_flag()
+            .ok_or(StackError::OPElseEncounteredWithoutPrecedingExecutionFlag)?;
+
         // Increment the ops counter.
         stack_holder.increment_ops(OP_ENDIF_OPS)?;
 

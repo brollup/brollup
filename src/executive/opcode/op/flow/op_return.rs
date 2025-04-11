@@ -13,6 +13,11 @@ pub struct OP_RETURN;
 
 impl OP_RETURN {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<Vec<StackItem>, StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(vec![]);
+        }
+
         // Collect remaining stack items.
         let mut items = Vec::<StackItem>::new();
 

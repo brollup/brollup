@@ -14,6 +14,11 @@ pub struct OP_MSWEEP;
 
 impl OP_MSWEEP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop key
         let key = stack_holder.pop()?;
 

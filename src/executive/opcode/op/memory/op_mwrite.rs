@@ -16,6 +16,11 @@ pub struct OP_MWRITE;
 
 impl OP_MWRITE {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop key
         let key = stack_holder.pop()?;
 

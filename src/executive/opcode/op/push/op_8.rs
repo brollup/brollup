@@ -13,6 +13,11 @@ pub struct OP_8;
 
 impl OP_8 {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Push 8 (0x08) to the main stack.
         let item_to_push = StackItem::new(vec![0x08]);
 

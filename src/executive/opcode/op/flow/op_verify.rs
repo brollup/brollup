@@ -13,6 +13,11 @@ pub struct OP_VERIFY;
 
 impl OP_VERIFY {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop last from the main stack.
         let item = stack_holder.pop()?;
 

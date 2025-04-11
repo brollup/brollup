@@ -13,6 +13,11 @@ pub struct OP_4;
 
 impl OP_4 {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Push 4 (0x04) to the main stack.
         let item_to_push = StackItem::new(vec![0x04]);
 

@@ -10,6 +10,11 @@ pub struct OP_EQUAL;
 
 impl OP_EQUAL {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
         // Pop two items from the main stack.
         let item_1 = stack_holder.pop()?;
         let item_2 = stack_holder.pop()?;

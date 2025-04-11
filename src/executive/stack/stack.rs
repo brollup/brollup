@@ -23,13 +23,17 @@ pub const MAX_CONTRACT_MEMORY_SIZE: u32 = 65_536;
 pub const OPS_LIMIT: u32 = 100_000;
 
 /// The stack newtype wrapper.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stack(pub Vec<StackItem>);
 
 impl Stack {
     /// Creates a new stack.
     pub fn new() -> Self {
         Self(Vec::new())
+    }
+
+    pub fn new_with_items(items: Vec<StackItem>) -> Self {
+        Self(items)
     }
 
     /// Returns the length of the stack.
@@ -72,10 +76,19 @@ impl fmt::Display for Stack {
     }
 }
 
+/// Tells whether the current execution is in an `if_notif`/`else` block.
+#[derive(Debug, Clone)]
+pub enum FlowEncounter {
+    IfNotif,
+    Else,
+}
+
 #[derive(Debug, Clone)]
 pub struct StackHolder {
     // Contract id.
     contract_id: [u8; 32],
+    // Msg sender.
+    msg_sender: [u8; 32],
     // Main stack.
     main_stack: Stack,
     // Alt stack.
@@ -90,13 +103,24 @@ pub struct StackHolder {
     internal_ops_counter: u32,
     // External ops counter.
     external_ops_counter: u32,
+    // List of flow encounters nested in each other.
+    // Since OP_IF/OP_NOTIF/OP_ELSE/OP_ENDIF can be nested, we need to keep track of the flow encounters.
+    flow_encounters: Vec<FlowEncounter>,
+    // Flow active flags.
+    flow_active_flags: Vec<bool>,
 }
 
 impl StackHolder {
     /// Creates a new stack holder.
-    pub fn new(contract_id: [u8; 32], ops_budget: u32, external_ops_counter: u32) -> Self {
+    pub fn new(
+        contract_id: [u8; 32],
+        msg_sender: [u8; 32],
+        ops_budget: u32,
+        external_ops_counter: u32,
+    ) -> Self {
         Self {
             contract_id,
+            msg_sender,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
             memory: HashMap::new(),
@@ -104,12 +128,19 @@ impl StackHolder {
             ops_budget,
             internal_ops_counter: 0,
             external_ops_counter,
+            flow_encounters: Vec::<FlowEncounter>::new(),
+            flow_active_flags: Vec::<bool>::new(),
         }
     }
 
     /// Returns the contract id.
     pub fn contract_id(&self) -> [u8; 32] {
         self.contract_id
+    }
+
+    /// Returns the msg sender.
+    pub fn msg_sender(&self) -> [u8; 32] {
+        self.msg_sender
     }
 
     /// Returns the ops budget.
@@ -232,5 +263,37 @@ impl StackHolder {
         }
         self.main_stack.0.remove(depth as usize);
         Ok(())
+    }
+
+    /// Pushes a new flow encounter.
+    pub fn new_flow_encounter(&mut self, encounter: FlowEncounter) {
+        self.flow_encounters.push(encounter);
+    }
+
+    /// Pops the latest flow encounter.
+    pub fn pop_flow_encounter(&mut self) -> Option<FlowEncounter> {
+        self.flow_encounters.pop()
+    }
+
+    /// Returns the number of flow encounter left.
+    /// We expect it to be zero end of any valid execution.
+    pub fn flow_encounters_len(&self) -> usize {
+        self.flow_encounters.len()
+    }
+
+    /// Returns whether the current opcode being encountered is meant to be executed.
+    pub fn active_execution(&self) -> bool {
+        // Get the latest flow active flag.
+        *self.flow_active_flags.last().unwrap_or(&true)
+    }
+
+    /// Sets the active execution flag.
+    pub fn new_execution_flag(&mut self, active: bool) {
+        self.flow_active_flags.push(active);
+    }
+
+    /// Pops the latest flow active flag.
+    pub fn pop_execution_flag(&mut self) -> Option<bool> {
+        self.flow_active_flags.pop()
     }
 }

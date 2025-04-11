@@ -13,6 +13,10 @@ pub struct OP_NOP;
 
 impl OP_NOP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
         // Increment the ops counter.
         stack_holder.increment_ops(OP_NOP_OPS)?;
 
