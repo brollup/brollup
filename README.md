@@ -1,5 +1,5 @@
 ![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
-Brollup is a Bitcoin layer two to enable bridgeless smart contract execution natively on Bitcoin. Providing a fully trustless execution environment with unilateral exit, Brollup ensures users retain complete control over their funds. By combining virtual UTXOs with a symmetric state channel architecture and leveraging Bitcoin DA, Brollup integrates Bitcoin payments directly into a virtual machine with global-state.
+Brollup is a Bitcoin layer two designed to enable bridgeless smart contract execution natively on Bitcoin. Providing a fully trustless execution environment with unilateral exit, Brollup ensures users retain complete control over their funds. By combining virtual UTXOs with a symmetric state channel architecture and leveraging Bitcoin DA, Brollup integrates Bitcoin payments directly into a virtual machine with global-state.
 > [!NOTE]
 > Brollup is currently in the early development phase.
 
@@ -49,4 +49,3 @@ We welcome contributions! Please [check the areas where we need help](https://gi
 ## License
 
 This project is licensed under the CC0 1.0 Universal License. See the `LICENSE` file for details.
-
