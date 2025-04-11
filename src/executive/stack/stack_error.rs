@@ -40,6 +40,6 @@ pub enum StackError {
     OPElseEncounteredWithoutPrecedingIfNotif,
     // OP_ELSE encountered with preceding OP_ELSE error.
     OPElseEncounteredWithPrecedingAnotherOPElse,
-    // OP_ELSE encountered without preceding execution flag error.
-    OPElseEncounteredWithoutPrecedingExecutionFlag,
+    // OP_ELSE encountered without preceding flow encounter error.
+    OPElseEncounteredWithoutPrecedingFlowEncounter,
 }

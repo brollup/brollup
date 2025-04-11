@@ -4,7 +4,7 @@ use crate::executive::{
         ops::OP_ELSE_OPS,
     },
     stack::{
-        stack::{FlowEncounter, StackHolder},
+        stack::{FlowEncounter, FlowStatus, StackHolder},
         stack_error::StackError,
     },
 };
@@ -16,27 +16,28 @@ pub struct OP_ELSE;
 
 impl OP_ELSE {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // Pop the latest flow encounter from the stack.
+        // Pop latest flow encounter
         let flow_encounter = stack_holder
             .pop_flow_encounter()
-            .ok_or(StackError::OPElseEncounteredWithoutPrecedingIfNotif)?;
+            .ok_or(StackError::OPElseEncounteredWithoutPrecedingFlowEncounter)?;
 
-        // The earlier flow encounter must have been an OP_IF/OP_NOTIF.
-        // Otherwise, return an error.
-        if let FlowEncounter::Else = flow_encounter {
-            return Err(StackError::OPElseEncounteredWithPrecedingAnotherOPElse);
+        match flow_encounter {
+            FlowEncounter::IfNotif(FlowStatus::Active) => {
+                // Reverse the if encounter.
+                stack_holder.push_flow_encounter(FlowEncounter::Else(FlowStatus::Inactive));
+            }
+            FlowEncounter::IfNotif(FlowStatus::Inactive) => {
+                // Push an active encounter.
+                stack_holder.push_flow_encounter(FlowEncounter::Else(FlowStatus::Active));
+            }
+            FlowEncounter::IfNotif(FlowStatus::Uncovered) => {
+                // Push an uncovered else encounter.
+                stack_holder.push_flow_encounter(FlowEncounter::Else(FlowStatus::Uncovered));
+            }
+            _ => {
+                return Err(StackError::OPElseEncounteredWithPrecedingAnotherOPElse);
+            }
         }
-
-        // Push the Else flow encounter back to the flow encounters.
-        stack_holder.new_flow_encounter(FlowEncounter::Else);
-
-        // Pop the latest execution flag.
-        let execution_flag = stack_holder
-            .pop_execution_flag()
-            .ok_or(StackError::OPElseEncounteredWithoutPrecedingExecutionFlag)?;
-
-        // Push the reversed active execution flag.
-        stack_holder.new_execution_flag(!execution_flag);
 
         // Increment the ops counter.
         stack_holder.increment_ops(OP_ELSE_OPS)?;

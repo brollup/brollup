@@ -76,11 +76,19 @@ impl fmt::Display for Stack {
     }
 }
 
+/// The status of the flow encounter.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FlowStatus {
+    Active,
+    Inactive,
+    Uncovered,
+}
+
 /// Tells whether the current execution is in an `if_notif`/`else` block.
 #[derive(Debug, Clone)]
 pub enum FlowEncounter {
-    IfNotif,
-    Else,
+    IfNotif(FlowStatus),
+    Else(FlowStatus),
 }
 
 #[derive(Debug, Clone)]
@@ -106,8 +114,6 @@ pub struct StackHolder {
     // List of flow encounters nested in each other.
     // Since OP_IF/OP_NOTIF/OP_ELSE/OP_ENDIF can be nested, we need to keep track of the flow encounters.
     flow_encounters: Vec<FlowEncounter>,
-    // Flow active flags.
-    flow_active_flags: Vec<bool>,
 }
 
 impl StackHolder {
@@ -129,7 +135,6 @@ impl StackHolder {
             internal_ops_counter: 0,
             external_ops_counter,
             flow_encounters: Vec::<FlowEncounter>::new(),
-            flow_active_flags: Vec::<bool>::new(),
         }
     }
 
@@ -266,7 +271,7 @@ impl StackHolder {
     }
 
     /// Pushes a new flow encounter.
-    pub fn new_flow_encounter(&mut self, encounter: FlowEncounter) {
+    pub fn push_flow_encounter(&mut self, encounter: FlowEncounter) {
         self.flow_encounters.push(encounter);
     }
 
@@ -283,17 +288,17 @@ impl StackHolder {
 
     /// Returns whether the current opcode being encountered is meant to be executed.
     pub fn active_execution(&self) -> bool {
-        // Get the latest flow active flag.
-        *self.flow_active_flags.last().unwrap_or(&true)
-    }
+        // If there are no flow encounters, the execution is active.
+        if self.flow_encounters.is_empty() {
+            return true;
+        }
 
-    /// Sets the active execution flag.
-    pub fn new_execution_flag(&mut self, active: bool) {
-        self.flow_active_flags.push(active);
-    }
-
-    /// Pops the latest flow active flag.
-    pub fn pop_execution_flag(&mut self) -> Option<bool> {
-        self.flow_active_flags.pop()
+        // Check if all flow encounters are active.
+        self.flow_encounters
+            .iter()
+            .all(|encounter| match encounter {
+                FlowEncounter::IfNotif(status) => status == &FlowStatus::Active,
+                FlowEncounter::Else(status) => status == &FlowStatus::Active,
+            })
     }
 }

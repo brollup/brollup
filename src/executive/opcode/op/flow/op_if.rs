@@ -4,7 +4,7 @@ use crate::executive::{
         ops::OP_IF_OPS,
     },
     stack::{
-        stack::{FlowEncounter, StackHolder},
+        stack::{FlowEncounter, FlowStatus, StackHolder},
         stack_error::StackError,
     },
 };
@@ -16,8 +16,12 @@ pub struct OP_IF;
 
 impl OP_IF {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // If this is not the active execution, return immediately.
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_IF_OPS)?;
+
+        // If this is not the active execution, return with uncovered.
         if !stack_holder.active_execution() {
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Uncovered));
             return Ok(());
         }
 
@@ -25,18 +29,11 @@ impl OP_IF {
         let item = stack_holder.pop()?;
 
         // If the item is not true, set the active execution flag to false.
-        // The proceeding opcodes will not be executed.
         if !item.is_true() {
-            stack_holder.new_execution_flag(false);
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Inactive));
         } else {
-            stack_holder.new_execution_flag(true);
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Active));
         }
-
-        // Push the latest flow encounter to the stack.
-        stack_holder.new_flow_encounter(FlowEncounter::IfNotif);
-
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_IF_OPS)?;
 
         Ok(())
     }

@@ -6,8 +6,14 @@ mod stack_tests {
             altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
             arithmetic::op_add::OP_ADD,
             bitwise::op_equalverify::OP_EQUALVERIFY,
-            flow::{op_else::OP_ELSE, op_endif::OP_ENDIF, op_if::OP_IF, op_verify::OP_VERIFY},
-            push::{op_2::OP_2, op_3::OP_3, op_4::OP_4, op_false::OP_FALSE, op_true::OP_TRUE},
+            flow::{
+                op_else::OP_ELSE, op_endif::OP_ENDIF, op_if::OP_IF, op_returnerr::OP_RETURNERR,
+                op_verify::OP_VERIFY,
+            },
+            push::{
+                op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7, op_8::OP_8,
+                op_false::OP_FALSE, op_true::OP_TRUE,
+            },
             splice::op_cat::OP_CAT,
         },
         stack::{
@@ -35,44 +41,23 @@ mod stack_tests {
         // Push 0xbeef
         let _ = stack_holder.push(StackItem::new(vec![0xbe, 0xef]));
 
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
+        // OP_TOALTSTACK
+        OP_TOALTSTACK::execute(&mut stack_holder)?;
 
         // OP_TOALTSTACK
         OP_TOALTSTACK::execute(&mut stack_holder)?;
 
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
-
-        // OP_TOALTSTACK
-        OP_TOALTSTACK::execute(&mut stack_holder)?;
-
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
-
         // OP_FROMALTSTACK
         OP_FROMALTSTACK::execute(&mut stack_holder)?;
 
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
-
         // OP_FROMALTSTACK
         OP_FROMALTSTACK::execute(&mut stack_holder)?;
-
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
 
         // OP_CAT
         OP_CAT::execute(&mut stack_holder)?;
 
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
-
         // OP_EQUALVERIFY
         OP_EQUALVERIFY::execute(&mut stack_holder)?;
-
-        // Print the stack.
-        println!("Stack: {}", stack_holder.stack());
 
         Ok(())
     }
@@ -232,7 +217,7 @@ mod stack_tests {
             // OP_ELSE
             OP_ELSE::execute(&mut stack_holder)?;
 
-            // OP_3
+            // OP_3 (this will be executed!)
             OP_3::execute(&mut stack_holder)?;
 
             // OP_ENDIF
@@ -248,8 +233,434 @@ mod stack_tests {
         // OP_ENDIF
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        // Print the stack.
-        println!("Stack 4: {}", stack_holder.stack());
+        // Expected stack after execution ends with 3 on top.
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(3))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_2() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with true.
+        let item = StackItem::true_item();
+        let _ = stack_holder.push(item);
+
+        // OP_IF
+        OP_IF::execute(&mut stack_holder)?;
+
+        // OP_FALSE
+        OP_FALSE::execute(&mut stack_holder)?;
+
+        // Nested OP_IF/OP_ELSE/OP_ENDIF
+
+        // OP_IF
+        OP_IF::execute(&mut stack_holder)?;
+
+        // OP_2
+        OP_2::execute(&mut stack_holder)?;
+
+        // OP_ELSE
+        OP_ELSE::execute(&mut stack_holder)?;
+
+        // OP_3
+        OP_3::execute(&mut stack_holder)?;
+
+        // Another nesting
+
+        // OP_IF
+        OP_IF::execute(&mut stack_holder)?;
+
+        // OP_4 (this will be executed!)
+        OP_4::execute(&mut stack_holder)?;
+
+        // OP_ELSE
+        OP_ELSE::execute(&mut stack_holder)?;
+
+        // OP_5
+        OP_5::execute(&mut stack_holder)?;
+
+        // OP_ENDIF
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        // OP_ENDIF
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        // OP_ELSE
+        OP_ELSE::execute(&mut stack_holder)?;
+
+        // OP_4
+        OP_4::execute(&mut stack_holder)?;
+
+        // OP_ENDIF
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        // Expected stack after execution ends with 4 on top.
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(4))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_3() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::false_item();
+        let _ = stack_holder.push(item);
+
+        // OP_IF
+        OP_IF::execute(&mut stack_holder)?;
+
+        // OP_FALSE
+        OP_FALSE::execute(&mut stack_holder)?;
+
+        // Nested OP_IF/OP_ELSE/OP_ENDIF
+
+        {
+            // OP_IF
+            OP_IF::execute(&mut stack_holder)?;
+
+            // OP_2
+            OP_2::execute(&mut stack_holder)?;
+
+            // OP_ELSE
+            OP_ELSE::execute(&mut stack_holder)?;
+
+            // OP_3
+            OP_3::execute(&mut stack_holder)?;
+
+            // Another nesting
+            {
+                // OP_IF
+                OP_IF::execute(&mut stack_holder)?;
+
+                // OP_4 (this will be executed!)
+                OP_4::execute(&mut stack_holder)?;
+
+                // OP_ELSE
+                OP_ELSE::execute(&mut stack_holder)?;
+
+                // OP_5
+                OP_5::execute(&mut stack_holder)?;
+
+                // OP_ENDIF
+                OP_ENDIF::execute(&mut stack_holder)?;
+            }
+
+            // OP_ENDIF
+            OP_ENDIF::execute(&mut stack_holder)?;
+        }
+
+        // OP_ELSE
+        OP_ELSE::execute(&mut stack_holder)?;
+
+        // OP_4
+        OP_4::execute(&mut stack_holder)?;
+
+        // OP_ENDIF
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        // Expected stack after execution ends with 4 on top.
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(4))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_4() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::false_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_TRUE::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_5::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_6::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_4::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(6))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_5() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::false_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_TRUE::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_5::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_7::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_8::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_4::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(8))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_6() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::true_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_3::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_4::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_5::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(5))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_7() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::true_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_3::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_4::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_6::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(6))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_8() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::true_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_3::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(3))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_9() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::false_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_TRUE::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(1))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn nested_flow_test_10() -> Result<(), StackError> {
+        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+
+        // Initialize stack with false.
+        let item = StackItem::false_item();
+        let _ = stack_holder.push(item);
+
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_TRUE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_TRUE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_FALSE::execute(&mut stack_holder)?;
+        OP_IF::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_2::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ELSE::execute(&mut stack_holder)?;
+        OP_RETURNERR::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+        OP_ENDIF::execute(&mut stack_holder)?;
+
+        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(2))]);
+
+        // Assert that the stack is equal to the expected stack.
+        assert_eq!(stack_holder.stack().clone(), expected_stack);
+
+        // Flows encountered must be empty.
+        assert_eq!(stack_holder.flow_encounters_len(), 0);
 
         Ok(())
     }

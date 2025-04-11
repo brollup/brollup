@@ -4,7 +4,7 @@ use crate::executive::{
         ops::OP_NOTIF_OPS,
     },
     stack::{
-        stack::{FlowEncounter, StackHolder},
+        stack::{FlowEncounter, FlowStatus, StackHolder},
         stack_error::StackError,
     },
 };
@@ -16,8 +16,12 @@ pub struct OP_NOTIF;
 
 impl OP_NOTIF {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
-        // If this is not the active execution, return immediately.
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_NOTIF_OPS)?;
+
+        // If this is not the active execution, return.
         if !stack_holder.active_execution() {
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Uncovered));
             return Ok(());
         }
 
@@ -25,18 +29,11 @@ impl OP_NOTIF {
         let item = stack_holder.pop()?;
 
         // If the item is not false, set the active execution flag to false.
-        // The proceeding opcodes will not be executed.
         if !item.is_false() {
-            stack_holder.new_execution_flag(false);
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Inactive));
         } else {
-            stack_holder.new_execution_flag(true);
+            stack_holder.push_flow_encounter(FlowEncounter::IfNotif(FlowStatus::Active));
         }
-
-        // Push the latest flow encounter to the stack.
-        stack_holder.new_flow_encounter(FlowEncounter::IfNotif);
-
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_NOTIF_OPS)?;
 
         Ok(())
     }
