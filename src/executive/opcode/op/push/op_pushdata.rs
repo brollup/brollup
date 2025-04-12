@@ -32,14 +32,14 @@ use crate::executive::{
 pub struct OP_PUSHDATA(pub Vec<u8>);
 
 impl OP_PUSHDATA {
-    pub fn execute(self, stack_holder: &mut StackHolder) -> Result<(), StackError> {
+    pub fn execute(&self, stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
             return Ok(());
         }
 
         // The data to be pushed is the inner data in the OP_PUSHDATA struct.
-        let item_to_push = StackItem::new(self.0);
+        let item_to_push = StackItem::new(self.0.to_owned());
 
         // Check if the data length is valid.
         if item_to_push.len() > MAX_STACK_ITEM_SIZE {

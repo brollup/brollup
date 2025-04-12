@@ -43,7 +43,7 @@ impl ProgramMethod {
     }
 
     /// Returns the script.
-    pub fn script(&self) -> Vec<Opcode> {
-        self.script.clone()
+    pub fn script(&self) -> &Vec<Opcode> {
+        &self.script
     }
 }

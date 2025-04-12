@@ -27,9 +27,17 @@ mod stack_tests {
 
     #[test]
     fn stack_test() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
-        // Initialize main stack.
+        // Initialize stack.
+        let mut stack_holder = StackHolder::new(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+        )?;
 
         // Push 0xdeadbeef
         let _ = stack_holder.push(StackItem::new(vec![0xde, 0xad, 0xbe, 0xef]));
@@ -63,7 +71,17 @@ mod stack_tests {
 
     #[test]
     fn arithmetic_addition_test() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
+
+        // Initialize stack.
+        let mut stack_holder = StackHolder::new(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+        )?;
 
         // Test 0 + 1 = 1;
         {
@@ -160,11 +178,18 @@ mod stack_tests {
 
     #[test]
     fn flow_test() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with true.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         // OP_IF
         OP_IF::execute(&mut stack_holder)?;
@@ -192,11 +217,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with true.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         // OP_IF
         OP_IF::execute(&mut stack_holder)?;
@@ -246,11 +278,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_2() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with true.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         // OP_IF
         OP_IF::execute(&mut stack_holder)?;
@@ -315,11 +354,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_3() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with false.
-        let item = StackItem::false_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::false_item()],
+        )?;
 
         // OP_IF
         OP_IF::execute(&mut stack_holder)?;
@@ -387,11 +433,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_4() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with false.
-        let item = StackItem::false_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::false_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_TRUE::execute(&mut stack_holder)?;
@@ -422,11 +475,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_5() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with false.
-        let item = StackItem::false_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::false_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_TRUE::execute(&mut stack_holder)?;
@@ -462,11 +522,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_6() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
-        // Initialize stack with false.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        // Initialize stack with true.
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_2::execute(&mut stack_holder)?;
@@ -502,11 +569,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_7() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
-        // Initialize stack with false.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        // Initialize stack with true.
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_2::execute(&mut stack_holder)?;
@@ -547,11 +621,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_8() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
-        // Initialize stack with false.
-        let item = StackItem::true_item();
-        let _ = stack_holder.push(item);
+        // Initialize stack with true.
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::true_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_2::execute(&mut stack_holder)?;
@@ -573,11 +654,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_9() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with false.
-        let item = StackItem::false_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::false_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_RETURNERR::execute(&mut stack_holder)?;
@@ -612,11 +700,18 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_10() -> Result<(), StackError> {
-        let mut stack_holder = StackHolder::new([0; 32], [0; 32], 50, 0);
+        let mut internal_ops_counter = 0;
+        let mut external_ops_counter = 0;
 
         // Initialize stack with false.
-        let item = StackItem::false_item();
-        let _ = stack_holder.push(item);
+        let mut stack_holder = StackHolder::new_with_items(
+            [0; 32],
+            [0; 32],
+            50,
+            &mut internal_ops_counter,
+            &mut external_ops_counter,
+            vec![StackItem::false_item()],
+        )?;
 
         OP_IF::execute(&mut stack_holder)?;
         OP_RETURNERR::execute(&mut stack_holder)?;
