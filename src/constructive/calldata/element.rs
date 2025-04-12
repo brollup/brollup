@@ -14,7 +14,7 @@ use crate::{
             error::CPEDecodingError,
         },
     },
-    executive::stack::stack_item::item::StackItem,
+    executive::stack::stack_item::StackItem,
 };
 use bit_vec::BitVec;
 

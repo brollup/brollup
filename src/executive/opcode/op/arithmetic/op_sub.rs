@@ -1,13 +1,12 @@
 use crate::executive::{
     opcode::ops::OP_SUB_OPS,
     stack::{
-        stack::StackHolder,
-        stack_error::StackError,
-        stack_item::{item::StackItem, uint_ext::StackItemUintExt},
+        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_uint::StackItemUintExt,
     },
 };
 
-/// The `OP_SUB` opcode.
+/// Subtracts two items on the main stack.
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub struct OP_SUB;

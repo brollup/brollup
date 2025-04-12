@@ -21,13 +21,12 @@ use crate::executive::{
         ops::OP_PUSHDATA_OPS,
     },
     stack::{
-        stack::{StackHolder, MAX_STACK_ITEM_SIZE},
-        stack_error::StackError,
-        stack_item::item::StackItem,
+        limits::MAX_STACK_ITEM_SIZE, stack_error::StackError, stack_holder::StackHolder,
+        stack_item::StackItem,
     },
 };
 
-/// The `OP_PUSHDATA1` opcode.
+/// Pushes data to the main stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_PUSHDATA(pub Vec<u8>);

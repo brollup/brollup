@@ -17,12 +17,11 @@ mod stack_tests {
             splice::op_cat::OP_CAT,
         },
         stack::{
-            stack::{Stack, StackHolder},
+            stack::Stack,
             stack_error::StackError,
-            stack_item::{
-                item::StackItem,
-                uint_ext::{StackItemUintExt, StackUint},
-            },
+            stack_holder::StackHolder,
+            stack_item::StackItem,
+            stack_uint::{StackItemUintExt, StackUint},
         },
     };
 

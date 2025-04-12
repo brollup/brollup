@@ -3,10 +3,10 @@ use crate::executive::{
         codec::{OpcodeEncoder, OpcodeEncoderError},
         ops::OP_VERIFY_OPS,
     },
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_VERIFY` opcode.
+/// Pops an item from the main stack and checks if it is true. Fails if it is not.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_VERIFY;

@@ -3,10 +3,8 @@ mod stack_uint_tests {
 
     use brollup::executive::stack::{
         stack_error::StackError,
-        stack_item::{
-            item::StackItem,
-            uint_ext::{StackItemUintExt, StackUint},
-        },
+        stack_item::StackItem,
+        stack_uint::{StackItemUintExt, StackUint},
     };
 
     /// Test the stack uint conversion covering all byte-ranges from 0 to 32.

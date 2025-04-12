@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_FROMALTSTACK_OPS,
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_FROMALTSTACK` opcode.
+/// Pops an item from the alt stack and pushes it to the main stack.
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub struct OP_FROMALTSTACK;

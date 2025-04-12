@@ -4,16 +4,14 @@ use crate::executive::{
         ops::OP_RETURNSOME_OPS,
     },
     stack::{
-        stack::StackHolder,
         stack_error::StackError,
-        stack_item::{
-            item::StackItem,
-            uint_ext::{SafeConverter, StackItemUintExt},
-        },
+        stack_holder::StackHolder,
+        stack_item::StackItem,
+        stack_uint::{SafeConverter, StackItemUintExt},
     },
 };
 
-/// The `OP_RETURNSOME` opcode.
+/// Returns some number of items from the main stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_RETURNSOME;

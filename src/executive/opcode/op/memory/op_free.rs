@@ -1,9 +1,10 @@
 use crate::executive::{
     opcode::ops::OP_MFREE_OPS,
     stack::{
-        stack::{StackHolder, MAX_KEY_LENGTH, MIN_KEY_LENGTH},
+        limits::{MAX_KEY_LENGTH, MIN_KEY_LENGTH},
         stack_error::StackError,
-        stack_item::item::StackItem,
+        stack_holder::StackHolder,
+        stack_item::StackItem,
     },
 };
 

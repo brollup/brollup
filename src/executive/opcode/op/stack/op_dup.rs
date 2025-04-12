@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_DUP_OPS,
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_DUP` opcode.
+/// Duplicates the last item on the main stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_DUP;

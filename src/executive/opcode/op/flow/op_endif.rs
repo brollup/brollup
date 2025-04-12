@@ -3,7 +3,7 @@ use crate::executive::{
         codec::{OpcodeEncoder, OpcodeEncoderError},
         ops::OP_ENDIF_OPS,
     },
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
 /// The `OP_ENDIF` opcode.

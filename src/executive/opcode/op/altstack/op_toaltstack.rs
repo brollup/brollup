@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_TOALTSTACK_OPS,
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_TOALTSTACK` opcode.
+/// Pops an item from the main stack and pushes it to the alt stack.
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub struct OP_TOALTSTACK;

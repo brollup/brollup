@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_DROP_OPS,
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_DROP` opcode.
+/// Drops the last item from the main stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_DROP;

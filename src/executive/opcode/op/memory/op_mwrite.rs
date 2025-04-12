@@ -1,11 +1,10 @@
 use crate::executive::{
     opcode::ops::OP_MWRITE_OPS,
     stack::{
-        stack::{
-            StackHolder, MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH, MIN_VALUE_LENGTH,
-        },
+        limits::{MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH, MIN_VALUE_LENGTH},
         stack_error::StackError,
-        stack_item::item::StackItem,
+        stack_holder::StackHolder,
+        stack_item::StackItem,
     },
 };
 

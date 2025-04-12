@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_EQUALVERIFY_OPS,
-    stack::{stack::StackHolder, stack_error::StackError},
+    stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// The `OP_EQUALVERIFY` opcode.
+/// Pops two items from the main stack and checks if they are equal. Fails if they are not.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_EQUALVERIFY;

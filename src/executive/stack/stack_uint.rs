@@ -1,4 +1,4 @@
-use super::item::StackItem;
+use super::stack_item::StackItem;
 use uint::construct_uint;
 
 // A 256-bit unsigned integer representation for the `StackItem` (4 x 64-bit words).

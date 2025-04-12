@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_EQUAL_OPS,
-    stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
+    stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
-/// The `OP_EQUAL` opcode.
+/// Pushes 0x01 if the two items on the main stack are equal, false (empty push) otherwise.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_EQUAL;

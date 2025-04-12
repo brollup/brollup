@@ -3,10 +3,10 @@ use crate::executive::{
         codec::{OpcodeEncoder, OpcodeEncoderError},
         ops::OP_12_OPS,
     },
-    stack::{stack::StackHolder, stack_error::StackError, stack_item::item::StackItem},
+    stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
-/// The `OP_12` opcode.
+/// Pushes number 12 (0x0c) to the main stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_12;

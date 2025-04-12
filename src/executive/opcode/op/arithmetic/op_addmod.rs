@@ -1,16 +1,14 @@
 use crate::executive::{
     opcode::ops::OP_ADDMOD_OPS,
     stack::{
-        stack::StackHolder,
         stack_error::StackError,
-        stack_item::{
-            item::StackItem,
-            uint_ext::{StackItemUintExt, StackUint},
-        },
+        stack_holder::StackHolder,
+        stack_item::StackItem,
+        stack_uint::{StackItemUintExt, StackUint},
     },
 };
 
-/// The `OP_ADDMOD` opcode.
+/// Adds two items on the main stack and returns the result modulo MAX::U256.
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub struct OP_ADDMOD;

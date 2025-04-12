@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_PICK_OPS,
-    stack::{stack::StackHolder, stack_error::StackError, stack_item::uint_ext::StackItemUintExt},
+    stack::{stack_error::StackError, stack_holder::StackHolder, stack_uint::StackItemUintExt},
 };
 
-/// The `OP_PICK` opcode.
+/// Retrieves an item from the main stack by cloning it to the top of the stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_PICK;
@@ -19,7 +19,9 @@ impl OP_PICK {
         let last_item = stack_holder.pop()?;
 
         // Get the pick depth from the last item.
-        let pick_depth = last_item.to_uint().ok_or(StackError::StackUintMaxOverflowError)?;
+        let pick_depth = last_item
+            .to_uint()
+            .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Get the item at the pick depth.
         let item = stack_holder.item_by_depth(pick_depth.as_u32())?;

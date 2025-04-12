@@ -1,9 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_ROLL_OPS,
-    stack::{stack::StackHolder, stack_error::StackError, stack_item::uint_ext::StackItemUintExt},
+    stack::{stack_error::StackError, stack_holder::StackHolder, stack_uint::StackItemUintExt},
 };
 
-/// The `OP_ROLL` opcode.
+/// Rolls an item from the main stack to the top of the stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_ROLL;

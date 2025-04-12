@@ -4,8 +4,9 @@ use crate::executive::{
         ops::OP_NOTIF_OPS,
     },
     stack::{
-        stack::{FlowEncounter, FlowStatus, StackHolder},
+        flow::{flow_encounter::FlowEncounter, flow_status::FlowStatus},
         stack_error::StackError,
+        stack_holder::StackHolder,
     },
 };
 
