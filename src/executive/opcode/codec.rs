@@ -2,8 +2,8 @@ use super::{
     op::{
         flow::{
             op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
-            op_notif::OP_NOTIF, op_return::OP_RETURN, op_returnerr::OP_RETURNERR,
-            op_verify::OP_VERIFY,
+            op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
+            op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
         },
         push::{
             op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
@@ -144,14 +144,15 @@ where
             0x5f => Ok(Opcode::OP_15(OP_15)),
             0x60 => Ok(Opcode::OP_16(OP_16)),
             0x61 => Ok(Opcode::OP_NOP(OP_NOP)),
-            0x62 => Ok(Opcode::OP_FAIL(OP_FAIL)),
+            0x62 => Ok(Opcode::OP_RETURNERR(OP_RETURNERR)),
             0x63 => Ok(Opcode::OP_IF(OP_IF)),
             0x64 => Ok(Opcode::OP_NOTIF(OP_NOTIF)),
-            0x65 => Ok(Opcode::OP_RETURN(OP_RETURN)),
-            0x66 => Ok(Opcode::OP_RETURNERR(OP_RETURNERR)),
+            0x65 => Ok(Opcode::OP_RETURNALL(OP_RETURNALL)),
+            0x66 => Ok(Opcode::OP_RETURNSOME(OP_RETURNSOME)),
             0x67 => Ok(Opcode::OP_ELSE(OP_ELSE)),
             0x68 => Ok(Opcode::OP_ENDIF(OP_ENDIF)),
             0x69 => Ok(Opcode::OP_VERIFY(OP_VERIFY)),
+            0x6a => Ok(Opcode::OP_FAIL(OP_FAIL)),
             _ => Err(OpcodeDecoderError::ReservedOpcodeError),
         }
     }

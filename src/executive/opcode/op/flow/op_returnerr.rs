@@ -31,6 +31,6 @@ impl OP_RETURNERR {
 /// Implement the `OpcodeEncoder` trait for `OP_RETURN`.
 impl OpcodeEncoder for OP_RETURNERR {
     fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x66])
+        Ok(vec![0x62])
     }
 }

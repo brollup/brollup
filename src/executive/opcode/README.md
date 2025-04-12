@@ -1,7 +1,7 @@
 # Opcodes
 Brollup uses an extended Bitcoin script with splicing, better memory management, and global state opcodes.
 
-## Data Push
+## Data push
 
 | Opcode        | Bytecode  | Ops | Input       | Output         | Description                                                                                        |
 |:--------------|:----------|:----|:------------|:---------------|:---------------------------------------------------------------------------------------------------|
@@ -11,6 +11,21 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_PUSHDATA2  | 0x4d      | 2   | (special)   | data           | The next two bytes contain the number of bytes to be pushed onto the stack in little endian order. |
 | OP_TRUE OP_1  | 0x51      | 1   | (special)   | 1              | The number 1 is pushed onto the stack.                                                             |
 | OP_2-OP_16    | 0x52-0x60 | 1   | 2-16        | 1              | The number in the word name (2-16) is pushed onto the stack.                                       |
+
+## Flow control
+
+| Opcode        | Bytecode  | Ops | Input       | Output         | Description                                                                                        |
+|:--------------|:----------|:----|:------------|:---------------|:---------------------------------------------------------------------------------------------------|
+| OP_NOP        | 0x61      | 1   | Nothing.    | Nothing.       | Does nothing.                                                                                      |
+| OP_RETURNERR  | 0x62      | 1   | Nothing.    | Return.        | Pops the top stack item and returns it as error message.                                           |
+| OP_IF         | 0x63      | 1   | True/false  | Nothing.       | If the top stack value is not False, the statements are executed. The top stack value is removed.  |
+| OP_NOTIF      | 0x64      | 1   | True/false  | Nothing.       | If the top stack value is False, the statements are executed. The top stack value is removed.      |
+| OP_RETURNALL  | 0x65      | 1   | x1..xn      | Return.        | All stack items are popped and returned.                                                           |
+| OP_RETURNSOME | 0x66      | 1   | x1..xn      | Return.        | Pops the stack item *count* and returns *count* number of items.                                   |
+| OP_ELSE       | 0x67      | 1   | Nothing.    | Nothing.       | If the preceding OP_IF or OP_NOTIF or OP_ELSE was not executed then these statements are.          |
+| OP_ENDIF      | 0x68      | 1   | Nothing.    | Nothing.       | Ends an if/else block. All blocks must end, or the transaction is invalid.                         |
+| OP_VERIFY     | 0x69      | 1   | True/false  | Nothing/Fail   | Pops the top stack item and marks transaction as invalid if top stack value is not true.           |
+| OP_FAIL       | 0x6a      | 1   | (special)   | Fail.          | Fails the entry.                                                                                   |
 
 ## Memory
 

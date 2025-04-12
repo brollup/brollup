@@ -93,7 +93,7 @@ mod stack_tests {
             OP_EQUALVERIFY::execute(&mut stack_holder)?;
 
             // Stack must be empty.
-            assert_eq!(stack_holder.stack_len(), 0);
+            assert_eq!(stack_holder.stack_items_count(), 0);
         }
 
         // Test 0 + 0 = 0;
@@ -123,7 +123,7 @@ mod stack_tests {
             OP_EQUALVERIFY::execute(&mut stack_holder)?;
 
             // Stack must be empty.
-            assert_eq!(stack_holder.stack_len(), 0);
+            assert_eq!(stack_holder.stack_items_count(), 0);
         }
 
         // Test 100 + 50 = 150;
@@ -153,7 +153,7 @@ mod stack_tests {
             OP_EQUALVERIFY::execute(&mut stack_holder)?;
 
             // Stack must be empty.
-            assert_eq!(stack_holder.stack_len(), 0);
+            assert_eq!(stack_holder.stack_items_count(), 0);
         }
 
         Ok(())

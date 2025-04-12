@@ -1,0 +1,56 @@
+use crate::executive::{
+    opcode::{
+        codec::{OpcodeEncoder, OpcodeEncoderError},
+        ops::OP_RETURNSOME_OPS,
+    },
+    stack::{
+        stack::StackHolder,
+        stack_error::StackError,
+        stack_item::{
+            item::StackItem,
+            uint_ext::{SafeConverter, StackItemUintExt},
+        },
+    },
+};
+
+/// The `OP_RETURNSOME` opcode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub struct OP_RETURNSOME;
+
+impl OP_RETURNSOME {
+    pub fn execute(stack_holder: &mut StackHolder) -> Result<Vec<StackItem>, StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(vec![]);
+        }
+
+        // Pop the number of items to return from the stack.
+        let items_count = stack_holder
+            .pop()?
+            .to_uint()
+            .ok_or(StackError::StackUintConversionError)?
+            .usize()
+            .ok_or(StackError::StackUintConversionError)?;
+
+        // Collect remaining stack items.
+        let mut items = Vec::<StackItem>::with_capacity(items_count);
+
+        // Collect remaining stack items.
+        for _ in 0..items_count {
+            items.push(stack_holder.pop()?);
+        }
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_RETURNSOME_OPS)?;
+
+        Ok(items)
+    }
+}
+
+/// Implement the `OpcodeEncoder` trait for `OP_RETURNSOME`.
+impl OpcodeEncoder for OP_RETURNSOME {
+    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
+        Ok(vec![0x66])
+    }
+}

@@ -29,6 +29,6 @@ impl OP_FAIL {
 /// Implement the `OpcodeEncoder` trait for `OP_FAIL`.
 impl OpcodeEncoder for OP_FAIL {
     fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x62])
+        Ok(vec![0x6a])
     }
 }

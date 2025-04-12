@@ -32,14 +32,15 @@ pub const OP_EQUALVERIFY_OPS: u32 = 2;
 
 // Flow
 pub const OP_NOP_OPS: u32 = 1;
+pub const OP_RETURNERR_OPS: u32 = 1;
 pub const OP_IF_OPS: u32 = 1;
 pub const OP_NOTIF_OPS: u32 = 1;
 pub const OP_ELSE_OPS: u32 = 1;
 pub const OP_ENDIF_OPS: u32 = 1;
 pub const OP_VERIFY_OPS: u32 = 1;
-pub const OP_RETURN_OPS: u32 = 1;
+pub const OP_RETURNALL_OPS: u32 = 1;
+pub const OP_RETURNSOME_OPS: u32 = 1;
 pub const OP_FAIL_OPS: u32 = 1;
-pub const OP_RETURNERR_OPS: u32 = 1;
 
 // Alt stack
 pub const OP_FROMALTSTACK_OPS: u32 = 1;

@@ -37,7 +37,7 @@ impl Stack {
     }
 
     /// Returns the length of the stack.
-    pub fn len(&self) -> u32 {
+    pub fn items_count(&self) -> u32 {
         self.0.len() as u32
     }
 
@@ -47,7 +47,7 @@ impl Stack {
             return Err(StackError::StackItemTooLarge);
         }
 
-        if self.len() >= MAX_STACK_ITEMS {
+        if self.items_count() >= MAX_STACK_ITEMS {
             return Err(StackError::StackTooLarge);
         }
         self.0.push(item);
@@ -212,14 +212,14 @@ impl StackHolder {
         &mut self.alt_stack
     }
 
-    /// Returns the length of the main stack.
-    pub fn stack_len(&self) -> u32 {
-        self.main_stack.len()
+    /// Returns the items count of the main stack.
+    pub fn stack_items_count(&self) -> u32 {
+        self.main_stack.items_count()
     }
 
-    /// Returns the length of the alt stack.
-    pub fn alt_stack_len(&self) -> u32 {
-        self.alt_stack.len()
+    /// Returns the items count of the alt stack.
+    pub fn alt_stack_items_count(&self) -> u32 {
+        self.alt_stack.items_count()
     }
 
     /// Pushes a stack item to the main stack.

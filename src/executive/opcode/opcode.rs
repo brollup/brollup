@@ -3,7 +3,8 @@
 use super::op::{
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
-        op_notif::OP_NOTIF, op_return::OP_RETURN, op_returnerr::OP_RETURNERR, op_verify::OP_VERIFY,
+        op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
+        op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
     },
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
@@ -38,14 +39,15 @@ pub enum Opcode {
     OP_PUSHDATA(OP_PUSHDATA),
     // Flow
     OP_NOP(OP_NOP),
+    OP_RETURNERR(OP_RETURNERR),
     OP_IF(OP_IF),
     OP_NOTIF(OP_NOTIF),
     OP_ELSE(OP_ELSE),
     OP_ENDIF(OP_ENDIF),
     OP_VERIFY(OP_VERIFY),
-    OP_RETURN(OP_RETURN),
+    OP_RETURNALL(OP_RETURNALL),
+    OP_RETURNSOME(OP_RETURNSOME),
     OP_FAIL(OP_FAIL),
-    OP_RETURNERR(OP_RETURNERR),
     // Stack
     /// Pushes a copy of the topmost element onto the stack.
     OP_DUP(OP_DUP),

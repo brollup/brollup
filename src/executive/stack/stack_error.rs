@@ -30,14 +30,10 @@ pub enum StackError {
     ExternalOpsLimitExceeded,
     // StackUint max overflow error.
     StackUintMaxOverflowError,
-    // Division by zero error.
-    DivisionByZeroError,
+    // Stack uitn conversion error.
+    StackUintConversionError,
     // Fail error.
     FailError,
-    // Error string conversion error.
-    ErrorStringConversionError,
-    // OP_ELSE encountered without preceding OP_IF/OP_NOTIF error.
-    OPElseEncounteredWithoutPrecedingIfNotif,
     // OP_ELSE encountered with preceding OP_ELSE error.
     OPElseEncounteredWithPrecedingAnotherOPElse,
     // OP_ELSE encountered without preceding flow encounter error.
