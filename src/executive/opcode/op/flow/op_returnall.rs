@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_RETURNALL_OPS,
-    },
+    opcode::ops::OP_RETURNALL_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
@@ -34,11 +31,9 @@ impl OP_RETURNALL {
 
         Ok(items)
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_RETURNALL`.
-impl OpcodeEncoder for OP_RETURNALL {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x65])
+    /// Returns the bytecode for the `OP_RETURNALL` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x65]
     }
 }

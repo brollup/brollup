@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_TRUE_OPS,
-    },
+    opcode::ops::OP_TRUE_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
@@ -29,15 +26,13 @@ impl OP_TRUE {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_TRUE` opcode (0x51).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x51]
+    }
 }
 
 /// OP_1 is analogous to `OP_TRUE`.
 #[allow(non_camel_case_types)]
 pub type OP_1 = OP_TRUE;
-
-/// Implement the `OpcodeEncoder` trait for `OP_TRUE`.
-impl OpcodeEncoder for OP_TRUE {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x51])
-    }
-}

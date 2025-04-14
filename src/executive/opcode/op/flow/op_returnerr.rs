@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_RETURNERR_OPS,
-    },
+    opcode::ops::OP_RETURNERR_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
@@ -26,11 +23,9 @@ impl OP_RETURNERR {
 
         Ok(error_item)
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_RETURN`.
-impl OpcodeEncoder for OP_RETURNERR {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x62])
+    /// Returns the bytecode for the `OP_RETURNERR` opcode (0x62).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x62]
     }
 }

@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_9_OPS,
-    },
+    opcode::ops::OP_9_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
@@ -29,11 +26,9 @@ impl OP_9 {
 
         Ok(())
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_9`.
-impl OpcodeEncoder for OP_9 {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x59])
+    /// Returns the bytecode for the `OP_9` opcode (0x59).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x59]
     }
 }

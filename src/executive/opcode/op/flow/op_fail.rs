@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_FAIL_OPS,
-    },
+    opcode::ops::OP_FAIL_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
@@ -24,11 +21,9 @@ impl OP_FAIL {
         // Fail the execution.
         Err(StackError::FailError)
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_FAIL`.
-impl OpcodeEncoder for OP_FAIL {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x6a])
+    /// Returns the bytecode for the `OP_FAIL` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x6a]
     }
 }

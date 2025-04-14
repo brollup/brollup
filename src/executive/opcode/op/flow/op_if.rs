@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_IF_OPS,
-    },
+    opcode::ops::OP_IF_OPS,
     stack::{
         flow::{flow_encounter::FlowEncounter, flow_status::FlowStatus},
         stack_error::StackError,
@@ -38,11 +35,9 @@ impl OP_IF {
 
         Ok(())
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_IF`.
-impl OpcodeEncoder for OP_IF {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x63])
+    /// Returns the bytecode for the `OP_IF` opcode (0x63).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x63]
     }
 }

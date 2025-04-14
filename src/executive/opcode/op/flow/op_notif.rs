@@ -1,8 +1,5 @@
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_NOTIF_OPS,
-    },
+    opcode::ops::OP_NOTIF_OPS,
     stack::{
         flow::{flow_encounter::FlowEncounter, flow_status::FlowStatus},
         stack_error::StackError,
@@ -38,11 +35,9 @@ impl OP_NOTIF {
 
         Ok(())
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_NOTIF`.
-impl OpcodeEncoder for OP_NOTIF {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        Ok(vec![0x64])
+    /// Returns the bytecode for the `OP_NOTIF` opcode (0x64).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x64]
     }
 }

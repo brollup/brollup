@@ -16,10 +16,7 @@ use super::op_9::OP_9;
 use super::op_false::OP_FALSE;
 use super::op_true::OP_TRUE;
 use crate::executive::{
-    opcode::{
-        codec::{OpcodeEncoder, OpcodeEncoderError},
-        ops::OP_PUSHDATA_OPS,
-    },
+    opcode::ops::OP_PUSHDATA_OPS,
     stack::{
         limits::MAX_STACK_ITEM_SIZE, stack_error::StackError, stack_holder::StackHolder,
         stack_item::StackItem,
@@ -54,100 +51,99 @@ impl OP_PUSHDATA {
 
         Ok(())
     }
-}
 
-/// Implement the `OpcodeEncoder` trait for `OP_PUSHDATA`.
-impl OpcodeEncoder for OP_PUSHDATA {
-    fn encode(&self) -> Result<Vec<u8>, OpcodeEncoderError> {
-        // Determine the pushdata type.
-        match self.0.len() {
-            0 => Ok(OP_FALSE.encode()?),
-            1 => {
-                // Get the value.
-                let value: u8 = self.0[0];
+    pub fn bytecode(&self) -> Option<Vec<u8>> {
+        {
+            // Match data length.
+            match self.0.len() {
+                0 => Some(OP_FALSE::bytecode()),
+                1 => {
+                    // Get the value.
+                    let value: u8 = self.0[0];
 
-                // Check value for minimal encoding.
-                match value {
-                    0 => Ok(OP_FALSE.encode()?),
-                    1 => Ok(OP_TRUE.encode()?),
-                    2 => Ok(OP_2.encode()?),
-                    3 => Ok(OP_3.encode()?),
-                    4 => Ok(OP_4.encode()?),
-                    5 => Ok(OP_5.encode()?),
-                    6 => Ok(OP_6.encode()?),
-                    7 => Ok(OP_7.encode()?),
-                    8 => Ok(OP_8.encode()?),
-                    9 => Ok(OP_9.encode()?),
-                    10 => Ok(OP_10.encode()?),
-                    11 => Ok(OP_11.encode()?),
-                    12 => Ok(OP_12.encode()?),
-                    13 => Ok(OP_13.encode()?),
-                    14 => Ok(OP_14.encode()?),
-                    15 => Ok(OP_15.encode()?),
-                    16 => Ok(OP_16.encode()?),
-                    _ => {
-                        // Initialize the encoded vector.
-                        let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 1);
+                    // Check value for minimal encoding.
+                    match value {
+                        0 => Some(OP_FALSE::bytecode()),
+                        1 => Some(OP_TRUE::bytecode()),
+                        2 => Some(OP_2::bytecode()),
+                        3 => Some(OP_3::bytecode()),
+                        4 => Some(OP_4::bytecode()),
+                        5 => Some(OP_5::bytecode()),
+                        6 => Some(OP_6::bytecode()),
+                        7 => Some(OP_7::bytecode()),
+                        8 => Some(OP_8::bytecode()),
+                        9 => Some(OP_9::bytecode()),
+                        10 => Some(OP_10::bytecode()),
+                        11 => Some(OP_11::bytecode()),
+                        12 => Some(OP_12::bytecode()),
+                        13 => Some(OP_13::bytecode()),
+                        14 => Some(OP_14::bytecode()),
+                        15 => Some(OP_15::bytecode()),
+                        16 => Some(OP_16::bytecode()),
+                        _ => {
+                            // Initialize the encoded vector.
+                            let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 1);
 
-                        // Push the data length.
-                        encoded.push(self.0.len() as u8);
+                            // Push the data length.
+                            encoded.push(self.0.len() as u8);
 
-                        // Push the data.
-                        encoded.extend(self.0.clone());
+                            // Push the data.
+                            encoded.extend(self.0.clone());
 
-                        // Return the encoded vector.
-                        Ok(encoded)
+                            // Return the encoded vector.
+                            Some(encoded)
+                        }
                     }
                 }
+                2..=75 => {
+                    // Initialize the encoded vector.
+                    let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 1);
+
+                    // Push the data length.
+                    encoded.push(self.0.len() as u8);
+
+                    // Push the data.
+                    encoded.extend(self.0.clone());
+
+                    // Return the encoded vector.
+                    Some(encoded)
+                }
+                76..=255 => {
+                    // Initialize the encoded vector.
+                    let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 2);
+
+                    // Push 0x4c to the encoded vector.
+                    encoded.push(0x4c);
+
+                    // Push the data length.
+                    encoded.push(self.0.len() as u8);
+
+                    // Push the data.
+                    encoded.extend(self.0.clone());
+
+                    // Return the encoded vector.
+                    Some(encoded)
+                }
+                256..=65535 => {
+                    // Initialize the encoded vector.
+                    let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 3);
+
+                    // Push 0x4d to the encoded vector.
+                    encoded.push(0x4d);
+
+                    // Push the data length as a little endian u16.
+                    let data_length = self.0.len() as u16;
+                    encoded.push((data_length & 0xff) as u8);
+                    encoded.push((data_length >> 8) as u8);
+
+                    // Push the data.
+                    encoded.extend(self.0.clone());
+
+                    // Return the encoded vector.
+                    Some(encoded)
+                }
+                _ => None,
             }
-            2..=75 => {
-                // Initialize the encoded vector.
-                let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 1);
-
-                // Push the data length.
-                encoded.push(self.0.len() as u8);
-
-                // Push the data.
-                encoded.extend(self.0.clone());
-
-                // Return the encoded vector.
-                Ok(encoded)
-            }
-            76..=255 => {
-                // Initialize the encoded vector.
-                let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 2);
-
-                // Push 0x4c to the encoded vector.
-                encoded.push(0x4c);
-
-                // Push the data length.
-                encoded.push(self.0.len() as u8);
-
-                // Push the data.
-                encoded.extend(self.0.clone());
-
-                // Return the encoded vector.
-                Ok(encoded)
-            }
-            256..=65535 => {
-                // Initialize the encoded vector.
-                let mut encoded = Vec::<u8>::with_capacity(self.0.len() + 3);
-
-                // Push 0x4d to the encoded vector.
-                encoded.push(0x4d);
-
-                // Push the data length as a little endian u16.
-                let data_length = self.0.len() as u16;
-                encoded.push((data_length & 0xff) as u8);
-                encoded.push((data_length >> 8) as u8);
-
-                // Push the data.
-                encoded.extend(self.0.clone());
-
-                // Return the encoded vector.
-                Ok(encoded)
-            }
-            _ => Err(OpcodeEncoderError::InvalidPushDataLength),
         }
     }
 }
