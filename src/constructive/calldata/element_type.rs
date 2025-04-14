@@ -47,7 +47,7 @@ impl CallElementType {
     }
 
     /// Returns the element type from the bytecode.
-    pub fn from_bytecode<I>(mut bytecode_stream: I) -> Option<Self>
+    pub fn from_bytecode<I>(bytecode_stream: &mut I) -> Option<Self>
     where
         I: Iterator<Item = u8>,
     {

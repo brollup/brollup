@@ -1,9 +1,17 @@
-use crate::executive::{
-    opcode::compiler::compiler::OpcodeCompiler,
-    program::method::{
-        compiler::compiler_error::MethodCompilerError,
-        limits::{MAX_METHOD_NAME_LENGTH, MAX_METHOD_SCRIPT_LENGTH},
-        method::ProgramMethod,
+use crate::{
+    constructive::calldata::element_type::CallElementType,
+    executive::{
+        opcode::{compiler::compiler::OpcodeCompiler, opcode::Opcode},
+        program::method::{
+            compiler::compiler_error::MethodCompilerError,
+            limits::{
+                MAX_METHOD_CALL_ELEMENT_TYPE_COUNT, MAX_METHOD_NAME_LENGTH,
+                MAX_METHOD_OPCODE_COUNT, MIN_METHOD_CALL_ELEMENT_TYPE_COUNT,
+                MIN_METHOD_NAME_LENGTH, MIN_METHOD_OPCODE_COUNT,
+            },
+            method::ProgramMethod,
+            method_type::MethodType,
+        },
     },
 };
 
@@ -12,7 +20,7 @@ pub trait MethodCompiler {
     /// Compiles the method into a bytecode.
     fn compile(&self) -> Result<Vec<u8>, MethodCompilerError>;
     /// Decompiles a method from a bytecode stream.
-    fn decompile<I>(bytecode_stream: I) -> Result<ProgramMethod, MethodCompilerError>
+    fn decompile<I>(bytecode_stream: &mut I) -> Result<ProgramMethod, MethodCompilerError>
     where
         I: Iterator<Item = u8>;
 }
@@ -23,13 +31,24 @@ impl MethodCompiler for ProgramMethod {
         let mut method_bytes = Vec::<u8>::new();
 
         // Check method name length.
-        if self.method_name().len() > MAX_METHOD_NAME_LENGTH {
-            return Err(MethodCompilerError::NameLengthError);
+        if self.method_name().len() > MAX_METHOD_NAME_LENGTH
+            || self.method_name().len() < MIN_METHOD_NAME_LENGTH
+        {
+            return Err(MethodCompilerError::InvalidNameLength);
         }
 
-        // Check script length.
-        if self.script().len() > MAX_METHOD_SCRIPT_LENGTH {
-            return Err(MethodCompilerError::ScriptLengthError);
+        // Check call element type count.
+        if self.call_element_types().len() > MAX_METHOD_CALL_ELEMENT_TYPE_COUNT
+            || self.call_element_types().len() < MIN_METHOD_CALL_ELEMENT_TYPE_COUNT
+        {
+            return Err(MethodCompilerError::CallElementTypesCountError);
+        }
+
+        // Check opcode count.
+        if self.script().len() > MAX_METHOD_OPCODE_COUNT
+            || self.script().len() < MIN_METHOD_OPCODE_COUNT
+        {
+            return Err(MethodCompilerError::OpcodeCountError);
         }
 
         // Encode method name byte length as u8.
@@ -43,7 +62,7 @@ impl MethodCompiler for ProgramMethod {
 
         // Check the number of call element types.
         if self.call_element_types().len() > u8::MAX as usize {
-            return Err(MethodCompilerError::NumberOfCallElementTypesError);
+            return Err(MethodCompilerError::CallElementTypesCountError);
         }
 
         // Encode the number of call element types as u8.
@@ -55,8 +74,10 @@ impl MethodCompiler for ProgramMethod {
         }
 
         // Check the number of opcodes.
-        if self.script().len() > u16::MAX as usize {
-            return Err(MethodCompilerError::NumberOfOpcodesError);
+        if self.script().len() > MAX_METHOD_OPCODE_COUNT
+            || self.script().len() < MIN_METHOD_OPCODE_COUNT
+        {
+            return Err(MethodCompilerError::OpcodeCountError);
         }
 
         // Encode the number of opcodes as u16.
@@ -75,11 +96,92 @@ impl MethodCompiler for ProgramMethod {
         Ok(method_bytes)
     }
 
-    fn decompile<I>(_bytecode_stream: I) -> Result<ProgramMethod, MethodCompilerError>
+    fn decompile<I>(mut bytecode_stream: &mut I) -> Result<ProgramMethod, MethodCompilerError>
     where
         I: Iterator<Item = u8>,
     {
-        // TODO.
-        Err(MethodCompilerError::NameLengthError)
+        // Collect method name length
+        let method_name_length = bytecode_stream
+            .next()
+            .ok_or(MethodCompilerError::NameLengthByteCollectError)?;
+
+        if method_name_length > MAX_METHOD_NAME_LENGTH as u8
+            || method_name_length < MIN_METHOD_NAME_LENGTH as u8
+        {
+            return Err(MethodCompilerError::InvalidNameLength);
+        }
+
+        // Collect method name
+        let method_name_bytes: Vec<u8> = bytecode_stream
+            .by_ref()
+            .take(method_name_length as usize)
+            .collect();
+
+        // Convert method name bytes to string.
+        let method_name = String::from_utf8_lossy(&method_name_bytes).to_string();
+
+        // Collect method type byte.
+        let method_type_byte = bytecode_stream
+            .by_ref()
+            .next()
+            .ok_or(MethodCompilerError::MethodTypeByteCollectError)?;
+
+        // Convert method type byte to method type.
+        let method_type = MethodType::from_bytecode(method_type_byte)
+            .ok_or(MethodCompilerError::InvalidMethodType)?;
+
+        // Collect the number of call element types.
+        let number_of_call_element_types = bytecode_stream
+            .by_ref()
+            .next()
+            .ok_or(MethodCompilerError::CallElementTypesCountError)?;
+
+        if number_of_call_element_types > MAX_METHOD_CALL_ELEMENT_TYPE_COUNT as u8
+            || number_of_call_element_types < MIN_METHOD_CALL_ELEMENT_TYPE_COUNT as u8
+        {
+            return Err(MethodCompilerError::InvalidCallElementTypeLength);
+        }
+
+        // Collect call element types.
+        let mut call_element_types = Vec::<CallElementType>::new();
+        for _ in 0..number_of_call_element_types {
+            let call_element_type = CallElementType::from_bytecode(&mut bytecode_stream)
+                .ok_or(MethodCompilerError::InvalidCallElementType)?;
+
+            call_element_types.push(call_element_type);
+        }
+
+        // Collect two bytes for opcodes count.
+        let opcodes_count = u16::from_le_bytes([
+            bytecode_stream.by_ref().next().unwrap(),
+            bytecode_stream.by_ref().next().unwrap(),
+        ]);
+
+        if opcodes_count > MAX_METHOD_OPCODE_COUNT as u16
+            || opcodes_count < MIN_METHOD_OPCODE_COUNT as u16
+        {
+            return Err(MethodCompilerError::OpcodeCountError);
+        }
+
+        // Collect opcodes.
+        let mut opcodes = Vec::<Opcode>::new();
+        for _ in 0..opcodes_count {
+            let opcode = Opcode::decompile(&mut bytecode_stream)
+                .map_err(|e| MethodCompilerError::OpcodeDecompileError(e))?;
+
+            opcodes.push(opcode);
+        }
+
+        let method = ProgramMethod::new(
+            [0u8; 32], // Default contract ID
+            method_name,
+            method_type,
+            call_element_types,
+            opcodes,
+        )
+        .ok_or(MethodCompilerError::MethodConstructError)?;
+
+        // Return the decompiled method.
+        Ok(method)
     }
 }

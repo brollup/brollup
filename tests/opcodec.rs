@@ -20,115 +20,115 @@ mod opcodec_tests {
     fn test_minimal_encoding() -> Result<(), StackError> {
         // Test Empty Pushdata
         let pushdata = OP_PUSHDATA(vec![]);
-        assert!(pushdata.bytecode().unwrap() == vec![0x00]); // Encoded as OP_FALSE
-        assert_eq!(pushdata.bytecode().unwrap(), OP_FALSE::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x00]); // Encoded as OP_FALSE
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_FALSE::bytecode());
 
         // Test 0
         let pushdata = OP_PUSHDATA(vec![0x00]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x00]); // Encoded as OP_FALSE
-        assert_eq!(pushdata.bytecode().unwrap(), OP_FALSE::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x00]); // Encoded as OP_FALSE
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_FALSE::bytecode());
 
         // Test 1
         let pushdata = OP_PUSHDATA(vec![0x01]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x51]); // Encoded as OP_TRUE
-        assert_eq!(pushdata.bytecode().unwrap(), OP_TRUE::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x51]); // Encoded as OP_TRUE
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_TRUE::bytecode());
 
         // Test 2
         let pushdata = OP_PUSHDATA(vec![0x02]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x52]); // Encoded as OP_2
-        assert_eq!(pushdata.bytecode().unwrap(), OP_2::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x52]); // Encoded as OP_2
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_2::bytecode());
 
         // Test 3
         let pushdata = OP_PUSHDATA(vec![0x03]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x53]); // Encoded as OP_3
-        assert_eq!(pushdata.bytecode().unwrap(), OP_3::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x53]); // Encoded as OP_3
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_3::bytecode());
 
         // Test 4
         let pushdata = OP_PUSHDATA(vec![0x04]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x54]); // Encoded as OP_4
-        assert_eq!(pushdata.bytecode().unwrap(), OP_4::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x54]); // Encoded as OP_4
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_4::bytecode());
 
         // Test 5
         let pushdata = OP_PUSHDATA(vec![0x05]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x55]); // Encoded as OP_5
-        assert_eq!(pushdata.bytecode().unwrap(), OP_5::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x55]); // Encoded as OP_5
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_5::bytecode());
 
         // Test 6
         let pushdata = OP_PUSHDATA(vec![0x06]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x56]); // Encoded as OP_6
-        assert_eq!(pushdata.bytecode().unwrap(), OP_6::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x56]); // Encoded as OP_6
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_6::bytecode());
 
         // Test 7
         let pushdata = OP_PUSHDATA(vec![0x07]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x57]); // Encoded as OP_7
-        assert_eq!(pushdata.bytecode().unwrap(), OP_7::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x57]); // Encoded as OP_7
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_7::bytecode());
 
         // Test 8
         let pushdata = OP_PUSHDATA(vec![0x08]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x58]); // Encoded as OP_8
-        assert_eq!(pushdata.bytecode().unwrap(), OP_8::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x58]); // Encoded as OP_8
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_8::bytecode());
 
         // Test 9
         let pushdata = OP_PUSHDATA(vec![0x09]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x59]); // Encoded as OP_9
-        assert_eq!(pushdata.bytecode().unwrap(), OP_9::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x59]); // Encoded as OP_9
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_9::bytecode());
 
         // Test 10
         let pushdata = OP_PUSHDATA(vec![0x0a]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5a]); // Encoded as OP_10
-        assert_eq!(pushdata.bytecode().unwrap(), OP_10::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5a]); // Encoded as OP_10
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_10::bytecode());
 
         // Test 11
         let pushdata = OP_PUSHDATA(vec![0x0b]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5b]); // Encoded as OP_11
-        assert_eq!(pushdata.bytecode().unwrap(), OP_11::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5b]); // Encoded as OP_11
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_11::bytecode());
 
         // Test 12
         let pushdata = OP_PUSHDATA(vec![0x0c]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5c]); // Encoded as OP_12
-        assert_eq!(pushdata.bytecode().unwrap(), OP_12::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5c]); // Encoded as OP_12
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_12::bytecode());
 
         // Test 13
         let pushdata = OP_PUSHDATA(vec![0x0d]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5d]); // Encoded as OP_13
-        assert_eq!(pushdata.bytecode().unwrap(), OP_13::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5d]); // Encoded as OP_13
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_13::bytecode());
 
         // Test 14
         let pushdata = OP_PUSHDATA(vec![0x0e]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5e]); // Encoded as OP_14
-        assert_eq!(pushdata.bytecode().unwrap(), OP_14::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5e]); // Encoded as OP_14
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_14::bytecode());
 
         // Test 15
         let pushdata = OP_PUSHDATA(vec![0x0f]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x5f]); // Encoded as OP_15
-        assert_eq!(pushdata.bytecode().unwrap(), OP_15::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x5f]); // Encoded as OP_15
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_15::bytecode());
 
         // Test 16
         let pushdata = OP_PUSHDATA(vec![0x10]);
 
-        assert!(pushdata.bytecode().unwrap() == vec![0x60]); // Encoded as OP_16
-        assert_eq!(pushdata.bytecode().unwrap(), OP_16::bytecode());
+        assert!(pushdata.compiled_bytes().unwrap() == vec![0x60]); // Encoded as OP_16
+        assert_eq!(pushdata.compiled_bytes().unwrap(), OP_16::bytecode());
 
         // Test 17
         let pushdata = OP_PUSHDATA(vec![0x11]);
 
-        assert_eq!(pushdata.bytecode().unwrap(), vec![0x01, 0x11]); // Encoded as OP_PUSHDATA tier 1.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), vec![0x01, 0x11]); // Encoded as OP_PUSHDATA tier 1.
 
         Ok(())
     }
@@ -444,21 +444,21 @@ mod opcodec_tests {
         let mut expected_encoded = Vec::<u8>::new();
         expected_encoded.push(0x01);
         expected_encoded.extend(vec![0xff]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 2 bytes.
         let pushdata = OP_PUSHDATA(vec![0xde, 0xad]);
         let mut expected_encoded = Vec::<u8>::new();
         expected_encoded.push(0x02); // Data length.
         expected_encoded.extend(vec![0xde, 0xad]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 3 bytes.
         let pushdata = OP_PUSHDATA(vec![0xde, 0xad, 0xbe]);
         let mut expected_encoded = Vec::<u8>::new();
         expected_encoded.push(0x03); // Data length.
         expected_encoded.extend(vec![0xde, 0xad, 0xbe]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 10 bytes.
         let pushdata = OP_PUSHDATA(vec![
@@ -469,7 +469,7 @@ mod opcodec_tests {
         expected_encoded.extend(vec![
             0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad,
         ]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 74 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 74]);
@@ -477,14 +477,14 @@ mod opcodec_tests {
         expected_encoded.push(0x4a); // Data length.
         expected_encoded.extend(vec![0xff; 74]);
 
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 75 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 75]);
         let mut expected_encoded = Vec::<u8>::new();
         expected_encoded.push(0x4b); // Data length.
         expected_encoded.extend(vec![0xff; 75]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 0.
 
         // Test 76 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 76]);
@@ -494,7 +494,7 @@ mod opcodec_tests {
         // Data length.
         expected_encoded.push(76);
         expected_encoded.extend(vec![0xff; 76]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
 
         // Test 77 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 77]);
@@ -504,7 +504,7 @@ mod opcodec_tests {
         // Data length.
         expected_encoded.push(77);
         expected_encoded.extend(vec![0xff; 77]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
 
         // Test 254 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 254]);
@@ -514,7 +514,7 @@ mod opcodec_tests {
         // Data length.
         expected_encoded.push(254);
         expected_encoded.extend(vec![0xff; 254]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
 
         // Test 255 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 255]);
@@ -524,7 +524,7 @@ mod opcodec_tests {
         // Data length.
         expected_encoded.push(255);
         expected_encoded.extend(vec![0xff; 255]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 1.
 
         // Test 256 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 256]);
@@ -540,7 +540,7 @@ mod opcodec_tests {
         };
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 256]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
         // Test 257 bytes.
         let pushdata = OP_PUSHDATA(vec![0xff; 257]);
@@ -556,7 +556,7 @@ mod opcodec_tests {
         };
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 257]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
         // Test 4095 bytes (MAX STACK ITEM SIZE).
         let pushdata = OP_PUSHDATA(vec![0xff; 4095]);
@@ -572,7 +572,7 @@ mod opcodec_tests {
         };
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 4095]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
         // Test 65534 bytes (MAX TIER 2 SIZE -1).
         // This will be valid to encode/decode, but the opcode execution will fail (due to stack item size limit).
@@ -589,7 +589,7 @@ mod opcodec_tests {
         };
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 65534]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
         // Test 65535 bytes (MAX TIER 2 SIZE).
         // This will be valid to encode/decode, but the opcode execution will fail (due to stack item size limit).
@@ -606,11 +606,11 @@ mod opcodec_tests {
         };
         expected_encoded.extend(length_bytes);
         expected_encoded.extend(vec![0xff; 65535]);
-        assert_eq!(pushdata.bytecode().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
+        assert_eq!(pushdata.compiled_bytes().unwrap(), expected_encoded); // Encoded as OP_PUSHDATA tier 2.
 
         // Testing 65536 bytes should fail. Tier 3 (>65535 bytes) is not supported.
         let pushdata = OP_PUSHDATA(vec![0xff; 65536]);
-        assert!(pushdata.bytecode().is_none());
+        assert!(pushdata.compiled_bytes().is_none());
 
         Ok(())
     }
@@ -639,7 +639,7 @@ mod opcodec_tests {
         opcodes_encoded.extend(OP_16::bytecode());
         opcodes_encoded.extend(
             OP_PUSHDATA(vec![0xde, 0xad, 0xbe, 0xef])
-                .bytecode()
+                .compiled_bytes()
                 .unwrap(),
         );
 

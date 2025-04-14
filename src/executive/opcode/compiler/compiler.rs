@@ -29,12 +29,12 @@ use crate::executive::opcode::op::push::op_pushdata::OP_PUSHDATA;
 use crate::executive::opcode::op::push::op_true::OP_TRUE;
 use crate::executive::opcode::opcode::Opcode;
 
-/// A trait for compiling and decompiling a program method.
+/// A trait for compiling and decompiling an opcode.
 pub trait OpcodeCompiler {
-    /// Compiles the method into a bytecode.
+    /// Compiles the opcode into a bytecode.
     fn compile(&self) -> Result<Vec<u8>, OpcodeCompileError>;
-    /// Decompiles a method from a bytecode stream.
-    fn decompile<I>(bytecode_stream: I) -> Result<Opcode, OpcodeDecompileError>
+    /// Decompiles an opcode from a bytecode stream.
+    fn decompile<I>(bytecode_stream: &mut I) -> Result<Opcode, OpcodeDecompileError>
     where
         I: Iterator<Item = u8>;
 }
@@ -42,9 +42,10 @@ pub trait OpcodeCompiler {
 impl OpcodeCompiler for Opcode {
     fn compile(&self) -> Result<Vec<u8>, OpcodeCompileError> {
         match self {
+            // Data push
             Opcode::OP_FALSE(OP_FALSE) => Ok(OP_FALSE::bytecode()),
             Opcode::OP_PUSHDATA(op_pushdata) => op_pushdata
-                .bytecode()
+                .compiled_bytes()
                 .map(Ok)
                 .unwrap_or_else(|| Err(OpcodeCompileError::InvalidPushDataLength)),
             Opcode::OP_TRUE(OP_TRUE) => Ok(OP_TRUE::bytecode()),
@@ -63,6 +64,7 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_14(OP_14) => Ok(OP_14::bytecode()),
             Opcode::OP_15(OP_15) => Ok(OP_15::bytecode()),
             Opcode::OP_16(OP_16) => Ok(OP_16::bytecode()),
+            // Flow control
             Opcode::OP_NOP(OP_NOP) => Ok(OP_NOP::bytecode()),
             Opcode::OP_RETURNERR(OP_RETURNERR) => Ok(OP_RETURNERR::bytecode()),
             Opcode::OP_IF(OP_IF) => Ok(OP_IF::bytecode()),
@@ -77,7 +79,7 @@ impl OpcodeCompiler for Opcode {
         }
     }
 
-    fn decompile<I>(mut bytecode_stream: I) -> Result<Opcode, OpcodeDecompileError>
+    fn decompile<I>(bytecode_stream: &mut I) -> Result<Opcode, OpcodeDecompileError>
     where
         I: Iterator<Item = u8>,
     {
@@ -86,13 +88,17 @@ impl OpcodeCompiler for Opcode {
             .ok_or(OpcodeDecompileError::ByteIteratorError)?; // get the next byte from iterator
 
         match byte {
+            // Data push
             0x00 => Ok(Opcode::OP_FALSE(OP_FALSE)),
             0x01..=0x4b => {
                 // Data length is the byte itself.
                 let data_length = byte as usize;
 
                 // Collect from bytestream data_length number of bytes.
-                let data = bytecode_stream.take(data_length).collect::<Vec<u8>>();
+                let data = bytecode_stream
+                    .by_ref()
+                    .take(data_length)
+                    .collect::<Vec<u8>>();
 
                 // Check if the data length is valid.
                 if data.len() != data_length {
@@ -121,7 +127,10 @@ impl OpcodeCompiler for Opcode {
                 }
 
                 // Collect from bytestream data_length number of bytes.
-                let data = bytecode_stream.take(data_length).collect::<Vec<u8>>();
+                let data = bytecode_stream
+                    .by_ref()
+                    .take(data_length)
+                    .collect::<Vec<u8>>();
 
                 // Check if the data length is valid.
                 if data.len() != data_length {
@@ -151,6 +160,7 @@ impl OpcodeCompiler for Opcode {
 
                 // Collect from bytestream data_length number of bytes.
                 let data = bytecode_stream
+                    .by_ref()
                     .take(data_length as usize)
                     .collect::<Vec<u8>>();
 
@@ -180,6 +190,7 @@ impl OpcodeCompiler for Opcode {
             0x5e => Ok(Opcode::OP_14(OP_14)),
             0x5f => Ok(Opcode::OP_15(OP_15)),
             0x60 => Ok(Opcode::OP_16(OP_16)),
+            // Flow control
             0x61 => Ok(Opcode::OP_NOP(OP_NOP)),
             0x62 => Ok(Opcode::OP_RETURNERR(OP_RETURNERR)),
             0x63 => Ok(Opcode::OP_IF(OP_IF)),

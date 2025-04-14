@@ -1,5 +1,8 @@
 use super::{
-    limits::{MAX_METHOD_NAME_LENGTH, MAX_METHOD_SCRIPT_LENGTH},
+    limits::{
+        MAX_METHOD_CALL_ELEMENT_TYPE_COUNT, MAX_METHOD_NAME_LENGTH, MAX_METHOD_OPCODE_COUNT,
+        MIN_METHOD_CALL_ELEMENT_TYPE_COUNT, MIN_METHOD_NAME_LENGTH, MIN_METHOD_OPCODE_COUNT,
+    },
     method_type::MethodType,
 };
 use crate::{
@@ -31,12 +34,20 @@ impl ProgramMethod {
         script: Vec<Opcode>,
     ) -> Option<Self> {
         // Check method name byte length.
-        if method_name.len() > MAX_METHOD_NAME_LENGTH {
+        if method_name.len() > MAX_METHOD_NAME_LENGTH || method_name.len() < MIN_METHOD_NAME_LENGTH
+        {
             return None;
         }
 
-        // Check script byte length.
-        if script.len() > MAX_METHOD_SCRIPT_LENGTH {
+        // Check call element type count.
+        if call_element_types.len() > MAX_METHOD_CALL_ELEMENT_TYPE_COUNT
+            || call_element_types.len() < MIN_METHOD_CALL_ELEMENT_TYPE_COUNT
+        {
+            return None;
+        }
+
+        // Check opcode count.
+        if script.len() > MAX_METHOD_OPCODE_COUNT || script.len() < MIN_METHOD_OPCODE_COUNT {
             return None;
         }
 

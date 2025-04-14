@@ -52,7 +52,7 @@ impl OP_PUSHDATA {
         Ok(())
     }
 
-    pub fn bytecode(&self) -> Option<Vec<u8>> {
+    pub fn compiled_bytes(&self) -> Option<Vec<u8>> {
         {
             // Match data length.
             match self.0.len() {
