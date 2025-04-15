@@ -38,4 +38,6 @@ pub enum StackError {
     OPElseEncounteredWithPrecedingAnotherOPElse,
     // OP_ELSE encountered without preceding flow encounter error.
     OPElseEncounteredWithoutPrecedingFlowEncounter,
+    // Reserved opcode encountered error.
+    ReservedOpcodeEncounteredError,
 }

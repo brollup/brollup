@@ -1,5 +1,6 @@
-use crate::executive::opcode::compiler::compiler_error::{
-    OpcodeCompileError, OpcodeDecompileError,
+use crate::executive::{
+    opcode::compiler::compiler_error::{OpcodeCompileError, OpcodeDecompileError},
+    program::method::method_error::MethodConstructionError,
 };
 
 /// The error that occurs when compiling a method.
@@ -26,5 +27,5 @@ pub enum MethodCompilerError {
     /// The opcode decompile error.
     OpcodeDecompileError(OpcodeDecompileError),
     /// The method construct error.
-    MethodConstructError,
+    MethodConstructError(MethodConstructionError),
 }

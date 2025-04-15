@@ -3,17 +3,23 @@ use super::{
         MAX_METHOD_CALL_ELEMENT_TYPE_COUNT, MAX_METHOD_NAME_LENGTH, MAX_METHOD_OPCODE_COUNT,
         MIN_METHOD_CALL_ELEMENT_TYPE_COUNT, MIN_METHOD_NAME_LENGTH, MIN_METHOD_OPCODE_COUNT,
     },
+    method_error::{MethodConstructionError, ScriptValidationError},
     method_type::MethodType,
 };
 use crate::{
-    constructive::calldata::element_type::CallElementType, executive::opcode::opcode::Opcode,
+    constructive::calldata::element_type::CallElementType,
+    executive::opcode::{
+        op::{
+            push::op_pushdata::OP_PUSHDATA,
+            reserved::{op_reserved1::OP_RESERVED_1, op_reserved2::OP_RESERVED_2},
+        },
+        opcode::Opcode,
+    },
 };
 
 /// A section of executable block in the `Contract`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramMethod {
-    /// The contract id.
-    contract_id: [u8; 32],
     /// The method name.
     method_name: String,
     /// The type of method.
@@ -27,33 +33,36 @@ pub struct ProgramMethod {
 impl ProgramMethod {
     /// Create a new method.
     pub fn new(
-        contract_id: [u8; 32],
         method_name: String,
         method_type: MethodType,
         call_element_types: Vec<CallElementType>,
         script: Vec<Opcode>,
-    ) -> Option<Self> {
+    ) -> Result<Self, MethodConstructionError> {
         // Check method name byte length.
         if method_name.len() > MAX_METHOD_NAME_LENGTH || method_name.len() < MIN_METHOD_NAME_LENGTH
         {
-            return None;
+            return Err(MethodConstructionError::MethodNameLengthError);
         }
 
         // Check call element type count.
         if call_element_types.len() > MAX_METHOD_CALL_ELEMENT_TYPE_COUNT
             || call_element_types.len() < MIN_METHOD_CALL_ELEMENT_TYPE_COUNT
         {
-            return None;
+            return Err(MethodConstructionError::CallElementTypeCountError);
         }
 
         // Check opcode count.
         if script.len() > MAX_METHOD_OPCODE_COUNT || script.len() < MIN_METHOD_OPCODE_COUNT {
-            return None;
+            return Err(MethodConstructionError::OpcodeCountError);
+        }
+
+        // Validate the script.
+        if let Err(e) = Self::validate_script(&script) {
+            return Err(MethodConstructionError::ScriptValidationError(e));
         }
 
         // Construct the method.
         let method = Self {
-            contract_id,
             method_name,
             method_type,
             call_element_types,
@@ -61,12 +70,7 @@ impl ProgramMethod {
         };
 
         // Return the method.
-        Some(method)
-    }
-
-    /// Returns the contract id.
-    pub fn contract_id(&self) -> [u8; 32] {
-        self.contract_id
+        Ok(method)
     }
 
     /// Returns the method name.
@@ -87,5 +91,30 @@ impl ProgramMethod {
     /// Returns the script.
     pub fn script(&self) -> &Vec<Opcode> {
         &self.script
+    }
+
+    /// Validates the script.
+    pub fn validate_script(script: &Vec<Opcode>) -> Result<(), ScriptValidationError> {
+        for opcode in script {
+            match opcode {
+                // Check for reserved opcodes.
+                Opcode::OP_RESERVED_1(OP_RESERVED_1) => {
+                    return Err(ScriptValidationError::ReservedOpcodeEncounteredError);
+                }
+                Opcode::OP_RESERVED_2(OP_RESERVED_2) => {
+                    return Err(ScriptValidationError::ReservedOpcodeEncounteredError);
+                }
+                // Check for non minimal push data.
+                Opcode::OP_PUSHDATA(op_pushdata) => {
+                    if op_pushdata.0.len() == 1 && !OP_PUSHDATA::check_minimal_push(&op_pushdata.0)
+                    {
+                        return Err(ScriptValidationError::NonMinimalDataPushError);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 }

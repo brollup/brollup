@@ -29,6 +29,7 @@ use crate::executive::{
 pub struct OP_PUSHDATA(pub Vec<u8>);
 
 impl OP_PUSHDATA {
+    /// Executes the push data opcode.
     pub fn execute(&self, stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -52,6 +53,28 @@ impl OP_PUSHDATA {
         Ok(())
     }
 
+    /// Check if the push data is a minimal push.
+    pub fn check_minimal_push(data: &[u8]) -> bool {
+        match data.len() {
+            // Data should have been encoded as OP_FALSE (OP_0).
+            0 => false,
+            // Data might or might not be a minimal push.
+            1 => {
+                // Check if the data is a minimal push.
+                match data.get(0) {
+                    // Should have been encoded as OP_0..OP_16.
+                    Some(value) if value >= &0 && value <= &16 => false,
+                    // Validation passes otherwise.
+                    _ => true,
+                }
+            }
+            // Minimal push values are always single byte values.
+            // Check for multi-byte values are not needed.
+            _ => true,
+        }
+    }
+
+    /// Returns the compiled bytes for the push data.
     pub fn compiled_bytes(&self) -> Option<Vec<u8>> {
         {
             // Match data length.

@@ -11,6 +11,7 @@ use super::op::{
         op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7,
         op_8::OP_8, op_9::OP_9, op_false::OP_FALSE, op_pushdata::OP_PUSHDATA, op_true::OP_TRUE,
     },
+    reserved::{op_reserved1::OP_RESERVED_1, op_reserved2::OP_RESERVED_2},
     splice::op_cat::OP_CAT,
     stack::{op_drop::OP_DROP, op_dup::OP_DUP},
 };
@@ -37,6 +38,8 @@ pub enum Opcode {
     OP_15(OP_15),
     OP_16(OP_16),
     OP_PUSHDATA(OP_PUSHDATA),
+    OP_RESERVED_1(OP_RESERVED_1), //0x4e
+    OP_RESERVED_2(OP_RESERVED_2), //0x4f
     // Flow
     OP_NOP(OP_NOP),
     OP_RETURNERR(OP_RETURNERR),

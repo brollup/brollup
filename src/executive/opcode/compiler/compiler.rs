@@ -27,6 +27,8 @@ use crate::executive::opcode::op::push::op_9::OP_9;
 use crate::executive::opcode::op::push::op_false::OP_FALSE;
 use crate::executive::opcode::op::push::op_pushdata::OP_PUSHDATA;
 use crate::executive::opcode::op::push::op_true::OP_TRUE;
+use crate::executive::opcode::op::reserved::op_reserved1::OP_RESERVED_1;
+use crate::executive::opcode::op::reserved::op_reserved2::OP_RESERVED_2;
 use crate::executive::opcode::opcode::Opcode;
 
 /// A trait for compiling and decompiling an opcode.
@@ -48,6 +50,8 @@ impl OpcodeCompiler for Opcode {
                 .compiled_bytes()
                 .map(Ok)
                 .unwrap_or_else(|| Err(OpcodeCompileError::InvalidPushDataLength)),
+            Opcode::OP_RESERVED_1(OP_RESERVED_1) => Ok(OP_RESERVED_1::bytecode()),
+            Opcode::OP_RESERVED_2(OP_RESERVED_2) => Ok(OP_RESERVED_2::bytecode()),
             Opcode::OP_TRUE(OP_TRUE) => Ok(OP_TRUE::bytecode()),
             Opcode::OP_2(OP_2) => Ok(OP_2::bytecode()),
             Opcode::OP_3(OP_3) => Ok(OP_3::bytecode()),
@@ -83,12 +87,14 @@ impl OpcodeCompiler for Opcode {
     where
         I: Iterator<Item = u8>,
     {
+        // Collect one byte from the bytecode stream.
         let byte = bytecode_stream
             .next()
-            .ok_or(OpcodeDecompileError::ByteIteratorError)?; // get the next byte from iterator
+            .ok_or(OpcodeDecompileError::ByteIteratorError)?;
 
+        // Match the byte.
         match byte {
-            // Data push
+            // 0x00..0x60; Data pushes
             0x00 => Ok(Opcode::OP_FALSE(OP_FALSE)),
             0x01..=0x4b => {
                 // Data length is the byte itself.
@@ -106,7 +112,7 @@ impl OpcodeCompiler for Opcode {
                 }
 
                 // Check if the data is a minimal push.
-                if data_length == 1 && !check_minimal_push(&data) {
+                if data_length == 1 && !OP_PUSHDATA::check_minimal_push(&data) {
                     return Err(OpcodeDecompileError::NonMinimalDataPushError);
                 }
 
@@ -190,7 +196,7 @@ impl OpcodeCompiler for Opcode {
             0x5e => Ok(Opcode::OP_14(OP_14)),
             0x5f => Ok(Opcode::OP_15(OP_15)),
             0x60 => Ok(Opcode::OP_16(OP_16)),
-            // Flow control
+            // 0x61..0x6a; Flow control
             0x61 => Ok(Opcode::OP_NOP(OP_NOP)),
             0x62 => Ok(Opcode::OP_RETURNERR(OP_RETURNERR)),
             0x63 => Ok(Opcode::OP_IF(OP_IF)),
@@ -203,26 +209,5 @@ impl OpcodeCompiler for Opcode {
             0x6a => Ok(Opcode::OP_FAIL(OP_FAIL)),
             _ => Err(OpcodeDecompileError::ReservedOpcodeError),
         }
-    }
-}
-
-/// Check if the push data is a minimal push.
-fn check_minimal_push(data: &[u8]) -> bool {
-    match data.len() {
-        // Data should have been encoded as OP_FALSE (OP_0).
-        0 => false,
-        // Data might or might not be a minimal push.
-        1 => {
-            // Check if the data is a minimal push.
-            match data.get(0) {
-                // Should have been encoded as OP_0..OP_16.
-                Some(value) if value >= &0 && value <= &16 => false,
-                // Validation passes otherwise.
-                _ => true,
-            }
-        }
-        // Minimal push values are always single byte values.
-        // Check for multi-byte values are not needed.
-        _ => true,
     }
 }

@@ -80,8 +80,11 @@ impl MethodCompiler for ProgramMethod {
             return Err(MethodCompilerError::OpcodeCountError);
         }
 
-        // Encode the number of opcodes as u16.
-        method_bytes.extend((self.script().len() as u16).to_le_bytes());
+        // Get the number of opcodes as u16.
+        let opcodes_count = self.script().len() as u16;
+
+        // Encode the number of opcodes.
+        method_bytes.extend(opcodes_count.to_le_bytes());
 
         // Encode individual opcodes.
         for opcode in self.script().iter() {
@@ -120,14 +123,14 @@ impl MethodCompiler for ProgramMethod {
         // Convert method name bytes to string.
         let method_name = String::from_utf8_lossy(&method_name_bytes).to_string();
 
-        // Collect method type byte.
-        let method_type_byte = bytecode_stream
+        // Collect method type bytecode.
+        let method_type_bytecode = bytecode_stream
             .by_ref()
             .next()
             .ok_or(MethodCompilerError::MethodTypeByteCollectError)?;
 
-        // Convert method type byte to method type.
-        let method_type = MethodType::from_bytecode(method_type_byte)
+        // Get method type from the bytecode.
+        let method_type = MethodType::from_bytecode(method_type_bytecode)
             .ok_or(MethodCompilerError::InvalidMethodType)?;
 
         // Collect the number of call element types.
@@ -172,16 +175,11 @@ impl MethodCompiler for ProgramMethod {
             opcodes.push(opcode);
         }
 
-        let method = ProgramMethod::new(
-            [0u8; 32], // Default contract ID
-            method_name,
-            method_type,
-            call_element_types,
-            opcodes,
-        )
-        .ok_or(MethodCompilerError::MethodConstructError)?;
+        // Construct the method.
+        let method = ProgramMethod::new(method_name, method_type, call_element_types, opcodes)
+            .map_err(|e| MethodCompilerError::MethodConstructError(e))?;
 
-        // Return the decompiled method.
+        // Return the method.
         Ok(method)
     }
 }
