@@ -14,8 +14,6 @@ pub enum MethodConstructionError {
     MethodNameLengthError,
     /// Call element type count error.
     CallElementTypeCountError,
-    /// Call element type error.
-    CallElementTypeError,
     /// Opcode count error.
     OpcodeCountError,
     /// Script validation error.
