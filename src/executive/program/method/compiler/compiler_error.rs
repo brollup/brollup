@@ -15,6 +15,8 @@ pub enum MethodCompileError {
 pub enum MethodDecompileError {
     /// The method name length byte collect error.
     NameLengthByteCollectError,
+    /// The method name bytes collect error.
+    NameBytesCollectError,
     /// The method type byte collect error.
     MethodTypeByteCollectError,
     /// The method type is invalid.

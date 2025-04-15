@@ -2,11 +2,13 @@ use super::limits::{
     MAX_METHOD_COUNT, MAX_PROGRAM_NAME_LENGTH, MIN_METHOD_COUNT, MIN_PROGRAM_NAME_LENGTH,
 };
 use super::method::method::ProgramMethod;
-use super::program_error::ProgramConstructionError;
+use super::method::method_type::MethodType;
+use super::program_error::{MethodValidationError, ProgramConstructionError};
 use crate::constructive::valtype::atomic_val::AtomicVal;
+use std::collections::HashSet;
 
 /// A program associated with a `Contract`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
     /// The program name.
     program_name: String,
@@ -32,10 +34,17 @@ impl Program {
             return Err(ProgramConstructionError::MethodCountError);
         }
 
+        // Validate the methods.
+        Self::validate_methods(&methods)
+            .map_err(|e| ProgramConstructionError::MethodValidationError(e))?;
+
+        // Order the methods.
+        let ordered_methods = Self::order_methods(methods);
+
         // Construct the program.
         let program = Self {
             program_name,
-            methods,
+            methods: ordered_methods,
         };
 
         // Return the program.
@@ -45,6 +54,23 @@ impl Program {
     /// Returns the program name.
     pub fn program_name(&self) -> &str {
         &self.program_name
+    }
+
+    /// Returns the method count.
+    pub fn methods_len(&self) -> usize {
+        self.methods.len()
+    }
+
+    /// Returns the methods.
+    pub fn methods(&self) -> &Vec<ProgramMethod> {
+        &self.methods
+    }
+
+    /// Returns the method index by given method name.
+    pub fn index_by_method_name(&self, method_name: &str) -> Option<usize> {
+        self.methods
+            .iter()
+            .position(|method| method.method_name() == method_name)
     }
 
     /// Returns the method given the u8 index.
@@ -57,5 +83,54 @@ impl Program {
     pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<ProgramMethod> {
         let method_index = call_method.value();
         self.method_by_index(method_index)
+    }
+
+    /// Orders the methods by prioritizing callable methods first.  
+    fn order_methods(methods: Vec<ProgramMethod>) -> Vec<ProgramMethod> {
+        let mut callable_methods = Vec::<ProgramMethod>::new();
+        let mut non_callable_methods = Vec::<ProgramMethod>::new();
+
+        for method in methods.iter() {
+            if method.method_type() == MethodType::Callable {
+                callable_methods.push(method.clone());
+            } else {
+                non_callable_methods.push(method.clone());
+            }
+        }
+
+        callable_methods.extend(non_callable_methods);
+        callable_methods
+    }
+
+    /// Validates the methods.
+    fn validate_methods(methods: &Vec<ProgramMethod>) -> Result<(), MethodValidationError> {
+        // Check for duplicate method names.
+        {
+            let mut method_names = HashSet::<String>::new();
+            for method in methods.iter() {
+                if !method_names.insert(method.method_name().to_string()) {
+                    return Err(MethodValidationError::DuplicateMethodNameError);
+                }
+            }
+        }
+
+        // Check for at least one callable or read-only method type.
+        {
+            let mut callable_or_read_only_method_type_found = false;
+            for method in methods.iter() {
+                if method.method_type() == MethodType::Callable
+                    || method.method_type() == MethodType::ReadOnly
+                {
+                    callable_or_read_only_method_type_found = true;
+                    break;
+                }
+            }
+
+            if !callable_or_read_only_method_type_found {
+                return Err(MethodValidationError::AllMethodTypesAreInternal);
+            }
+        }
+
+        Ok(())
     }
 }

@@ -76,6 +76,11 @@ impl MethodCompiler for ProgramMethod {
             .take(method_name_length as usize)
             .collect();
 
+        // Check if the method name bytes length is equal to the method name length.
+        if method_name_bytes.len() != method_name_length as usize {
+            return Err(MethodDecompileError::NameBytesCollectError);
+        }
+
         // Convert method name bytes to string.
         let method_name = String::from_utf8_lossy(&method_name_bytes).to_string();
 
