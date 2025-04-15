@@ -1,27 +1,50 @@
+use super::limits::{
+    MAX_METHOD_COUNT, MAX_PROGRAM_NAME_LENGTH, MIN_METHOD_COUNT, MIN_PROGRAM_NAME_LENGTH,
+};
 use super::method::method::ProgramMethod;
+use super::program_error::ProgramConstructionError;
 use crate::constructive::valtype::atomic_val::AtomicVal;
 
 /// A program associated with a `Contract`.
 #[derive(Debug, Clone)]
 pub struct Program {
-    /// The contract id.
-    contract_id: [u8; 32],
+    /// The program name.
+    program_name: String,
     /// The methods to execute.
     methods: Vec<ProgramMethod>,
 }
 
 impl Program {
-    /// Creates a new `Program` with the given contract id and list of methods.
-    pub fn new(contract_id: [u8; 32], methods: Vec<ProgramMethod>) -> Self {
-        Self {
-            contract_id,
-            methods,
+    /// Creates a new `Program` with the given program name and list of methods.
+    pub fn new(
+        program_name: String,
+        methods: Vec<ProgramMethod>,
+    ) -> Result<Self, ProgramConstructionError> {
+        // Check program name length.
+        if program_name.len() > MAX_PROGRAM_NAME_LENGTH
+            || program_name.len() < MIN_PROGRAM_NAME_LENGTH
+        {
+            return Err(ProgramConstructionError::ProgramNameLengthError);
         }
+
+        // Check method count.
+        if methods.len() > MAX_METHOD_COUNT || methods.len() < MIN_METHOD_COUNT {
+            return Err(ProgramConstructionError::MethodCountError);
+        }
+
+        // Construct the program.
+        let program = Self {
+            program_name,
+            methods,
+        };
+
+        // Return the program.
+        Ok(program)
     }
 
-    /// Returns the contract id.
-    pub fn contract_id(&self) -> [u8; 32] {
-        self.contract_id
+    /// Returns the program name.
+    pub fn program_name(&self) -> &str {
+        &self.program_name
     }
 
     /// Returns the method given the u8 index.
@@ -31,14 +54,8 @@ impl Program {
     }
 
     /// Returns the method by given `AtomicVal` index, rather than a u8.
-    ///
-    /// `AtomicVal` is a compact value representing the method's index.
-    /// A CPE-decoded `AtomicVal` support 16 values, meaning first 16 methods should be organized as callable.
-    /// This means the first 16 methods in a deployed `Contract` are the only ones that can be called by an `Account`.
-    ///
-    /// A `Contract` calling another `Contract` is not bound by this constraint; it can call any of its (up to 256) methods.
     pub fn method_by_call_method(&self, call_method: AtomicVal) -> Option<ProgramMethod> {
-        let call_method_index = call_method.value();
-        self.methods.get(call_method_index as usize).cloned()
+        let method_index = call_method.value();
+        self.method_by_index(method_index)
     }
 }
