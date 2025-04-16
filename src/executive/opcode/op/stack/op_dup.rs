@@ -26,4 +26,9 @@ impl OP_DUP {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_DUP` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x76]
+    }
 }

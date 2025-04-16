@@ -34,4 +34,9 @@ impl OP_CAT {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_CAT` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x7e]
+    }
 }

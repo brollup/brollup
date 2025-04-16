@@ -5,8 +5,6 @@ use std::fmt;
 pub enum OpcodeCompileError {
     /// The push data length is not valid.
     InvalidPushDataLength,
-    /// The opcode is reserved.
-    ReservedOpcodeError,
 }
 
 impl fmt::Display for OpcodeCompileError {
@@ -14,9 +12,6 @@ impl fmt::Display for OpcodeCompileError {
         match self {
             OpcodeCompileError::InvalidPushDataLength => {
                 write!(f, "Invalid push data length")
-            }
-            OpcodeCompileError::ReservedOpcodeError => {
-                write!(f, "Reserved opcode encountered")
             }
         }
     }
@@ -29,8 +24,8 @@ pub enum OpcodeDecompileError {
     ByteIteratorError,
     /// The push data length is not valid.
     InvalidPushDataLength,
-    /// The reserved opcode error.
-    ReservedOpcodeError,
+    /// The undefined opcode error.
+    UndefinedOpcodeError,
     /// The non minimal data push error.
     NonMinimalDataPushError,
     /// The invalid data push tier error.
@@ -46,8 +41,8 @@ impl fmt::Display for OpcodeDecompileError {
             OpcodeDecompileError::InvalidPushDataLength => {
                 write!(f, "Invalid push data length")
             }
-            OpcodeDecompileError::ReservedOpcodeError => {
-                write!(f, "Reserved opcode encountered")
+            OpcodeDecompileError::UndefinedOpcodeError => {
+                write!(f, "Undefined opcode encountered")
             }
             OpcodeDecompileError::NonMinimalDataPushError => {
                 write!(f, "Non-minimal data push encountered")

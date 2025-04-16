@@ -117,5 +117,5 @@ fn decomp_script(parts: Vec<&str>) {
 
     let opcodes: Vec<String> = opcodes.iter().map(|opcode| opcode.to_string()).collect();
 
-    println!("{}", opcodes.join(", "));
+    println!("{}", opcodes.join(" "));
 }

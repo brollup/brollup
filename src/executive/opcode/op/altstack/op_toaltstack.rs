@@ -3,8 +3,8 @@ use crate::executive::{
     stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// Pops an item from the main stack and pushes it to the alt stack.
-#[derive(Debug, Clone, Copy)]
+/// Pushes an item onto the alt stack.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_TOALTSTACK;
 
@@ -25,5 +25,10 @@ impl OP_TOALTSTACK {
         stack_holder.alt_stack_push(last_item)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_FROMALTSTACK` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x6b]
     }
 }

@@ -3,6 +3,7 @@
 use std::fmt::{self, Display};
 
 use super::op::{
+    altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
         op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
@@ -53,25 +54,14 @@ pub enum Opcode {
     OP_RETURNALL(OP_RETURNALL),
     OP_RETURNSOME(OP_RETURNSOME),
     OP_FAIL(OP_FAIL),
+    // Alts`tack
+    OP_TOALTSTACK(OP_TOALTSTACK),
+    OP_FROMALTSTACK(OP_FROMALTSTACK),
     // Stack
-    /// Pushes a copy of the topmost element onto the stack.
     OP_DUP(OP_DUP),
-    /// Removes the topmost element from the stack.
     OP_DROP(OP_DROP),
-    /// Concatenates the top two elements of the stack.
+    // Splice
     OP_CAT(OP_CAT),
-}
-
-impl Opcode {
-    /// Returns the opcode for the given bytecode.
-    pub fn from_bytecode(bytecode: u8) -> Option<Self> {
-        match bytecode {
-            0x76 => Some(Opcode::OP_DUP(OP_DUP)),
-            0x75 => Some(Opcode::OP_DROP(OP_DROP)),
-            0x7e => Some(Opcode::OP_CAT(OP_CAT)),
-            _ => None,
-        }
-    }
 }
 
 impl Display for Opcode {
@@ -111,6 +101,9 @@ impl Display for Opcode {
             Opcode::OP_RETURNALL(_) => write!(f, "OP_RETURNALL"),
             Opcode::OP_RETURNSOME(_) => write!(f, "OP_RETURNSOME"),
             Opcode::OP_FAIL(_) => write!(f, "OP_FAIL"),
+            // Altstack
+            Opcode::OP_TOALTSTACK(_) => write!(f, "OP_TOALTSTACK"),
+            Opcode::OP_FROMALTSTACK(_) => write!(f, "OP_FROMALTSTACK"),
             // Stack
             Opcode::OP_DUP(_) => write!(f, "OP_DUP"),
             Opcode::OP_DROP(_) => write!(f, "OP_DROP"),

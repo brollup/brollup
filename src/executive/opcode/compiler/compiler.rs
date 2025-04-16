@@ -1,4 +1,6 @@
 use super::compiler_error::{OpcodeCompileError, OpcodeDecompileError};
+use crate::executive::opcode::op::altstack::op_fromaltstack::OP_FROMALTSTACK;
+use crate::executive::opcode::op::altstack::op_toaltstack::OP_TOALTSTACK;
 use crate::executive::opcode::op::flow::op_else::OP_ELSE;
 use crate::executive::opcode::op::flow::op_endif::OP_ENDIF;
 use crate::executive::opcode::op::flow::op_fail::OP_FAIL;
@@ -29,6 +31,9 @@ use crate::executive::opcode::op::push::op_pushdata::OP_PUSHDATA;
 use crate::executive::opcode::op::push::op_true::OP_TRUE;
 use crate::executive::opcode::op::reserved::op_reserved1::OP_RESERVED_1;
 use crate::executive::opcode::op::reserved::op_reserved2::OP_RESERVED_2;
+use crate::executive::opcode::op::splice::op_cat::OP_CAT;
+use crate::executive::opcode::op::stack::op_drop::OP_DROP;
+use crate::executive::opcode::op::stack::op_dup::OP_DUP;
 use crate::executive::opcode::opcode::Opcode;
 
 /// A trait for compiling and decompiling an opcode.
@@ -45,41 +50,48 @@ impl OpcodeCompiler for Opcode {
     fn compile(&self) -> Result<Vec<u8>, OpcodeCompileError> {
         match self {
             // Data push
-            Opcode::OP_FALSE(OP_FALSE) => Ok(OP_FALSE::bytecode()),
+            Opcode::OP_FALSE(_) => Ok(OP_FALSE::bytecode()),
             Opcode::OP_PUSHDATA(op_pushdata) => op_pushdata
                 .compiled_bytes()
                 .map(Ok)
                 .unwrap_or_else(|| Err(OpcodeCompileError::InvalidPushDataLength)),
-            Opcode::OP_RESERVED_1(OP_RESERVED_1) => Ok(OP_RESERVED_1::bytecode()),
-            Opcode::OP_RESERVED_2(OP_RESERVED_2) => Ok(OP_RESERVED_2::bytecode()),
-            Opcode::OP_TRUE(OP_TRUE) => Ok(OP_TRUE::bytecode()),
-            Opcode::OP_2(OP_2) => Ok(OP_2::bytecode()),
-            Opcode::OP_3(OP_3) => Ok(OP_3::bytecode()),
-            Opcode::OP_4(OP_4) => Ok(OP_4::bytecode()),
-            Opcode::OP_5(OP_5) => Ok(OP_5::bytecode()),
-            Opcode::OP_6(OP_6) => Ok(OP_6::bytecode()),
-            Opcode::OP_7(OP_7) => Ok(OP_7::bytecode()),
-            Opcode::OP_8(OP_8) => Ok(OP_8::bytecode()),
-            Opcode::OP_9(OP_9) => Ok(OP_9::bytecode()),
-            Opcode::OP_10(OP_10) => Ok(OP_10::bytecode()),
-            Opcode::OP_11(OP_11) => Ok(OP_11::bytecode()),
-            Opcode::OP_12(OP_12) => Ok(OP_12::bytecode()),
-            Opcode::OP_13(OP_13) => Ok(OP_13::bytecode()),
-            Opcode::OP_14(OP_14) => Ok(OP_14::bytecode()),
-            Opcode::OP_15(OP_15) => Ok(OP_15::bytecode()),
-            Opcode::OP_16(OP_16) => Ok(OP_16::bytecode()),
+            Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
+            Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
+            Opcode::OP_TRUE(_) => Ok(OP_TRUE::bytecode()),
+            Opcode::OP_2(_) => Ok(OP_2::bytecode()),
+            Opcode::OP_3(_) => Ok(OP_3::bytecode()),
+            Opcode::OP_4(_) => Ok(OP_4::bytecode()),
+            Opcode::OP_5(_) => Ok(OP_5::bytecode()),
+            Opcode::OP_6(_) => Ok(OP_6::bytecode()),
+            Opcode::OP_7(_) => Ok(OP_7::bytecode()),
+            Opcode::OP_8(_) => Ok(OP_8::bytecode()),
+            Opcode::OP_9(_) => Ok(OP_9::bytecode()),
+            Opcode::OP_10(_) => Ok(OP_10::bytecode()),
+            Opcode::OP_11(_) => Ok(OP_11::bytecode()),
+            Opcode::OP_12(_) => Ok(OP_12::bytecode()),
+            Opcode::OP_13(_) => Ok(OP_13::bytecode()),
+            Opcode::OP_14(_) => Ok(OP_14::bytecode()),
+            Opcode::OP_15(_) => Ok(OP_15::bytecode()),
+            Opcode::OP_16(_) => Ok(OP_16::bytecode()),
             // Flow control
-            Opcode::OP_NOP(OP_NOP) => Ok(OP_NOP::bytecode()),
-            Opcode::OP_RETURNERR(OP_RETURNERR) => Ok(OP_RETURNERR::bytecode()),
-            Opcode::OP_IF(OP_IF) => Ok(OP_IF::bytecode()),
-            Opcode::OP_NOTIF(OP_NOTIF) => Ok(OP_NOTIF::bytecode()),
-            Opcode::OP_RETURNALL(OP_RETURNALL) => Ok(OP_RETURNALL::bytecode()),
-            Opcode::OP_RETURNSOME(OP_RETURNSOME) => Ok(OP_RETURNSOME::bytecode()),
-            Opcode::OP_ELSE(OP_ELSE) => Ok(OP_ELSE::bytecode()),
-            Opcode::OP_ENDIF(OP_ENDIF) => Ok(OP_ENDIF::bytecode()),
-            Opcode::OP_VERIFY(OP_VERIFY) => Ok(OP_VERIFY::bytecode()),
-            Opcode::OP_FAIL(OP_FAIL) => Ok(OP_FAIL::bytecode()),
-            _ => Err(OpcodeCompileError::ReservedOpcodeError),
+            Opcode::OP_NOP(_) => Ok(OP_NOP::bytecode()),
+            Opcode::OP_RETURNERR(_) => Ok(OP_RETURNERR::bytecode()),
+            Opcode::OP_IF(_) => Ok(OP_IF::bytecode()),
+            Opcode::OP_NOTIF(_) => Ok(OP_NOTIF::bytecode()),
+            Opcode::OP_RETURNALL(_) => Ok(OP_RETURNALL::bytecode()),
+            Opcode::OP_RETURNSOME(_) => Ok(OP_RETURNSOME::bytecode()),
+            Opcode::OP_ELSE(_) => Ok(OP_ELSE::bytecode()),
+            Opcode::OP_ENDIF(_) => Ok(OP_ENDIF::bytecode()),
+            Opcode::OP_VERIFY(_) => Ok(OP_VERIFY::bytecode()),
+            Opcode::OP_FAIL(_) => Ok(OP_FAIL::bytecode()),
+            // Altstack
+            Opcode::OP_TOALTSTACK(_) => Ok(OP_TOALTSTACK::bytecode()),
+            Opcode::OP_FROMALTSTACK(_) => Ok(OP_FROMALTSTACK::bytecode()),
+            // Stack
+            Opcode::OP_DUP(_) => Ok(OP_DUP::bytecode()),
+            Opcode::OP_DROP(_) => Ok(OP_DROP::bytecode()),
+            // Splice
+            Opcode::OP_CAT(_) => Ok(OP_CAT::bytecode()),
         }
     }
 
@@ -178,8 +190,8 @@ impl OpcodeCompiler for Opcode {
                 // Return the opcode.
                 Ok(Opcode::OP_PUSHDATA(OP_PUSHDATA(data)))
             }
-            0x4e => Err(OpcodeDecompileError::ReservedOpcodeError),
-            0x4f => Err(OpcodeDecompileError::ReservedOpcodeError),
+            0x4e => Ok(Opcode::OP_RESERVED_1(OP_RESERVED_1)),
+            0x4f => Ok(Opcode::OP_RESERVED_2(OP_RESERVED_2)),
             0x51 => Ok(Opcode::OP_TRUE(OP_TRUE)),
             0x52 => Ok(Opcode::OP_2(OP_2)),
             0x53 => Ok(Opcode::OP_3(OP_3)),
@@ -207,7 +219,15 @@ impl OpcodeCompiler for Opcode {
             0x68 => Ok(Opcode::OP_ENDIF(OP_ENDIF)),
             0x69 => Ok(Opcode::OP_VERIFY(OP_VERIFY)),
             0x6a => Ok(Opcode::OP_FAIL(OP_FAIL)),
-            _ => Err(OpcodeDecompileError::ReservedOpcodeError),
+            // 0x6b..6c; Altstack
+            0x6b => Ok(Opcode::OP_TOALTSTACK(OP_TOALTSTACK)),
+            0x6c => Ok(Opcode::OP_FROMALTSTACK(OP_FROMALTSTACK)),
+            // Stack
+            0x75 => Ok(Opcode::OP_DROP(OP_DROP)),
+            0x76 => Ok(Opcode::OP_DUP(OP_DUP)),
+            // Splice
+            0x7e => Ok(Opcode::OP_CAT(OP_CAT)),
+            _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
     }
 }

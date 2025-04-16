@@ -4,7 +4,7 @@ use crate::executive::{
 };
 
 /// Pops an item from the alt stack and pushes it to the main stack.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_FROMALTSTACK;
 
@@ -25,5 +25,10 @@ impl OP_FROMALTSTACK {
         stack_holder.push(last_item)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_FROMALTSTACK` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x6c]
     }
 }

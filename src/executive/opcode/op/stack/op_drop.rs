@@ -23,4 +23,9 @@ impl OP_DROP {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_FROMALTSTACK` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x75]
+    }
 }
