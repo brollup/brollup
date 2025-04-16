@@ -1,3 +1,5 @@
+use serde_json::{Map, Value};
+
 use super::limits::{
     MAX_METHOD_COUNT, MAX_PROGRAM_NAME_LENGTH, MIN_METHOD_COUNT, MIN_PROGRAM_NAME_LENGTH,
 };
@@ -132,5 +134,24 @@ impl Program {
         }
 
         Ok(())
+    }
+
+    /// Returns the program as a JSON object.
+    pub fn json(&self) -> Value {
+        // Convert the methods to JSON.
+        let methods: Vec<Value> = self.methods.iter().map(|method| method.json()).collect();
+
+        // Construct the program JSON object.
+        let mut obj = Map::new();
+        obj.insert(
+            "program_name".to_string(),
+            Value::String(self.program_name.clone()),
+        );
+
+        // Add the methods to the program JSON object.
+        obj.insert("methods".to_string(), Value::Array(methods));
+
+        // Return the program JSON object.
+        Value::Object(obj)
     }
 }

@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use std::fmt::{self, Display};
+
 use super::op::{
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
@@ -68,6 +70,51 @@ impl Opcode {
             0x75 => Some(Opcode::OP_DROP(OP_DROP)),
             0x7e => Some(Opcode::OP_CAT(OP_CAT)),
             _ => None,
+        }
+    }
+}
+
+impl Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            // Data push
+            Opcode::OP_FALSE(_) => write!(f, "OP_FALSE"),
+            Opcode::OP_TRUE(_) => write!(f, "OP_TRUE"),
+            Opcode::OP_2(_) => write!(f, "OP_2"),
+            Opcode::OP_3(_) => write!(f, "OP_3"),
+            Opcode::OP_4(_) => write!(f, "OP_4"),
+            Opcode::OP_5(_) => write!(f, "OP_5"),
+            Opcode::OP_6(_) => write!(f, "OP_6"),
+            Opcode::OP_7(_) => write!(f, "OP_7"),
+            Opcode::OP_8(_) => write!(f, "OP_8"),
+            Opcode::OP_9(_) => write!(f, "OP_9"),
+            Opcode::OP_10(_) => write!(f, "OP_10"),
+            Opcode::OP_11(_) => write!(f, "OP_11"),
+            Opcode::OP_12(_) => write!(f, "OP_12"),
+            Opcode::OP_13(_) => write!(f, "OP_13"),
+            Opcode::OP_14(_) => write!(f, "OP_14"),
+            Opcode::OP_15(_) => write!(f, "OP_15"),
+            Opcode::OP_16(_) => write!(f, "OP_16"),
+            Opcode::OP_PUSHDATA(op_pushdata) => {
+                write!(f, "OP_PUSHDATA 0x{}", hex::encode(&op_pushdata.0))
+            }
+            Opcode::OP_RESERVED_1(_) => write!(f, "OP_RESERVED_1"),
+            Opcode::OP_RESERVED_2(_) => write!(f, "OP_RESERVED_2"),
+            // Flow
+            Opcode::OP_NOP(_) => write!(f, "OP_NOP"),
+            Opcode::OP_RETURNERR(_) => write!(f, "OP_RETURNERR"),
+            Opcode::OP_IF(_) => write!(f, "OP_IF"),
+            Opcode::OP_NOTIF(_) => write!(f, "OP_NOTIF"),
+            Opcode::OP_ELSE(_) => write!(f, "OP_ELSE"),
+            Opcode::OP_ENDIF(_) => write!(f, "OP_ENDIF"),
+            Opcode::OP_VERIFY(_) => write!(f, "OP_VERIFY"),
+            Opcode::OP_RETURNALL(_) => write!(f, "OP_RETURNALL"),
+            Opcode::OP_RETURNSOME(_) => write!(f, "OP_RETURNSOME"),
+            Opcode::OP_FAIL(_) => write!(f, "OP_FAIL"),
+            // Stack
+            Opcode::OP_DUP(_) => write!(f, "OP_DUP"),
+            Opcode::OP_DROP(_) => write!(f, "OP_DROP"),
+            Opcode::OP_CAT(_) => write!(f, "OP_CAT"),
         }
     }
 }

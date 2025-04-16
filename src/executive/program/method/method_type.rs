@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// The type of method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MethodType {
@@ -26,6 +28,16 @@ impl MethodType {
             0x01 => Some(MethodType::Internal),
             0x02 => Some(MethodType::ReadOnly),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for MethodType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MethodType::Callable => write!(f, "Callable"),
+            MethodType::Internal => write!(f, "Internal"),
+            MethodType::ReadOnly => write!(f, "ReadOnly"),
         }
     }
 }

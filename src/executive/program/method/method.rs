@@ -16,6 +16,7 @@ use crate::{
         opcode::Opcode,
     },
 };
+use serde_json::{Map, Value};
 
 /// A section of executable block in the `Contract`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,5 +117,47 @@ impl ProgramMethod {
         }
 
         Ok(())
+    }
+
+    /// Returns the method as a JSON object.
+    pub fn json(&self) -> Value {
+        // Convert the call element types to JSON.
+        let call_element_types: Vec<Value> = self
+            .call_element_types
+            .iter()
+            .map(|element_type| Value::String(element_type.to_string()))
+            .collect();
+
+        // Construct the method JSON object.
+        let mut obj = Map::new();
+        obj.insert(
+            "method_name".to_string(),
+            Value::String(self.method_name.clone()),
+        );
+
+        // Add the method type to the method JSON object.
+        obj.insert(
+            "method_type".to_string(),
+            Value::String(self.method_type.to_string()),
+        );
+
+        // Add the call element types to the method JSON object.
+        obj.insert(
+            "call_element_types".to_string(),
+            Value::Array(call_element_types),
+        );
+
+        // Convert the script to JSON.
+        let script: Vec<Value> = self
+            .script
+            .iter()
+            .map(|opcode| Value::String(opcode.to_string()))
+            .collect();
+
+        // Add the script to the method JSON object.
+        obj.insert("script".to_string(), Value::Array(script));
+
+        // Return the method JSON object.
+        Value::Object(obj)
     }
 }

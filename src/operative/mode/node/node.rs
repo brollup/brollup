@@ -219,6 +219,7 @@ pub async fn cli(
             "npub" => ncli::npub::npub_command(key_holder).await,
             "addr" => ncli::addr::addr_command(chain, epoch_dir, key_holder).await,
             "lift" => ncli::lift::lift_command(wallet, epoch_dir, chain, key_holder, parts).await,
+            "decomp" => ncli::decomp::decomp_command(parts),
             "move" => {
                 ncli::r#move::move_command(
                     coordinator_conn,

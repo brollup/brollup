@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Represents the type of a single element of calldata.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CallElementType {
@@ -65,6 +67,23 @@ impl CallElementType {
             Some(0x08) => Some(CallElementType::Varbytes),
             Some(0x09) => Some(CallElementType::Payable),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for CallElementType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CallElementType::U8 => write!(f, "U8"),
+            CallElementType::U16 => write!(f, "U16"),
+            CallElementType::U32 => write!(f, "U32"),
+            CallElementType::U64 => write!(f, "U64"),
+            CallElementType::Bool => write!(f, "Bool"),
+            CallElementType::Account => write!(f, "Account"),
+            CallElementType::Contract => write!(f, "Contract"),
+            CallElementType::Bytes(index) => write!(f, "Bytes{}", (index + 1)),
+            CallElementType::Varbytes => write!(f, "Varbytes"),
+            CallElementType::Payable => write!(f, "Payable"),
         }
     }
 }
