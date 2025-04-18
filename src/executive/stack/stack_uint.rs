@@ -73,13 +73,19 @@ impl StackUint {
 
 /// Trait for converting `StackUint` to `usize`, `u64`, and `u32` safely.
 pub trait SafeConverter {
-    fn u32(&self) -> Option<u32>;
-    fn u64(&self) -> Option<u64>;
-    fn usize(&self) -> Option<usize>;
+    // u32 conversion
+    fn to_u32(&self) -> Option<u32>;
+    fn from_u32(value: u32) -> Self;
+    // u64 conversion
+    fn to_u64(&self) -> Option<u64>;
+    fn from_u64(value: u64) -> Self;
+    // usize conversion
+    fn to_usize(&self) -> Option<usize>;
+    fn from_usize(value: usize) -> Self;
 }
 
 impl SafeConverter for StackUint {
-    fn u32(&self) -> Option<u32> {
+    fn to_u32(&self) -> Option<u32> {
         // Check length
         if self > &StackUint::from(u32::MAX) {
             return None;
@@ -89,7 +95,11 @@ impl SafeConverter for StackUint {
         Some(self.as_u32())
     }
 
-    fn u64(&self) -> Option<u64> {
+    fn from_u32(value: u32) -> Self {
+        StackUint::from(value)
+    }
+
+    fn to_u64(&self) -> Option<u64> {
         // Check length
         if self > &StackUint::from(u64::MAX) {
             return None;
@@ -99,7 +109,11 @@ impl SafeConverter for StackUint {
         Some(self.as_u64())
     }
 
-    fn usize(&self) -> Option<usize> {
+    fn from_u64(value: u64) -> Self {
+        StackUint::from(value)
+    }
+
+    fn to_usize(&self) -> Option<usize> {
         // Check length
         if self > &StackUint::from(usize::MAX) {
             return None;
@@ -107,6 +121,10 @@ impl SafeConverter for StackUint {
 
         // This cannot panic as we checked the length first.
         Some(self.as_usize())
+    }
+
+    fn from_usize(value: usize) -> Self {
+        StackUint::from(value)
     }
 }
 /// Extension trait for converting between `StackItem` and `StackUint`.

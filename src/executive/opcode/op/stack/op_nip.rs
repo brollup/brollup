@@ -1,32 +1,31 @@
 use crate::executive::{
-    opcode::ops::OP_2DROP_OPS,
+    opcode::ops::OP_NIP_OPS,
     stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// Removes the top two stack items.
+/// Removes the second-to-top stack item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_2DROP;
+pub struct OP_NIP;
 
-impl OP_2DROP {
+impl OP_NIP {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
             return Ok(());
         }
 
-        // Pop two items from the main stack.
-        stack_holder.pop()?;
-        stack_holder.pop()?;
+        // Remove the second-to-top stack item.
+        stack_holder.remove_item_by_depth(1)?;
 
         // Increment the ops counter.
-        stack_holder.increment_ops(OP_2DROP_OPS)?;
+        stack_holder.increment_ops(OP_NIP_OPS)?;
 
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_2DROP` opcode (0x6d).
+    /// Returns the bytecode for the `OP_NIP` opcode (0x77).
     pub fn bytecode() -> Vec<u8> {
-        vec![0x6d]
+        vec![0x77]
     }
 }

@@ -27,31 +27,9 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_VERIFY     | 0x69      | 1   | True/false  | Nothing/Fail   | Pops the top stack item and marks transaction as invalid if top stack value is not true.           |
 | OP_FAIL       | 0x6a      | 1   | (special)   | Fail.          | Fails the entry.                                                                                   |
 
-## Memory
-
-| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
-|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_MWRITE      | 0xb2     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
-| OP_MREAD       | 0xb3     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
-| OP_MFREE       | 0xb4     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
-
-## Storage
-
-| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
-|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_SWRITE      | 0xb5     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
-| OP_SREAD       | 0xb6     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xb7     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
-
-## Splice
-
-| Opcode    | Bytecode | Ops | Input             | Output       | Description                                                          |
-|:----------|----------|:----|:------------------|:-------------|:---------------------------------------------------------------------|
-| OP_CAT    | 0x7e     | 5  | x1 x2             | out          | Concatenates two strings.                                            |
-| OP_SUBSTR | 0x7f     | 5  | in begin size     | out          | Returns a section of a string.                                       |
-| OP_LEFT   | 0x80     | 5  | in size           | out          | Keeps only characters left of the specified point in a string.       |
-| OP_RIGHT  | 0x81     | 5  | in size           | out          | Keeps only characters right of the specified point in a string.      |
-| OP_SIZE   | 0x82     | 5  | in                | in size      | Pushes the string length of the top element of the stack (without popping it). |
+## Alstack Operations
+| OP_TOALTSTACK   | 1   | 0x6b     | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
+| OP_FROMALTSTACK | 1   | 0x6c     | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
 
 ## Stack Operations
 
@@ -74,8 +52,18 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_2OVER        | 1   | 0x70     | x1 x2 x3 x4             | x1 x2 x3 x4 x1 x2      | Copies the pair of items two spaces back in the stack to the front.          |
 | OP_2ROT         | 1   | 0x71     | x1 x2 x3 x4 x5 x6       | x3 x4 x5 x6 x1 x2      | The fifth and sixth items back are moved to the top of the stack.            |
 | OP_2SWAP        | 1   | 0x72     | x1 x2 x3 x4             | x3 x4 x1 x2            | Swaps the top two pairs of items.                                            |
-| OP_TOALTSTACK   | 1   | 0xb0     | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
-| OP_FROMALTSTACK | 1   | 0xb1     | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
+
+
+
+## Splice
+
+| Opcode    | Bytecode | Ops | Input             | Output       | Description                                                          |
+|:----------|----------|:----|:------------------|:-------------|:---------------------------------------------------------------------|
+| OP_CAT    | 0x7e     | 5  | x1 x2             | out          | Concatenates two strings.                                            |
+| OP_SUBSTR | 0x7f     | 5  | in begin size     | out          | Returns a section of a string.                                       |
+| OP_LEFT   | 0x80     | 5  | in size           | out          | Keeps only characters left of the specified point in a string.       |
+| OP_RIGHT  | 0x81     | 5  | in size           | out          | Keeps only characters right of the specified point in a string.      |
+| OP_SIZE   | 0x82     | 5  | in                | in size      | Pushes the string length of the top element of the stack (without popping it). |
 
 ## Arithmetic
 
@@ -87,3 +75,20 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_DIV         | 10  | 0x96     | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
 | OP_ADDMOD      | 3   | 0x8d     | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
 | OP_MULMOD      | 10  | 0x8e     | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
+
+## Memory
+
+| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
+|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_MWRITE      | 0xb2     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| OP_MREAD       | 0xb3     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| OP_MFREE       | 0xb4     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
+
+## Storage
+
+| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
+|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_SWRITE      | 0xb5     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| OP_SREAD       | 0xb6     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| OP_SFREE       | 0xb7     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
+

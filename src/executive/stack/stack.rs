@@ -43,7 +43,7 @@ impl Stack {
         self.0.pop().ok_or(StackError::EmptyStack)
     }
 
-    /// Returns the last item from the stack.
+    /// Clones and returns the last item from the stack.
     pub fn last_item(&self) -> Result<StackItem, StackError> {
         self.0.last().cloned().ok_or(StackError::EmptyStack)
     }

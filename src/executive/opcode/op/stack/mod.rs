@@ -1,5 +1,17 @@
 pub mod op_2drop;
+pub mod op_2dup;
+pub mod op_2over;
+pub mod op_2rot;
+pub mod op_2swap;
+pub mod op_3dup;
+pub mod op_depth;
 pub mod op_drop;
 pub mod op_dup;
+pub mod op_ifdup;
+pub mod op_nip;
+pub mod op_over;
 pub mod op_pick;
 pub mod op_roll;
+pub mod op_rot;
+pub mod op_swap;
+pub mod op_tuck;

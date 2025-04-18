@@ -1,7 +1,5 @@
 #![allow(non_camel_case_types)]
 
-use std::fmt::{self, Display};
-
 use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
     flow::{
@@ -16,8 +14,14 @@ use super::op::{
     },
     reserved::{op_reserved1::OP_RESERVED_1, op_reserved2::OP_RESERVED_2},
     splice::op_cat::OP_CAT,
-    stack::{op_drop::OP_DROP, op_dup::OP_DUP},
+    stack::{
+        op_2drop::OP_2DROP, op_2dup::OP_2DUP, op_2over::OP_2OVER, op_2rot::OP_2ROT,
+        op_2swap::OP_2SWAP, op_3dup::OP_3DUP, op_depth::OP_DEPTH, op_drop::OP_DROP, op_dup::OP_DUP,
+        op_ifdup::OP_IFDUP, op_nip::OP_NIP, op_over::OP_OVER, op_pick::OP_PICK, op_roll::OP_ROLL,
+        op_rot::OP_ROT, op_swap::OP_SWAP, op_tuck::OP_TUCK,
+    },
 };
+use std::fmt::{self, Display};
 
 /// The set of opcodes that can be used in the stack.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,8 +62,23 @@ pub enum Opcode {
     OP_TOALTSTACK(OP_TOALTSTACK),
     OP_FROMALTSTACK(OP_FROMALTSTACK),
     // Stack
-    OP_DUP(OP_DUP),
+    OP_IFDUP(OP_IFDUP),
+    OP_DEPTH(OP_DEPTH),
     OP_DROP(OP_DROP),
+    OP_DUP(OP_DUP),
+    OP_NIP(OP_NIP),
+    OP_OVER(OP_OVER),
+    OP_PICK(OP_PICK),
+    OP_ROLL(OP_ROLL),
+    OP_ROT(OP_ROT),
+    OP_SWAP(OP_SWAP),
+    OP_TUCK(OP_TUCK),
+    OP_2DROP(OP_2DROP),
+    OP_2DUP(OP_2DUP),
+    OP_3DUP(OP_3DUP),
+    OP_2OVER(OP_2OVER),
+    OP_2ROT(OP_2ROT),
+    OP_2SWAP(OP_2SWAP),
     // Splice
     OP_CAT(OP_CAT),
 }
@@ -105,8 +124,24 @@ impl Display for Opcode {
             Opcode::OP_TOALTSTACK(_) => write!(f, "OP_TOALTSTACK"),
             Opcode::OP_FROMALTSTACK(_) => write!(f, "OP_FROMALTSTACK"),
             // Stack
-            Opcode::OP_DUP(_) => write!(f, "OP_DUP"),
+            Opcode::OP_IFDUP(_) => write!(f, "OP_IFDUP"),
+            Opcode::OP_DEPTH(_) => write!(f, "OP_DEPTH"),
             Opcode::OP_DROP(_) => write!(f, "OP_DROP"),
+            Opcode::OP_DUP(_) => write!(f, "OP_DUP"),
+            Opcode::OP_NIP(_) => write!(f, "OP_NIP"),
+            Opcode::OP_OVER(_) => write!(f, "OP_OVER"),
+            Opcode::OP_PICK(_) => write!(f, "OP_PICK"),
+            Opcode::OP_ROLL(_) => write!(f, "OP_ROLL"),
+            Opcode::OP_ROT(_) => write!(f, "OP_ROT"),
+            Opcode::OP_SWAP(_) => write!(f, "OP_SWAP"),
+            Opcode::OP_TUCK(_) => write!(f, "OP_TUCK"),
+            Opcode::OP_2DROP(_) => write!(f, "OP_2DROP"),
+            Opcode::OP_2DUP(_) => write!(f, "OP_2DUP"),
+            Opcode::OP_3DUP(_) => write!(f, "OP_3DUP"),
+            Opcode::OP_2OVER(_) => write!(f, "OP_2OVER"),
+            Opcode::OP_2ROT(_) => write!(f, "OP_2ROT"),
+            Opcode::OP_2SWAP(_) => write!(f, "OP_2SWAP"),
+            // Splice
             Opcode::OP_CAT(_) => write!(f, "OP_CAT"),
         }
     }

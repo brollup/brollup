@@ -34,4 +34,9 @@ impl OP_PICK {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_PICK` opcode (0x79).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x79]
+    }
 }

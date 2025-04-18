@@ -25,7 +25,7 @@ impl OP_RETURNSOME {
             .pop()?
             .to_uint()
             .ok_or(StackError::StackUintConversionError)?
-            .usize()
+            .to_usize()
             .ok_or(StackError::StackUintConversionError)?;
 
         // Collect remaining stack items.

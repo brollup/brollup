@@ -19,12 +19,23 @@ pub const OP_16_OPS: u32 = 1;
 pub const OP_PUSHDATA_OPS: u32 = 2;
 
 // Stack operations
+pub const OP_IFDUP_OPS: u32 = 1;
+pub const OP_DEPTH_OPS: u32 = 1;
+pub const OP_DROP_OPS: u32 = 1;
+pub const OP_DUP_OPS: u32 = 1;
+pub const OP_NIP_OPS: u32 = 1;
+pub const OP_OVER_OPS: u32 = 1;
 pub const OP_PICK_OPS: u32 = 1;
 pub const OP_ROLL_OPS: u32 = 1;
-pub const OP_DROP_OPS: u32 = 1;
+pub const OP_ROT_OPS: u32 = 1;
+pub const OP_SWAP_OPS: u32 = 1;
+pub const OP_TUCK_OPS: u32 = 1;
 pub const OP_2DROP_OPS: u32 = 2;
-pub const OP_DUP_OPS: u32 = 1;
 pub const OP_2DUP_OPS: u32 = 2;
+pub const OP_3DUP_OPS: u32 = 3;
+pub const OP_2OVER_OPS: u32 = 2;
+pub const OP_2ROT_OPS: u32 = 2;
+pub const OP_2SWAP_OPS: u32 = 2;
 
 // Bitwise
 pub const OP_EQUAL_OPS: u32 = 1;

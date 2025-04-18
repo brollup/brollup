@@ -217,17 +217,17 @@ impl<'a> StackHolder<'a> {
         self.alt_stack.pop()
     }
 
-    /// Returns the last stack item from main stack.
+    /// Clones and returns the last stack item from main stack.
     pub fn last_item(&self) -> Result<StackItem, StackError> {
         self.main_stack.last_item()
     }
 
-    /// Returns the last stack item from alt stack.
+    /// Clones and returns the last stack item from alt stack.
     pub fn alt_stack_last_item(&self) -> Result<StackItem, StackError> {
         self.alt_stack.last_item()
     }
 
-    /// Returns the stack item by depth.
+    /// Clones and returns the stack item by depth.
     pub fn item_by_depth(&self, depth: u32) -> Result<StackItem, StackError> {
         self.main_stack
             .0

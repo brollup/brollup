@@ -37,4 +37,9 @@ impl OP_ROLL {
 
         Ok(())
     }
+
+    /// Returns the bytecode for the `OP_ROLL` opcode (0x7a).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x7a]
+    }
 }

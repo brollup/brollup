@@ -32,8 +32,23 @@ use crate::executive::opcode::op::push::op_true::OP_TRUE;
 use crate::executive::opcode::op::reserved::op_reserved1::OP_RESERVED_1;
 use crate::executive::opcode::op::reserved::op_reserved2::OP_RESERVED_2;
 use crate::executive::opcode::op::splice::op_cat::OP_CAT;
+use crate::executive::opcode::op::stack::op_2drop::OP_2DROP;
+use crate::executive::opcode::op::stack::op_2dup::OP_2DUP;
+use crate::executive::opcode::op::stack::op_2over::OP_2OVER;
+use crate::executive::opcode::op::stack::op_2rot::OP_2ROT;
+use crate::executive::opcode::op::stack::op_2swap::OP_2SWAP;
+use crate::executive::opcode::op::stack::op_3dup::OP_3DUP;
+use crate::executive::opcode::op::stack::op_depth::OP_DEPTH;
 use crate::executive::opcode::op::stack::op_drop::OP_DROP;
 use crate::executive::opcode::op::stack::op_dup::OP_DUP;
+use crate::executive::opcode::op::stack::op_ifdup::OP_IFDUP;
+use crate::executive::opcode::op::stack::op_nip::OP_NIP;
+use crate::executive::opcode::op::stack::op_over::OP_OVER;
+use crate::executive::opcode::op::stack::op_pick::OP_PICK;
+use crate::executive::opcode::op::stack::op_roll::OP_ROLL;
+use crate::executive::opcode::op::stack::op_rot::OP_ROT;
+use crate::executive::opcode::op::stack::op_swap::OP_SWAP;
+use crate::executive::opcode::op::stack::op_tuck::OP_TUCK;
 use crate::executive::opcode::opcode::Opcode;
 
 /// A trait for compiling and decompiling an opcode.
@@ -88,8 +103,23 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_TOALTSTACK(_) => Ok(OP_TOALTSTACK::bytecode()),
             Opcode::OP_FROMALTSTACK(_) => Ok(OP_FROMALTSTACK::bytecode()),
             // Stack
-            Opcode::OP_DUP(_) => Ok(OP_DUP::bytecode()),
+            Opcode::OP_IFDUP(_) => Ok(OP_IFDUP::bytecode()),
+            Opcode::OP_DEPTH(_) => Ok(OP_DEPTH::bytecode()),
             Opcode::OP_DROP(_) => Ok(OP_DROP::bytecode()),
+            Opcode::OP_DUP(_) => Ok(OP_DUP::bytecode()),
+            Opcode::OP_NIP(_) => Ok(OP_NIP::bytecode()),
+            Opcode::OP_OVER(_) => Ok(OP_OVER::bytecode()),
+            Opcode::OP_PICK(_) => Ok(OP_PICK::bytecode()),
+            Opcode::OP_ROLL(_) => Ok(OP_ROLL::bytecode()),
+            Opcode::OP_ROT(_) => Ok(OP_ROT::bytecode()),
+            Opcode::OP_SWAP(_) => Ok(OP_SWAP::bytecode()),
+            Opcode::OP_TUCK(_) => Ok(OP_TUCK::bytecode()),
+            Opcode::OP_2DROP(_) => Ok(OP_2DROP::bytecode()),
+            Opcode::OP_2DUP(_) => Ok(OP_2DUP::bytecode()),
+            Opcode::OP_3DUP(_) => Ok(OP_3DUP::bytecode()),
+            Opcode::OP_2OVER(_) => Ok(OP_2OVER::bytecode()),
+            Opcode::OP_2ROT(_) => Ok(OP_2ROT::bytecode()),
+            Opcode::OP_2SWAP(_) => Ok(OP_2SWAP::bytecode()),
             // Splice
             Opcode::OP_CAT(_) => Ok(OP_CAT::bytecode()),
         }
@@ -223,8 +253,23 @@ impl OpcodeCompiler for Opcode {
             0x6b => Ok(Opcode::OP_TOALTSTACK(OP_TOALTSTACK)),
             0x6c => Ok(Opcode::OP_FROMALTSTACK(OP_FROMALTSTACK)),
             // Stack
+            0x73 => Ok(Opcode::OP_IFDUP(OP_IFDUP)),
+            0x74 => Ok(Opcode::OP_DEPTH(OP_DEPTH)),
             0x75 => Ok(Opcode::OP_DROP(OP_DROP)),
             0x76 => Ok(Opcode::OP_DUP(OP_DUP)),
+            0x77 => Ok(Opcode::OP_NIP(OP_NIP)),
+            0x78 => Ok(Opcode::OP_OVER(OP_OVER)),
+            0x79 => Ok(Opcode::OP_PICK(OP_PICK)),
+            0x7a => Ok(Opcode::OP_ROLL(OP_ROLL)),
+            0x7b => Ok(Opcode::OP_ROT(OP_ROT)),
+            0x7c => Ok(Opcode::OP_SWAP(OP_SWAP)),
+            0x7d => Ok(Opcode::OP_TUCK(OP_TUCK)),
+            0x6d => Ok(Opcode::OP_2DROP(OP_2DROP)),
+            0x6e => Ok(Opcode::OP_2DUP(OP_2DUP)),
+            0x6f => Ok(Opcode::OP_3DUP(OP_3DUP)),
+            0x70 => Ok(Opcode::OP_2OVER(OP_2OVER)),
+            0x71 => Ok(Opcode::OP_2ROT(OP_2ROT)),
+            0x72 => Ok(Opcode::OP_2SWAP(OP_2SWAP)),
             // Splice
             0x7e => Ok(Opcode::OP_CAT(OP_CAT)),
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),

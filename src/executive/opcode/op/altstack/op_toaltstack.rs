@@ -3,7 +3,7 @@ use crate::executive::{
     stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// Pushes an item onto the alt stack.
+/// Puts the input onto the top of the alt stack. Removes it from the main stack.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_TOALTSTACK;
