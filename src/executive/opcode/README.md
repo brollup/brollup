@@ -28,6 +28,8 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_FAIL       | 0x6a      | 1   | (special)   | Fail.          | Fails the entry.                                                                                   |
 
 ## Alstack Operations
+| Opcode          | Ops | Bytecode | Input                   | Output                 | Description                                                                  |
+|:----------------|:----|:---------|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
 | OP_TOALTSTACK   | 1   | 0x6b     | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
 | OP_FROMALTSTACK | 1   | 0x6c     | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
 
