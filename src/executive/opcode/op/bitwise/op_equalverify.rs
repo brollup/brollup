@@ -3,7 +3,7 @@ use crate::executive::{
     stack::{stack_error::StackError, stack_holder::StackHolder},
 };
 
-/// Pops two items from the main stack and checks if they are equal. Fails if they are not.
+/// Same as OP_EQUAL, but runs OP_VERIFY afterward.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_EQUALVERIFY;
@@ -28,5 +28,10 @@ impl OP_EQUALVERIFY {
         stack_holder.increment_ops(OP_EQUALVERIFY_OPS)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_EQUALVERIFY` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x88]
     }
 }

@@ -2,6 +2,10 @@
 
 use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
+    bitwise::{
+        op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
+        op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
+    },
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
         op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
@@ -92,6 +96,14 @@ pub enum Opcode {
     OP_LEFT(OP_LEFT),
     OP_RIGHT(OP_RIGHT),
     OP_SIZE(OP_SIZE),
+    // Bitwise
+    OP_INVERT(OP_INVERT),
+    OP_AND(OP_AND),
+    OP_OR(OP_OR),
+    OP_XOR(OP_XOR),
+    OP_EQUAL(OP_EQUAL),
+    OP_EQUALVERIFY(OP_EQUALVERIFY),
+    OP_REVERSE(OP_REVERSE),
 }
 
 impl Display for Opcode {
@@ -160,6 +172,14 @@ impl Display for Opcode {
             Opcode::OP_LEFT(_) => write!(f, "OP_LEFT"),
             Opcode::OP_RIGHT(_) => write!(f, "OP_RIGHT"),
             Opcode::OP_SIZE(_) => write!(f, "OP_SIZE"),
+            // Bitwise
+            Opcode::OP_INVERT(_) => write!(f, "OP_INVERT"),
+            Opcode::OP_AND(_) => write!(f, "OP_AND"),
+            Opcode::OP_OR(_) => write!(f, "OP_OR"),
+            Opcode::OP_XOR(_) => write!(f, "OP_XOR"),
+            Opcode::OP_EQUAL(_) => write!(f, "OP_EQUAL"),
+            Opcode::OP_EQUALVERIFY(_) => write!(f, "OP_EQUALVERIFY"),
+            Opcode::OP_REVERSE(_) => write!(f, "OP_REVERSE"),
         }
     }
 }

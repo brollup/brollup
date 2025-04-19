@@ -1,6 +1,13 @@
 use super::compiler_error::{OpcodeCompileError, OpcodeDecompileError};
 use crate::executive::opcode::op::altstack::op_fromaltstack::OP_FROMALTSTACK;
 use crate::executive::opcode::op::altstack::op_toaltstack::OP_TOALTSTACK;
+use crate::executive::opcode::op::bitwise::op_and::OP_AND;
+use crate::executive::opcode::op::bitwise::op_equal::OP_EQUAL;
+use crate::executive::opcode::op::bitwise::op_equalverify::OP_EQUALVERIFY;
+use crate::executive::opcode::op::bitwise::op_invert::OP_INVERT;
+use crate::executive::opcode::op::bitwise::op_or::OP_OR;
+use crate::executive::opcode::op::bitwise::op_reverse::OP_REVERSE;
+use crate::executive::opcode::op::bitwise::op_xor::OP_XOR;
 use crate::executive::opcode::op::flow::op_else::OP_ELSE;
 use crate::executive::opcode::op::flow::op_endif::OP_ENDIF;
 use crate::executive::opcode::op::flow::op_fail::OP_FAIL;
@@ -131,7 +138,14 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_RIGHT(_) => Ok(OP_RIGHT::bytecode()),
             Opcode::OP_SIZE(_) => Ok(OP_SIZE::bytecode()),
             // Bitwise
-            // Reserved
+            Opcode::OP_INVERT(_) => Ok(OP_INVERT::bytecode()),
+            Opcode::OP_AND(_) => Ok(OP_AND::bytecode()),
+            Opcode::OP_OR(_) => Ok(OP_OR::bytecode()),
+            Opcode::OP_XOR(_) => Ok(OP_XOR::bytecode()),
+            Opcode::OP_EQUAL(_) => Ok(OP_EQUAL::bytecode()),
+            Opcode::OP_EQUALVERIFY(_) => Ok(OP_EQUALVERIFY::bytecode()),
+            Opcode::OP_REVERSE(_) => Ok(OP_REVERSE::bytecode()),
+            // Reserved opcodes
             Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
             Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
             Opcode::OP_RESERVED_3(_) => Ok(OP_RESERVED_3::bytecode()),
@@ -292,6 +306,14 @@ impl OpcodeCompiler for Opcode {
             0x81 => Ok(Opcode::OP_RIGHT(OP_RIGHT)),
             0x82 => Ok(Opcode::OP_SIZE(OP_SIZE)),
             // Bitwise
+            0x83 => Ok(Opcode::OP_INVERT(OP_INVERT)),
+            0x84 => Ok(Opcode::OP_AND(OP_AND)),
+            0x85 => Ok(Opcode::OP_OR(OP_OR)),
+            0x86 => Ok(Opcode::OP_XOR(OP_XOR)),
+            0x87 => Ok(Opcode::OP_EQUAL(OP_EQUAL)),
+            0x88 => Ok(Opcode::OP_EQUALVERIFY(OP_EQUALVERIFY)),
+            0x89 => Ok(Opcode::OP_REVERSE(OP_REVERSE)),
+            // Reserved
             0x8a => Ok(Opcode::OP_RESERVED_4(OP_RESERVED_4)),
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }

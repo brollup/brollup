@@ -3,7 +3,7 @@ use crate::executive::{
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
-/// Pushes 0x01 if the two items on the main stack are equal, false (empty push) otherwise.
+/// Returns 1 if the inputs are exactly equal, 0 otherwise.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_EQUAL;
@@ -32,5 +32,10 @@ impl OP_EQUAL {
         stack_holder.push(item_to_push)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_EQUAL` opcode.
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x87]
     }
 }
