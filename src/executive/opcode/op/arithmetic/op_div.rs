@@ -26,12 +26,12 @@ impl OP_DIV {
 
         // Irem 1 uint value;
         let item_1_uint = item_1
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Item 2 uint value;
         let item_2_uint = item_2
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Increment the ops counter.
@@ -54,10 +54,10 @@ impl OP_DIV {
                 let (division, modulo) = item_1_uint.div_mod(item_2_uint);
 
                 // Push the modulo result to the main stack.
-                stack_holder.push(StackItem::from_uint(modulo))?;
+                stack_holder.push(StackItem::from_stack_uint(modulo))?;
 
                 // Push the division result to the main stack.
-                stack_holder.push(StackItem::from_uint(division))?;
+                stack_holder.push(StackItem::from_stack_uint(division))?;
 
                 // Push true to the main stack.
                 stack_holder.push(StackItem::new(vec![0x01]))?;

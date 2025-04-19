@@ -9,7 +9,7 @@ mod program_and_method_tests {
                     push::{
                         op_2::OP_2, op_false::OP_FALSE, op_pushdata::OP_PUSHDATA, op_true::OP_TRUE,
                     },
-                    reserved::op_reserved1::OP_RESERVED_1,
+                    reserved::op_reserved_1::OP_RESERVED_1,
                 },
                 opcode::Opcode,
             },

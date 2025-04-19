@@ -26,16 +26,16 @@ impl OP_MULMOD {
 
         // Irem 1 uint value;
         let item_1_uint = item_1
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Item 2 uint value;
         let item_2_uint = item_2
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Multiply the two values modulo MAX::U256.
-        let result = StackItem::from_uint(StackUint::mulmod(&item_1_uint, &item_2_uint));
+        let result = StackItem::from_stack_uint(StackUint::mulmod(&item_1_uint, &item_2_uint));
 
         // Increment the ops counter.
         stack_holder.increment_ops(OP_MULMOD_OPS)?;

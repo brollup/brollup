@@ -12,8 +12,13 @@ use super::op::{
         op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7,
         op_8::OP_8, op_9::OP_9, op_false::OP_FALSE, op_pushdata::OP_PUSHDATA, op_true::OP_TRUE,
     },
-    reserved::{op_reserved1::OP_RESERVED_1, op_reserved2::OP_RESERVED_2},
-    splice::op_cat::OP_CAT,
+    reserved::{
+        op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2, op_reserved_3::OP_RESERVED_3,
+        op_reserved_4::OP_RESERVED_4,
+    },
+    splice::{
+        op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE, op_split::OP_SPLIT,
+    },
     stack::{
         op_2drop::OP_2DROP, op_2dup::OP_2DUP, op_2over::OP_2OVER, op_2rot::OP_2ROT,
         op_2swap::OP_2SWAP, op_3dup::OP_3DUP, op_depth::OP_DEPTH, op_drop::OP_DROP, op_dup::OP_DUP,
@@ -47,6 +52,8 @@ pub enum Opcode {
     OP_PUSHDATA(OP_PUSHDATA),
     OP_RESERVED_1(OP_RESERVED_1), //0x4e
     OP_RESERVED_2(OP_RESERVED_2), //0x4f
+    OP_RESERVED_3(OP_RESERVED_3), //0x50
+    OP_RESERVED_4(OP_RESERVED_4), //0x89
     // Flow
     OP_NOP(OP_NOP),
     OP_RETURNERR(OP_RETURNERR),
@@ -62,6 +69,12 @@ pub enum Opcode {
     OP_TOALTSTACK(OP_TOALTSTACK),
     OP_FROMALTSTACK(OP_FROMALTSTACK),
     // Stack
+    OP_2DROP(OP_2DROP),
+    OP_2DUP(OP_2DUP),
+    OP_3DUP(OP_3DUP),
+    OP_2OVER(OP_2OVER),
+    OP_2ROT(OP_2ROT),
+    OP_2SWAP(OP_2SWAP),
     OP_IFDUP(OP_IFDUP),
     OP_DEPTH(OP_DEPTH),
     OP_DROP(OP_DROP),
@@ -73,14 +86,12 @@ pub enum Opcode {
     OP_ROT(OP_ROT),
     OP_SWAP(OP_SWAP),
     OP_TUCK(OP_TUCK),
-    OP_2DROP(OP_2DROP),
-    OP_2DUP(OP_2DUP),
-    OP_3DUP(OP_3DUP),
-    OP_2OVER(OP_2OVER),
-    OP_2ROT(OP_2ROT),
-    OP_2SWAP(OP_2SWAP),
     // Splice
     OP_CAT(OP_CAT),
+    OP_SPLIT(OP_SPLIT),
+    OP_LEFT(OP_LEFT),
+    OP_RIGHT(OP_RIGHT),
+    OP_SIZE(OP_SIZE),
 }
 
 impl Display for Opcode {
@@ -109,6 +120,8 @@ impl Display for Opcode {
             }
             Opcode::OP_RESERVED_1(_) => write!(f, "OP_RESERVED_1"),
             Opcode::OP_RESERVED_2(_) => write!(f, "OP_RESERVED_2"),
+            Opcode::OP_RESERVED_3(_) => write!(f, "OP_RESERVED_3"),
+            Opcode::OP_RESERVED_4(_) => write!(f, "OP_RESERVED_4"),
             // Flow
             Opcode::OP_NOP(_) => write!(f, "OP_NOP"),
             Opcode::OP_RETURNERR(_) => write!(f, "OP_RETURNERR"),
@@ -124,6 +137,12 @@ impl Display for Opcode {
             Opcode::OP_TOALTSTACK(_) => write!(f, "OP_TOALTSTACK"),
             Opcode::OP_FROMALTSTACK(_) => write!(f, "OP_FROMALTSTACK"),
             // Stack
+            Opcode::OP_2DROP(_) => write!(f, "OP_2DROP"),
+            Opcode::OP_2DUP(_) => write!(f, "OP_2DUP"),
+            Opcode::OP_3DUP(_) => write!(f, "OP_3DUP"),
+            Opcode::OP_2OVER(_) => write!(f, "OP_2OVER"),
+            Opcode::OP_2ROT(_) => write!(f, "OP_2ROT"),
+            Opcode::OP_2SWAP(_) => write!(f, "OP_2SWAP"),
             Opcode::OP_IFDUP(_) => write!(f, "OP_IFDUP"),
             Opcode::OP_DEPTH(_) => write!(f, "OP_DEPTH"),
             Opcode::OP_DROP(_) => write!(f, "OP_DROP"),
@@ -135,14 +154,12 @@ impl Display for Opcode {
             Opcode::OP_ROT(_) => write!(f, "OP_ROT"),
             Opcode::OP_SWAP(_) => write!(f, "OP_SWAP"),
             Opcode::OP_TUCK(_) => write!(f, "OP_TUCK"),
-            Opcode::OP_2DROP(_) => write!(f, "OP_2DROP"),
-            Opcode::OP_2DUP(_) => write!(f, "OP_2DUP"),
-            Opcode::OP_3DUP(_) => write!(f, "OP_3DUP"),
-            Opcode::OP_2OVER(_) => write!(f, "OP_2OVER"),
-            Opcode::OP_2ROT(_) => write!(f, "OP_2ROT"),
-            Opcode::OP_2SWAP(_) => write!(f, "OP_2SWAP"),
             // Splice
             Opcode::OP_CAT(_) => write!(f, "OP_CAT"),
+            Opcode::OP_SPLIT(_) => write!(f, "OP_SPLIT"),
+            Opcode::OP_LEFT(_) => write!(f, "OP_LEFT"),
+            Opcode::OP_RIGHT(_) => write!(f, "OP_RIGHT"),
+            Opcode::OP_SIZE(_) => write!(f, "OP_SIZE"),
         }
     }
 }

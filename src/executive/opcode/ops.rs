@@ -18,29 +18,6 @@ pub const OP_15_OPS: u32 = 1;
 pub const OP_16_OPS: u32 = 1;
 pub const OP_PUSHDATA_OPS: u32 = 2;
 
-// Stack operations
-pub const OP_IFDUP_OPS: u32 = 1;
-pub const OP_DEPTH_OPS: u32 = 1;
-pub const OP_DROP_OPS: u32 = 1;
-pub const OP_DUP_OPS: u32 = 1;
-pub const OP_NIP_OPS: u32 = 1;
-pub const OP_OVER_OPS: u32 = 1;
-pub const OP_PICK_OPS: u32 = 1;
-pub const OP_ROLL_OPS: u32 = 1;
-pub const OP_ROT_OPS: u32 = 1;
-pub const OP_SWAP_OPS: u32 = 1;
-pub const OP_TUCK_OPS: u32 = 1;
-pub const OP_2DROP_OPS: u32 = 2;
-pub const OP_2DUP_OPS: u32 = 2;
-pub const OP_3DUP_OPS: u32 = 3;
-pub const OP_2OVER_OPS: u32 = 2;
-pub const OP_2ROT_OPS: u32 = 2;
-pub const OP_2SWAP_OPS: u32 = 2;
-
-// Bitwise
-pub const OP_EQUAL_OPS: u32 = 1;
-pub const OP_EQUALVERIFY_OPS: u32 = 2;
-
 // Flow
 pub const OP_NOP_OPS: u32 = 1;
 pub const OP_RETURNERR_OPS: u32 = 1;
@@ -57,13 +34,36 @@ pub const OP_FAIL_OPS: u32 = 1;
 pub const OP_FROMALTSTACK_OPS: u32 = 1;
 pub const OP_TOALTSTACK_OPS: u32 = 1;
 
-// Memory
-pub const OP_MREAD_OPS: u32 = 5;
-pub const OP_MWRITE_OPS: u32 = 5;
-pub const OP_MFREE_OPS: u32 = 1;
+// Stack operations
+pub const OP_2DROP_OPS: u32 = 2;
+pub const OP_2DUP_OPS: u32 = 2;
+pub const OP_3DUP_OPS: u32 = 3;
+pub const OP_2OVER_OPS: u32 = 2;
+pub const OP_2ROT_OPS: u32 = 2;
+pub const OP_2SWAP_OPS: u32 = 2;
+pub const OP_IFDUP_OPS: u32 = 1;
+pub const OP_DEPTH_OPS: u32 = 1;
+pub const OP_DROP_OPS: u32 = 1;
+pub const OP_DUP_OPS: u32 = 1;
+pub const OP_NIP_OPS: u32 = 1;
+pub const OP_OVER_OPS: u32 = 1;
+pub const OP_PICK_OPS: u32 = 1;
+pub const OP_ROLL_OPS: u32 = 1;
+pub const OP_ROT_OPS: u32 = 1;
+pub const OP_SWAP_OPS: u32 = 1;
+pub const OP_TUCK_OPS: u32 = 1;
 
 // Splice
-pub const OP_CAT_OPS: u32 = 5;
+pub const OP_CAT_OPS: u32 = 2;
+pub const OP_SPLIT_OPS: u32 = 2;
+pub const OP_LEFT_OPS: u32 = 2;
+pub const OP_RIGHT_OPS: u32 = 2;
+pub const OP_SIZE_OPS: u32 = 1;
+
+// Bitwise
+pub const OP_EQUAL_OPS: u32 = 1;
+pub const OP_EQUALVERIFY_OPS: u32 = 2;
+pub const OP_REVERSEBYTES_OPS: u32 = 2;
 
 // Arithmetic
 pub const OP_ADD_OPS: u32 = 3;
@@ -72,3 +72,8 @@ pub const OP_MUL_OPS: u32 = 10;
 pub const OP_DIV_OPS: u32 = 10;
 pub const OP_ADDMOD_OPS: u32 = 3;
 pub const OP_MULMOD_OPS: u32 = 10;
+
+// Memory
+pub const OP_MREAD_OPS: u32 = 5;
+pub const OP_MWRITE_OPS: u32 = 5;
+pub const OP_MFREE_OPS: u32 = 1;

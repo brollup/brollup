@@ -26,11 +26,11 @@ impl OP_CAT {
         joined.extend(item_2.bytes());
         joined.extend(item_1.bytes());
 
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_CAT_OPS)?;
-
         // Push the joined item back to the main stack.
         stack_holder.push(StackItem::new(joined))?;
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_CAT_OPS)?;
 
         Ok(())
     }

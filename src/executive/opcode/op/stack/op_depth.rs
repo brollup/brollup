@@ -27,7 +27,7 @@ impl OP_DEPTH {
         let depth_as_stack_uint = StackUint::from_u32(depth);
 
         // Convert the stack uint to a stack item.
-        let depth_as_stack_item = StackItem::from_uint(depth_as_stack_uint);
+        let depth_as_stack_item = StackItem::from_stack_uint(depth_as_stack_uint);
 
         // Increment the ops counter.
         stack_holder.increment_ops(OP_DEPTH_OPS)?;

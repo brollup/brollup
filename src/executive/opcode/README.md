@@ -28,55 +28,65 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_FAIL       | 0x6a      | 1   | (special)   | Fail.          | Fails the entry.                                                                                   |
 
 ## Alstack Operations
-| Opcode          | Ops | Bytecode | Input                   | Output                 | Description                                                                  |
-|:----------------|:----|:---------|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
-| OP_TOALTSTACK   | 1   | 0x6b     | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
-| OP_FROMALTSTACK | 1   | 0x6c     | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
+| Opcode          | Bytecode | Ops | Input                   | Output                 | Description                                                                  |
+|:----------------|:---------|:----|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
+| OP_TOALTSTACK   | 0x6b     | 1   | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
+| OP_FROMALTSTACK | 0x6c     | 1   | (alt)x1                 | x1                     | Puts the input onto the top of the main stack. Removes it from the alt stack. |
 
 ## Stack Operations
 
-| Opcode          | Ops | Bytecode | Input                   | Output                 | Description                                                                  |
-|:----------------|:----|:---------|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
-| OP_IFDUP        | 1   | 0x73     | x                       | x / x x                | If the top stack value is not 0, duplicate it.                               |
-| OP_DEPTH        | 1   | 0x74     | Nothing                 | <Stack size>           | Puts the number of stack items onto the stack.                               |
-| OP_DROP         | 1   | 0x75     | x                       | Nothing                | Removes the top stack item.                                                  |
-| OP_DUP          | 1   | 0x76     | x                       | x x                    | Duplicates the top stack item.                                               |
-| OP_NIP          | 1   | 0x77     | x1 x2                   | x2                     | Removes the second-to-top stack item.                                        |
-| OP_OVER         | 1   | 0x78     | x1 x2                   | x1 x2 x1               | Copies the second-to-top stack item to the top.                              |
-| OP_PICK         | 1   | 0x79     | xn ... x2 x1 x0 <n>     | xn ... x2 x1 x0 xn     | The item n back in the stack is copied to the top.                           |
-| OP_ROLL         | 1   | 0x7a     | xn ... x2 x1 x0 <n>     | ... x2 x1 x0 xn        | The item n back in the stack is moved to the top.                            |
-| OP_ROT          | 1   | 0x7b     | x1 x2 x3                | x2 x3 x1               | The 3rd item down the stack is moved to the top.                             |
-| OP_SWAP         | 1   | 0x7c     | x1 x2                   | x2 x1                  | The top two items on the stack are swapped.                                  |
-| OP_TUCK         | 1   | 0x7d     | x1 x2                   | x2 x1 x2               | The item at the top of the stack is copied and inserted before the second-to-top item. |
-| OP_2DROP        | 1   | 0x6d     | x1 x2                   | Nothing                | Removes the top two stack items.                                             |
-| OP_2DUP         | 1   | 0x6e     | x1 x2                   | x1 x2 x1 x2            | Duplicates the top two stack items.                                          |
-| OP_3DUP         | 1   | 0x6f     | x1 x2 x3                | x1 x2 x3 x1 x2 x3      | Duplicates the top three stack items.                                        |
-| OP_2OVER        | 1   | 0x70     | x1 x2 x3 x4             | x1 x2 x3 x4 x1 x2      | Copies the pair of items two spaces back in the stack to the front.          |
-| OP_2ROT         | 1   | 0x71     | x1 x2 x3 x4 x5 x6       | x3 x4 x5 x6 x1 x2      | The fifth and sixth items back are moved to the top of the stack.            |
-| OP_2SWAP        | 1   | 0x72     | x1 x2 x3 x4             | x3 x4 x1 x2            | Swaps the top two pairs of items.                                            |
-
-
+| Opcode          | Bytecode | Ops | Input                   | Output                 | Description                                                                  |
+|:----------------|:---------|:----|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
+| OP_2DROP        | 0x6d     | 1   | x1 x2                   | Nothing                | Removes the top two stack items.                                             |
+| OP_2DUP         | 0x6e     | 1   | x1 x2                   | x1 x2 x1 x2            | Duplicates the top two stack items.                                          |
+| OP_3DUP         | 0x6f     | 1   | x1 x2 x3                | x1 x2 x3 x1 x2 x3      | Duplicates the top three stack items.                                        |
+| OP_2OVER        | 0x70     | 1   | x1 x2 x3 x4             | x1 x2 x3 x4 x1 x2      | Copies the pair of items two spaces back in the stack to the front.          |
+| OP_2ROT         | 0x71     | 1   | x1 x2 x3 x4 x5 x6       | x3 x4 x5 x6 x1 x2      | The fifth and sixth items back are moved to the top of the stack.            |
+| OP_2SWAP        | 0x72     | 1   | x1 x2 x3 x4             | x3 x4 x1 x2            | Swaps the top two pairs of items.                                            |
+| OP_IFDUP        | 0x73     | 1   | x                       | x / x x                | If the top stack value is not 0, duplicate it.                               |
+| OP_DEPTH        | 0x74     | 1   | Nothing                 | <Stack size>           | Puts the number of stack items onto the stack.                               |
+| OP_DROP         | 0x75     | 1   | x                       | Nothing                | Removes the top stack item.                                                  |
+| OP_DUP          | 0x76     | 1   | x                       | x x                    | Duplicates the top stack item.                                               |
+| OP_NIP          | 0x77     | 1   | x1 x2                   | x2                     | Removes the second-to-top stack item.                                        |
+| OP_OVER         | 0x78     | 1   | x1 x2                   | x1 x2 x1               | Copies the second-to-top stack item to the top.                              |
+| OP_PICK         | 0x79     | 1   | xn ... x2 x1 x0 <n>     | xn ... x2 x1 x0 xn     | The item n back in the stack is copied to the top.                           |
+| OP_ROLL         | 0x7a     | 1   | xn ... x2 x1 x0 <n>     | ... x2 x1 x0 xn        | The item n back in the stack is moved to the top.                            |
+| OP_ROT          | 0x7b     | 1   | x1 x2 x3                | x2 x3 x1               | The 3rd item down the stack is moved to the top.                             |
+| OP_SWAP         | 0x7c     | 1   | x1 x2                   | x2 x1                  | The top two items on the stack are swapped.                                  |
+| OP_TUCK         | 0x7d     | 1   | x1 x2                   | x2 x1 x2               | The item at the top of the stack is copied and inserted before the second-to-top item. |
 
 ## Splice
 
-| Opcode    | Bytecode | Ops | Input             | Output       | Description                                                          |
-|:----------|----------|:----|:------------------|:-------------|:---------------------------------------------------------------------|
-| OP_CAT    | 0x7e     | 5  | x1 x2             | out          | Concatenates two strings.                                            |
-| OP_SUBSTR | 0x7f     | 5  | in begin size     | out          | Returns a section of a string.                                       |
-| OP_LEFT   | 0x80     | 5  | in size           | out          | Keeps only characters left of the specified point in a string.       |
-| OP_RIGHT  | 0x81     | 5  | in size           | out          | Keeps only characters right of the specified point in a string.      |
-| OP_SIZE   | 0x82     | 5  | in                | in size      | Pushes the string length of the top element of the stack (without popping it). |
+| Opcode          | Bytecode | Ops | Input             | Output       | Description                                                          |
+|:----------------|----------|:----|:------------------|:-------------|:---------------------------------------------------------------------|
+| OP_CAT          | 0x7e     | 2   | x1 x2             | out          | Concatenates two strings.                                            |
+| OP_SPLIT        | 0x7f     | 2   | in index          | out out      | Splits the byte array into two stack items at the index.             |
+| OP_LEFT         | 0x80     | 2   | in size           | out          | Keeps only characters left of the specified point in a string.       |
+| OP_RIGHT        | 0x81     | 2   | in size           | out          | Keeps only characters right of the specified point in a string.      |
+| OP_SIZE         | 0x82     | 2   | in                | in size      | Pushes the string length of the top element of the stack (without popping it). |
+
+## Bitwise
+
+| Opcode          | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
+|:----------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_INVERT       | 0x83     | 2   | in             | out                                     | Flips all of the bits in the input.                                          |
+| OP_AND          | 0x84     | 2   | x1 x2          | out                                     | Boolean and between each bit in the inputs.                                  |
+| OP_OR           | 0x85     | 2   | x1 x2          | out                                     | Boolean or between each bit in the inputs.                                   |
+| OP_XOR          | 0x86     | 2   | x1 x2          | out                                     | Boolean exclusive or between each bit in the inputs.                         |
+| OP_EQUAL        | 0x87     | 1   | x1 x2          | True / false                            | Returns 1 if the inputs are exactly equal, 0 otherwise.                      |
+| OP_EQUALVERIFY  | 0x88     | 2   | x1 x2          | Nothing / fail                          | Same as OP_EQUAL, but runs OP_VERIFY afterward.                              |
+| OP_REVERSE      | 0x89     | 3   | in             | out                                     | Pop the top item from the stack and reverses the byte order.                 |
 
 ## Arithmetic
 
-| Opcode         | Ops | Bytecode | Input          | Output                                  | Description                                                                  |
-|:---------------|:----|:---------|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_ADD         | 3   | 0x93     | x1 x2          | (x1 + x2) True or x1 x2 False           | x1 is added to x2.                                                           |
-| OP_SUB         | 3   | 0x94     | x1 x2          | (x1 - x2) True or x1 x2 False           | x1 is subtracted from x2.                                                    |
-| OP_MUL         | 10  | 0x95     | x1 x2          | (x1 * x2) True or x1 x2 False           | x1 is multiplied by x2.                                                      |
-| OP_DIV         | 10  | 0x96     | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
-| OP_ADDMOD      | 3   | 0x8d     | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
-| OP_MULMOD      | 10  | 0x8e     | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
+| Opcode         | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
+|:---------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_ADD         | 0x93     | 3   | x1 x2          | (x1 + x2) True or x1 x2 False           | x1 is added to x2.                                                           |
+| OP_SUB         | 0x94     | 3   | x1 x2          | (x1 - x2) True or x1 x2 False           | x1 is subtracted from x2.                                                    |
+| OP_MUL         | 0x95     | 10  | x1 x2          | (x1 * x2) True or x1 x2 False           | x1 is multiplied by x2.                                                      |
+| OP_DIV         | 0x96     | 10  | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
+| OP_ADDMOD      | 0x8d     | 3   | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
+| OP_MULMOD      | 0x8e     | 10  | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
 
 ## Memory
 
@@ -94,3 +104,11 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_SREAD       | 0xb6     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
 | OP_SFREE       | 0xb7     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
+## Reserved
+
+| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
+|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_RESERVED1   | 0x4e     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED2   | 0x4f     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED3   | 0x50     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED4   | 0x8a     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |

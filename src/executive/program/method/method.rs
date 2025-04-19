@@ -11,7 +11,7 @@ use crate::{
     executive::opcode::{
         op::{
             push::op_pushdata::OP_PUSHDATA,
-            reserved::{op_reserved1::OP_RESERVED_1, op_reserved2::OP_RESERVED_2},
+            reserved::{op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2},
         },
         opcode::Opcode,
     },

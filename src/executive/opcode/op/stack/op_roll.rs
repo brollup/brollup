@@ -20,7 +20,7 @@ impl OP_ROLL {
 
         // Get the pick depth from the last item.
         let pick_depth = last_item
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Get the item at the pick depth.

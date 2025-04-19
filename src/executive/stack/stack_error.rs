@@ -40,4 +40,6 @@ pub enum StackError {
     OPElseEncounteredWithoutPrecedingFlowEncounter,
     // Reserved opcode encountered error.
     ReservedOpcodeEncounteredError,
+    // Split index error.
+    SplitIndexError,
 }

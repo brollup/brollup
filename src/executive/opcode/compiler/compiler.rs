@@ -29,9 +29,15 @@ use crate::executive::opcode::op::push::op_9::OP_9;
 use crate::executive::opcode::op::push::op_false::OP_FALSE;
 use crate::executive::opcode::op::push::op_pushdata::OP_PUSHDATA;
 use crate::executive::opcode::op::push::op_true::OP_TRUE;
-use crate::executive::opcode::op::reserved::op_reserved1::OP_RESERVED_1;
-use crate::executive::opcode::op::reserved::op_reserved2::OP_RESERVED_2;
+use crate::executive::opcode::op::reserved::op_reserved_1::OP_RESERVED_1;
+use crate::executive::opcode::op::reserved::op_reserved_2::OP_RESERVED_2;
+use crate::executive::opcode::op::reserved::op_reserved_3::OP_RESERVED_3;
+use crate::executive::opcode::op::reserved::op_reserved_4::OP_RESERVED_4;
 use crate::executive::opcode::op::splice::op_cat::OP_CAT;
+use crate::executive::opcode::op::splice::op_left::OP_LEFT;
+use crate::executive::opcode::op::splice::op_right::OP_RIGHT;
+use crate::executive::opcode::op::splice::op_size::OP_SIZE;
+use crate::executive::opcode::op::splice::op_split::OP_SPLIT;
 use crate::executive::opcode::op::stack::op_2drop::OP_2DROP;
 use crate::executive::opcode::op::stack::op_2dup::OP_2DUP;
 use crate::executive::opcode::op::stack::op_2over::OP_2OVER;
@@ -70,8 +76,6 @@ impl OpcodeCompiler for Opcode {
                 .compiled_bytes()
                 .map(Ok)
                 .unwrap_or_else(|| Err(OpcodeCompileError::InvalidPushDataLength)),
-            Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
-            Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
             Opcode::OP_TRUE(_) => Ok(OP_TRUE::bytecode()),
             Opcode::OP_2(_) => Ok(OP_2::bytecode()),
             Opcode::OP_3(_) => Ok(OP_3::bytecode()),
@@ -122,6 +126,16 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_2SWAP(_) => Ok(OP_2SWAP::bytecode()),
             // Splice
             Opcode::OP_CAT(_) => Ok(OP_CAT::bytecode()),
+            Opcode::OP_SPLIT(_) => Ok(OP_SPLIT::bytecode()),
+            Opcode::OP_LEFT(_) => Ok(OP_LEFT::bytecode()),
+            Opcode::OP_RIGHT(_) => Ok(OP_RIGHT::bytecode()),
+            Opcode::OP_SIZE(_) => Ok(OP_SIZE::bytecode()),
+            // Bitwise
+            // Reserved
+            Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
+            Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
+            Opcode::OP_RESERVED_3(_) => Ok(OP_RESERVED_3::bytecode()),
+            Opcode::OP_RESERVED_4(_) => Ok(OP_RESERVED_4::bytecode()),
         }
     }
 
@@ -222,6 +236,7 @@ impl OpcodeCompiler for Opcode {
             }
             0x4e => Ok(Opcode::OP_RESERVED_1(OP_RESERVED_1)),
             0x4f => Ok(Opcode::OP_RESERVED_2(OP_RESERVED_2)),
+            0x50 => Ok(Opcode::OP_RESERVED_3(OP_RESERVED_3)),
             0x51 => Ok(Opcode::OP_TRUE(OP_TRUE)),
             0x52 => Ok(Opcode::OP_2(OP_2)),
             0x53 => Ok(Opcode::OP_3(OP_3)),
@@ -238,7 +253,7 @@ impl OpcodeCompiler for Opcode {
             0x5e => Ok(Opcode::OP_14(OP_14)),
             0x5f => Ok(Opcode::OP_15(OP_15)),
             0x60 => Ok(Opcode::OP_16(OP_16)),
-            // 0x61..0x6a; Flow control
+            // Flow control
             0x61 => Ok(Opcode::OP_NOP(OP_NOP)),
             0x62 => Ok(Opcode::OP_RETURNERR(OP_RETURNERR)),
             0x63 => Ok(Opcode::OP_IF(OP_IF)),
@@ -249,10 +264,16 @@ impl OpcodeCompiler for Opcode {
             0x68 => Ok(Opcode::OP_ENDIF(OP_ENDIF)),
             0x69 => Ok(Opcode::OP_VERIFY(OP_VERIFY)),
             0x6a => Ok(Opcode::OP_FAIL(OP_FAIL)),
-            // 0x6b..6c; Altstack
+            // Altstack
             0x6b => Ok(Opcode::OP_TOALTSTACK(OP_TOALTSTACK)),
             0x6c => Ok(Opcode::OP_FROMALTSTACK(OP_FROMALTSTACK)),
             // Stack
+            0x6d => Ok(Opcode::OP_2DROP(OP_2DROP)),
+            0x6e => Ok(Opcode::OP_2DUP(OP_2DUP)),
+            0x6f => Ok(Opcode::OP_3DUP(OP_3DUP)),
+            0x70 => Ok(Opcode::OP_2OVER(OP_2OVER)),
+            0x71 => Ok(Opcode::OP_2ROT(OP_2ROT)),
+            0x72 => Ok(Opcode::OP_2SWAP(OP_2SWAP)),
             0x73 => Ok(Opcode::OP_IFDUP(OP_IFDUP)),
             0x74 => Ok(Opcode::OP_DEPTH(OP_DEPTH)),
             0x75 => Ok(Opcode::OP_DROP(OP_DROP)),
@@ -264,14 +285,14 @@ impl OpcodeCompiler for Opcode {
             0x7b => Ok(Opcode::OP_ROT(OP_ROT)),
             0x7c => Ok(Opcode::OP_SWAP(OP_SWAP)),
             0x7d => Ok(Opcode::OP_TUCK(OP_TUCK)),
-            0x6d => Ok(Opcode::OP_2DROP(OP_2DROP)),
-            0x6e => Ok(Opcode::OP_2DUP(OP_2DUP)),
-            0x6f => Ok(Opcode::OP_3DUP(OP_3DUP)),
-            0x70 => Ok(Opcode::OP_2OVER(OP_2OVER)),
-            0x71 => Ok(Opcode::OP_2ROT(OP_2ROT)),
-            0x72 => Ok(Opcode::OP_2SWAP(OP_2SWAP)),
             // Splice
             0x7e => Ok(Opcode::OP_CAT(OP_CAT)),
+            0x7f => Ok(Opcode::OP_SPLIT(OP_SPLIT)),
+            0x80 => Ok(Opcode::OP_LEFT(OP_LEFT)),
+            0x81 => Ok(Opcode::OP_RIGHT(OP_RIGHT)),
+            0x82 => Ok(Opcode::OP_SIZE(OP_SIZE)),
+            // Bitwise
+            0x8a => Ok(Opcode::OP_RESERVED_4(OP_RESERVED_4)),
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
     }

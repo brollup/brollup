@@ -23,7 +23,7 @@ impl OP_RETURNSOME {
         // Pop the number of items to return from the stack.
         let items_count = stack_holder
             .pop()?
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintConversionError)?
             .to_usize()
             .ok_or(StackError::StackUintConversionError)?;

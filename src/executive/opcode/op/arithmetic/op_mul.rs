@@ -24,12 +24,12 @@ impl OP_MUL {
 
         // Irem 1 uint value;
         let item_1_uint = item_1
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Item 2 uint value;
         let item_2_uint = item_2
-            .to_uint()
+            .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
         // Increment the ops counter.
@@ -51,7 +51,7 @@ impl OP_MUL {
             // If the result is not an overflow, return the result.
             Some(result) => {
                 // Push the result to the main stack.
-                stack_holder.push(StackItem::from_uint(result))?;
+                stack_holder.push(StackItem::from_stack_uint(result))?;
 
                 // Push True to the main stack.
                 stack_holder.push(StackItem::new(vec![0x01]))?;

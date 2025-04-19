@@ -135,13 +135,13 @@ impl SafeConverter for StackUint {
 /// and conversion preserves numeric value without applying padding or truncation.
 pub trait StackItemUintExt {
     /// Converts a `StackItem` to a `StackUint`.
-    fn to_uint(&self) -> Option<StackUint>;
+    fn to_stack_uint(&self) -> Option<StackUint>;
     /// Converts a `StackUint` to a `StackItem`.
-    fn from_uint(value: StackUint) -> StackItem;
+    fn from_stack_uint(value: StackUint) -> StackItem;
 }
 
 impl StackItemUintExt for StackItem {
-    fn to_uint(&self) -> Option<StackUint> {
+    fn to_stack_uint(&self) -> Option<StackUint> {
         // Get the bytes of the stack item.
         let stack_item_bytes = self.bytes();
 
@@ -156,7 +156,7 @@ impl StackItemUintExt for StackItem {
         Some(stack_uint)
     }
 
-    fn from_uint(value: StackUint) -> StackItem {
+    fn from_stack_uint(value: StackUint) -> StackItem {
         // If the value is zero, return an empty `StackItem`.
         if value == StackUint::zero() {
             return StackItem::new(vec![]);

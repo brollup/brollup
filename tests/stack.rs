@@ -86,17 +86,17 @@ mod stack_tests {
         // Test 0 + 1 = 1;
         {
             // Push 1
-            let item = StackItem::from_uint(StackUint::from(1));
+            let item = StackItem::from_stack_uint(StackUint::from(1));
             assert_eq!(item.bytes(), vec![0x01]);
             let _ = stack_holder.push(item);
 
             // Push 1
-            let item = StackItem::from_uint(StackUint::from(1));
+            let item = StackItem::from_stack_uint(StackUint::from(1));
             assert_eq!(item.bytes(), vec![0x01]);
             let _ = stack_holder.push(item);
 
             // Push 0
-            let item = StackItem::from_uint(StackUint::from(0));
+            let item = StackItem::from_stack_uint(StackUint::from(0));
             assert_eq!(item.bytes().len(), 0);
             let _ = stack_holder.push(item);
 
@@ -116,17 +116,17 @@ mod stack_tests {
         // Test 0 + 0 = 0;
         {
             // Push 0
-            let item = StackItem::from_uint(StackUint::from(0));
+            let item = StackItem::from_stack_uint(StackUint::from(0));
             assert_eq!(item.bytes().len(), 0);
             let _ = stack_holder.push(item);
 
             // Push 0
-            let item = StackItem::from_uint(StackUint::from(0));
+            let item = StackItem::from_stack_uint(StackUint::from(0));
             assert_eq!(item.bytes().len(), 0);
             let _ = stack_holder.push(item);
 
             // Push 0
-            let item = StackItem::from_uint(StackUint::from(0));
+            let item = StackItem::from_stack_uint(StackUint::from(0));
             assert_eq!(item.bytes().len(), 0);
             let _ = stack_holder.push(item);
 
@@ -146,17 +146,17 @@ mod stack_tests {
         // Test 100 + 50 = 150;
         {
             // Push 150
-            let item = StackItem::from_uint(StackUint::from(150));
+            let item = StackItem::from_stack_uint(StackUint::from(150));
             assert_eq!(item.bytes(), vec![0x96]);
             let _ = stack_holder.push(item);
 
             // Push 100
-            let item = StackItem::from_uint(StackUint::from(100));
+            let item = StackItem::from_stack_uint(StackUint::from(100));
             assert_eq!(item.bytes(), vec![0x64]);
             let _ = stack_holder.push(item);
 
             // Push 50
-            let item = StackItem::from_uint(StackUint::from(50));
+            let item = StackItem::from_stack_uint(StackUint::from(50));
             assert_eq!(item.bytes(), vec![0x32]);
             let _ = stack_holder.push(item);
 
@@ -207,7 +207,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
 
         // Expected stack after execution ends with 2 on top.
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(2))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(2))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -265,7 +266,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
 
         // Expected stack after execution ends with 3 on top.
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(3))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(3))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -341,7 +343,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
 
         // Expected stack after execution ends with 4 on top.
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(4))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(4))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -420,7 +423,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
 
         // Expected stack after execution ends with 4 on top.
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(4))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(4))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -462,7 +466,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(6))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(6))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -509,7 +514,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(8))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(8))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -556,7 +562,8 @@ mod stack_tests {
         OP_RETURNERR::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(5))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(5))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -608,7 +615,8 @@ mod stack_tests {
         OP_RETURNERR::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(6))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(6))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -641,7 +649,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(3))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(3))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -687,7 +696,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(1))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(1))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
@@ -748,7 +758,8 @@ mod stack_tests {
         OP_ENDIF::execute(&mut stack_holder)?;
         OP_ENDIF::execute(&mut stack_holder)?;
 
-        let expected_stack = Stack::new_with_items(vec![StackItem::from_uint(StackUint::from(2))]);
+        let expected_stack =
+            Stack::new_with_items(vec![StackItem::from_stack_uint(StackUint::from(2))]);
 
         // Assert that the stack is equal to the expected stack.
         assert_eq!(stack_holder.stack().clone(), expected_stack);
