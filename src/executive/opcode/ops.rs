@@ -61,13 +61,13 @@ pub const OP_RIGHT_OPS: u32 = 2;
 pub const OP_SIZE_OPS: u32 = 1;
 
 // Bitwise
-pub const OP_INVERT_OPS: u32 = 1;
-pub const OP_AND_OPS: u32 = 1;
-pub const OP_OR_OPS: u32 = 1;
-pub const OP_XOR_OPS: u32 = 1;
+pub const OP_INVERT_OPS: u32 = 2;
+pub const OP_AND_OPS: u32 = 2;
+pub const OP_OR_OPS: u32 = 2;
+pub const OP_XOR_OPS: u32 = 2;
 pub const OP_EQUAL_OPS: u32 = 1;
 pub const OP_EQUALVERIFY_OPS: u32 = 2;
-pub const OP_REVERSE_OPS: u32 = 2;
+pub const OP_REVERSE_OPS: u32 = 3;
 
 // Arithmetic
 pub const OP_ADD_OPS: u32 = 3;
