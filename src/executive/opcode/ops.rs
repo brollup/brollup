@@ -72,10 +72,10 @@ pub const OP_REVERSE_OPS: u32 = 3;
 // Arithmetic
 pub const OP_ADD_OPS: u32 = 3;
 pub const OP_SUB_OPS: u32 = 3;
-pub const OP_MUL_OPS: u32 = 10;
-pub const OP_DIV_OPS: u32 = 10;
+pub const OP_MUL_OPS: u32 = 3;
+pub const OP_DIV_OPS: u32 = 3;
 pub const OP_ADDMOD_OPS: u32 = 3;
-pub const OP_MULMOD_OPS: u32 = 10;
+pub const OP_MULMOD_OPS: u32 = 3;
 
 // Memory
 pub const OP_MREAD_OPS: u32 = 5;

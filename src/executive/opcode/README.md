@@ -28,6 +28,7 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_FAIL       | 0x6a      | 1   | (special)   | Fail.          | Fails the entry.                                                                                   |
 
 ## Alstack Operations
+
 | Opcode          | Bytecode | Ops | Input                   | Output                 | Description                                                                  |
 |:----------------|:---------|:----|:------------------------|:-----------------------|:-----------------------------------------------------------------------------|
 | OP_TOALTSTACK   | 0x6b     | 1   | x1                      | (alt)x1                | Puts the input onto the top of the alt stack. Removes it from the main stack. |
@@ -81,12 +82,18 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 | Opcode         | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
 |:---------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_ADD         | 0x93     | 3   | x1 x2          | (x1 + x2) True or x1 x2 False           | x1 is added to x2.                                                           |
-| OP_SUB         | 0x94     | 3   | x1 x2          | (x1 - x2) True or x1 x2 False           | x1 is subtracted from x2.                                                    |
-| OP_MUL         | 0x95     | 10  | x1 x2          | (x1 * x2) True or x1 x2 False           | x1 is multiplied by x2.                                                      |
-| OP_DIV         | 0x96     | 10  | x1 x2          | (x1 % x2) (x1 / x2) True or x1 x2 False | x1 is divided by x2.                                                         |
-| OP_ADDMOD      | 0x8d     | 3   | x1 x2          | (x1 + x2) % MAX::U256                   | x1 is added to x2 modulo MAX::U256.                                          |
-| OP_MULMOD      | 0x8e     | 10  | x1 x2          | (x1 * x2) % MAX::U256                   | x1 is multiplied by x2 modulo MAX::U256.                                     |
+| OP_1ADD        | 0x8b     | 3   | in             | out                                     | 1 is added to the input.                                                     |
+| OP_1SUB        | 0x8c     | 3   | in             | out                                     | 1 is subtracted from the input.                                              |
+| OP_2MUL        | 0x8d     | 3   | in             | out                                     | The input is multiplied by 2.                                                |
+| OP_2DIV        | 0x8e     | 3   | in             | out                                     | The input is divided by 2.                                                   |
+| OP_NOT         | 0x91     | 3   | in             | out                                     | If the input is 0 or 1, it is flipped. Otherwise the output will be 0.       |
+| OP_0NOTEQUAL   | 0x92     | 3   | in             | out                                     | Returns 0 if the input is 0. 1 otherwise.                                    |
+| OP_ADD         | 0x93     | 3   | a b            | out                                     | a is added to b.                                                             |
+| OP_SUB         | 0x94     | 3   | a b            | out                                     | a is subtracted from b.                                                      |
+| OP_MUL         | 0x95     | 3   | a b            | out                                     | a is multiplied by b.                                                        |
+| OP_DIV         | 0x96     | 3   | a b            | out                                     | a is divided by b.                                                           |
+| OP_ADDMOD      | 0x8d     | 3   | a b            | out                                     | a is added to b modulo MAX::U256.                                            |
+| OP_MULMOD      | 0x8e     | 3   | a b            | out                                     | a is multiplied by b modulo MAX::U256.                                       |
 
 ## Memory
 
@@ -108,7 +115,9 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_RESERVED1   | 0x4e     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
-| OP_RESERVED2   | 0x4f     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
-| OP_RESERVED3   | 0x50     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
-| OP_RESERVED4   | 0x8a     | 5   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED1   | 0x4e     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED2   | 0x4f     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED3   | 0x50     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED4   | 0x8a     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED5   | 0x8f     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED6   | 0x90     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
