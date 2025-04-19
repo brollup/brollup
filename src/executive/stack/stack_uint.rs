@@ -6,25 +6,25 @@ construct_uint! {
     pub struct StackUint(4);
 }
 
-// A 320-bit unsigned integer type to deal with addmod and mulmod operations for `StackUint`.
+// A 512-bit unsigned integer type to deal with addmod and mulmod operations for `StackUint`.
 construct_uint! {
-    struct U320(5);
+    struct U512(8);
 }
 
-impl From<StackUint> for U320 {
+impl From<StackUint> for U512 {
     fn from(value: StackUint) -> Self {
-        let mut result = U320::zero();
-        for i in 0..4 {
+        let mut result = U512::zero();
+        for i in 0..8 {
             result.0[i] = value.0[i];
         }
         result
     }
 }
 
-impl From<U320> for StackUint {
-    fn from(value: U320) -> Self {
+impl From<U512> for StackUint {
+    fn from(value: U512) -> Self {
         let mut result = StackUint::zero();
-        for i in 0..4 {
+        for i in 0..8 {
             result.0[i] = value.0[i];
         }
         result
@@ -34,13 +34,13 @@ impl From<U320> for StackUint {
 impl StackUint {
     /// Add two `StackUint` values and return the result modulo MAX::U256.
     pub fn addmod(x: &StackUint, y: &StackUint) -> StackUint {
-        let max = U320::from(StackUint::max_value());
+        let max = U512::from(StackUint::max_value());
 
-        let x_as_u320 = U320::from(*x);
-        let y_as_u320 = U320::from(*y);
+        let x_as_u512 = U512::from(*x);
+        let y_as_u512 = U512::from(*y);
 
         // Use overflowing_add to handle overflow safely
-        let result = x_as_u320 + y_as_u320;
+        let result = x_as_u512 + y_as_u512;
 
         let result_modulo_max = result % max;
 
@@ -49,11 +49,11 @@ impl StackUint {
 
     /// Multiply two `StackUint` values and return the result modulo MAX::U256.
     pub fn mulmod(x: &StackUint, y: &StackUint) -> StackUint {
-        let max = U320::from(StackUint::max_value());
-        let x_as_u320 = U320::from(*x);
-        let y_as_u320 = U320::from(*y);
+        let max = U512::from(StackUint::max_value());
+        let x_as_u512 = U512::from(*x);
+        let y_as_u512 = U512::from(*y);
 
-        let result = x_as_u320 * y_as_u320;
+        let result = x_as_u512 * y_as_u512;
         let result_modulo_max = result % max;
 
         StackUint::from(result_modulo_max)
