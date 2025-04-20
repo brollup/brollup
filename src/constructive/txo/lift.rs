@@ -3,8 +3,10 @@ use crate::transmutive::codec::csv::{CSVEncode, CSVFlag};
 use crate::transmutive::musig::keyagg::MusigKeyAggCtx;
 use crate::transmutive::secp::into::IntoScalar;
 use bitcoin::OutPoint;
+use hex;
 use secp::Point;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 type Bytes = Vec<u8>;
 
@@ -52,6 +54,41 @@ impl Lift {
 
     pub fn value(&self) -> Option<u64> {
         self.value
+    }
+
+    /// Returns a JSON representation of the Lift struct
+    pub fn json(&self) -> Value {
+        // Construct the lift JSON object
+        let mut obj = Map::new();
+
+        // Add account key
+        obj.insert(
+            "account".to_string(),
+            Value::String(hex::encode(self.account.serialize_xonly())),
+        );
+
+        // Add operator key
+        obj.insert(
+            "operator".to_string(),
+            Value::String(hex::encode(self.operator.serialize_xonly())),
+        );
+
+        // Add outpoint if present
+        if let Some(outpoint) = &self.outpoint {
+            obj.insert("outpoint".to_string(), Value::String(outpoint.to_string()));
+        } else {
+            obj.insert("outpoint".to_string(), Value::Null);
+        }
+
+        // Add value if present
+        if let Some(value) = self.value {
+            obj.insert("value".to_string(), Value::Number(value.into()));
+        } else {
+            obj.insert("value".to_string(), Value::Null);
+        }
+
+        // Return the lift JSON object
+        Value::Object(obj)
     }
 
     pub fn keys(&self) -> Vec<Point> {

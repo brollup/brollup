@@ -49,7 +49,14 @@ async fn lift_list(wallet: &WALLET) {
         _lift_wallet.lifts()
     };
 
-    match serde_json::to_string_pretty(&set) {
+    // Create a vector of JSON values from each Lift
+    let lift_jsons: Vec<serde_json::Value> = set.iter().map(|lift| lift.json()).collect();
+
+    // Create a JSON array from the vector
+    let json_array = serde_json::Value::Array(lift_jsons);
+
+    // Print the JSON array
+    match serde_json::to_string_pretty(&json_array) {
         Ok(json) => println!("{}", json),
         Err(_) => eprintln!("Error serializing lifts."),
     }
