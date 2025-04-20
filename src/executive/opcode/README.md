@@ -84,16 +84,18 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 |:---------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
 | OP_1ADD        | 0x8b     | 3   | in             | out                                     | 1 is added to the input.                                                     |
 | OP_1SUB        | 0x8c     | 3   | in             | out                                     | 1 is subtracted from the input.                                              |
-| OP_2MUL        | 0x8d     | 3   | in             | out                                     | The input is multiplied by 2.                                                |
-| OP_2DIV        | 0x8e     | 3   | in             | out                                     | The input is divided by 2.                                                   |
-| OP_NOT         | 0x91     | 3   | in             | out                                     | If the input is 0 or 1, it is flipped. Otherwise the output will be 0.       |
-| OP_0NOTEQUAL   | 0x92     | 3   | in             | out                                     | Returns 0 if the input is 0. 1 otherwise.                                    |
+| OP_2MUL        | 0x8d     | 5   | in             | out                                     | The input is multiplied by 2.                                                |
+| OP_2DIV        | 0x8e     | 5   | in             | out                                     | The input is divided by 2.                                                   |
+| OP_ADDMOD      | 0x8f     | 3   | a b            | out                                     | a is added to b modulo MAX::U256.                                            |
+| OP_MULMOD      | 0x90     | 3   | a b            | out                                     | a is multiplied by b modulo MAX::U256.                                       |
+| OP_NOT         | 0x91     | 1   | in             | out                                     | If the input is 0 or 1, it is flipped. Otherwise the output will be 0.       |
+| OP_0NOTEQUAL   | 0x92     | 1   | in             | out                                     | Returns 0 if the input is 0. 1 otherwise.                                    |
 | OP_ADD         | 0x93     | 3   | a b            | out                                     | a is added to b.                                                             |
 | OP_SUB         | 0x94     | 3   | a b            | out                                     | a is subtracted from b.                                                      |
-| OP_MUL         | 0x95     | 3   | a b            | out                                     | a is multiplied by b.                                                        |
-| OP_DIV         | 0x96     | 3   | a b            | out                                     | a is divided by b.                                                           |
-| OP_ADDMOD      | 0x8d     | 3   | a b            | out                                     | a is added to b modulo MAX::U256.                                            |
-| OP_MULMOD      | 0x8e     | 3   | a b            | out                                     | a is multiplied by b modulo MAX::U256.                                       |
+| OP_MUL         | 0x95     | 5   | a b            | out                                     | a is multiplied by b.                                                        |
+| OP_DIV         | 0x96     | 5   | a b            | out                                     | a is divided by b.                                                           |
+| OP_LSHIFT      | 0x98     | 3   | a b            | out                                     | Shifts a left b bits.                                                        |
+| OP_RSHIFT      | 0x99     | 3   | a b            | out                                     | Shifts a right b bits.                                                       |
 
 ## Memory
 
@@ -119,5 +121,4 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_RESERVED2   | 0x4f     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
 | OP_RESERVED3   | 0x50     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
 | OP_RESERVED4   | 0x8a     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
-| OP_RESERVED5   | 0x8f     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
-| OP_RESERVED6   | 0x90     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |
+| OP_RESERVED5   | 0x97     | 0   | Nothing.             | Fail.                  | Fails the execution.                                                            |

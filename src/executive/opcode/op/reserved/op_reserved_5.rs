@@ -16,8 +16,8 @@ impl OP_RESERVED_5 {
         Err(StackError::ReservedOpcodeEncounteredError)
     }
 
-    /// Returns the bytecode for the `OP_RESERVED_5` opcode.
+    /// Returns the bytecode for the `OP_RESERVED_5` opcode (0x97).
     pub fn bytecode() -> Vec<u8> {
-        vec![0x8f]
+        vec![0x97]
     }
 }

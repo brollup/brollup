@@ -1,6 +1,20 @@
 use super::compiler_error::{OpcodeCompileError, OpcodeDecompileError};
 use crate::executive::opcode::op::altstack::op_fromaltstack::OP_FROMALTSTACK;
 use crate::executive::opcode::op::altstack::op_toaltstack::OP_TOALTSTACK;
+use crate::executive::opcode::op::arithmetic::op_0notequal::OP_0NOTEQUAL;
+use crate::executive::opcode::op::arithmetic::op_1add::OP_1ADD;
+use crate::executive::opcode::op::arithmetic::op_1sub::OP_1SUB;
+use crate::executive::opcode::op::arithmetic::op_2div::OP_2DIV;
+use crate::executive::opcode::op::arithmetic::op_2mul::OP_2MUL;
+use crate::executive::opcode::op::arithmetic::op_add::OP_ADD;
+use crate::executive::opcode::op::arithmetic::op_addmod::OP_ADDMOD;
+use crate::executive::opcode::op::arithmetic::op_div::OP_DIV;
+use crate::executive::opcode::op::arithmetic::op_lshift::OP_LSHIFT;
+use crate::executive::opcode::op::arithmetic::op_mul::OP_MUL;
+use crate::executive::opcode::op::arithmetic::op_mulmod::OP_MULMOD;
+use crate::executive::opcode::op::arithmetic::op_not::OP_NOT;
+use crate::executive::opcode::op::arithmetic::op_rshift::OP_RSHIFT;
+use crate::executive::opcode::op::arithmetic::op_sub::OP_SUB;
 use crate::executive::opcode::op::bitwise::op_and::OP_AND;
 use crate::executive::opcode::op::bitwise::op_equal::OP_EQUAL;
 use crate::executive::opcode::op::bitwise::op_equalverify::OP_EQUALVERIFY;
@@ -40,6 +54,7 @@ use crate::executive::opcode::op::reserved::op_reserved_1::OP_RESERVED_1;
 use crate::executive::opcode::op::reserved::op_reserved_2::OP_RESERVED_2;
 use crate::executive::opcode::op::reserved::op_reserved_3::OP_RESERVED_3;
 use crate::executive::opcode::op::reserved::op_reserved_4::OP_RESERVED_4;
+use crate::executive::opcode::op::reserved::op_reserved_5::OP_RESERVED_5;
 use crate::executive::opcode::op::splice::op_cat::OP_CAT;
 use crate::executive::opcode::op::splice::op_left::OP_LEFT;
 use crate::executive::opcode::op::splice::op_right::OP_RIGHT;
@@ -83,6 +98,9 @@ impl OpcodeCompiler for Opcode {
                 .compiled_bytes()
                 .map(Ok)
                 .unwrap_or_else(|| Err(OpcodeCompileError::InvalidPushDataLength)),
+            Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
+            Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
+            Opcode::OP_RESERVED_3(_) => Ok(OP_RESERVED_3::bytecode()),
             Opcode::OP_TRUE(_) => Ok(OP_TRUE::bytecode()),
             Opcode::OP_2(_) => Ok(OP_2::bytecode()),
             Opcode::OP_3(_) => Ok(OP_3::bytecode()),
@@ -145,11 +163,23 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_EQUAL(_) => Ok(OP_EQUAL::bytecode()),
             Opcode::OP_EQUALVERIFY(_) => Ok(OP_EQUALVERIFY::bytecode()),
             Opcode::OP_REVERSE(_) => Ok(OP_REVERSE::bytecode()),
-            // Reserved opcodes
-            Opcode::OP_RESERVED_1(_) => Ok(OP_RESERVED_1::bytecode()),
-            Opcode::OP_RESERVED_2(_) => Ok(OP_RESERVED_2::bytecode()),
-            Opcode::OP_RESERVED_3(_) => Ok(OP_RESERVED_3::bytecode()),
+            // Arithmetic
             Opcode::OP_RESERVED_4(_) => Ok(OP_RESERVED_4::bytecode()),
+            Opcode::OP_1ADD(_) => Ok(OP_1ADD::bytecode()),
+            Opcode::OP_1SUB(_) => Ok(OP_1SUB::bytecode()),
+            Opcode::OP_2MUL(_) => Ok(OP_2MUL::bytecode()),
+            Opcode::OP_2DIV(_) => Ok(OP_2DIV::bytecode()),
+            Opcode::OP_ADDMOD(_) => Ok(OP_ADDMOD::bytecode()),
+            Opcode::OP_MULMOD(_) => Ok(OP_MULMOD::bytecode()),
+            Opcode::OP_NOT(_) => Ok(OP_NOT::bytecode()),
+            Opcode::OP_0NOTEQUAL(_) => Ok(OP_0NOTEQUAL::bytecode()),
+            Opcode::OP_ADD(_) => Ok(OP_ADD::bytecode()),
+            Opcode::OP_SUB(_) => Ok(OP_SUB::bytecode()),
+            Opcode::OP_MUL(_) => Ok(OP_MUL::bytecode()),
+            Opcode::OP_DIV(_) => Ok(OP_DIV::bytecode()),
+            Opcode::OP_RESERVED_5(_) => Ok(OP_RESERVED_5::bytecode()),
+            Opcode::OP_LSHIFT(_) => Ok(OP_LSHIFT::bytecode()),
+            Opcode::OP_RSHIFT(_) => Ok(OP_RSHIFT::bytecode()),
         }
     }
 
@@ -313,8 +343,24 @@ impl OpcodeCompiler for Opcode {
             0x87 => Ok(Opcode::OP_EQUAL(OP_EQUAL)),
             0x88 => Ok(Opcode::OP_EQUALVERIFY(OP_EQUALVERIFY)),
             0x89 => Ok(Opcode::OP_REVERSE(OP_REVERSE)),
-            // Reserved
+            // Arithmetic
             0x8a => Ok(Opcode::OP_RESERVED_4(OP_RESERVED_4)),
+            0x8b => Ok(Opcode::OP_1ADD(OP_1ADD)),
+            0x8c => Ok(Opcode::OP_1SUB(OP_1SUB)),
+            0x8d => Ok(Opcode::OP_2MUL(OP_2MUL)),
+            0x8e => Ok(Opcode::OP_2DIV(OP_2DIV)),
+            0x8f => Ok(Opcode::OP_ADDMOD(OP_ADDMOD)),
+            0x90 => Ok(Opcode::OP_MULMOD(OP_MULMOD)),
+            0x91 => Ok(Opcode::OP_NOT(OP_NOT)),
+            0x92 => Ok(Opcode::OP_0NOTEQUAL(OP_0NOTEQUAL)),
+            0x93 => Ok(Opcode::OP_ADD(OP_ADD)),
+            0x94 => Ok(Opcode::OP_SUB(OP_SUB)),
+            0x95 => Ok(Opcode::OP_MUL(OP_MUL)),
+            0x96 => Ok(Opcode::OP_DIV(OP_DIV)),
+            0x97 => Ok(Opcode::OP_RESERVED_5(OP_RESERVED_5)),
+            0x98 => Ok(Opcode::OP_LSHIFT(OP_LSHIFT)),
+            0x99 => Ok(Opcode::OP_RSHIFT(OP_RSHIFT)),
+            // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
     }

@@ -2,6 +2,12 @@
 
 use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
+    arithmetic::{
+        op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB, op_2div::OP_2DIV,
+        op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD, op_div::OP_DIV,
+        op_lshift::OP_LSHIFT, op_mul::OP_MUL, op_mulmod::OP_MULMOD, op_not::OP_NOT,
+        op_rshift::OP_RSHIFT, op_sub::OP_SUB,
+    },
     bitwise::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
         op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
@@ -18,7 +24,7 @@ use super::op::{
     },
     reserved::{
         op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2, op_reserved_3::OP_RESERVED_3,
-        op_reserved_4::OP_RESERVED_4,
+        op_reserved_4::OP_RESERVED_4, op_reserved_5::OP_RESERVED_5,
     },
     splice::{
         op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE, op_split::OP_SPLIT,
@@ -37,6 +43,10 @@ use std::fmt::{self, Display};
 pub enum Opcode {
     // Push
     OP_FALSE(OP_FALSE),
+    OP_PUSHDATA(OP_PUSHDATA),
+    OP_RESERVED_1(OP_RESERVED_1), //0x4e
+    OP_RESERVED_2(OP_RESERVED_2), //0x4f
+    OP_RESERVED_3(OP_RESERVED_3), //0x50
     OP_TRUE(OP_TRUE),
     OP_2(OP_2),
     OP_3(OP_3),
@@ -53,11 +63,6 @@ pub enum Opcode {
     OP_14(OP_14),
     OP_15(OP_15),
     OP_16(OP_16),
-    OP_PUSHDATA(OP_PUSHDATA),
-    OP_RESERVED_1(OP_RESERVED_1), //0x4e
-    OP_RESERVED_2(OP_RESERVED_2), //0x4f
-    OP_RESERVED_3(OP_RESERVED_3), //0x50
-    OP_RESERVED_4(OP_RESERVED_4), //0x89
     // Flow
     OP_NOP(OP_NOP),
     OP_RETURNERR(OP_RETURNERR),
@@ -104,6 +109,23 @@ pub enum Opcode {
     OP_EQUAL(OP_EQUAL),
     OP_EQUALVERIFY(OP_EQUALVERIFY),
     OP_REVERSE(OP_REVERSE),
+    // Arithmetic
+    OP_RESERVED_4(OP_RESERVED_4), //0x89
+    OP_1ADD(OP_1ADD),
+    OP_1SUB(OP_1SUB),
+    OP_2MUL(OP_2MUL),
+    OP_2DIV(OP_2DIV),
+    OP_ADDMOD(OP_ADDMOD),
+    OP_MULMOD(OP_MULMOD),
+    OP_NOT(OP_NOT),
+    OP_0NOTEQUAL(OP_0NOTEQUAL),
+    OP_ADD(OP_ADD),
+    OP_SUB(OP_SUB),
+    OP_MUL(OP_MUL),
+    OP_DIV(OP_DIV),
+    OP_RESERVED_5(OP_RESERVED_5), //0x97
+    OP_LSHIFT(OP_LSHIFT),
+    OP_RSHIFT(OP_RSHIFT),
 }
 
 impl Display for Opcode {
@@ -111,6 +133,12 @@ impl Display for Opcode {
         match self {
             // Data push
             Opcode::OP_FALSE(_) => write!(f, "OP_FALSE"),
+            Opcode::OP_PUSHDATA(op_pushdata) => {
+                write!(f, "OP_PUSHDATA 0x{}", hex::encode(&op_pushdata.0))
+            }
+            Opcode::OP_RESERVED_1(_) => write!(f, "OP_RESERVED_1"),
+            Opcode::OP_RESERVED_2(_) => write!(f, "OP_RESERVED_2"),
+            Opcode::OP_RESERVED_3(_) => write!(f, "OP_RESERVED_3"),
             Opcode::OP_TRUE(_) => write!(f, "OP_TRUE"),
             Opcode::OP_2(_) => write!(f, "OP_2"),
             Opcode::OP_3(_) => write!(f, "OP_3"),
@@ -127,13 +155,6 @@ impl Display for Opcode {
             Opcode::OP_14(_) => write!(f, "OP_14"),
             Opcode::OP_15(_) => write!(f, "OP_15"),
             Opcode::OP_16(_) => write!(f, "OP_16"),
-            Opcode::OP_PUSHDATA(op_pushdata) => {
-                write!(f, "OP_PUSHDATA 0x{}", hex::encode(&op_pushdata.0))
-            }
-            Opcode::OP_RESERVED_1(_) => write!(f, "OP_RESERVED_1"),
-            Opcode::OP_RESERVED_2(_) => write!(f, "OP_RESERVED_2"),
-            Opcode::OP_RESERVED_3(_) => write!(f, "OP_RESERVED_3"),
-            Opcode::OP_RESERVED_4(_) => write!(f, "OP_RESERVED_4"),
             // Flow
             Opcode::OP_NOP(_) => write!(f, "OP_NOP"),
             Opcode::OP_RETURNERR(_) => write!(f, "OP_RETURNERR"),
@@ -180,6 +201,23 @@ impl Display for Opcode {
             Opcode::OP_EQUAL(_) => write!(f, "OP_EQUAL"),
             Opcode::OP_EQUALVERIFY(_) => write!(f, "OP_EQUALVERIFY"),
             Opcode::OP_REVERSE(_) => write!(f, "OP_REVERSE"),
+            // Arithmetic
+            Opcode::OP_RESERVED_4(_) => write!(f, "OP_RESERVED_4"),
+            Opcode::OP_1ADD(_) => write!(f, "OP_1ADD"),
+            Opcode::OP_1SUB(_) => write!(f, "OP_1SUB"),
+            Opcode::OP_2MUL(_) => write!(f, "OP_2MUL"),
+            Opcode::OP_2DIV(_) => write!(f, "OP_2DIV"),
+            Opcode::OP_ADDMOD(_) => write!(f, "OP_ADDMOD"),
+            Opcode::OP_MULMOD(_) => write!(f, "OP_MULMOD"),
+            Opcode::OP_NOT(_) => write!(f, "OP_NOT"),
+            Opcode::OP_0NOTEQUAL(_) => write!(f, "OP_0NOTEQUAL"),
+            Opcode::OP_ADD(_) => write!(f, "OP_ADD"),
+            Opcode::OP_SUB(_) => write!(f, "OP_SUB"),
+            Opcode::OP_MUL(_) => write!(f, "OP_MUL"),
+            Opcode::OP_DIV(_) => write!(f, "OP_DIV"),
+            Opcode::OP_RESERVED_5(_) => write!(f, "OP_RESERVED_5"),
+            Opcode::OP_LSHIFT(_) => write!(f, "OP_LSHIFT"),
+            Opcode::OP_RSHIFT(_) => write!(f, "OP_RSHIFT"),
         }
     }
 }

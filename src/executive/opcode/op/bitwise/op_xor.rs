@@ -38,7 +38,7 @@ impl OP_XOR {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_XOR` opcode.
+    /// Returns the bytecode for the `OP_XOR` opcode (0x86).
     pub fn bytecode() -> Vec<u8> {
         vec![0x86]
     }

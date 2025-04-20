@@ -1,46 +1,39 @@
 use crate::executive::{
-    opcode::ops::OP_SUB_OPS,
+    opcode::ops::OP_2MUL_OPS,
     stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
-        stack_uint::StackItemUintExt,
+        stack_error::StackError,
+        stack_holder::StackHolder,
+        stack_item::StackItem,
+        stack_uint::{SafeConverter, StackItemUintExt, StackUint},
     },
 };
 
-/// Subtracts two items on the main stack.
+/// The input is multiplied by 2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_SUB;
+pub struct OP_2MUL;
 
-impl OP_SUB {
+impl OP_2MUL {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
             return Ok(());
         }
 
-        // Pop two items from the main stack.
-        let item_1 = stack_holder.pop()?;
-        let item_2 = stack_holder.pop()?;
+        // Pop the top item from the main stack.
+        let item = stack_holder.pop()?;
 
-        // Irem 1 uint value;
-        let item_1_uint = item_1
+        // Convert the item to a `StackUint`.
+        let item_uint = item
             .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
-        // Item 2 uint value;
-        let item_2_uint = item_2
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
-
-        // Subtract the two values.
-        match item_1_uint.checked_sub(item_2_uint) {
+        // Multiply the item by 2.
+        match item_uint.checked_mul(StackUint::from_u64(2)) {
             // If the result is an overflow, return False (an empty stack item).
             None => {
                 // Push old value to the main stack.
-                stack_holder.push(item_1)?;
-
-                // Push old value to the main stack.
-                stack_holder.push(item_2)?;
+                stack_holder.push(item)?;
 
                 // Push False (an empty stack item) to the main stack.
                 stack_holder.push(StackItem::false_item())?;
@@ -56,13 +49,13 @@ impl OP_SUB {
         };
 
         // Increment the ops counter.
-        stack_holder.increment_ops(OP_SUB_OPS)?;
+        stack_holder.increment_ops(OP_2MUL_OPS)?;
 
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_SUB` opcode (0x94).
+    /// Returns the bytecode for the `OP_2MUL` opcode (0x8d).
     pub fn bytecode() -> Vec<u8> {
-        vec![0x94]
+        vec![0x8d]
     }
 }

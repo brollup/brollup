@@ -9,7 +9,7 @@ use crate::executive::{
 };
 
 /// Adds two items on the main stack and returns the result modulo MAX::U256.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_ADDMOD;
 
@@ -44,5 +44,10 @@ impl OP_ADDMOD {
         stack_holder.push(result)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_ADDMOD` opcode (0x8f).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x8f]
     }
 }

@@ -30,7 +30,7 @@ impl OP_INVERT {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_INVERT` opcode.
+    /// Returns the bytecode for the `OP_INVERT` opcode (0x83).
     pub fn bytecode() -> Vec<u8> {
         vec![0x83]
     }

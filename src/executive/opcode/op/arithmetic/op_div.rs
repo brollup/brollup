@@ -9,7 +9,7 @@ use crate::executive::{
 };
 
 /// Divides two items on the main stack. Returns the modulo and division result.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_DIV;
 
@@ -34,9 +34,6 @@ impl OP_DIV {
             .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_DIV_OPS)?;
-
         // Check if the divisor is zero.
         match item_2_uint == StackUint::zero() {
             true => {
@@ -47,7 +44,7 @@ impl OP_DIV {
                 stack_holder.push(item_2)?;
 
                 // Push False (an empty stack item) to the main stack.
-                stack_holder.push(StackItem::new(vec![]))?;
+                stack_holder.push(StackItem::false_item())?;
             }
             false => {
                 // Divide the two values.
@@ -60,10 +57,18 @@ impl OP_DIV {
                 stack_holder.push(StackItem::from_stack_uint(division))?;
 
                 // Push true to the main stack.
-                stack_holder.push(StackItem::new(vec![0x01]))?;
+                stack_holder.push(StackItem::true_item())?;
             }
         }
 
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_DIV_OPS)?;
+
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_DIV` opcode (0x96).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x96]
     }
 }

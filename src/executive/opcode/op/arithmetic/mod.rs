@@ -1,6 +1,14 @@
+pub mod op_0notequal;
+pub mod op_1add;
+pub mod op_1sub;
+pub mod op_2div;
+pub mod op_2mul;
 pub mod op_add;
 pub mod op_addmod;
 pub mod op_div;
+pub mod op_lshift;
 pub mod op_mul;
 pub mod op_mulmod;
+pub mod op_not;
+pub mod op_rshift;
 pub mod op_sub;

@@ -30,7 +30,7 @@ impl OP_EQUALVERIFY {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_EQUALVERIFY` opcode.
+    /// Returns the bytecode for the `OP_EQUALVERIFY` opcode (0x88).
     pub fn bytecode() -> Vec<u8> {
         vec![0x88]
     }

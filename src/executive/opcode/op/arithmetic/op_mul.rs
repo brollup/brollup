@@ -7,7 +7,7 @@ use crate::executive::{
 };
 
 /// Multiplies two items on the main stack.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_MUL;
 
@@ -32,9 +32,6 @@ impl OP_MUL {
             .to_stack_uint()
             .ok_or(StackError::StackUintMaxOverflowError)?;
 
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_MUL_OPS)?;
-
         // Multiply the two values.
         match item_1_uint.checked_mul(item_2_uint) {
             // If the result is an overflow, return False (an empty stack item).
@@ -46,7 +43,7 @@ impl OP_MUL {
                 stack_holder.push(item_2)?;
 
                 // Push False (an empty stack item) to the main stack.
-                stack_holder.push(StackItem::new(vec![]))?;
+                stack_holder.push(StackItem::false_item())?;
             }
             // If the result is not an overflow, return the result.
             Some(result) => {
@@ -54,10 +51,18 @@ impl OP_MUL {
                 stack_holder.push(StackItem::from_stack_uint(result))?;
 
                 // Push True to the main stack.
-                stack_holder.push(StackItem::new(vec![0x01]))?;
+                stack_holder.push(StackItem::true_item())?;
             }
         };
 
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_MUL_OPS)?;
+
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_MUL` opcode (0x95).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x95]
     }
 }

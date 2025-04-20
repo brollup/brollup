@@ -70,12 +70,20 @@ pub const OP_EQUALVERIFY_OPS: u32 = 2;
 pub const OP_REVERSE_OPS: u32 = 3;
 
 // Arithmetic
-pub const OP_ADD_OPS: u32 = 3;
-pub const OP_SUB_OPS: u32 = 3;
-pub const OP_MUL_OPS: u32 = 3;
-pub const OP_DIV_OPS: u32 = 3;
+pub const OP_1ADD_OPS: u32 = 3;
+pub const OP_1SUB_OPS: u32 = 3;
+pub const OP_2MUL_OPS: u32 = 5;
+pub const OP_2DIV_OPS: u32 = 5;
 pub const OP_ADDMOD_OPS: u32 = 3;
 pub const OP_MULMOD_OPS: u32 = 3;
+pub const OP_NOT_OPS: u32 = 1;
+pub const OP_0NOTEQUAL_OPS: u32 = 1;
+pub const OP_ADD_OPS: u32 = 3;
+pub const OP_SUB_OPS: u32 = 3;
+pub const OP_MUL_OPS: u32 = 5;
+pub const OP_DIV_OPS: u32 = 5;
+pub const OP_LSHIFT_OPS: u32 = 3;
+pub const OP_RSHIFT_OPS: u32 = 3;
 
 // Memory
 pub const OP_MREAD_OPS: u32 = 5;

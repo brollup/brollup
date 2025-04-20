@@ -38,7 +38,7 @@ impl OP_OR {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_OR` opcode.
+    /// Returns the bytecode for the `OP_OR` opcode (0x85).
     pub fn bytecode() -> Vec<u8> {
         vec![0x85]
     }

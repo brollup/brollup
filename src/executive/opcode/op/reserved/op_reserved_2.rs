@@ -16,7 +16,7 @@ impl OP_RESERVED_2 {
         Err(StackError::ReservedOpcodeEncounteredError)
     }
 
-    /// Returns the bytecode for the `OP_RESERVED_2` opcode.
+    /// Returns the bytecode for the `OP_RESERVED_2` opcode (0x4f).
     pub fn bytecode() -> Vec<u8> {
         vec![0x4f]
     }

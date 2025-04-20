@@ -34,7 +34,7 @@ impl OP_EQUAL {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_EQUAL` opcode.
+    /// Returns the bytecode for the `OP_EQUAL` opcode (0x87).
     pub fn bytecode() -> Vec<u8> {
         vec![0x87]
     }

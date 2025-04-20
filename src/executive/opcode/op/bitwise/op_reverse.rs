@@ -3,7 +3,7 @@ use crate::executive::{
     stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
 };
 
-/// Reverses the bytes of the input.
+/// Reverses the byte order of the popped stack item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_REVERSE;
@@ -33,7 +33,7 @@ impl OP_REVERSE {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_REVERSE` opcode.
+    /// Returns the bytecode for the `OP_REVERSE` opcode (0x89).
     pub fn bytecode() -> Vec<u8> {
         vec![0x89]
     }

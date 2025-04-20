@@ -9,7 +9,7 @@ use crate::executive::{
 };
 
 /// Multiplies two items on the main stack and returns the result modulo MAX::U256.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_MULMOD;
 
@@ -44,5 +44,10 @@ impl OP_MULMOD {
         stack_holder.push(result)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_MULMOD` opcode (0x90).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0x90]
     }
 }
