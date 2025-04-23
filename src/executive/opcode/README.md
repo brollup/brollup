@@ -80,22 +80,34 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Arithmetic
 
-| Opcode         | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
-|:---------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_1ADD        | 0x8b     | 3   | in             | out                                     | 1 is added to the input.                                                     |
-| OP_1SUB        | 0x8c     | 3   | in             | out                                     | 1 is subtracted from the input.                                              |
-| OP_2MUL        | 0x8d     | 5   | in             | out                                     | The input is multiplied by 2.                                                |
-| OP_2DIV        | 0x8e     | 5   | in             | out                                     | The input is divided by 2.                                                   |
-| OP_ADDMOD      | 0x8f     | 3   | a b            | out                                     | a is added to b modulo MAX::U256.                                            |
-| OP_MULMOD      | 0x90     | 3   | a b            | out                                     | a is multiplied by b modulo MAX::U256.                                       |
-| OP_NOT         | 0x91     | 1   | in             | out                                     | If the input is 0 or 1, it is flipped. Otherwise the output will be 0.       |
-| OP_0NOTEQUAL   | 0x92     | 1   | in             | out                                     | Returns 0 if the input is 0. 1 otherwise.                                    |
-| OP_ADD         | 0x93     | 3   | a b            | out                                     | a is added to b.                                                             |
-| OP_SUB         | 0x94     | 3   | a b            | out                                     | a is subtracted from b.                                                      |
-| OP_MUL         | 0x95     | 5   | a b            | out                                     | a is multiplied by b.                                                        |
-| OP_DIV         | 0x96     | 5   | a b            | out                                     | a is divided by b.                                                           |
-| OP_LSHIFT      | 0x98     | 3   | a b            | out                                     | Shifts a left b bits.                                                        |
-| OP_RSHIFT      | 0x99     | 3   | a b            | out                                     | Shifts a right b bits.                                                       |
+| Opcode                | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
+|:----------------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_1ADD               | 0x8b     | 3   | in             | out                                     | 1 is added to the input.                                                     |
+| OP_1SUB               | 0x8c     | 3   | in             | out                                     | 1 is subtracted from the input.                                              |
+| OP_2MUL               | 0x8d     | 5   | in             | out                                     | The input is multiplied by 2.                                                |
+| OP_2DIV               | 0x8e     | 5   | in             | out                                     | The input is divided by 2.                                                   |
+| OP_ADDMOD             | 0x8f     | 3   | a b            | out                                     | a is added to b modulo MAX::U256.                                            |
+| OP_MULMOD             | 0x90     | 3   | a b            | out                                     | a is multiplied by b modulo MAX::U256.                                       |
+| OP_NOT                | 0x91     | 1   | in             | out                                     | If the input is 0 or 1, it is flipped. Otherwise the output will be 0.       |
+| OP_0NOTEQUAL          | 0x92     | 1   | in             | out                                     | Returns 0 if the input is 0. 1 otherwise.                                    |
+| OP_ADD                | 0x93     | 3   | a b            | out                                     | a is added to b.                                                             |
+| OP_SUB                | 0x94     | 3   | a b            | out                                     | a is subtracted from b.                                                      |
+| OP_MUL                | 0x95     | 5   | a b            | out                                     | a is multiplied by b.                                                        |
+| OP_DIV                | 0x96     | 5   | a b            | out                                     | a is divided by b.                                                           |
+| OP_LSHIFT             | 0x98     | 3   | a b            | out                                     | Shifts a left b bits.                                                        |
+| OP_RSHIFT             | 0x99     | 3   | a b            | out                                     | Shifts a right b bits.                                                       |
+| OP_BOOLAND            | 0x9a     | 1   | a b            | out                                     | If both a and b are not 0, the output is 1. Otherwise 0.                     |
+| OP_BOOLOR             | 0x9b     | 1   | a b            | out                                     | If a or b is not 0, the output is 1. Otherwise 0.                            |
+| OP_NUMEQUAL           | 0x9c     | 1   | a b            | out                                     | Returns 1 if the numbers are equal, 0 otherwise.                             |
+| OP_NUMEQUALVERIFY     | 0x9d     | 2   | a b            | out                                     | Same as OP_NUMEQUAL, but runs OP_VERIFY afterward.                           |
+| OP_NUMNOTEQUAL        | 0x9e     | 1   | a b            | out                                     | Returns 1 if the numbers are not equal, 0 otherwise.                         |
+| OP_LESSTHAN           | 0x9f     | 1   | a b            | out                                     | Returns 1 if a is less than b, 0 otherwise.                                  |
+| OP_GREATERTHAN        | 0xa0     | 1   | a b            | out                                     | Returns 1 if a is greater than b, 0 otherwise.                               |
+| OP_LESSTHANOREQUAL    | 0xa1     | 1   | a b            | out                                     | Returns 1 if a is less than or equal to b, 0 otherwise.                      |
+| OP_GREATERTHANOREQUAL | 0xa2     | 1   | a b            | out                                     | Returns 1 if a is greater than or equal to b, 0 otherwise.                   |
+| OP_MIN                | 0xa3     | 1   | a b            | out                                     | Returns the smaller of a and b.                                              |
+| OP_MAX                | 0xa4     | 1   | a b            | out                                     | Returns the larger of a and b.                                               |
+| OP_WITHIN             | 0xa5     | 1   | x min max      | out                                     | Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.  |
 
 ## Memory
 

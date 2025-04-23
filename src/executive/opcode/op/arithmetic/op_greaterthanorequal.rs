@@ -1,0 +1,53 @@
+use crate::executive::{
+    opcode::ops::OP_GREATERTHANOREQUAL_OPS,
+    stack::{
+        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_uint::StackItemUintExt,
+    },
+};
+
+/// Returns 1 if a is greater than or equal to b, 0 otherwise.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub struct OP_GREATERTHANOREQUAL;
+
+impl OP_GREATERTHANOREQUAL {
+    pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+        // If this is not the active execution, return immediately.
+        if !stack_holder.active_execution() {
+            return Ok(());
+        }
+
+        // Pop the first item from the main stack.
+        let item_b = stack_holder.pop()?;
+
+        // Pop the second item from the main stack.
+        let item_a = stack_holder.pop()?;
+
+        // Convert item 1 to a stack uint.
+        let num_b = item_b
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?;
+
+        // Convert item 2 to a stack uint.
+        let num_a = item_a
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?;
+
+        // Push 1 if a is greater than or equal to b, 0 otherwise.
+        match num_a >= num_b {
+            true => stack_holder.push(StackItem::true_item())?,
+            false => stack_holder.push(StackItem::false_item())?,
+        }
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(OP_GREATERTHANOREQUAL_OPS)?;
+
+        Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_GREATERTHANOREQUAL` opcode (0xa2).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0xa2]
+    }
+}

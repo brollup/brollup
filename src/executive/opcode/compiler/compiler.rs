@@ -8,13 +8,25 @@ use crate::executive::opcode::op::arithmetic::op_2div::OP_2DIV;
 use crate::executive::opcode::op::arithmetic::op_2mul::OP_2MUL;
 use crate::executive::opcode::op::arithmetic::op_add::OP_ADD;
 use crate::executive::opcode::op::arithmetic::op_addmod::OP_ADDMOD;
+use crate::executive::opcode::op::arithmetic::op_booland::OP_BOOLAND;
+use crate::executive::opcode::op::arithmetic::op_boolor::OP_BOOLOR;
 use crate::executive::opcode::op::arithmetic::op_div::OP_DIV;
+use crate::executive::opcode::op::arithmetic::op_greaterthan::OP_GREATERTHAN;
+use crate::executive::opcode::op::arithmetic::op_greaterthanorequal::OP_GREATERTHANOREQUAL;
+use crate::executive::opcode::op::arithmetic::op_lessthan::OP_LESSTHAN;
+use crate::executive::opcode::op::arithmetic::op_lessthanorequal::OP_LESSTHANOREQUAL;
 use crate::executive::opcode::op::arithmetic::op_lshift::OP_LSHIFT;
+use crate::executive::opcode::op::arithmetic::op_max::OP_MAX;
+use crate::executive::opcode::op::arithmetic::op_min::OP_MIN;
 use crate::executive::opcode::op::arithmetic::op_mul::OP_MUL;
 use crate::executive::opcode::op::arithmetic::op_mulmod::OP_MULMOD;
 use crate::executive::opcode::op::arithmetic::op_not::OP_NOT;
+use crate::executive::opcode::op::arithmetic::op_numequal::OP_NUMEQUAL;
+use crate::executive::opcode::op::arithmetic::op_numequalverify::OP_NUMEQUALVERIFY;
+use crate::executive::opcode::op::arithmetic::op_numnotequal::OP_NUMNOTEQUAL;
 use crate::executive::opcode::op::arithmetic::op_rshift::OP_RSHIFT;
 use crate::executive::opcode::op::arithmetic::op_sub::OP_SUB;
+use crate::executive::opcode::op::arithmetic::op_within::OP_WITHIN;
 use crate::executive::opcode::op::bitwise::op_and::OP_AND;
 use crate::executive::opcode::op::bitwise::op_equal::OP_EQUAL;
 use crate::executive::opcode::op::bitwise::op_equalverify::OP_EQUALVERIFY;
@@ -180,6 +192,18 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_RESERVED_5(_) => Ok(OP_RESERVED_5::bytecode()),
             Opcode::OP_LSHIFT(_) => Ok(OP_LSHIFT::bytecode()),
             Opcode::OP_RSHIFT(_) => Ok(OP_RSHIFT::bytecode()),
+            Opcode::OP_BOOLAND(_) => Ok(OP_BOOLAND::bytecode()),
+            Opcode::OP_BOOLOR(_) => Ok(OP_BOOLOR::bytecode()),
+            Opcode::OP_NUMEQUAL(_) => Ok(OP_NUMEQUAL::bytecode()),
+            Opcode::OP_NUMEQUALVERIFY(_) => Ok(OP_NUMEQUALVERIFY::bytecode()),
+            Opcode::OP_NUMNOTEQUAL(_) => Ok(OP_NUMNOTEQUAL::bytecode()),
+            Opcode::OP_LESSTHAN(_) => Ok(OP_LESSTHAN::bytecode()),
+            Opcode::OP_GREATERTHAN(_) => Ok(OP_GREATERTHAN::bytecode()),
+            Opcode::OP_LESSTHANOREQUAL(_) => Ok(OP_LESSTHANOREQUAL::bytecode()),
+            Opcode::OP_GREATERTHANOREQUAL(_) => Ok(OP_GREATERTHANOREQUAL::bytecode()),
+            Opcode::OP_MIN(_) => Ok(OP_MIN::bytecode()),
+            Opcode::OP_MAX(_) => Ok(OP_MAX::bytecode()),
+            Opcode::OP_WITHIN(_) => Ok(OP_WITHIN::bytecode()),
         }
     }
 
@@ -360,6 +384,18 @@ impl OpcodeCompiler for Opcode {
             0x97 => Ok(Opcode::OP_RESERVED_5(OP_RESERVED_5)),
             0x98 => Ok(Opcode::OP_LSHIFT(OP_LSHIFT)),
             0x99 => Ok(Opcode::OP_RSHIFT(OP_RSHIFT)),
+            0x9a => Ok(Opcode::OP_BOOLAND(OP_BOOLAND)),
+            0x9b => Ok(Opcode::OP_BOOLOR(OP_BOOLOR)),
+            0x9c => Ok(Opcode::OP_NUMEQUAL(OP_NUMEQUAL)),
+            0x9d => Ok(Opcode::OP_NUMEQUALVERIFY(OP_NUMEQUALVERIFY)),
+            0x9e => Ok(Opcode::OP_NUMNOTEQUAL(OP_NUMNOTEQUAL)),
+            0x9f => Ok(Opcode::OP_LESSTHAN(OP_LESSTHAN)),
+            0xa0 => Ok(Opcode::OP_GREATERTHAN(OP_GREATERTHAN)),
+            0xa1 => Ok(Opcode::OP_LESSTHANOREQUAL(OP_LESSTHANOREQUAL)),
+            0xa2 => Ok(Opcode::OP_GREATERTHANOREQUAL(OP_GREATERTHANOREQUAL)),
+            0xa3 => Ok(Opcode::OP_MIN(OP_MIN)),
+            0xa4 => Ok(Opcode::OP_MAX(OP_MAX)),
+            0xa5 => Ok(Opcode::OP_WITHIN(OP_WITHIN)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }

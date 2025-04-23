@@ -84,6 +84,18 @@ pub const OP_MUL_OPS: u32 = 5;
 pub const OP_DIV_OPS: u32 = 5;
 pub const OP_LSHIFT_OPS: u32 = 3;
 pub const OP_RSHIFT_OPS: u32 = 3;
+pub const OP_BOOLAND_OPS: u32 = 2;
+pub const OP_BOOLOR_OPS: u32 = 2;
+pub const OP_NUMEQUAL_OPS: u32 = 1;
+pub const OP_NUMEQUALVERIFY_OPS: u32 = 2;
+pub const OP_NUMNOTEQUAL_OPS: u32 = 1;
+pub const OP_LESSTHAN_OPS: u32 = 1;
+pub const OP_GREATERTHAN_OPS: u32 = 1;
+pub const OP_LESSTHANOREQUAL_OPS: u32 = 1;
+pub const OP_GREATERTHANOREQUAL_OPS: u32 = 1;
+pub const OP_MIN_OPS: u32 = 1;
+pub const OP_MAX_OPS: u32 = 1;
+pub const OP_WITHIN_OPS: u32 = 1;
 
 // Memory
 pub const OP_MREAD_OPS: u32 = 5;

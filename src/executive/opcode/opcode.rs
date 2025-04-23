@@ -4,9 +4,13 @@ use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
     arithmetic::{
         op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB, op_2div::OP_2DIV,
-        op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD, op_div::OP_DIV,
-        op_lshift::OP_LSHIFT, op_mul::OP_MUL, op_mulmod::OP_MULMOD, op_not::OP_NOT,
-        op_rshift::OP_RSHIFT, op_sub::OP_SUB,
+        op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD, op_booland::OP_BOOLAND,
+        op_boolor::OP_BOOLOR, op_div::OP_DIV, op_greaterthan::OP_GREATERTHAN,
+        op_greaterthanorequal::OP_GREATERTHANOREQUAL, op_lessthan::OP_LESSTHAN,
+        op_lessthanorequal::OP_LESSTHANOREQUAL, op_lshift::OP_LSHIFT, op_max::OP_MAX,
+        op_min::OP_MIN, op_mul::OP_MUL, op_mulmod::OP_MULMOD, op_not::OP_NOT,
+        op_numequal::OP_NUMEQUAL, op_numequalverify::OP_NUMEQUALVERIFY,
+        op_numnotequal::OP_NUMNOTEQUAL, op_rshift::OP_RSHIFT, op_sub::OP_SUB, op_within::OP_WITHIN,
     },
     bitwise::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
@@ -126,6 +130,18 @@ pub enum Opcode {
     OP_RESERVED_5(OP_RESERVED_5), //0x97
     OP_LSHIFT(OP_LSHIFT),
     OP_RSHIFT(OP_RSHIFT),
+    OP_BOOLAND(OP_BOOLAND),
+    OP_BOOLOR(OP_BOOLOR),
+    OP_NUMEQUAL(OP_NUMEQUAL),
+    OP_NUMEQUALVERIFY(OP_NUMEQUALVERIFY),
+    OP_NUMNOTEQUAL(OP_NUMNOTEQUAL),
+    OP_LESSTHAN(OP_LESSTHAN),
+    OP_GREATERTHAN(OP_GREATERTHAN),
+    OP_LESSTHANOREQUAL(OP_LESSTHANOREQUAL),
+    OP_GREATERTHANOREQUAL(OP_GREATERTHANOREQUAL),
+    OP_MIN(OP_MIN),
+    OP_MAX(OP_MAX),
+    OP_WITHIN(OP_WITHIN),
 }
 
 impl Display for Opcode {
@@ -218,6 +234,18 @@ impl Display for Opcode {
             Opcode::OP_RESERVED_5(_) => write!(f, "OP_RESERVED_5"),
             Opcode::OP_LSHIFT(_) => write!(f, "OP_LSHIFT"),
             Opcode::OP_RSHIFT(_) => write!(f, "OP_RSHIFT"),
+            Opcode::OP_BOOLAND(_) => write!(f, "OP_BOOLAND"),
+            Opcode::OP_BOOLOR(_) => write!(f, "OP_BOOLOR"),
+            Opcode::OP_NUMEQUAL(_) => write!(f, "OP_NUMEQUAL"),
+            Opcode::OP_NUMEQUALVERIFY(_) => write!(f, "OP_NUMEQUALVERIFY"),
+            Opcode::OP_NUMNOTEQUAL(_) => write!(f, "OP_NUMNOTEQUAL"),
+            Opcode::OP_LESSTHAN(_) => write!(f, "OP_LESSTHAN"),
+            Opcode::OP_GREATERTHAN(_) => write!(f, "OP_GREATERTHAN"),
+            Opcode::OP_LESSTHANOREQUAL(_) => write!(f, "OP_LESSTHANOREQUAL"),
+            Opcode::OP_GREATERTHANOREQUAL(_) => write!(f, "OP_GREATERTHANOREQUAL"),
+            Opcode::OP_MIN(_) => write!(f, "OP_MIN"),
+            Opcode::OP_MAX(_) => write!(f, "OP_MAX"),
+            Opcode::OP_WITHIN(_) => write!(f, "OP_WITHIN"),
         }
     }
 }
