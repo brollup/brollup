@@ -1,6 +1,7 @@
 pub mod altstack;
 pub mod arithmetic;
 pub mod bitwise;
+pub mod crypto;
 pub mod flow;
 pub mod memory;
 pub mod push;

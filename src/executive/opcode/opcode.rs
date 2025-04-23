@@ -16,6 +16,10 @@ use super::op::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
         op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
     },
+    crypto::{
+        op_hash160::OP_HASH160, op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160,
+        op_sha1::OP_SHA1, op_sha256::OP_SHA256,
+    },
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
         op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
@@ -142,6 +146,12 @@ pub enum Opcode {
     OP_MIN(OP_MIN),
     OP_MAX(OP_MAX),
     OP_WITHIN(OP_WITHIN),
+    // Crypto
+    OP_RIPEMD160(OP_RIPEMD160),
+    OP_SHA1(OP_SHA1),
+    OP_SHA256(OP_SHA256),
+    OP_HASH160(OP_HASH160),
+    OP_HASH256(OP_HASH256),
 }
 
 impl Display for Opcode {
@@ -246,6 +256,12 @@ impl Display for Opcode {
             Opcode::OP_MIN(_) => write!(f, "OP_MIN"),
             Opcode::OP_MAX(_) => write!(f, "OP_MAX"),
             Opcode::OP_WITHIN(_) => write!(f, "OP_WITHIN"),
+            // Crypto
+            Opcode::OP_RIPEMD160(_) => write!(f, "OP_RIPEMD160"),
+            Opcode::OP_SHA1(_) => write!(f, "OP_SHA1"),
+            Opcode::OP_SHA256(_) => write!(f, "OP_SHA256"),
+            Opcode::OP_HASH160(_) => write!(f, "OP_HASH160"),
+            Opcode::OP_HASH256(_) => write!(f, "OP_HASH256"),
         }
     }
 }

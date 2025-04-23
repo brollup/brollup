@@ -1,7 +1,7 @@
 use crate::inscriptive::baked;
 use sha2::{Digest, Sha256};
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum HashTag {
     VSEEncryptionAuth,
     Sighash,
@@ -25,6 +25,9 @@ pub enum HashTag {
     MusigNonceCoef,
     // BLSSecretKey
     BLSSecretKey,
+    // Custom
+    CustomString(String),
+    CustomBytes(Vec<u8>),
 }
 
 impl HashTag {
@@ -50,6 +53,8 @@ impl HashTag {
             HashTag::MusigNonceCoef => format!("MuSig/noncecoef"),
             HashTag::PayloadAuth => format!("{}/{}", baked::PROJECT_TAG, "payloadauth"),
             HashTag::BLSSecretKey => format!("{}/{}", baked::PROJECT_TAG, "bls/secretkey"),
+            HashTag::CustomString(tag) => tag.clone(),
+            HashTag::CustomBytes(tag) => tag.clone().into_iter().map(|b| b as char).collect(),
         }
     }
 }
@@ -73,7 +78,10 @@ where
 {
     fn hash(&self, tag: Option<HashTag>) -> [u8; 32] {
         let tag_hash = match tag {
-            Some(tag) => sha256(tag.as_str().as_bytes()),
+            Some(tag) => match tag {
+                HashTag::CustomBytes(tag) => sha256(tag.as_slice()),
+                _ => sha256(tag.as_str().as_bytes()),
+            },
             None => [0xffu8; 32],
         };
 

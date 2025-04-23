@@ -109,6 +109,17 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_MAX                | 0xa4     | 1   | a b            | out                                     | Returns the larger of a and b.                                               |
 | OP_WITHIN             | 0xa5     | 1   | x min max      | out                                     | Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.  |
 
+## Crypto
+
+| Opcode                | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
+|:----------------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_RIPEMD160          | 0xa6     | 10  | preimage       | hash                                    | The input is hashed using RIPEMD-160.                                        |
+| OP_SHA1               | 0xa7     | 10  | preimage       | hash                                    | The input is hashed using SHA-1.                                             |
+| OP_SHA256             | 0xa8     | 10  | preimage       | hash                                    | The input is hashed using SHA-256.                                           |
+| OP_HASH160            | 0xa9     | 20  | preimage       | hash                                    | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
+| OP_HASH256            | 0xaa     | 20  | preimage       | hash                                    | The input is hashed two times with SHA-256.                                  |
+| OP_TAGGEDHASH         | 0xab     | 10  | preimage tag   | hash                                    | The input is hashed with a domain seperation tag.                            |
+
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
