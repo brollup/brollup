@@ -1,6 +1,5 @@
-use crate::executive::{
-    opcode::ops::OP_SHA1_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
+use crate::executive::stack::{
+    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
 };
 use bitcoin::hashes::sha1;
 use bitcoin::hashes::Hash;
@@ -23,11 +22,11 @@ impl OP_SHA1 {
         // Hash the item using SHA-1.
         let hash = sha1::Hash::hash(preimage.bytes()).to_byte_array().to_vec();
 
+        // Increment the ops counter.
+        stack_holder.increment_ops(calculate_ops(preimage.len()))?;
+
         // Push the hash back to the main stack.
         stack_holder.push(StackItem::new(hash))?;
-
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_SHA1_OPS)?;
 
         Ok(())
     }
@@ -36,4 +35,20 @@ impl OP_SHA1 {
     pub fn bytecode() -> Vec<u8> {
         vec![0xa7]
     }
+}
+
+const SHA1_OPS_BASE: u32 = 10;
+const SHA1_OPS_MULTIPLIER: u32 = 1;
+const SHA1_OPS_OUTPUT_LEN: u32 = 20;
+
+// Calculate the number of ops for a OP_SHA1 opcode.
+fn calculate_ops(preimage_len: u32) -> u32 {
+    // Calculate the gap between the preimage length and the output length.
+    let gap = match SHA1_OPS_OUTPUT_LEN.checked_sub(preimage_len) {
+        Some(gap) => gap,
+        None => 0,
+    };
+
+    // Return the number of ops.
+    SHA1_OPS_BASE + (SHA1_OPS_MULTIPLIER * gap)
 }

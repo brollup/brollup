@@ -15,12 +15,9 @@ use super::op_8::OP_8;
 use super::op_9::OP_9;
 use super::op_false::OP_FALSE;
 use super::op_true::OP_TRUE;
-use crate::executive::{
-    opcode::ops::OP_PUSHDATA_OPS,
-    stack::{
-        limits::MAX_STACK_ITEM_SIZE, stack_error::StackError, stack_holder::StackHolder,
-        stack_item::StackItem,
-    },
+use crate::executive::stack::{
+    limits::MAX_STACK_ITEM_SIZE, stack_error::StackError, stack_holder::StackHolder,
+    stack_item::StackItem,
 };
 
 /// Pushes data to the main stack.
@@ -39,16 +36,19 @@ impl OP_PUSHDATA {
         // The data to be pushed is the inner data in the OP_PUSHDATA struct.
         let item_to_push = StackItem::new(self.0.to_owned());
 
+        // Get the data length.
+        let data_len = item_to_push.len();
+
         // Check if the data length is valid.
-        if item_to_push.len() > MAX_STACK_ITEM_SIZE {
+        if data_len > MAX_STACK_ITEM_SIZE {
             return Err(StackError::StackItemTooLarge);
         }
 
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_PUSHDATA_OPS)?;
-
         // Push the item to the main stack.
         stack_holder.push(item_to_push)?;
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(calculate_ops(data_len))?;
 
         Ok(())
     }
@@ -169,4 +169,12 @@ impl OP_PUSHDATA {
             }
         }
     }
+}
+
+const PUSHDATA_OPS_BASE: u32 = 1;
+const PUSHDATA_OPS_MULTIPLIER: u32 = 1;
+
+// Calculate the number of ops for a push data opcode.
+fn calculate_ops(data_len: u32) -> u32 {
+    PUSHDATA_OPS_BASE + (PUSHDATA_OPS_MULTIPLIER * data_len)
 }

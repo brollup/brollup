@@ -3,14 +3,14 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Data push
 
-| Opcode        | Bytecode  | Ops | Input       | Output         | Description                                                                                        |
-|:--------------|:----------|:----|:------------|:---------------|:---------------------------------------------------------------------------------------------------|
-| OP_FALSE OP_0 | 0x00      | 1   | Nothing.    | (empty value)  | An empty array of bytes is pushed onto the stack.                                                  |
-| OP_N/A        | 0x01-0x4b | 2   | (special)   | data           | *Bytecode* number of following bytes pushed onto the stack.                                        |
-| OP_PUSHDATA1  | 0x4c      | 2   | (special)   | data           | The next byte contains the number of bytes to push onto the stack.                                 |
-| OP_PUSHDATA2  | 0x4d      | 2   | (special)   | data           | The next two bytes contain the number of bytes to be pushed onto the stack in little endian order. |
-| OP_TRUE OP_1  | 0x51      | 1   | (special)   | 1              | The number 1 is pushed onto the stack.                                                             |
-| OP_2-OP_16    | 0x52-0x60 | 1   | 2-16        | 1              | The number in the word name (2-16) is pushed onto the stack.                                       |
+| Opcode        | Bytecode  | Ops            | Input       | Output         | Description                                                                                        |
+|:--------------|:----------|:---------------|:------------|:---------------|:---------------------------------------------------------------------------------------------------|
+| OP_FALSE OP_0 | 0x00      | 1              | Nothing.    | (empty value)  | An empty array of bytes is pushed onto the stack.                                                  |
+| OP_N/A        | 0x01-0x4b | 1 + (1 * Len)  | (special)   | data           | *Bytecode* number of following bytes pushed onto the stack.                                        |
+| OP_PUSHDATA1  | 0x4c      | 1 + (1 * Len)  | (special)   | data           | The next byte contains the number of bytes to push onto the stack.                                 |
+| OP_PUSHDATA2  | 0x4d      | 1 + (1 * Len)  | (special)   | data           | The next two bytes contain the number of bytes to be pushed onto the stack in little endian order. |
+| OP_TRUE OP_1  | 0x51      | 1              | (special)   | 1              | The number 1 is pushed onto the stack.                                                             |
+| OP_2-OP_16    | 0x52-0x60 | 1              | 2-16        | 1              | The number in the word name (2-16) is pushed onto the stack.                                       |
 
 ## Flow control
 
@@ -111,14 +111,16 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Crypto
 
-| Opcode                | Bytecode | Ops | Input          | Output                                  | Description                                                                  |
-|:----------------------|:---------|:----|:---------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_RIPEMD160          | 0xa6     | 10  | preimage       | hash                                    | The input is hashed using RIPEMD-160.                                        |
-| OP_SHA1               | 0xa7     | 10  | preimage       | hash                                    | The input is hashed using SHA-1.                                             |
-| OP_SHA256             | 0xa8     | 10  | preimage       | hash                                    | The input is hashed using SHA-256.                                           |
-| OP_HASH160            | 0xa9     | 20  | preimage       | hash                                    | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
-| OP_HASH256            | 0xaa     | 20  | preimage       | hash                                    | The input is hashed two times with SHA-256.                                  |
-| OP_TAGGEDHASH         | 0xab     | 10  | preimage tag   | hash                                    | The input is hashed with a domain seperation tag.                            |
+| Opcode                | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
+|:----------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_RIPEMD160          | 0xa6     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using RIPEMD-160.                                        |
+| OP_SHA1               | 0xa7     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using SHA-1.                                             |
+| OP_SHA256             | 0xa8     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using SHA-256.                                           |
+| OP_HASH160            | 0xa9     | 20 + (1 * Gap) | preimage         | hash                                    | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
+| OP_HASH256            | 0xaa     | 20 + (1 * Gap) | preimage         | hash                                    | The input is hashed two times with SHA-256.                                  |
+| OP_TAGGEDHASH         | 0xab     | 10 + (1 * Gap) | preimage tag     | hash                                    | The input is hashed with a domain seperation tag.                            |
+| OP_BLAKE2BVAR         | 0xac     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2b with the output size from stack.           |
+| OP_BLAKE2SVAR         | 0xad     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2s with the output size from stack.           |
 
 ## Memory
 

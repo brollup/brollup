@@ -42,4 +42,8 @@ pub enum StackError {
     ReservedOpcodeEncounteredError,
     // Split index error.
     SplitIndexError,
+    // BLAKE2b var output size error.
+    BLAKE2bVarOutputSizeError,
+    // BLAKE2s var output size error.
+    BLAKE2sVarOutputSizeError,
 }

@@ -1,10 +1,8 @@
+use crate::executive::stack::{
+    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+};
 use bitcoin::hashes::ripemd160;
 use bitcoin::hashes::Hash;
-
-use crate::executive::{
-    opcode::ops::OP_RIPEMD160_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
-};
 
 /// The input is hashed using RIPEMD-160.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,13 +20,15 @@ impl OP_RIPEMD160 {
         let preimage = stack_holder.pop()?;
 
         // Hash the item using RIPEMD-160.
-        let hash = ripemd160::Hash::hash(preimage.bytes()).to_byte_array().to_vec();
+        let hash = ripemd160::Hash::hash(preimage.bytes())
+            .to_byte_array()
+            .to_vec();
+
+        // Increment the ops counter.
+        stack_holder.increment_ops(calculate_ops(preimage.len()))?;
 
         // Push the hash back to the main stack.
         stack_holder.push(StackItem::new(hash))?;
-
-        // Increment the ops counter.
-        stack_holder.increment_ops(OP_RIPEMD160_OPS)?;
 
         Ok(())
     }
@@ -37,4 +37,20 @@ impl OP_RIPEMD160 {
     pub fn bytecode() -> Vec<u8> {
         vec![0xa6]
     }
+}
+
+const RIPEMD160_OPS_BASE: u32 = 10;
+const RIPEMD160_OPS_MULTIPLIER: u32 = 1;
+const RIPEMD160_OPS_OUTPUT_LEN: u32 = 20;
+
+// Calculate the number of ops for a OP_RIPEMD160 opcode.
+fn calculate_ops(preimage_len: u32) -> u32 {
+    // Calculate the gap between the preimage length and the output length.
+    let gap = match RIPEMD160_OPS_OUTPUT_LEN.checked_sub(preimage_len) {
+        Some(gap) => gap,
+        None => 0,
+    };
+
+    // Return the number of ops.
+    RIPEMD160_OPS_BASE + (RIPEMD160_OPS_MULTIPLIER * gap)
 }

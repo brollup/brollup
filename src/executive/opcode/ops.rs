@@ -16,7 +16,6 @@ pub const OP_13_OPS: u32 = 1;
 pub const OP_14_OPS: u32 = 1;
 pub const OP_15_OPS: u32 = 1;
 pub const OP_16_OPS: u32 = 1;
-pub const OP_PUSHDATA_OPS: u32 = 2;
 
 // Flow
 pub const OP_NOP_OPS: u32 = 1;
@@ -98,12 +97,6 @@ pub const OP_MAX_OPS: u32 = 1;
 pub const OP_WITHIN_OPS: u32 = 1;
 
 // Crypto
-pub const OP_RIPEMD160_OPS: u32 = 10;
-pub const OP_SHA1_OPS: u32 = 10;
-pub const OP_SHA256_OPS: u32 = 10;
-pub const OP_HASH160_OPS: u32 = 20;
-pub const OP_HASH256_OPS: u32 = 20;
-pub const OP_TAGGEDHASH_OPS: u32 = 10;
 
 // Memory
 pub const OP_MREAD_OPS: u32 = 5;

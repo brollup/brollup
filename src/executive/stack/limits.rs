@@ -1,8 +1,8 @@
 /// The maximum number of items in the stack.
-pub const MAX_STACK_ITEMS_COUNT: u32 = 1024;
+pub const MAX_STACK_ITEMS_COUNT: u32 = 1024 * 4;
 
 /// The maximum size of an item in the stack.
-pub const MAX_STACK_ITEM_SIZE: u32 = 4095;
+pub const MAX_STACK_ITEM_SIZE: u32 = 1024 * 32;
 
 /// The minimum length of a memory/storage key.
 pub const MIN_KEY_LENGTH: u32 = 1;
