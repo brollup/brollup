@@ -6,12 +6,12 @@ use secp::MaybePoint;
 /// Adds two secp points together.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_SECPSPOINTADD;
+pub struct OP_SECPPOINTADD;
 
-/// The number of ops for the `OP_SECPSPOINTADD` opcode.
+/// The number of ops for the `OP_SECPPOINTADD` opcode.
 pub const SECPSPOINTADD_OPS: u32 = 10;
 
-impl OP_SECPSPOINTADD {
+impl OP_SECPPOINTADD {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -51,7 +51,7 @@ impl OP_SECPSPOINTADD {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_SECPSPOINTADD` opcode (0xb0).
+    /// Returns the bytecode for the `OP_SECPPOINTADD` opcode (0xb0).
     pub fn bytecode() -> Vec<u8> {
         vec![0xb0]
     }

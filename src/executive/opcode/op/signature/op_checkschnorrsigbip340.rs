@@ -73,6 +73,20 @@ impl OP_CHECKSCHNORRSIGBIP340 {
                     SchnorrSigningMode::BIP340,
                 )
             }
+            65 => {
+                // Convert public key to bytes.
+                let public_key_bytes: [u8; 65] = public_key_bytes
+                    .try_into()
+                    .map_err(|_| StackError::InvalidSchnorrPublicKeyBytes)?;
+
+                // Verify the signature.
+                schnorr::verify_uncompressed(
+                    public_key_bytes,
+                    message_bytes,
+                    signature_bytes,
+                    SchnorrSigningMode::BIP340,
+                )
+            }
             _ => return Err(StackError::InvalidSchnorrPublicKeyBytes),
         };
 
@@ -91,8 +105,8 @@ impl OP_CHECKSCHNORRSIGBIP340 {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_CHECKSCHNORRSIGBIP340` opcode (0xb5).
+    /// Returns the bytecode for the `OP_CHECKSCHNORRSIGBIP340` opcode (0xb6).
     pub fn bytecode() -> Vec<u8> {
-        vec![0xb5]
+        vec![0xb6]
     }
 }

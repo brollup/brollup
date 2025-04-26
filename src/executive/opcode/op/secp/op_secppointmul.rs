@@ -9,12 +9,12 @@ use secp::MaybePoint;
 /// Multiplies a secp point by a secp scalar.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_SECPSPOINTMUL;
+pub struct OP_SECPPOINTMUL;
 
-/// The number of ops for the `OP_SECPSPOINTMUL` opcode.
-pub const SECPSPOINTMUL_OPS: u32 = 10;
+/// The number of ops for the `OP_SECPPOINTMUL` opcode.
+pub const SECPPOINTMUL_OPS: u32 = 10;
 
-impl OP_SECPSPOINTMUL {
+impl OP_SECPPOINTMUL {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -50,12 +50,12 @@ impl OP_SECPSPOINTMUL {
         stack_holder.push(multiplication_item)?;
 
         // Increment the ops counter.
-        stack_holder.increment_ops(SECPSPOINTMUL_OPS)?;
+        stack_holder.increment_ops(SECPPOINTMUL_OPS)?;
 
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_SECPSPOINTMUL` opcode (0xb1).
+    /// Returns the bytecode for the `OP_SECPPOINTMUL` opcode (0xb1).
     pub fn bytecode() -> Vec<u8> {
         vec![0xb1]
     }

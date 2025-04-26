@@ -73,9 +73,22 @@ impl OP_CHECKSCHNORRSIG {
                     SchnorrSigningMode::Brollup,
                 )
             }
+            65 => {
+                // Convert public key to bytes.
+                let public_key_bytes: [u8; 65] = public_key_bytes
+                    .try_into()
+                    .map_err(|_| StackError::InvalidSchnorrPublicKeyBytes)?;
+
+                // Verify the signature.
+                schnorr::verify_uncompressed(
+                    public_key_bytes,
+                    message_bytes,
+                    signature_bytes,
+                    SchnorrSigningMode::Brollup,
+                )
+            }
             _ => return Err(StackError::InvalidSchnorrPublicKeyBytes),
         };
-
         // Get the result item.
         let result_item = match verify_result {
             true => StackItem::true_item(),
@@ -91,8 +104,8 @@ impl OP_CHECKSCHNORRSIG {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_CHECKSCHNORRSIG` opcode (0xb4).
+    /// Returns the bytecode for the `OP_CHECKSCHNORRSIG` opcode (0xb5).
     pub fn bytecode() -> Vec<u8> {
-        vec![0xb4]
+        vec![0xb5]
     }
 }

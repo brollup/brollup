@@ -136,27 +136,28 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Digital signatures
 
-| Opcode                   | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
-|:-------------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_CHECKSCHNORRSIG       | 0xb4     | 100            | sig msg key      | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag.         |
-| OP_CHECKSCHNORRSIGBIP340 | 0xb5     | 100            | sig msg key      | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag.         |
-| OP_CHECKBLSSIG           | 0xb6     | 100            | sig msg key      | True/false                              | Checks a BLS signature according to the 'Brollup/bls/message' tag.           |
+| Opcode                   | Bytecode | Ops            | Input                 | Output                                  | Description                                                          |
+|:-------------------------|:---------|:---------------|:----------------------|:----------------------------------------|:---------------------------------------------------------------------|
+| OP_CHECKSCHNORRSIG       | 0xb5     | 100            | sig msg key           | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
+| OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100            | sig msg key           | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
+| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100            | sig msg key           | True/false                              | Checks a BLS signature according against a key and a message.        |
+| OP_CHECKBLSSIGAGG        | 0xb8     | 100            | sig [msg] [key] count | True/false                              | Checks a BLS aggregate signature against a set of keys and messages. |
 
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_MWRITE      | 0xb4     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
-| OP_MREAD       | 0xb5     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
-| OP_MFREE       | 0xb6     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
+| OP_MWRITE      | 0xb9     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| OP_MREAD       | 0xba     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| OP_MFREE       | 0xbb     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
 
 ## Storage
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_SWRITE      | 0xb7     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
-| OP_SREAD       | 0xb8     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xb9     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
+| OP_SWRITE      | 0xbc     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| OP_SREAD       | 0xbd     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| OP_SFREE       | 0xbe     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Reserved
 

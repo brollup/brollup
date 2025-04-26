@@ -22,8 +22,9 @@ use super::op::{
         op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
     },
     hash::{
-        op_hash160::OP_HASH160, op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160,
-        op_sha1::OP_SHA1, op_sha256::OP_SHA256,
+        op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
+        op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1, op_sha256::OP_SHA256,
+        op_taggedhash::OP_TAGGEDHASH,
     },
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
@@ -33,6 +34,16 @@ use super::op::{
     reserved::{
         op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2, op_reserved_3::OP_RESERVED_3,
         op_reserved_4::OP_RESERVED_4, op_reserved_5::OP_RESERVED_5,
+    },
+    secp::{
+        op_isinfinitesecppoint::OP_ISINFINITESECPPOINT, op_iszerosecpscalar::OP_ISZEROSECPSCALAR,
+        op_pushsecpgeneratorpoint::OP_PUSHSECPGENERATORPOINT, op_secppointadd::OP_SECPPOINTADD,
+        op_secppointmul::OP_SECPPOINTMUL, op_secpscalaradd::OP_SECPSCALARADD,
+        op_secpscalarmul::OP_SECPSCALARMUL,
+    },
+    signature::{
+        op_checkblssigagg::OP_CHECKBLSSIGAGG, op_checkblssigsingle::OP_CHECKBLSSIGSINGLE,
+        op_checkschnorrsig::OP_CHECKSCHNORRSIG, op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340,
     },
     splice::{
         op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE, op_split::OP_SPLIT,
@@ -146,12 +157,28 @@ pub enum Opcode {
     OP_MIN(OP_MIN),
     OP_MAX(OP_MAX),
     OP_WITHIN(OP_WITHIN),
-    // Crypto
+    // Hashing
     OP_RIPEMD160(OP_RIPEMD160),
     OP_SHA1(OP_SHA1),
     OP_SHA256(OP_SHA256),
     OP_HASH160(OP_HASH160),
     OP_HASH256(OP_HASH256),
+    OP_TAGGEDHASH(OP_TAGGEDHASH),
+    OP_BLAKE2BVAR(OP_BLAKE2BVAR),
+    OP_BLAKE2SVAR(OP_BLAKE2SVAR),
+    // Secp
+    OP_SECPSCALARADD(OP_SECPSCALARADD),
+    OP_SECPSCALARMUL(OP_SECPSCALARMUL),
+    OP_SECPPOINTADD(OP_SECPPOINTADD),
+    OP_SECPPOINTMUL(OP_SECPPOINTMUL),
+    OP_PUSHSECPGENERATORPOINT(OP_PUSHSECPGENERATORPOINT),
+    OP_ISZEROSECPSCALAR(OP_ISZEROSECPSCALAR),
+    OP_ISINFINITESECPPOINT(OP_ISINFINITESECPPOINT),
+    // Digital signatures
+    OP_CHECKSCHNORRSIG(OP_CHECKSCHNORRSIG),
+    OP_CHECKSCHNORRSIGBIP340(OP_CHECKSCHNORRSIGBIP340),
+    OP_CHECKBLSSIGSINGLE(OP_CHECKBLSSIGSINGLE),
+    OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG),
 }
 
 impl Display for Opcode {
@@ -256,12 +283,28 @@ impl Display for Opcode {
             Opcode::OP_MIN(_) => write!(f, "OP_MIN"),
             Opcode::OP_MAX(_) => write!(f, "OP_MAX"),
             Opcode::OP_WITHIN(_) => write!(f, "OP_WITHIN"),
-            // Crypto
+            // Hashing
             Opcode::OP_RIPEMD160(_) => write!(f, "OP_RIPEMD160"),
             Opcode::OP_SHA1(_) => write!(f, "OP_SHA1"),
             Opcode::OP_SHA256(_) => write!(f, "OP_SHA256"),
             Opcode::OP_HASH160(_) => write!(f, "OP_HASH160"),
             Opcode::OP_HASH256(_) => write!(f, "OP_HASH256"),
+            Opcode::OP_TAGGEDHASH(_) => write!(f, "OP_TAGGEDHASH"),
+            Opcode::OP_BLAKE2BVAR(_) => write!(f, "OP_BLAKE2BVAR"),
+            Opcode::OP_BLAKE2SVAR(_) => write!(f, "OP_BLAKE2SVAR"),
+            // Secp
+            Opcode::OP_SECPSCALARADD(_) => write!(f, "OP_SECPSCALARADD"),
+            Opcode::OP_SECPSCALARMUL(_) => write!(f, "OP_SECPSCALARMUL"),
+            Opcode::OP_SECPPOINTADD(_) => write!(f, "OP_SECPPOINTADD"),
+            Opcode::OP_SECPPOINTMUL(_) => write!(f, "OP_SECPPOINTMUL"),
+            Opcode::OP_PUSHSECPGENERATORPOINT(_) => write!(f, "OP_PUSHSECPGENERATORPOINT"),
+            Opcode::OP_ISZEROSECPSCALAR(_) => write!(f, "OP_ISZEROSECPSCALAR"),
+            Opcode::OP_ISINFINITESECPPOINT(_) => write!(f, "OP_ISINFINITESECPPOINT"),
+            // Digital signatures
+            Opcode::OP_CHECKSCHNORRSIG(_) => write!(f, "OP_CHECKSCHNORRSIG"),
+            Opcode::OP_CHECKSCHNORRSIGBIP340(_) => write!(f, "OP_CHECKSCHNORRSIGBIP340"),
+            Opcode::OP_CHECKBLSSIGSINGLE(_) => write!(f, "OP_CHECKBLSSIGSINGLE"),
+            Opcode::OP_CHECKBLSSIGAGG(_) => write!(f, "OP_CHECKBLSSIGAGG"),
         }
     }
 }

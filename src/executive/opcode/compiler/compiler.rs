@@ -34,11 +34,6 @@ use crate::executive::opcode::op::bitwise::op_invert::OP_INVERT;
 use crate::executive::opcode::op::bitwise::op_or::OP_OR;
 use crate::executive::opcode::op::bitwise::op_reverse::OP_REVERSE;
 use crate::executive::opcode::op::bitwise::op_xor::OP_XOR;
-use crate::executive::opcode::op::hash::op_hash160::OP_HASH160;
-use crate::executive::opcode::op::hash::op_hash256::OP_HASH256;
-use crate::executive::opcode::op::hash::op_ripemd160::OP_RIPEMD160;
-use crate::executive::opcode::op::hash::op_sha1::OP_SHA1;
-use crate::executive::opcode::op::hash::op_sha256::OP_SHA256;
 use crate::executive::opcode::op::flow::op_else::OP_ELSE;
 use crate::executive::opcode::op::flow::op_endif::OP_ENDIF;
 use crate::executive::opcode::op::flow::op_fail::OP_FAIL;
@@ -49,6 +44,14 @@ use crate::executive::opcode::op::flow::op_returnall::OP_RETURNALL;
 use crate::executive::opcode::op::flow::op_returnerr::OP_RETURNERR;
 use crate::executive::opcode::op::flow::op_returnsome::OP_RETURNSOME;
 use crate::executive::opcode::op::flow::op_verify::OP_VERIFY;
+use crate::executive::opcode::op::hash::op_blake2bvar::OP_BLAKE2BVAR;
+use crate::executive::opcode::op::hash::op_blake2svar::OP_BLAKE2SVAR;
+use crate::executive::opcode::op::hash::op_hash160::OP_HASH160;
+use crate::executive::opcode::op::hash::op_hash256::OP_HASH256;
+use crate::executive::opcode::op::hash::op_ripemd160::OP_RIPEMD160;
+use crate::executive::opcode::op::hash::op_sha1::OP_SHA1;
+use crate::executive::opcode::op::hash::op_sha256::OP_SHA256;
+use crate::executive::opcode::op::hash::op_taggedhash::OP_TAGGEDHASH;
 use crate::executive::opcode::op::push::op_10::OP_10;
 use crate::executive::opcode::op::push::op_11::OP_11;
 use crate::executive::opcode::op::push::op_12::OP_12;
@@ -72,6 +75,17 @@ use crate::executive::opcode::op::reserved::op_reserved_2::OP_RESERVED_2;
 use crate::executive::opcode::op::reserved::op_reserved_3::OP_RESERVED_3;
 use crate::executive::opcode::op::reserved::op_reserved_4::OP_RESERVED_4;
 use crate::executive::opcode::op::reserved::op_reserved_5::OP_RESERVED_5;
+use crate::executive::opcode::op::secp::op_isinfinitesecppoint::OP_ISINFINITESECPPOINT;
+use crate::executive::opcode::op::secp::op_iszerosecpscalar::OP_ISZEROSECPSCALAR;
+use crate::executive::opcode::op::secp::op_pushsecpgeneratorpoint::OP_PUSHSECPGENERATORPOINT;
+use crate::executive::opcode::op::secp::op_secppointadd::OP_SECPPOINTADD;
+use crate::executive::opcode::op::secp::op_secppointmul::OP_SECPPOINTMUL;
+use crate::executive::opcode::op::secp::op_secpscalaradd::OP_SECPSCALARADD;
+use crate::executive::opcode::op::secp::op_secpscalarmul::OP_SECPSCALARMUL;
+use crate::executive::opcode::op::signature::op_checkblssigagg::OP_CHECKBLSSIGAGG;
+use crate::executive::opcode::op::signature::op_checkblssigsingle::OP_CHECKBLSSIGSINGLE;
+use crate::executive::opcode::op::signature::op_checkschnorrsig::OP_CHECKSCHNORRSIG;
+use crate::executive::opcode::op::signature::op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340;
 use crate::executive::opcode::op::splice::op_cat::OP_CAT;
 use crate::executive::opcode::op::splice::op_left::OP_LEFT;
 use crate::executive::opcode::op::splice::op_right::OP_RIGHT;
@@ -209,12 +223,28 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_MIN(_) => Ok(OP_MIN::bytecode()),
             Opcode::OP_MAX(_) => Ok(OP_MAX::bytecode()),
             Opcode::OP_WITHIN(_) => Ok(OP_WITHIN::bytecode()),
-            // Crypto
+            // Hashing
             Opcode::OP_RIPEMD160(_) => Ok(OP_RIPEMD160::bytecode()),
             Opcode::OP_SHA1(_) => Ok(OP_SHA1::bytecode()),
             Opcode::OP_SHA256(_) => Ok(OP_SHA256::bytecode()),
             Opcode::OP_HASH160(_) => Ok(OP_HASH160::bytecode()),
             Opcode::OP_HASH256(_) => Ok(OP_HASH256::bytecode()),
+            Opcode::OP_TAGGEDHASH(_) => Ok(OP_TAGGEDHASH::bytecode()),
+            Opcode::OP_BLAKE2BVAR(_) => Ok(OP_BLAKE2BVAR::bytecode()),
+            Opcode::OP_BLAKE2SVAR(_) => Ok(OP_BLAKE2SVAR::bytecode()),
+            // Secp
+            Opcode::OP_SECPSCALARADD(_) => Ok(OP_SECPSCALARADD::bytecode()),
+            Opcode::OP_SECPSCALARMUL(_) => Ok(OP_SECPSCALARMUL::bytecode()),
+            Opcode::OP_SECPPOINTADD(_) => Ok(OP_SECPPOINTADD::bytecode()),
+            Opcode::OP_SECPPOINTMUL(_) => Ok(OP_SECPPOINTMUL::bytecode()),
+            Opcode::OP_PUSHSECPGENERATORPOINT(_) => Ok(OP_PUSHSECPGENERATORPOINT::bytecode()),
+            Opcode::OP_ISZEROSECPSCALAR(_) => Ok(OP_ISZEROSECPSCALAR::bytecode()),
+            Opcode::OP_ISINFINITESECPPOINT(_) => Ok(OP_ISINFINITESECPPOINT::bytecode()),
+            // Digital signatures
+            Opcode::OP_CHECKSCHNORRSIG(_) => Ok(OP_CHECKSCHNORRSIG::bytecode()),
+            Opcode::OP_CHECKSCHNORRSIGBIP340(_) => Ok(OP_CHECKSCHNORRSIGBIP340::bytecode()),
+            Opcode::OP_CHECKBLSSIGSINGLE(_) => Ok(OP_CHECKBLSSIGSINGLE::bytecode()),
+            Opcode::OP_CHECKBLSSIGAGG(_) => Ok(OP_CHECKBLSSIGAGG::bytecode()),
         }
     }
 
@@ -407,6 +437,28 @@ impl OpcodeCompiler for Opcode {
             0xa3 => Ok(Opcode::OP_MIN(OP_MIN)),
             0xa4 => Ok(Opcode::OP_MAX(OP_MAX)),
             0xa5 => Ok(Opcode::OP_WITHIN(OP_WITHIN)),
+            // Hashing
+            0xa6 => Ok(Opcode::OP_RIPEMD160(OP_RIPEMD160)),
+            0xa7 => Ok(Opcode::OP_SHA1(OP_SHA1)),
+            0xa8 => Ok(Opcode::OP_SHA256(OP_SHA256)),
+            0xa9 => Ok(Opcode::OP_HASH160(OP_HASH160)),
+            0xaa => Ok(Opcode::OP_HASH256(OP_HASH256)),
+            0xab => Ok(Opcode::OP_TAGGEDHASH(OP_TAGGEDHASH)),
+            0xac => Ok(Opcode::OP_BLAKE2BVAR(OP_BLAKE2BVAR)),
+            0xad => Ok(Opcode::OP_BLAKE2SVAR(OP_BLAKE2SVAR)),
+            // Secp
+            0xae => Ok(Opcode::OP_SECPSCALARADD(OP_SECPSCALARADD)),
+            0xaf => Ok(Opcode::OP_SECPSCALARMUL(OP_SECPSCALARMUL)),
+            0xb0 => Ok(Opcode::OP_SECPPOINTADD(OP_SECPPOINTADD)),
+            0xb1 => Ok(Opcode::OP_SECPPOINTMUL(OP_SECPPOINTMUL)),
+            0xb2 => Ok(Opcode::OP_PUSHSECPGENERATORPOINT(OP_PUSHSECPGENERATORPOINT)),
+            0xb3 => Ok(Opcode::OP_ISZEROSECPSCALAR(OP_ISZEROSECPSCALAR)),
+            0xb4 => Ok(Opcode::OP_ISINFINITESECPPOINT(OP_ISINFINITESECPPOINT)),
+            // Digital signatures
+            0xb5 => Ok(Opcode::OP_CHECKSCHNORRSIG(OP_CHECKSCHNORRSIG)),
+            0xb6 => Ok(Opcode::OP_CHECKSCHNORRSIGBIP340(OP_CHECKSCHNORRSIGBIP340)),
+            0xb7 => Ok(Opcode::OP_CHECKBLSSIGSINGLE(OP_CHECKBLSSIGSINGLE)),
+            0xb8 => Ok(Opcode::OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
