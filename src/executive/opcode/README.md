@@ -111,53 +111,62 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Digest
 
-| Opcode                | Bytecode | Ops                | Input            | Output                                | Description                                                                  |
-|:----------------------|:---------|:-------------------|:-----------------|:--------------------------------------|:-----------------------------------------------------------------------------|
-| OP_RIPEMD160          | 0xa6     | 30                 | preimage         | hash                                  | The input is hashed using RIPEMD-160.                                        |
-| OP_SHA1               | 0xa7     | 30                 | preimage         | hash                                  | The input is hashed using SHA-1.                                             |
-| OP_SHA256             | 0xa8     | 42                 | preimage         | hash                                  | The input is hashed using SHA-256.                                           |
-| OP_HASH160            | 0xa9     | 72                 | preimage         | hash                                  | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
-| OP_HASH256            | 0xaa     | 84                 | preimage         | hash                                  | The input is hashed two times with SHA-256.                                  |
-| OP_TAGGEDHASH         | 0xab     | 42                 | preimage tag     | hash                                  | The input is hashed with a domain seperation tag.                            |
-| OP_BLAKE2BVAR         | 0xac     | 10 + (1 * outsize) | preimage outsize | hash                                  | The input is hashed using Blake2b with the output size from stack.           |
-| OP_BLAKE2SVAR         | 0xad     | 10 + (1 * outsize) | preimage outsize | hash                                  | The input is hashed using Blake2s with the output size from stack.           |
+| Opcode                | Bytecode | Ops                | Input            | Output  | Description                                                                  |
+|:----------------------|:---------|:-------------------|:-----------------|:--------|:-----------------------------------------------------------------------------|
+| OP_RIPEMD160          | 0xa6     | 30                 | preimage         | hash    | The input is hashed using RIPEMD-160.                                        |
+| OP_SHA1               | 0xa7     | 30                 | preimage         | hash    | The input is hashed using SHA-1.                                             |
+| OP_SHA256             | 0xa8     | 42                 | preimage         | hash    | The input is hashed using SHA-256.                                           |
+| OP_HASH160            | 0xa9     | 72                 | preimage         | hash    | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
+| OP_HASH256            | 0xaa     | 84                 | preimage         | hash    | The input is hashed two times with SHA-256.                                  |
+| OP_TAGGEDHASH         | 0xab     | 42                 | preimage tag     | hash    | The input is hashed with a domain seperation tag.                            |
+| OP_BLAKE2BVAR         | 0xac     | 10 + (1 * outsize) | preimage outsize | hash    | The input is hashed using Blake2b with the output size from stack.           |
+| OP_BLAKE2SVAR         | 0xad     | 10 + (1 * outsize) | preimage outsize | hash    | The input is hashed using Blake2s with the output size from stack.           |
 
 ## Secp
 
-| Opcode                    | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
-|:--------------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_SECPSCALARADD          | 0xae     | 10             | scalar scalar    | scalar                                  | Adds two secp scalars.                                                       |
-| OP_SECPSCALARMUL          | 0xaf     | 10             | scalar scalar    | scalar                                  | Multiplies two secp scalars.                                                 |
-| OP_SECPPOINTADD           | 0xb0     | 50             | point point      | point                                   | Adds two secp points.                                                        |
-| OP_SECPPOINTMUL           | 0xb1     | 50             | point scalar     | point                                   | Multiplies a secp point by a secp scalar.                                    |
-| OP_PUSHSECPGENERATORPOINT | 0xb2     | 50             | Nothing          | point                                   | Pushes generator point into stack.                                           |
-| OP_ISZEROSECPSCALAR       | 0xb3     | 50             | scalar           | scalar True/false                       | Returns whether the scalar is zero.                                          |
-| OP_ISINFINITESECPPOINT    | 0xb4     | 50             | point            | point True/false                        | Returns whether the point is at infinity.                                    |
+| Opcode                    | Bytecode | Ops            | Input            | Output              | Description                                                                |
+|:--------------------------|:---------|:---------------|:-----------------|:--------------------|:---------------------------------------------------------------------------|
+| OP_SECPSCALARADD          | 0xae     | 10             | scalar scalar    | scalar              | Adds two secp scalars.                                                     |
+| OP_SECPSCALARMUL          | 0xaf     | 10             | scalar scalar    | scalar              | Multiplies two secp scalars.                                               |
+| OP_SECPPOINTADD           | 0xb0     | 50             | point point      | point               | Adds two secp points.                                                      |
+| OP_SECPPOINTMUL           | 0xb1     | 50             | point scalar     | point               | Multiplies a secp point by a secp scalar.                                  |
+| OP_PUSHSECPGENERATORPOINT | 0xb2     | 50             | Nothing          | point               | Pushes generator point into stack.                                         |
+| OP_ISZEROSECPSCALAR       | 0xb3     | 50             | scalar           | scalar true/false   | Returns whether the scalar is zero.                                        |
+| OP_ISINFINITESECPPOINT    | 0xb4     | 50             | point            | point true/false    | Returns whether the point is at infinity.                                  |
 
 ## Digital signatures
 
-| Opcode                   | Bytecode | Ops                | Input                 | Output                                  | Description                                                          |
-|:-------------------------|:---------|:-------------------|:----------------------|:----------------------------------------|:---------------------------------------------------------------------|
-| OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
-| OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100                | sig msg key           | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
-| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100                | sig msg key           | True/false                              | Checks a BLS signature according against a key and a message.        |
-| OP_CHECKBLSSIGAGG        | 0xb8     | 100 + (50 * count) | sig [msg] [key] count | True/false                              | Checks a BLS aggregate signature against a set of keys and messages. |
+| Opcode                   | Bytecode | Ops                | Input                 | Output            | Description                                                          |
+|:-------------------------|:---------|:-------------------|:----------------------|:------------------|:---------------------------------------------------------------------|
+| OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
+| OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
+| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100                | sig msg key           | True/false        | Checks a BLS signature against a key and a message.                  |
+| OP_CHECKBLSSIGAGG        | 0xb8     | 100 + (50 * count) | sig [msg] [key] count | True/false        | Checks a BLS aggregate signature against a set of keys and messages. |
+
+## Call info
+
+| Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
+|:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_ACCOUNTKEY  | 0xb9     | 1   | -                    | out                    | Pushes the account key into stack.                                              |
+| OP_OPSBUDGET   | 0xba     | 1   | -                    | out                    | Pushes the ops budget into stack.                                               |
+| OP_OPSCAP      | 0xbb     | 1   | -                    | out                    | Pushes the ops cap into stack.                                                  |
+| OP_TIMESTAMP   | 0xbb     | 1   | -                    | out                    | Pushes the call timestamp into stack.                                           |
 
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_MWRITE      | 0xb9     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
-| OP_MREAD       | 0xba     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
-| OP_MFREE       | 0xbb     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
+| OP_MWRITE      | 0xbc     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| OP_MREAD       | 0xbd     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| OP_MFREE       | 0xbe     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
 
 ## Storage
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_SWRITE      | 0xbc     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
-| OP_SREAD       | 0xbd     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xbe     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
+| OP_SWRITE      | 0xbf     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| OP_SREAD       | 0xc0     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| OP_SFREE       | 0xc1     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Reserved
 
