@@ -169,7 +169,7 @@ mod musig_standalone {
 
         let full_agg_sig = session_ctx.full_agg_sig().unwrap();
 
-        assert!(schnorr::verify(
+        assert!(schnorr::verify_xonly(
             agg_key.serialize_xonly(),
             message,
             full_agg_sig,

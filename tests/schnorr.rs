@@ -42,7 +42,7 @@ mod schnorr_tests {
                 .try_into()
                 .map_err(|_| "Failed to convert signature hex.".to_string())?;
 
-        schnorr::verify(public_key, message, signature, SchnorrSigningMode::Brollup)
+        schnorr::verify_xonly(public_key, message, signature, SchnorrSigningMode::Brollup)
             .then(|| ())
             .ok_or("Failed to verify signature.")?;
 

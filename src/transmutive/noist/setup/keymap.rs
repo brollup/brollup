@@ -100,7 +100,7 @@ impl VSEKeyMap {
                 preimage.hash(Some(HashTag::VSEEncryptionAuth))
             };
 
-            if !schnorr::verify(
+            if !schnorr::verify_xonly(
                 self.signatory.serialize_xonly(),
                 message,
                 signature,

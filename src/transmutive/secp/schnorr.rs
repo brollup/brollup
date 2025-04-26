@@ -45,8 +45,8 @@ pub fn sign(secret_key: [u8; 32], message: [u8; 32], mode: SchnorrSigningMode) -
     signature.try_into().ok()
 }
 
-/// Verifies a Schnorr message.
-pub fn verify(
+/// Verifies a Schnorr message against an x-only public key.
+pub fn verify_xonly(
     public_key: [u8; 32],
     message: [u8; 32],
     signature: [u8; 64],
@@ -55,6 +55,38 @@ pub fn verify(
     let public_key_point = match public_key.to_even_point() {
         Some(public_key_point_) => public_key_point_,
         None => return false,
+    };
+
+    let (public_nonce_point, s_commitment_scalar) = match signature.into_sig_tuple() {
+        Some(tuple) => tuple,
+        None => return false,
+    };
+
+    let challenge_scalar = match challenge(public_nonce_point, public_key_point, message, mode) {
+        MaybeScalar::Valid(scalar) => scalar,
+        MaybeScalar::Zero => return false,
+    };
+
+    let equation_point = match (public_key_point * challenge_scalar) + public_nonce_point {
+        MaybePoint::Infinity => {
+            return false;
+        }
+        MaybePoint::Valid(point) => point,
+    };
+
+    s_commitment_scalar.base_point_mul() == equation_point
+}
+
+/// Verifies a Schnorr message against a compressed public key.
+pub fn verify_compressed(
+    public_key: [u8; 33],
+    message: [u8; 32],
+    signature: [u8; 64],
+    mode: SchnorrSigningMode,
+) -> bool {
+    let public_key_point = match Point::from_slice(&public_key) {
+        Ok(point) => point,
+        Err(_) => return false,
     };
 
     let (public_nonce_point, s_commitment_scalar) = match signature.into_sig_tuple() {

@@ -207,7 +207,7 @@ mod noist_tests {
                 _ => [0xffu8; 64],
             };
 
-            if !schnorr::verify(group_key, message, agg_sig, SchnorrSigningMode::BIP340) {
+            if !schnorr::verify_xonly(group_key, message, agg_sig, SchnorrSigningMode::BIP340) {
                 return Err("Invalid aggregate schnorr signature.".into());
             }
         }
@@ -407,7 +407,7 @@ mod noist_tests {
         // Full musig aggregate signature:
         let musig_agg_sig = musig_ctx.full_agg_sig().unwrap();
 
-        assert!(schnorr::verify(
+        assert!(schnorr::verify_xonly(
             agg_key.serialize_xonly(),
             message,
             musig_agg_sig,

@@ -1,10 +1,12 @@
 pub mod altstack;
 pub mod arithmetic;
 pub mod bitwise;
-pub mod crypto;
 pub mod flow;
+pub mod hash;
 pub mod memory;
 pub mod push;
 pub mod reserved;
+pub mod secp;
+pub mod signature;
 pub mod splice;
 pub mod stack;

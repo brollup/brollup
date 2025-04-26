@@ -109,7 +109,7 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_MAX                | 0xa4     | 1   | a b            | out                                     | Returns the larger of a and b.                                               |
 | OP_WITHIN             | 0xa5     | 1   | x min max      | out                                     | Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.  |
 
-## Crypto
+## Hash
 
 | Opcode                | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
 |:----------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
@@ -122,21 +122,40 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_BLAKE2BVAR         | 0xac     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2b with the output size from stack.           |
 | OP_BLAKE2SVAR         | 0xad     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2s with the output size from stack.           |
 
+## Secp
+
+| Opcode                 | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
+|:-----------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_SECPSCALARADD       | 0xae     | 10             | scalar scalar    | scalar                                  | Adds two secp scalars.                                                       |
+| OP_SECPSCALARMUL       | 0xaf     | 10             | scalar scalar    | scalar                                  | Multiplies two secp scalars.                                                 |
+| OP_SECPPOINTADD        | 0xb0     | 50             | point point      | point                                   | Adds two secp points.                                                        |
+| OP_SECPPOINTMUL        | 0xb1     | 50             | point scalar     | point                                   | Multiplies a secp point by a secp scalar.                                    |
+| OP_ISZEROSECPSCALAR    | 0xb2     | 50             | scalar           | scalar True/false                       | Returns whether the scalar is zero.                                          |
+| OP_ISINFINITESECPPOINT | 0xb3     | 50             | point            | point True/false                        | Returns whether the point is at infinity.                                    |
+
+## Digital signatures
+
+| Opcode                   | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
+|:-------------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_CHECKSCHNORRSIG       | 0xb4     | 100            | sig msg key      | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag.         |
+| OP_CHECKSCHNORRSIGBIP340 | 0xb5     | 100            | sig msg key      | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag.         |
+| OP_CHECKBLSSIG           | 0xb6     | 100            | sig msg key      | True/false                              | Checks a BLS signature according to the 'Brollup/bls/message' tag.           |
+
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_MWRITE      | 0xb2     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
-| OP_MREAD       | 0xb3     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
-| OP_MFREE       | 0xb4     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
+| OP_MWRITE      | 0xb4     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| OP_MREAD       | 0xb5     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| OP_MFREE       | 0xb6     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
 
 ## Storage
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_SWRITE      | 0xb5     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
-| OP_SREAD       | 0xb6     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xb7     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
+| OP_SWRITE      | 0xb7     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| OP_SREAD       | 0xb8     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| OP_SFREE       | 0xb9     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Reserved
 

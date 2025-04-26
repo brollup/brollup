@@ -1,5 +1,5 @@
 use crate::transmutive::secp::into::{IntoPoint, IntoScalar};
-use crate::transmutive::secp::schnorr::{sign, verify, SchnorrSigningMode};
+use crate::transmutive::secp::schnorr::{sign, verify_xonly, SchnorrSigningMode};
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 
@@ -77,7 +77,7 @@ where
         };
         let sig = self.sig();
 
-        verify(key, msg, sig, SchnorrSigningMode::Brollup)
+        verify_xonly(key, msg, sig, SchnorrSigningMode::Brollup)
     }
 }
 
