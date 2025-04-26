@@ -9,6 +9,9 @@ use bitcoin::hashes::Hash;
 #[allow(non_camel_case_types)]
 pub struct OP_RIPEMD160;
 
+/// The number of ops for the `OP_RIPEMD160` opcode.
+pub const RIPEMD160_OPS: u32 = 30;
+
 impl OP_RIPEMD160 {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
@@ -25,7 +28,7 @@ impl OP_RIPEMD160 {
             .to_vec();
 
         // Increment the ops counter.
-        stack_holder.increment_ops(calculate_ops(preimage.len()))?;
+        stack_holder.increment_ops(RIPEMD160_OPS)?;
 
         // Push the hash back to the main stack.
         stack_holder.push(StackItem::new(hash))?;
@@ -37,20 +40,4 @@ impl OP_RIPEMD160 {
     pub fn bytecode() -> Vec<u8> {
         vec![0xa6]
     }
-}
-
-const RIPEMD160_OPS_BASE: u32 = 10;
-const RIPEMD160_OPS_MULTIPLIER: u32 = 1;
-const RIPEMD160_OPS_OUTPUT_LEN: u32 = 20;
-
-// Calculate the number of ops for a OP_RIPEMD160 opcode.
-fn calculate_ops(preimage_len: u32) -> u32 {
-    // Calculate the gap between the preimage length and the output length.
-    let gap = match RIPEMD160_OPS_OUTPUT_LEN.checked_sub(preimage_len) {
-        Some(gap) => gap,
-        None => 0,
-    };
-
-    // Return the number of ops.
-    RIPEMD160_OPS_BASE + (RIPEMD160_OPS_MULTIPLIER * gap)
 }

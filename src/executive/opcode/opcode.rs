@@ -16,15 +16,15 @@ use super::op::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
         op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
     },
+    digest::{
+        op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
+        op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1, op_sha256::OP_SHA256,
+        op_taggedhash::OP_TAGGEDHASH,
+    },
     flow::{
         op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF, op_nop::OP_NOP,
         op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
         op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
-    },
-    hash::{
-        op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
-        op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1, op_sha256::OP_SHA256,
-        op_taggedhash::OP_TAGGEDHASH,
     },
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
@@ -283,7 +283,7 @@ impl Display for Opcode {
             Opcode::OP_MIN(_) => write!(f, "OP_MIN"),
             Opcode::OP_MAX(_) => write!(f, "OP_MAX"),
             Opcode::OP_WITHIN(_) => write!(f, "OP_WITHIN"),
-            // Hashing
+            // Digest
             Opcode::OP_RIPEMD160(_) => write!(f, "OP_RIPEMD160"),
             Opcode::OP_SHA1(_) => write!(f, "OP_SHA1"),
             Opcode::OP_SHA256(_) => write!(f, "OP_SHA256"),

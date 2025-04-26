@@ -109,18 +109,18 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 | OP_MAX                | 0xa4     | 1   | a b            | out                                     | Returns the larger of a and b.                                               |
 | OP_WITHIN             | 0xa5     | 1   | x min max      | out                                     | Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.  |
 
-## Hash
+## Digest
 
-| Opcode                | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
-|:----------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_RIPEMD160          | 0xa6     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using RIPEMD-160.                                        |
-| OP_SHA1               | 0xa7     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using SHA-1.                                             |
-| OP_SHA256             | 0xa8     | 10 + (1 * Gap) | preimage         | hash                                    | The input is hashed using SHA-256.                                           |
-| OP_HASH160            | 0xa9     | 20 + (1 * Gap) | preimage         | hash                                    | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
-| OP_HASH256            | 0xaa     | 20 + (1 * Gap) | preimage         | hash                                    | The input is hashed two times with SHA-256.                                  |
-| OP_TAGGEDHASH         | 0xab     | 10 + (1 * Gap) | preimage tag     | hash                                    | The input is hashed with a domain seperation tag.                            |
-| OP_BLAKE2BVAR         | 0xac     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2b with the output size from stack.           |
-| OP_BLAKE2SVAR         | 0xad     | 10 + (1 * Gap) | preimage outsize | hash                                    | The input is hashed using Blake2s with the output size from stack.           |
+| Opcode                | Bytecode | Ops                | Input            | Output                                | Description                                                                  |
+|:----------------------|:---------|:-------------------|:-----------------|:--------------------------------------|:-----------------------------------------------------------------------------|
+| OP_RIPEMD160          | 0xa6     | 30                 | preimage         | hash                                  | The input is hashed using RIPEMD-160.                                        |
+| OP_SHA1               | 0xa7     | 30                 | preimage         | hash                                  | The input is hashed using SHA-1.                                             |
+| OP_SHA256             | 0xa8     | 42                 | preimage         | hash                                  | The input is hashed using SHA-256.                                           |
+| OP_HASH160            | 0xa9     | 72                 | preimage         | hash                                  | The input is hashed twice: first with SHA-256 and then with RIPEMD-160.      |
+| OP_HASH256            | 0xaa     | 84                 | preimage         | hash                                  | The input is hashed two times with SHA-256.                                  |
+| OP_TAGGEDHASH         | 0xab     | 42                 | preimage tag     | hash                                  | The input is hashed with a domain seperation tag.                            |
+| OP_BLAKE2BVAR         | 0xac     | 10 + (1 * outsize) | preimage outsize | hash                                  | The input is hashed using Blake2b with the output size from stack.           |
+| OP_BLAKE2SVAR         | 0xad     | 10 + (1 * outsize) | preimage outsize | hash                                  | The input is hashed using Blake2s with the output size from stack.           |
 
 ## Secp
 
@@ -136,12 +136,12 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Digital signatures
 
-| Opcode                   | Bytecode | Ops            | Input                 | Output                                  | Description                                                          |
-|:-------------------------|:---------|:---------------|:----------------------|:----------------------------------------|:---------------------------------------------------------------------|
-| OP_CHECKSCHNORRSIG       | 0xb5     | 100            | sig msg key           | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
-| OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100            | sig msg key           | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
-| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100            | sig msg key           | True/false                              | Checks a BLS signature according against a key and a message.        |
-| OP_CHECKBLSSIGAGG        | 0xb8     | 100            | sig [msg] [key] count | True/false                              | Checks a BLS aggregate signature against a set of keys and messages. |
+| Opcode                   | Bytecode | Ops                | Input                 | Output                                  | Description                                                          |
+|:-------------------------|:---------|:-------------------|:----------------------|:----------------------------------------|:---------------------------------------------------------------------|
+| OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false                              | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
+| OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100                | sig msg key           | True/false                              | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
+| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100                | sig msg key           | True/false                              | Checks a BLS signature according against a key and a message.        |
+| OP_CHECKBLSSIGAGG        | 0xb8     | 100 + (50 * count) | sig [msg] [key] count | True/false                              | Checks a BLS aggregate signature against a set of keys and messages. |
 
 ## Memory
 

@@ -50,7 +50,7 @@ impl OP_BLAKE2BVAR {
         hasher.finalize_variable(&mut output_buffer).unwrap();
 
         // Increment the ops counter.
-        stack_holder.increment_ops(calculate_ops(preimage.len(), output_size_as_usize as u32))?;
+        stack_holder.increment_ops(calculate_ops(output_size_as_usize as u32))?;
 
         // Push the hash back to the main stack.
         stack_holder.push(StackItem::new(output_buffer))?;
@@ -68,13 +68,7 @@ const BLAKE2BVAR_OPS_BASE: u32 = 10;
 const BLAKE2BVAR_OPS_MULTIPLIER: u32 = 1;
 
 // Calculate the number of ops for a OP_BLAKE2BVAR opcode.
-fn calculate_ops(preimage_len: u32, output_len: u32) -> u32 {
-    // Calculate the gap between the preimage length and the output length.
-    let gap = match output_len.checked_sub(preimage_len) {
-        Some(gap) => gap,
-        None => 0,
-    };
-
+fn calculate_ops(output_size: u32) -> u32 {
     // Return the number of ops.
-    BLAKE2BVAR_OPS_BASE + (BLAKE2BVAR_OPS_MULTIPLIER * gap)
+    BLAKE2BVAR_OPS_BASE + (BLAKE2BVAR_OPS_MULTIPLIER * output_size)
 }

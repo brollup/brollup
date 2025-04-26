@@ -1,8 +1,8 @@
 pub mod altstack;
 pub mod arithmetic;
 pub mod bitwise;
+pub mod digest;
 pub mod flow;
-pub mod hash;
 pub mod memory;
 pub mod push;
 pub mod reserved;
