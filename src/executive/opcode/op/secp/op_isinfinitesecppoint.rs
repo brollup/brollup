@@ -24,7 +24,7 @@ impl OP_ISINFINITESECPPOINT {
         // Convert the point to a secp point.
         let point = match MaybePoint::from_slice(point_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPointBytes),
+            Err(_) => return Err(StackError::InvalidSecpPoint),
         };
 
         // Check if the point is infinite.
@@ -42,8 +42,8 @@ impl OP_ISINFINITESECPPOINT {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_ISINFINITESECPPOINT` opcode (0xb3).
+    /// Returns the bytecode for the `OP_ISINFINITESECPPOINT` opcode (0xb4).
     pub fn bytecode() -> Vec<u8> {
-        vec![0xb3]
+        vec![0xb4]
     }
 }

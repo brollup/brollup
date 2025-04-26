@@ -124,14 +124,15 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 ## Secp
 
-| Opcode                 | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
-|:-----------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
-| OP_SECPSCALARADD       | 0xae     | 10             | scalar scalar    | scalar                                  | Adds two secp scalars.                                                       |
-| OP_SECPSCALARMUL       | 0xaf     | 10             | scalar scalar    | scalar                                  | Multiplies two secp scalars.                                                 |
-| OP_SECPPOINTADD        | 0xb0     | 50             | point point      | point                                   | Adds two secp points.                                                        |
-| OP_SECPPOINTMUL        | 0xb1     | 50             | point scalar     | point                                   | Multiplies a secp point by a secp scalar.                                    |
-| OP_ISZEROSECPSCALAR    | 0xb2     | 50             | scalar           | scalar True/false                       | Returns whether the scalar is zero.                                          |
-| OP_ISINFINITESECPPOINT | 0xb3     | 50             | point            | point True/false                        | Returns whether the point is at infinity.                                    |
+| Opcode                    | Bytecode | Ops            | Input            | Output                                  | Description                                                                  |
+|:--------------------------|:---------|:---------------|:-----------------|:----------------------------------------|:-----------------------------------------------------------------------------|
+| OP_SECPSCALARADD          | 0xae     | 10             | scalar scalar    | scalar                                  | Adds two secp scalars.                                                       |
+| OP_SECPSCALARMUL          | 0xaf     | 10             | scalar scalar    | scalar                                  | Multiplies two secp scalars.                                                 |
+| OP_SECPPOINTADD           | 0xb0     | 50             | point point      | point                                   | Adds two secp points.                                                        |
+| OP_SECPPOINTMUL           | 0xb1     | 50             | point scalar     | point                                   | Multiplies a secp point by a secp scalar.                                    |
+| OP_PUSHSECPGENERATORPOINT | 0xb2     | 50             | Nothing          | point                                   | Pushes generator point into stack.                                           |
+| OP_ISZEROSECPSCALAR       | 0xb3     | 50             | scalar           | scalar True/false                       | Returns whether the scalar is zero.                                          |
+| OP_ISINFINITESECPPOINT    | 0xb4     | 50             | point            | point True/false                        | Returns whether the point is at infinity.                                    |
 
 ## Digital signatures
 

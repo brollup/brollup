@@ -27,20 +27,20 @@ impl OP_SECPSPOINTADD {
         // Convert the first point to a secp point.
         let point_1 = match MaybePoint::from_slice(point_1_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPointBytes),
+            Err(_) => return Err(StackError::InvalidSecpPoint),
         };
 
         // Convert the second point to a secp point.
         let point_2 = match MaybePoint::from_slice(point_2_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPointBytes),
+            Err(_) => return Err(StackError::InvalidSecpPoint),
         };
 
         // Add the two points together.
         let addition = point_1 + point_2;
 
         // Convert the addition to the stack item.
-        let addition_item = StackItem::new(addition.serialize().to_vec());
+        let addition_item = StackItem::new(addition.serialize_uncompressed().to_vec());
 
         // Push the addition back to the main stack.
         stack_holder.push(addition_item)?;

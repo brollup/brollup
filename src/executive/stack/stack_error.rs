@@ -46,10 +46,10 @@ pub enum StackError {
     BLAKE2bVarOutputSizeError,
     // BLAKE2s var output size error.
     BLAKE2sVarOutputSizeError,
-    // Invalid secp scalar bytes.
-    InvalidSecpScalarBytes,
-    // Invalid secp point bytes.
-    InvalidSecpPointBytes,
+    // Invalid secp scalar.
+    InvalidSecpScalar,
+    // Invalid secp point.
+    InvalidSecpPoint,
     // Invalid schnorr public key bytes.
     InvalidSchnorrPublicKeyBytes,
     // Invalid schnorr message bytes.

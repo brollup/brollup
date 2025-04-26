@@ -1,4 +1,5 @@
 use super::stack_item::StackItem;
+use secp::MaybeScalar;
 use uint::construct_uint;
 
 // A 256-bit unsigned integer representation for the `StackItem` (4 x 64-bit words).
@@ -69,6 +70,18 @@ impl StackUint {
         // This cannot panic as we checked the length first.
         Some(self.as_usize())
     }
+
+    /// Returns a 32-byte array representation of the integer in big endian format.
+    pub fn bytes_32(&self) -> [u8; 32] {
+        let mut result = [0u8; 32];
+        self.to_big_endian(&mut result);
+        result
+    }
+
+    /// Creates a `StackUint` from a 32-byte array in big endian format.
+    pub fn from_bytes_32(bytes: [u8; 32]) -> Self {
+        StackUint::from_big_endian(&bytes)
+    }
 }
 
 /// Trait for converting `StackUint` to `usize`, `u64`, and `u32` safely.
@@ -82,6 +95,9 @@ pub trait SafeConverter {
     // usize conversion
     fn to_usize(&self) -> Option<usize>;
     fn from_usize(value: usize) -> Self;
+    // Secp scalar conversion
+    fn to_secp_scalar(&self) -> Option<MaybeScalar>;
+    fn from_secp_scalar(value: MaybeScalar) -> Self;
 }
 
 impl SafeConverter for StackUint {
@@ -125,6 +141,17 @@ impl SafeConverter for StackUint {
 
     fn from_usize(value: usize) -> Self {
         StackUint::from(value)
+    }
+
+    fn to_secp_scalar(&self) -> Option<MaybeScalar> {
+        let bytes_32 = self.bytes_32();
+        let scalar = MaybeScalar::from_slice(&bytes_32).ok()?;
+        Some(scalar)
+    }
+
+    fn from_secp_scalar(value: MaybeScalar) -> Self {
+        let scalar_bytes = value.serialize();
+        StackUint::from_bytes_32(scalar_bytes)
     }
 }
 /// Extension trait for converting between `StackItem` and `StackUint`.

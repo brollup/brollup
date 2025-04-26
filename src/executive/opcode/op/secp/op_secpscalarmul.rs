@@ -1,7 +1,9 @@
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::StackError,
+    stack_holder::StackHolder,
+    stack_item::StackItem,
+    stack_uint::{SafeConverter, StackItemUintExt, StackUint},
 };
-use secp::MaybeScalar;
 
 /// Multiplies two secp scalars together.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,22 +27,27 @@ impl OP_SECPSCALARMUL {
         let scalar_2_item = stack_holder.pop()?;
 
         // Convert the first scalar to a secp scalar.
-        let scalar_1 = match MaybeScalar::from_slice(scalar_1_item.bytes()) {
-            Ok(scalar) => scalar,
-            Err(_) => return Err(StackError::InvalidSecpScalarBytes),
-        };
+        let scalar_1 = scalar_1_item
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?
+            .to_secp_scalar()
+            .ok_or(StackError::InvalidSecpScalar)?;
 
         // Convert the second scalar to a secp scalar.
-        let scalar_2 = match MaybeScalar::from_slice(scalar_2_item.bytes()) {
-            Ok(scalar) => scalar,
-            Err(_) => return Err(StackError::InvalidSecpScalarBytes),
-        };
+        let scalar_2 = scalar_2_item
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?
+            .to_secp_scalar()
+            .ok_or(StackError::InvalidSecpScalar)?;
 
         // Multiply the two scalars together.
         let multiplication = scalar_1 * scalar_2;
 
-        // Convert the multiplication to the stack item.
-        let multiplication_item = StackItem::new(multiplication.serialize().to_vec());
+        // Convert the multiplication to a stack uint.
+        let multiplication_stack_uint = StackUint::from_secp_scalar(multiplication);
+
+        // Convert the stack uint to the stack item.
+        let multiplication_item = StackItem::from_stack_uint(multiplication_stack_uint);
 
         // Push the multiplication back to the main stack.
         stack_holder.push(multiplication_item)?;

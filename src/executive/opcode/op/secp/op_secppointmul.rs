@@ -1,7 +1,10 @@
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::StackError,
+    stack_holder::StackHolder,
+    stack_item::StackItem,
+    stack_uint::{SafeConverter, StackItemUintExt},
 };
-use secp::{MaybePoint, MaybeScalar};
+use secp::MaybePoint;
 
 /// Multiplies a secp point by a secp scalar.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,22 +28,23 @@ impl OP_SECPSPOINTMUL {
         let point_item = stack_holder.pop()?;
 
         // Convert the scalar to a secp scalar.
-        let scalar = match MaybeScalar::from_slice(scalar_item.bytes()) {
-            Ok(scalar) => scalar,
-            Err(_) => return Err(StackError::InvalidSecpScalarBytes),
-        };
+        let scalar = scalar_item
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?
+            .to_secp_scalar()
+            .ok_or(StackError::InvalidSecpScalar)?;
 
         // Convert the point to a secp point.
         let point = match MaybePoint::from_slice(point_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPointBytes),
+            Err(_) => return Err(StackError::InvalidSecpPoint),
         };
 
         // Multiply the point by the scalar.
         let multiplication = point * scalar;
 
         // Convert the multiplication to the stack item.
-        let multiplication_item = StackItem::new(multiplication.serialize().to_vec());
+        let multiplication_item = StackItem::new(multiplication.serialize_uncompressed().to_vec());
 
         // Push the multiplication back to the main stack.
         stack_holder.push(multiplication_item)?;

@@ -1,7 +1,9 @@
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::StackError,
+    stack_holder::StackHolder,
+    stack_item::StackItem,
+    stack_uint::{SafeConverter, StackItemUintExt},
 };
-use secp::MaybeScalar;
 
 /// Checks if a secp scalar is zero.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,10 +24,11 @@ impl OP_ISZEROSECPSCALAR {
         let scalar_item = stack_holder.last_item()?;
 
         // Convert the scalar to a secp scalar.
-        let scalar = match MaybeScalar::from_slice(scalar_item.bytes()) {
-            Ok(scalar) => scalar,
-            Err(_) => return Err(StackError::InvalidSecpScalarBytes),
-        };
+        let scalar = scalar_item
+            .to_stack_uint()
+            .ok_or(StackError::StackUintConversionError)?
+            .to_secp_scalar()
+            .ok_or(StackError::InvalidSecpScalar)?;
 
         // Check if the scalar is zero.
         let result_item = match scalar.is_zero() {
@@ -42,8 +45,8 @@ impl OP_ISZEROSECPSCALAR {
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_ISZEROSECPSCALAR` opcode (0xb2).
+    /// Returns the bytecode for the `OP_ISZEROSECPSCALAR` opcode (0xb3).
     pub fn bytecode() -> Vec<u8> {
-        vec![0xb2]
+        vec![0xb3]
     }
 }
