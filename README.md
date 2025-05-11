@@ -1,5 +1,5 @@
 ![Cube](https://i.ibb.co/KjnGsD7L/cube-text-logo.png)
-Cube is a virtual machine designed to enable bridgeless smart contract execution natively on Bitcoin. Providing a fully trustless execution environment with unilateral exit, Cube keeps users in full control of their funds, free from any counterparty risk.
+Cube is a virtual machine designed to enable bridgeless smart contract execution natively on Bitcoin. Providing a fully trustless execution environment with unilateral exit, Cube keeps users in full control of their funds.
 
 By combining virtual UTXOs with a symmetric state channel architecture and leveraging Bitcoin DA, Cube integrates Bitcoin payments directly into a virtual machine with global-state.
 
