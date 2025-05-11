@@ -6,7 +6,7 @@ use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 /// The signing mode of Schnorr signatures.
 #[derive(Clone, PartialEq)]
 pub enum SchnorrSigningMode {
-    Brollup,
+    Cube,
     BIP340,
 }
 
@@ -155,7 +155,7 @@ pub fn challenge(
     challenge_preimage.extend(message);
 
     let challenge = match mode {
-        SchnorrSigningMode::Brollup => challenge_preimage.hash(Some(HashTag::SignatureChallenge)),
+        SchnorrSigningMode::Cube => challenge_preimage.hash(Some(HashTag::SignatureChallenge)),
         SchnorrSigningMode::BIP340 => challenge_preimage.hash(Some(HashTag::BIP340Challenge)),
     };
 

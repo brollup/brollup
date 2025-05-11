@@ -26,7 +26,7 @@ mod authenticable_tests {
     #[test]
     fn authenticable_test() -> Result<(), String> {
         let my_struct = DemoStruct {
-            field1: "Brollup".to_string(),
+            field1: "Cube".to_string(),
             field2: 21,
         };
 

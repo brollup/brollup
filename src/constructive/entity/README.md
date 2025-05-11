@@ -1,5 +1,5 @@
 # Entity
-`Brollup` supports 2 types of entities:
+Cube supports 2 types of entities:
 
 | Entity           | Description                                                               |
 |:-----------------|:---------------------------------------------------------------------------|

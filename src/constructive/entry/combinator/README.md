@@ -1,7 +1,7 @@
 # Combinator
 A `Combinator` is a sub-element of a broader `Entry`, representing a specific action, whether calling a smart contract or transferring value within the system. An `Entry` contains one or more `Combinator` bundled together, each defining actions that affect the global state.
 
-`Brollup` employs 11 types of combinators:
+Cube employs 11 types of combinators:
 
 | Combinator       |  Description                                                          |
 |:-----------------|:----------------------------------------------------------------------|

@@ -1646,7 +1646,7 @@ impl CSessionCtx {
 #[async_trait]
 
 pub trait CContextRunner {
-    /// Handles the background task that runs Brollup sessions for the coordinator.
+    /// Handles the background task that runs Cube sessions for the coordinator.
     /// This should be reviewed in line with tcp::server::handle_commit_session and tcp::server::handle_cuphold_session.
     async fn run(&self);
     /// Returns true if all upholds are collected; otherwise, false after a timeout.

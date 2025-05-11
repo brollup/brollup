@@ -1,5 +1,5 @@
 # Opcodes
-Brollup uses an extended Bitcoin script with splicing, better memory management, and global state opcodes.
+Cube uses an extended Bitcoin script with splicing, better memory management, and global state opcodes.
 
 ## Data push
 
@@ -138,7 +138,7 @@ Brollup uses an extended Bitcoin script with splicing, better memory management,
 
 | Opcode                   | Bytecode | Ops                | Input                 | Output            | Description                                                          |
 |:-------------------------|:---------|:-------------------|:----------------------|:------------------|:---------------------------------------------------------------------|
-| OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'Brollup/challenge' tag. |
+| OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'Cube/challenge' tag. |
 | OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
 | OP_CHECKBLSSIGSINGLE     | 0xb7     | 100                | sig msg key           | True/false        | Checks a BLS signature against a key and a message.                  |
 | OP_CHECKBLSSIGAGG        | 0xb8     | 100 + (50 * count) | sig [msg] [key] count | True/false        | Checks a BLS aggregate signature against a set of keys and messages. |

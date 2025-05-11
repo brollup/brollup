@@ -17,7 +17,7 @@ mod schnorr_tests {
                 .try_into()
                 .map_err(|_| "Failed to convert secret key hex.".to_string())?;
 
-        let _sig = schnorr::sign(secret_key, message, SchnorrSigningMode::Brollup).unwrap();
+        let _sig = schnorr::sign(secret_key, message, SchnorrSigningMode::Cube).unwrap();
 
         Ok(())
     }
@@ -37,12 +37,12 @@ mod schnorr_tests {
                 .map_err(|_| "Failed to convert public key hex.".to_string())?;
 
         let signature: [u8; 64] =
-            hex::decode("6adc99f755cb7fa7812d060670be7cac428b01baac8a9aa75c49ef3a91f6437650bf14e199a41c50722e09922e20d4fd9f1a4f5ae60f145b24dbfc9f4a0851b6")
+            hex::decode("836be8788ceed5850363f9f70bd0566f2d1822b709aa150affc854421cc4c982507f831e8ec808e5bd06ce6310ae8c1624df34d345964f5b0bae72467a7b230b")
                 .map_err(|_| format!("Failed to parse signature hex."))?
                 .try_into()
                 .map_err(|_| "Failed to convert signature hex.".to_string())?;
 
-        schnorr::verify_xonly(public_key, message, signature, SchnorrSigningMode::Brollup)
+        schnorr::verify_xonly(public_key, message, signature, SchnorrSigningMode::Cube)
             .then(|| ())
             .ok_or("Failed to verify signature.")?;
 

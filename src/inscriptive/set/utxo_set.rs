@@ -18,7 +18,7 @@ pub type UTXO_SET = Arc<Mutex<UTXOSet>>;
 /// as no `Lift` outputs were created before this height.
 ///
 /// Since the connected Bitcoin RPC node already maintains the entire UTXO set,
-/// this set is optimized solely for quick lookup of `Lift` prevouts by the Brollup nodes.
+/// this set is optimized solely for quick lookup of `Lift` prevouts by the Cube nodes.
 ///
 pub struct UTXOSet {
     // In-memory UTXO set.

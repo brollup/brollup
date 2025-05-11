@@ -1,5 +1,5 @@
 // Project tag
-pub const PROJECT_TAG: &str = "Brollup";
+pub const PROJECT_TAG: &str = "Cube";
 
 // Port number
 pub const SIGNET_PORT: u16 = 6272;

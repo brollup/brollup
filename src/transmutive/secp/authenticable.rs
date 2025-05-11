@@ -25,7 +25,7 @@ where
 
         let msg = object.auth_sighash();
 
-        let sig = sign(secret_key, msg, SchnorrSigningMode::Brollup)?;
+        let sig = sign(secret_key, msg, SchnorrSigningMode::Cube)?;
         let nonce = &sig[..32].to_vec().into_point().ok()?;
         let s_com = &sig[32..].to_vec().into_scalar().ok()?;
 
@@ -77,7 +77,7 @@ where
         };
         let sig = self.sig();
 
-        verify_xonly(key, msg, sig, SchnorrSigningMode::Brollup)
+        verify_xonly(key, msg, sig, SchnorrSigningMode::Cube)
     }
 }
 

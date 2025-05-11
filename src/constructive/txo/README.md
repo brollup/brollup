@@ -1,5 +1,5 @@
 # Transaction Outputs
-`Brollup` employs of nine types of transaction outputs (TXOs):
+Cube employs of nine types of transaction outputs (TXOs):
 
 | TXO Type               | Kind           |  Spending Condition                                        |
 |:-----------------------|:---------------|:-----------------------------------------------------------|
@@ -15,7 +15,7 @@
 
 Four of the transaction output types are bare, meaning they are literal, on-chain transaction outputs that consume block space, while the other five are virtual, meaning they are committed but not yet revealed transaction outputs that optimistically consume no block space.
 
-`Brollup` advances the rollup state by chaining `Pool Transactions` at regular intervals. Three output types—`VTXO Projector`, `Connector Projector`, and `Payload`—and optionally one or more `Bare Connectors` are contained in the `Pool Transaction`.
+Cube advances the rollup state by chaining `Pool Transactions` at regular intervals. Three output types—`VTXO Projector`, `Connector Projector`, and `Payload`—and optionally one or more `Bare Connectors` are contained in the `Pool Transaction`.
 
                                                                               ⋰
                                                                             ⋰  ┌────────────────┐   ┌────────────────┐

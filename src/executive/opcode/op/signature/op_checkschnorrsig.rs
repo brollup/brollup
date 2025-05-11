@@ -3,7 +3,7 @@ use crate::{
     transmutive::secp::schnorr::{self, SchnorrSigningMode},
 };
 
-/// Checks a schnorr signature according to the 'Brollup/challenge' tag.
+/// Checks a schnorr signature according to the 'Cube/challenge' tag.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_CHECKSCHNORRSIG;
@@ -56,7 +56,7 @@ impl OP_CHECKSCHNORRSIG {
                     public_key_bytes,
                     message_bytes,
                     signature_bytes,
-                    SchnorrSigningMode::Brollup,
+                    SchnorrSigningMode::Cube,
                 )
             }
             33 => {
@@ -70,7 +70,7 @@ impl OP_CHECKSCHNORRSIG {
                     public_key_bytes,
                     message_bytes,
                     signature_bytes,
-                    SchnorrSigningMode::Brollup,
+                    SchnorrSigningMode::Cube,
                 )
             }
             65 => {
@@ -84,7 +84,7 @@ impl OP_CHECKSCHNORRSIG {
                     public_key_bytes,
                     message_bytes,
                     signature_bytes,
-                    SchnorrSigningMode::Brollup,
+                    SchnorrSigningMode::Cube,
                 )
             }
             _ => return Err(StackError::InvalidSchnorrPublicKeyBytes),

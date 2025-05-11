@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use bit_vec::BitVec;
 use serde::{Deserialize, Serialize};
 
-/// Represents a contract; a program that can be executed on Brollup.
+/// Represents a contract; a program that can be executed on Cube.
 #[derive(Clone, Copy, Serialize, Deserialize, Hash, Debug)]
 pub struct Contract {
     contract_id: [u8; 32],

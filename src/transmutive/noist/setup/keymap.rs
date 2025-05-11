@@ -41,7 +41,7 @@ impl VSEKeyMap {
             };
 
             let auth_sig =
-                schnorr::sign(secret_key.serialize(), message, SchnorrSigningMode::Brollup)?;
+                schnorr::sign(secret_key.serialize(), message, SchnorrSigningMode::Cube)?;
             let auth_sig_tuple = auth_sig.into_sig_tuple()?;
 
             map.insert(signatory.to_owned(), (vse_public, auth_sig_tuple, None));
@@ -104,7 +104,7 @@ impl VSEKeyMap {
                 self.signatory.serialize_xonly(),
                 message,
                 signature,
-                SchnorrSigningMode::Brollup,
+                SchnorrSigningMode::Cube,
             ) {
                 return false;
             }

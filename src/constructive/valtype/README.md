@@ -1,5 +1,5 @@
 # Valtype
-`Brollup` employs five specialized value types to minimize Bitcoin block space consumption, thereby optimizing data availability (DA) efficiency. The protocol is designed to ensure that transaction summary data is encoded in a highly compact form before being published in the `Payload` field of on-chain rollup state transitions.
+Cube employs five specialized value types to minimize Bitcoin block space consumption, thereby optimizing data availability (DA) efficiency. The protocol is designed to ensure that transaction summary data is encoded in a highly compact form before being published in the `Payload` field of on-chain rollup state transitions.
 
 The value types are defined as follows:
 

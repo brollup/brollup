@@ -1,5 +1,5 @@
 # Calldata
-`Brollup` supports 10 calldata types that `Contracts` can accept as parameters:
+Cube supports 10 calldata types that `Contracts` can accept as parameters:
 
 | Calldata Type    | Decoded As              | Description                                                                                 | CPE Bitsize   | Stack Bytesize |
 |:-----------------|:------------------------|:--------------------------------------------------------------------------------------------|:--------------|:---------------|

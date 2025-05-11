@@ -26,7 +26,7 @@ mod bls_test {
                 .unwrap();
 
         // Convert the expected public key to a BLS public key.
-        let expected_public_key: [u8; 48] = hex::decode("9197734fff0a940bd447b35ce09e63b897c9618d8ec97eccd43b71bb3eea5af324c45af6ed36ac45783e95c79a6bfbbe")
+        let expected_public_key: [u8; 48] = hex::decode("87499a10e183cd2e32398ea3bf75e477723ab24f0f891821ffe3b1286e13da99b13b45161d2cc90b9d7f9c1053f9be3c")
             .unwrap()
             .try_into()
             .unwrap();
