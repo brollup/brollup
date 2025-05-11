@@ -1,14 +1,17 @@
-![Brollup](https://i.ibb.co/tc7S2JL/brollup-github.png)
-Brollup is a Bitcoin layer two designed to enable bridgeless smart contract execution natively on Bitcoin.
-> Brollup is currently in the early development phase.
+![Cube](https://i.ibb.co/KjnGsD7L/cube-text-logo.png)
+Cube is a virtual machine designed to enable bridgeless smart contract execution natively on Bitcoin. 
+
+Providing a fully trustless execution environment with unilateral exit, Cube keeps users in full control of their funds, free from any counterparty risk.
+
+> Cube is currently in the early development phase.
 
 ## Installation
 
 Ensure you have [Rust](https://www.rust-lang.org/tools/install) installed. Clone the repository and navigate into the project directory:
 
 ```sh
-git clone https://github.com/brollup/brollup
-cd brollup
+git clone https://github.com/cube-vm/cube
+cd cube
 ```
 
 ## Usage
@@ -25,8 +28,8 @@ cargo run <chain> <mode> <bitcoin-rpc-url> <bitcoin-rpc-user> <bitcoin-rpc-passw
   - `signet`
   - `mainnet`
 - `<mode>`: The mode in which the program runs. Supported values:
-  - `node`: For running a Brollup node.
-  - `operator`: For liquidity providers.
+  - `node`: For running a Cube node.
+  - `engine`: For network operators.
 - `<bitcoin-rpc-url>`: The RPC URL of the Bitcoin node.
 - `<bitcoin-rpc-user>`: The RPC username.
 - `<bitcoin-rpc-password>`: The RPC password.
@@ -37,13 +40,9 @@ cargo run <chain> <mode> <bitcoin-rpc-url> <bitcoin-rpc-user> <bitcoin-rpc-passw
 cargo run signet node http://127.0.0.1:38332 user password
 ```
 
-```sh
-cargo run mainnet operator http://127.0.0.1:8332 user password
-```
-
 ## Contributing
 
-We welcome contributions! Please [check the areas where we need help](https://github.com/brollup/brollup/blob/main/CONTRIB.md) for more details on how you can contribute.
+We welcome contributions! Please [check the areas where we need help](https://github.com/cube-vm/cube/blob/main/CONTRIB.md) for more details on how you can contribute.
 
 ## License
 
