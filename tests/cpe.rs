@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod cpe_tests {
     use bit_vec::BitVec;
-    use brollup::{
+    use cube::{
         constructive::{
             cpe::cpe::CompactPayloadEncoding,
             entity::{account::Account, contract::Contract},

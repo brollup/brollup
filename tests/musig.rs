@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod musig_standalone {
-    use brollup::transmutive::{
+    use cube::transmutive::{
         musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
         secp::schnorr::{self, SchnorrSigningMode},
     };

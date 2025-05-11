@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod authenticable_tests {
-    use brollup::transmutive::{
+    use cube::transmutive::{
         hash::{Hash, HashTag},
         secp::authenticable::{AuthSighash, Authenticable},
     };

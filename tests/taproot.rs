@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod taproot_tests {
-    use brollup::constructive::taproot::{ControlBlock, TapBranch, TapLeaf, TapRoot, TapTree};
+    use cube::constructive::taproot::{ControlBlock, TapBranch, TapLeaf, TapRoot, TapTree};
     use secp::Point;
     use std::error::Error;
 

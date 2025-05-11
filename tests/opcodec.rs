@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod opcodec_tests {
-
-    use brollup::executive::{
+    use cube::executive::{
         opcode::{
             compiler::{compiler::OpcodeCompiler, compiler_error::OpcodeDecompileError},
             op::push::{

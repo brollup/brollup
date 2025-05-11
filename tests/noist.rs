@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod noist_tests {
-    use brollup::{
+    use cube::{
         constructive::txo::projector::{Projector, ProjectorTag},
         inscriptive::lp::dir::LPDirectory,
         operative::Chain,

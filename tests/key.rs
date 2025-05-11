@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod key_tests {
-    use brollup::transmutive::key::{FromNostrKeyStr, ToNostrKeyStr};
+    use cube::transmutive::key::{FromNostrKeyStr, ToNostrKeyStr};
     use hex;
 
     #[test]

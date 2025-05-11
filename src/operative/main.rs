@@ -1,4 +1,5 @@
-use brollup::{
+use colored::Colorize;
+use cube::{
     communicative::rpc::bitcoin::rpcholder::RPCHolder,
     operative::{
         mode::{coordinator::coordinator, node::node, operator::operator},
@@ -6,7 +7,6 @@ use brollup::{
     },
     transmutive::key::{FromNostrKeyStr, KeyHolder},
 };
-use colored::Colorize;
 use std::{env, io::BufRead};
 
 fn main() {
@@ -38,7 +38,7 @@ fn main() {
     // Operating mode arg
     let operating_mode = match args[2].to_lowercase().as_str() {
         "node" => OperatingMode::Node,
-        "operator" => OperatingMode::Operator,
+        "engine" => OperatingMode::Operator,
         "coordinator" => OperatingMode::Coordinator,
         _ => {
             println!("{}", "Invalid <mode>.".red());

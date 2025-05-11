@@ -491,34 +491,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brollup"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bech32",
- "bit-vec",
- "bitcoin",
- "bitcoincore-rpc",
- "blake2",
- "bls_on_arkworks",
- "chrono",
- "colored",
- "easy-upnp",
- "futures",
- "hex",
- "nostr-sdk",
- "rand",
- "reqwest",
- "secp",
- "serde",
- "serde_json",
- "sha2",
- "sled",
- "tokio",
- "uint",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -721,6 +693,34 @@ dependencies = [
  "generic-array",
  "rand_core",
  "typenum",
+]
+
+[[package]]
+name = "cube"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bech32",
+ "bit-vec",
+ "bitcoin",
+ "bitcoincore-rpc",
+ "blake2",
+ "bls_on_arkworks",
+ "chrono",
+ "colored",
+ "easy-upnp",
+ "futures",
+ "hex",
+ "nostr-sdk",
+ "rand",
+ "reqwest",
+ "secp",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sled",
+ "tokio",
+ "uint",
 ]
 
 [[package]]
