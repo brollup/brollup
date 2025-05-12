@@ -12,8 +12,10 @@ use std::collections::HashMap;
 pub struct StackHolder<'a> {
     // Contract id.
     contract_id: [u8; 32],
-    // Msg sender.
-    msg_sender: [u8; 32],
+    // Account key (msg sender).
+    account_key: [u8; 32],
+    // Timestamp.
+    timestamp: u64,
     // Main stack.
     main_stack: Stack,
     // Alt stack.
@@ -24,6 +26,8 @@ pub struct StackHolder<'a> {
     memory_size: u32,
     // Ops budget.
     ops_budget: u32,
+    // Ops price.
+    ops_price: u32,
     // Internal ops counter.
     internal_ops_counter: &'a mut u32,
     // External ops counter.
@@ -33,20 +37,14 @@ pub struct StackHolder<'a> {
     flow_encounters: Vec<FlowEncounter>,
 }
 
-impl<'a> Clone for StackHolder<'a> {
-    fn clone(&self) -> Self {
-        // We can't clone mutable references, so we'll create a new struct with the same values
-        // but we'll need to handle the mutable references separately
-        panic!("StackHolder cannot be cloned due to mutable references")
-    }
-}
-
 impl<'a> StackHolder<'a> {
     /// Creates a new stack holder.
     pub fn new(
         contract_id: [u8; 32],
-        msg_sender: [u8; 32],
+        account_key: [u8; 32],
+        timestamp: u64,
         ops_budget: u32,
+        ops_price: u32,
         internal_ops_counter: &'a mut u32,
         external_ops_counter: &'a mut u32,
     ) -> Result<Self, StackError> {
@@ -63,12 +61,14 @@ impl<'a> StackHolder<'a> {
         // Create a new stack holder.
         let stack_holder = Self {
             contract_id,
-            msg_sender,
+            account_key,
+            timestamp,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
             memory: HashMap::new(),
             memory_size: 0,
             ops_budget,
+            ops_price,
             internal_ops_counter,
             external_ops_counter,
             flow_encounters: Vec::<FlowEncounter>::new(),
@@ -81,8 +81,10 @@ impl<'a> StackHolder<'a> {
     /// Creates a new stack holder and initializes it with the given items.
     pub fn new_with_items<'b>(
         contract_id: [u8; 32],
-        msg_sender: [u8; 32],
+        account_key: [u8; 32],
+        timestamp: u64,
         ops_budget: u32,
+        ops_price: u32,
         internal_ops_counter: &'b mut u32,
         external_ops_counter: &'b mut u32,
         initial_stack_items: Vec<StackItem>,
@@ -94,8 +96,10 @@ impl<'a> StackHolder<'a> {
         // Create a new stack holder.
         let mut stack_holder = Self::new(
             contract_id,
-            msg_sender,
+            account_key,
+            timestamp,
             ops_budget,
+            ops_price,
             internal_ops_counter,
             external_ops_counter,
         )?;
@@ -114,14 +118,24 @@ impl<'a> StackHolder<'a> {
         self.contract_id
     }
 
-    /// Returns the msg sender.
-    pub fn msg_sender(&self) -> [u8; 32] {
-        self.msg_sender
+    /// Returns the account key.
+    pub fn account_key(&self) -> [u8; 32] {
+        self.account_key
+    }
+
+    /// Returns the timestamp.
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
     }
 
     /// Returns the ops budget.
     pub fn ops_budget(&self) -> u32 {
         self.ops_budget
+    }
+
+    /// Returns the ops price.
+    pub fn ops_price(&self) -> u32 {
+        self.ops_price
     }
 
     /// Returns the internal ops counter.

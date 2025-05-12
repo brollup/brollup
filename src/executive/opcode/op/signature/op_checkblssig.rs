@@ -6,12 +6,12 @@ use crate::{
 /// Checks a BLS signature according against a key and a message.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_CHECKBLSSIGSINGLE;
+pub struct OP_CHECKBLSSIG;
 
-/// The number of ops for the `OP_CHECKBLSSIGSINGLE` opcode.
-pub const CHECKBLSSIGSINGLE_OPS: u32 = 100;
+/// The number of ops for the `OP_CHECKBLSSIG` opcode.
+pub const CHECKBLSSIG_OPS: u32 = 100;
 
-impl OP_CHECKBLSSIGSINGLE {
+impl OP_CHECKBLSSIG {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -58,12 +58,12 @@ impl OP_CHECKBLSSIGSINGLE {
         stack_holder.push(result_item)?;
 
         // Increment the ops counter.
-        stack_holder.increment_ops(CHECKBLSSIGSINGLE_OPS)?;
+        stack_holder.increment_ops(CHECKBLSSIG_OPS)?;
 
         Ok(())
     }
 
-    /// Returns the bytecode for the `OP_CHECKBLSSIGSINGLE` opcode (0xb7).
+    /// Returns the bytecode for the `OP_CHECKBLSSIG` opcode (0xb7).
     pub fn bytecode() -> Vec<u8> {
         vec![0xb7]
     }

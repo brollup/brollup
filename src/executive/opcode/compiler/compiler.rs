@@ -34,6 +34,19 @@ use crate::executive::opcode::op::bitwise::op_invert::OP_INVERT;
 use crate::executive::opcode::op::bitwise::op_or::OP_OR;
 use crate::executive::opcode::op::bitwise::op_reverse::OP_REVERSE;
 use crate::executive::opcode::op::bitwise::op_xor::OP_XOR;
+use crate::executive::opcode::op::callinfo::op_accountkey::OP_ACCOUNTKEY;
+use crate::executive::opcode::op::callinfo::op_opsbudget::OP_OPSBUDGET;
+use crate::executive::opcode::op::callinfo::op_opscounter::OP_OPSCOUNTER;
+use crate::executive::opcode::op::callinfo::op_opsprice::OP_OPSPRICE;
+use crate::executive::opcode::op::callinfo::op_timestamp::OP_TIMESTAMP;
+use crate::executive::opcode::op::digest::op_blake2bvar::OP_BLAKE2BVAR;
+use crate::executive::opcode::op::digest::op_blake2svar::OP_BLAKE2SVAR;
+use crate::executive::opcode::op::digest::op_hash160::OP_HASH160;
+use crate::executive::opcode::op::digest::op_hash256::OP_HASH256;
+use crate::executive::opcode::op::digest::op_ripemd160::OP_RIPEMD160;
+use crate::executive::opcode::op::digest::op_sha1::OP_SHA1;
+use crate::executive::opcode::op::digest::op_sha256::OP_SHA256;
+use crate::executive::opcode::op::digest::op_taggedhash::OP_TAGGEDHASH;
 use crate::executive::opcode::op::flow::op_else::OP_ELSE;
 use crate::executive::opcode::op::flow::op_endif::OP_ENDIF;
 use crate::executive::opcode::op::flow::op_fail::OP_FAIL;
@@ -44,14 +57,6 @@ use crate::executive::opcode::op::flow::op_returnall::OP_RETURNALL;
 use crate::executive::opcode::op::flow::op_returnerr::OP_RETURNERR;
 use crate::executive::opcode::op::flow::op_returnsome::OP_RETURNSOME;
 use crate::executive::opcode::op::flow::op_verify::OP_VERIFY;
-use crate::executive::opcode::op::digest::op_blake2bvar::OP_BLAKE2BVAR;
-use crate::executive::opcode::op::digest::op_blake2svar::OP_BLAKE2SVAR;
-use crate::executive::opcode::op::digest::op_hash160::OP_HASH160;
-use crate::executive::opcode::op::digest::op_hash256::OP_HASH256;
-use crate::executive::opcode::op::digest::op_ripemd160::OP_RIPEMD160;
-use crate::executive::opcode::op::digest::op_sha1::OP_SHA1;
-use crate::executive::opcode::op::digest::op_sha256::OP_SHA256;
-use crate::executive::opcode::op::digest::op_taggedhash::OP_TAGGEDHASH;
 use crate::executive::opcode::op::push::op_10::OP_10;
 use crate::executive::opcode::op::push::op_11::OP_11;
 use crate::executive::opcode::op::push::op_12::OP_12;
@@ -82,8 +87,8 @@ use crate::executive::opcode::op::secp::op_secppointadd::OP_SECPPOINTADD;
 use crate::executive::opcode::op::secp::op_secppointmul::OP_SECPPOINTMUL;
 use crate::executive::opcode::op::secp::op_secpscalaradd::OP_SECPSCALARADD;
 use crate::executive::opcode::op::secp::op_secpscalarmul::OP_SECPSCALARMUL;
+use crate::executive::opcode::op::signature::op_checkblssig::OP_CHECKBLSSIG;
 use crate::executive::opcode::op::signature::op_checkblssigagg::OP_CHECKBLSSIGAGG;
-use crate::executive::opcode::op::signature::op_checkblssigsingle::OP_CHECKBLSSIGSINGLE;
 use crate::executive::opcode::op::signature::op_checkschnorrsig::OP_CHECKSCHNORRSIG;
 use crate::executive::opcode::op::signature::op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340;
 use crate::executive::opcode::op::splice::op_cat::OP_CAT;
@@ -243,8 +248,14 @@ impl OpcodeCompiler for Opcode {
             // Digital signatures
             Opcode::OP_CHECKSCHNORRSIG(_) => Ok(OP_CHECKSCHNORRSIG::bytecode()),
             Opcode::OP_CHECKSCHNORRSIGBIP340(_) => Ok(OP_CHECKSCHNORRSIGBIP340::bytecode()),
-            Opcode::OP_CHECKBLSSIGSINGLE(_) => Ok(OP_CHECKBLSSIGSINGLE::bytecode()),
+            Opcode::OP_CHECKBLSSIG(_) => Ok(OP_CHECKBLSSIG::bytecode()),
             Opcode::OP_CHECKBLSSIGAGG(_) => Ok(OP_CHECKBLSSIGAGG::bytecode()),
+            // Call info
+            Opcode::OP_ACCOUNTKEY(_) => Ok(OP_ACCOUNTKEY::bytecode()),
+            Opcode::OP_OPSBUDGET(_) => Ok(OP_OPSBUDGET::bytecode()),
+            Opcode::OP_OPSCOUNTER(_) => Ok(OP_OPSCOUNTER::bytecode()),
+            Opcode::OP_OPSPRICE(_) => Ok(OP_OPSPRICE::bytecode()),
+            Opcode::OP_TIMESTAMP(_) => Ok(OP_TIMESTAMP::bytecode()),
         }
     }
 
@@ -457,8 +468,14 @@ impl OpcodeCompiler for Opcode {
             // Digital signatures
             0xb5 => Ok(Opcode::OP_CHECKSCHNORRSIG(OP_CHECKSCHNORRSIG)),
             0xb6 => Ok(Opcode::OP_CHECKSCHNORRSIGBIP340(OP_CHECKSCHNORRSIGBIP340)),
-            0xb7 => Ok(Opcode::OP_CHECKBLSSIGSINGLE(OP_CHECKBLSSIGSINGLE)),
+            0xb7 => Ok(Opcode::OP_CHECKBLSSIG(OP_CHECKBLSSIG)),
             0xb8 => Ok(Opcode::OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG)),
+            // Call info
+            0xb9 => Ok(Opcode::OP_ACCOUNTKEY(OP_ACCOUNTKEY)),
+            0xba => Ok(Opcode::OP_OPSBUDGET(OP_OPSBUDGET)),
+            0xbb => Ok(Opcode::OP_OPSCOUNTER(OP_OPSCOUNTER)),
+            0xbc => Ok(Opcode::OP_OPSPRICE(OP_OPSPRICE)),
+            0xbd => Ok(Opcode::OP_TIMESTAMP(OP_TIMESTAMP)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }

@@ -16,6 +16,10 @@ use super::op::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
         op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
     },
+    callinfo::{
+        op_accountkey::OP_ACCOUNTKEY, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
+        op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
+    },
     digest::{
         op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
         op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1, op_sha256::OP_SHA256,
@@ -42,7 +46,7 @@ use super::op::{
         op_secpscalarmul::OP_SECPSCALARMUL,
     },
     signature::{
-        op_checkblssigagg::OP_CHECKBLSSIGAGG, op_checkblssigsingle::OP_CHECKBLSSIGSINGLE,
+        op_checkblssig::OP_CHECKBLSSIG, op_checkblssigagg::OP_CHECKBLSSIGAGG,
         op_checkschnorrsig::OP_CHECKSCHNORRSIG, op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340,
     },
     splice::{
@@ -177,8 +181,14 @@ pub enum Opcode {
     // Digital signatures
     OP_CHECKSCHNORRSIG(OP_CHECKSCHNORRSIG),
     OP_CHECKSCHNORRSIGBIP340(OP_CHECKSCHNORRSIGBIP340),
-    OP_CHECKBLSSIGSINGLE(OP_CHECKBLSSIGSINGLE),
+    OP_CHECKBLSSIG(OP_CHECKBLSSIG),
     OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG),
+    // Call info
+    OP_ACCOUNTKEY(OP_ACCOUNTKEY),
+    OP_OPSBUDGET(OP_OPSBUDGET),
+    OP_OPSCOUNTER(OP_OPSCOUNTER),
+    OP_OPSPRICE(OP_OPSPRICE),
+    OP_TIMESTAMP(OP_TIMESTAMP),
 }
 
 impl Display for Opcode {
@@ -303,8 +313,14 @@ impl Display for Opcode {
             // Digital signatures
             Opcode::OP_CHECKSCHNORRSIG(_) => write!(f, "OP_CHECKSCHNORRSIG"),
             Opcode::OP_CHECKSCHNORRSIGBIP340(_) => write!(f, "OP_CHECKSCHNORRSIGBIP340"),
-            Opcode::OP_CHECKBLSSIGSINGLE(_) => write!(f, "OP_CHECKBLSSIGSINGLE"),
+            Opcode::OP_CHECKBLSSIG(_) => write!(f, "OP_CHECKBLSSIG"),
             Opcode::OP_CHECKBLSSIGAGG(_) => write!(f, "OP_CHECKBLSSIGAGG"),
+            // Call info
+            Opcode::OP_ACCOUNTKEY(_) => write!(f, "OP_ACCOUNTKEY"),
+            Opcode::OP_OPSBUDGET(_) => write!(f, "OP_OPSBUDGET"),
+            Opcode::OP_OPSCOUNTER(_) => write!(f, "OP_OPSCOUNTER"),
+            Opcode::OP_OPSPRICE(_) => write!(f, "OP_OPSPRICE"),
+            Opcode::OP_TIMESTAMP(_) => write!(f, "OP_TIMESTAMP"),
         }
     }
 }

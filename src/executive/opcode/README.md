@@ -140,17 +140,18 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 |:-------------------------|:---------|:-------------------|:----------------------|:------------------|:---------------------------------------------------------------------|
 | OP_CHECKSCHNORRSIG       | 0xb5     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'Cube/challenge' tag. |
 | OP_CHECKSCHNORRSIGBIP340 | 0xb6     | 100                | sig msg key           | True/false        | Checks a schnorr signature according to the 'BIP0340/challenge' tag. |
-| OP_CHECKBLSSIGSINGLE     | 0xb7     | 100                | sig msg key           | True/false        | Checks a BLS signature against a key and a message.                  |
+| OP_CHECKBLSSIG           | 0xb7     | 100                | sig msg key           | True/false        | Checks a BLS signature against a key and a message.                  |
 | OP_CHECKBLSSIGAGG        | 0xb8     | 100 + (50 * count) | sig [msg] [key] count | True/false        | Checks a BLS aggregate signature against a set of keys and messages. |
 
 ## Call info
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_ACCOUNTKEY  | 0xb9     | 1   | -                    | out                    | Pushes the account key into stack.                                              |
+| OP_ACCOUNTKEY  | 0xb9     | 1   | -                    | out                    | Pushes the 32-byte x-only account key into stack.                               |
 | OP_OPSBUDGET   | 0xba     | 1   | -                    | out                    | Pushes the ops budget into stack.                                               |
-| OP_OPSCAP      | 0xbb     | 1   | -                    | out                    | Pushes the ops cap into stack.                                                  |
-| OP_TIMESTAMP   | 0xbb     | 1   | -                    | out                    | Pushes the call timestamp into stack.                                           |
+| OP_OPSCOUNTER  | 0xbb     | 1   | -                    | out                    | Pushes the number of ops spent into stack.                                      |
+| OP_OPSPRICE    | 0xbc     | 1   | -                    | out                    | Pushes the ops price into stack.                                                |
+| OP_TIMESTAMP   | 0xbd     | 1   | -                    | out                    | Pushes the call timestamp into stack.                                           |
 
 ## Memory
 

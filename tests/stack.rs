@@ -29,11 +29,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack.
         let mut stack_holder = StackHolder::new(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
         )?;
@@ -73,11 +77,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack.
         let mut stack_holder = StackHolder::new(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
         )?;
@@ -180,11 +188,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -220,11 +232,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -282,11 +298,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -359,11 +379,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::false_item()],
@@ -439,11 +463,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::false_item()],
@@ -482,11 +510,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::false_item()],
@@ -530,11 +562,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -578,11 +614,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -631,11 +671,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::true_item()],
@@ -665,11 +709,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::false_item()],
@@ -712,11 +760,15 @@ mod stack_tests {
         let mut internal_ops_counter = 0;
         let mut external_ops_counter = 0;
 
+        let timestamp = 1715619200;
+
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
             [0; 32],
             [0; 32],
+            timestamp,
             50,
+            1,
             &mut internal_ops_counter,
             &mut external_ops_counter,
             vec![StackItem::false_item()],
