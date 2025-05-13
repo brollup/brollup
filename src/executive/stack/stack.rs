@@ -15,6 +15,7 @@ impl Stack {
         Self(Vec::new())
     }
 
+    /// Creates a new stack with the given items.
     pub fn new_with_items(items: Vec<StackItem>) -> Self {
         Self(items)
     }
@@ -22,6 +23,11 @@ impl Stack {
     /// Returns the length of the stack.
     pub fn items_count(&self) -> u32 {
         self.0.len() as u32
+    }
+
+    /// Returns the items of the stack.
+    pub fn items(&self) -> Vec<StackItem> {
+        self.0.clone()
     }
 
     /// Pushes a stack item to the stack.

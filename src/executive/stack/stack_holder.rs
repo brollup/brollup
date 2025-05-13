@@ -10,10 +10,10 @@ use std::collections::HashMap;
 /// The stack holder.
 #[derive(Debug)]
 pub struct StackHolder<'a> {
-    // Contract id.
-    contract_id: [u8; 32],
-    // Caller id.
+    // Caller id (can be an account key or a contract id).
     caller_id: [u8; 32],
+    // Contract id of the contract being executed.
+    contract_id: [u8; 32],
     // Timestamp.
     timestamp: u64,
     // Main stack.
@@ -40,8 +40,8 @@ pub struct StackHolder<'a> {
 impl<'a> StackHolder<'a> {
     /// Creates a new stack holder.
     pub fn new(
-        contract_id: [u8; 32],
         caller_id: [u8; 32],
+        contract_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
@@ -60,8 +60,8 @@ impl<'a> StackHolder<'a> {
 
         // Create a new stack holder.
         let stack_holder = Self {
-            contract_id,
             caller_id,
+            contract_id,
             timestamp,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
@@ -80,8 +80,8 @@ impl<'a> StackHolder<'a> {
 
     /// Creates a new stack holder and initializes it with the given items.
     pub fn new_with_items<'b>(
-        contract_id: [u8; 32],
         caller_id: [u8; 32],
+        contract_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
@@ -95,8 +95,8 @@ impl<'a> StackHolder<'a> {
     {
         // Create a new stack holder.
         let mut stack_holder = Self::new(
-            contract_id,
             caller_id,
+            contract_id,
             timestamp,
             ops_budget,
             ops_price,

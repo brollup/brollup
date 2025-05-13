@@ -1,4 +1,4 @@
-use super::{call_ctx::CallCtx, exec_error::ExecutionError};
+use super::exec_error::ExecutionError;
 use crate::executive::{
     opcode::{
         op::push::{op_false::OP_FALSE, op_true::OP_TRUE},
@@ -8,18 +8,28 @@ use crate::executive::{
         method::{method::ProgramMethod, method_type::MethodType},
         program::Program,
     },
-    stack::{stack_error::StackError, stack_item::StackItem},
+    stack::{stack_holder::StackHolder, stack_item::StackItem},
 };
 
-pub fn execute(
-    // Caller can be a contract or an account.
+pub fn execute<'a>(
+    // Caller can be the account key itself or another contract.
     caller_id: [u8; 32],
     // The contract id of the called contract.
     contract_id: [u8; 32],
     // The method index of the called contract.
     method_index: u8,
     // The stack items to be passed as arguments to the called contract.
-    args: Vec<StackItem>,
+    arg_values: Vec<StackItem>,
+    // The timestamp.
+    timestamp: u64,
+    // The ops budget.
+    ops_budget: u32,
+    // The ops price.
+    ops_price: u32,
+    // The internal ops counter.
+    internal_ops_counter: &'a mut u32,
+    // The external ops counter.
+    external_ops_counter: &'a mut u32,
 ) -> Result<Vec<StackItem>, ExecutionError> {
     let program = {
         // Placeholder method #1
@@ -51,10 +61,28 @@ pub fn execute(
         None => return Err(ExecutionError::MethodNotFoundAtIndexError(method_index)),
     };
 
+    // Create a new stack holder.
+    let mut stack_holder = match StackHolder::new_with_items(
+        caller_id,
+        contract_id,
+        timestamp,
+        ops_budget,
+        ops_price,
+        internal_ops_counter,
+        external_ops_counter,
+        arg_values,
+    ) {
+        Ok(stack_holder) => stack_holder,
+        Err(error) => return Err(ExecutionError::StackHolderInitializationError(error)),
+    };
+
     // Execute the program method.
     for opcode in program_method.script().iter() {
         match opcode {
-            Opcode::OP_TRUE(OP_TRUE) => {}
+            Opcode::OP_TRUE(OP_TRUE) => {
+                OP_TRUE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
             _ => {}
         }
     }
