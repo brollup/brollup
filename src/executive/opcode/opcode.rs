@@ -16,6 +16,7 @@ use super::op::{
         op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY, op_invert::OP_INVERT,
         op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
     },
+    call::op_callext::OP_CALLEXT,
     callinfo::{
         op_callerid::OP_CALLERID, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
         op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
@@ -189,6 +190,8 @@ pub enum Opcode {
     OP_OPSCOUNTER(OP_OPSCOUNTER),
     OP_OPSPRICE(OP_OPSPRICE),
     OP_TIMESTAMP(OP_TIMESTAMP),
+    // Call
+    OP_CALLEXT(OP_CALLEXT),
 }
 
 impl Display for Opcode {
@@ -321,6 +324,8 @@ impl Display for Opcode {
             Opcode::OP_OPSCOUNTER(_) => write!(f, "OP_OPSCOUNTER"),
             Opcode::OP_OPSPRICE(_) => write!(f, "OP_OPSPRICE"),
             Opcode::OP_TIMESTAMP(_) => write!(f, "OP_TIMESTAMP"),
+            // Call
+            Opcode::OP_CALLEXT(_) => write!(f, "OP_CALLEXT"),
         }
     }
 }

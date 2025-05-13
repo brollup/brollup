@@ -1,6 +1,8 @@
 pub mod altstack;
 pub mod arithmetic;
 pub mod bitwise;
+pub mod call;
+pub mod callinfo;
 pub mod digest;
 pub mod flow;
 pub mod memory;
@@ -10,4 +12,3 @@ pub mod secp;
 pub mod signature;
 pub mod splice;
 pub mod stack;
-pub mod callinfo;

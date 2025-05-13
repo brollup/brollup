@@ -26,8 +26,8 @@ mod stack_tests {
 
     #[test]
     fn stack_test() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -38,8 +38,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
         )?;
 
         // Push 0xdeadbeef
@@ -74,8 +74,8 @@ mod stack_tests {
 
     #[test]
     fn arithmetic_addition_test() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -86,8 +86,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
         )?;
 
         // Test 0 + 1 = 1;
@@ -185,8 +185,8 @@ mod stack_tests {
 
     #[test]
     fn flow_test() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -197,8 +197,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -229,8 +229,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -241,8 +241,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -295,8 +295,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_2() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -307,8 +307,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -376,8 +376,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_3() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -388,8 +388,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::false_item()],
         )?;
 
@@ -460,8 +460,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_4() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -472,8 +472,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::false_item()],
         )?;
 
@@ -507,8 +507,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_5() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -519,8 +519,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::false_item()],
         )?;
 
@@ -559,8 +559,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_6() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -571,8 +571,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -611,8 +611,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_7() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -623,8 +623,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -668,8 +668,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_8() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -680,8 +680,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::true_item()],
         )?;
 
@@ -706,8 +706,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_9() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -718,8 +718,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::false_item()],
         )?;
 
@@ -757,8 +757,8 @@ mod stack_tests {
 
     #[test]
     fn nested_flow_test_10() -> Result<(), StackError> {
-        let mut internal_ops_counter = 0;
-        let mut external_ops_counter = 0;
+        let internal_ops_counter = 0;
+        let external_ops_counter = 0;
 
         let timestamp = 1715619200;
 
@@ -769,8 +769,8 @@ mod stack_tests {
             timestamp,
             50,
             1,
-            &mut internal_ops_counter,
-            &mut external_ops_counter,
+            internal_ops_counter,
+            external_ops_counter,
             vec![StackItem::false_item()],
         )?;
 

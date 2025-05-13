@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 /// The stack holder.
 #[derive(Debug)]
-pub struct StackHolder<'a> {
+pub struct StackHolder {
     // Caller id (can be an account key or a contract id).
     caller_id: [u8; 32],
     // Contract id of the contract being executed.
@@ -29,15 +29,15 @@ pub struct StackHolder<'a> {
     // Ops price.
     ops_price: u32,
     // Internal ops counter.
-    internal_ops_counter: &'a mut u32,
+    internal_ops_counter: u32,
     // External ops counter.
-    external_ops_counter: &'a mut u32,
+    external_ops_counter: u32,
     // List of flow encounters nested in each other.
     // Since OP_IF/OP_NOTIF/OP_ELSE/OP_ENDIF can be nested, we need to keep track of the flow encounters.
     flow_encounters: Vec<FlowEncounter>,
 }
 
-impl<'a> StackHolder<'a> {
+impl<'a> StackHolder {
     /// Creates a new stack holder.
     pub fn new(
         caller_id: [u8; 32],
@@ -45,16 +45,16 @@ impl<'a> StackHolder<'a> {
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
-        internal_ops_counter: &'a mut u32,
-        external_ops_counter: &'a mut u32,
+        internal_ops_counter: u32,
+        external_ops_counter: u32,
     ) -> Result<Self, StackError> {
         // Check if the internal ops counter exceeds the ops budget.
-        if *internal_ops_counter > ops_budget {
+        if internal_ops_counter > ops_budget {
             return Err(StackError::InternalOpsBudgetExceeded);
         }
 
         // Check if the external ops counter exceeds the limit.
-        if *external_ops_counter > OPS_LIMIT {
+        if external_ops_counter > OPS_LIMIT {
             return Err(StackError::ExternalOpsLimitExceeded);
         }
 
@@ -79,20 +79,16 @@ impl<'a> StackHolder<'a> {
     }
 
     /// Creates a new stack holder and initializes it with the given items.
-    pub fn new_with_items<'b>(
+    pub fn new_with_items(
         caller_id: [u8; 32],
         contract_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
-        internal_ops_counter: &'b mut u32,
-        external_ops_counter: &'b mut u32,
+        internal_ops_counter: u32,
+        external_ops_counter: u32,
         initial_stack_items: Vec<StackItem>,
-    ) -> Result<StackHolder<'b>, StackError>
-    where
-        'b: 'a,
-        'a: 'b,
-    {
+    ) -> Result<StackHolder, StackError> {
         // Create a new stack holder.
         let mut stack_holder = Self::new(
             caller_id,
@@ -140,16 +136,16 @@ impl<'a> StackHolder<'a> {
 
     /// Returns the internal ops counter.
     pub fn internal_ops_counter(&self) -> u32 {
-        *self.internal_ops_counter
+        self.internal_ops_counter
     }
 
     /// Returns the external ops counter.
     pub fn external_ops_counter(&self) -> u32 {
-        *self.external_ops_counter
+        self.external_ops_counter
     }
 
     pub fn increment_ops(&mut self, ops: u32) -> Result<(), StackError> {
-        let new_internal_ops_counter = (*self.internal_ops_counter)
+        let new_internal_ops_counter = self.internal_ops_counter
             .checked_add(ops)
             .ok_or(StackError::InternalOpsBudgetExceeded)?;
 
@@ -157,7 +153,7 @@ impl<'a> StackHolder<'a> {
             return Err(StackError::InternalOpsBudgetExceeded);
         }
 
-        let new_external_ops_counter = (*self.external_ops_counter)
+        let new_external_ops_counter = self.external_ops_counter
             .checked_add(ops)
             .ok_or(StackError::ExternalOpsLimitExceeded)?;
 
@@ -165,8 +161,8 @@ impl<'a> StackHolder<'a> {
             return Err(StackError::ExternalOpsLimitExceeded);
         }
 
-        *self.internal_ops_counter = new_internal_ops_counter;
-        *self.external_ops_counter = new_external_ops_counter;
+        self.internal_ops_counter = new_internal_ops_counter;
+        self.external_ops_counter = new_external_ops_counter;
 
         Ok(())
     }

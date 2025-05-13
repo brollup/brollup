@@ -1,7 +1,11 @@
 use super::exec_error::ExecutionError;
 use crate::executive::{
     opcode::{
-        op::push::{op_false::OP_FALSE, op_true::OP_TRUE},
+        op::{
+            call::op_callext::OP_CALLEXT,
+            flow::{op_returnall::OP_RETURNALL, op_returnsome::OP_RETURNSOME},
+            push::{op_false::OP_FALSE, op_true::OP_TRUE},
+        },
         opcode::Opcode,
     },
     program::{
@@ -11,7 +15,8 @@ use crate::executive::{
     stack::{stack_holder::StackHolder, stack_item::StackItem},
 };
 
-pub fn execute<'a>(
+// Executes a smart contract.
+pub fn execute(
     // Caller can be the account key itself or another contract.
     caller_id: [u8; 32],
     // The contract id of the called contract.
@@ -27,9 +32,9 @@ pub fn execute<'a>(
     // The ops price.
     ops_price: u32,
     // The internal ops counter.
-    internal_ops_counter: &'a mut u32,
+    internal_ops_counter: u32,
     // The external ops counter.
-    external_ops_counter: &'a mut u32,
+    external_ops_counter: u32,
 ) -> Result<Vec<StackItem>, ExecutionError> {
     let program = {
         // Placeholder method #1
@@ -83,9 +88,69 @@ pub fn execute<'a>(
                 OP_TRUE::execute(&mut stack_holder)
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
+            Opcode::OP_RETURNALL(_) => {
+                // If this is not the active execution, return immediately.
+                if !stack_holder.active_execution() {
+                    return Ok(vec![]);
+                }
+
+                // Return all items from the stack.
+                let return_items = OP_RETURNALL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+
+                // Return the items.
+                return Ok(return_items);
+            }
+            Opcode::OP_RETURNSOME(_) => {
+                // If this is not the active execution, skip the opcode.
+                if !stack_holder.active_execution() {
+                    continue;
+                }
+
+                // Return some items from the stack.
+                let return_items = OP_RETURNSOME::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+
+                // Return the items.
+                return Ok(return_items);
+            }
+            Opcode::OP_CALLEXT(_) => {
+                // If this is not the active execution, skip the opcode.
+                if !stack_holder.active_execution() {
+                    continue;
+                }
+
+                // Call an external contract.
+                let (contract_id_to_be_called, method_index_as_u8, arg_values) =
+                    OP_CALLEXT::execute(&mut stack_holder)
+                        .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+
+                // Check if the call is internal.
+                let is_internal_call = contract_id_to_be_called == contract_id;
+
+                // If the call is internal, use the caller id as the caller id.
+                // Otherwise, use the contract id as the caller id.
+                let caller_id = match is_internal_call {
+                    true => caller_id,
+                    false => contract_id,
+                };
+
+                // Call the self fn.
+                return execute(
+                    caller_id,
+                    contract_id_to_be_called,
+                    method_index_as_u8,
+                    arg_values,
+                    timestamp,
+                    ops_budget,
+                    ops_price,
+                    stack_holder.internal_ops_counter(),
+                    stack_holder.external_ops_counter(),
+                );
+            }
             _ => {}
         }
     }
 
-    return Err(ExecutionError::MethodNotFoundAtIndexError(method_index));
+    return Err(ExecutionError::MethodNotReturnedAnyItemsError);
 }

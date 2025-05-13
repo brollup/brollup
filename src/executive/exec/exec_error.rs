@@ -10,6 +10,8 @@ pub enum ExecutionError {
     StackHolderInitializationError(StackError),
     /// Opcode execution error.
     OpcodeExecutionError(StackError),
+    /// Method not returned any items error.
+    MethodNotReturnedAnyItemsError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -23,6 +25,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::OpcodeExecutionError(error) => {
                 write!(f, "Opcode execution error: {:?}", error)
+            }
+            ExecutionError::MethodNotReturnedAnyItemsError => {
+                write!(f, "Method not returned any items")
             }
         }
     }

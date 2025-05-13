@@ -62,4 +62,8 @@ pub enum StackError {
     InvalidBLSMessageBytes,
     // Invalid BLS signature bytes.
     InvalidBLSSignatureBytes,
+    // Invalid contract id.
+    InvalidContractId,
+    // Invalid method index.
+    InvalidMethodIndex,
 }
