@@ -1,7 +1,7 @@
 use super::{
     limits::{
-        MAX_METHOD_CALL_ELEMENT_TYPE_COUNT, MAX_METHOD_NAME_LENGTH, MAX_METHOD_OPCODE_COUNT,
-        MIN_METHOD_CALL_ELEMENT_TYPE_COUNT, MIN_METHOD_NAME_LENGTH, MIN_METHOD_OPCODE_COUNT,
+        MAX_METHOD_ARG_COUNT, MAX_METHOD_NAME_LENGTH, MAX_METHOD_OPCODE_COUNT,
+        MIN_METHOD_ARG_COUNT, MIN_METHOD_NAME_LENGTH, MIN_METHOD_OPCODE_COUNT,
     },
     method_error::{MethodConstructionError, ScriptValidationError},
     method_type::MethodType,
@@ -26,7 +26,7 @@ pub struct ProgramMethod {
     /// The type of method.
     method_type: MethodType,
     /// Call element types.
-    call_element_types: Vec<CallElementType>,
+    args: Vec<CallElementType>,
     /// The script to execute.
     script: Vec<Opcode>,
 }
@@ -36,7 +36,7 @@ impl ProgramMethod {
     pub fn new(
         method_name: String,
         method_type: MethodType,
-        call_element_types: Vec<CallElementType>,
+        args: Vec<CallElementType>,
         script: Vec<Opcode>,
     ) -> Result<Self, MethodConstructionError> {
         // Check method name byte length.
@@ -45,11 +45,9 @@ impl ProgramMethod {
             return Err(MethodConstructionError::MethodNameLengthError);
         }
 
-        // Check call element type count.
-        if call_element_types.len() > MAX_METHOD_CALL_ELEMENT_TYPE_COUNT
-            || call_element_types.len() < MIN_METHOD_CALL_ELEMENT_TYPE_COUNT
-        {
-            return Err(MethodConstructionError::CallElementTypeCountError);
+        // Check arg count.
+        if args.len() > MAX_METHOD_ARG_COUNT || args.len() < MIN_METHOD_ARG_COUNT {
+            return Err(MethodConstructionError::ArgCountError);
         }
 
         // Check opcode count.
@@ -57,18 +55,23 @@ impl ProgramMethod {
             return Err(MethodConstructionError::OpcodeCountError);
         }
 
-        // Validate the script.
-        if let Err(e) = Self::validate_script(&script) {
-            return Err(MethodConstructionError::ScriptValidationError(e));
-        }
-
         // Construct the method.
         let method = Self {
             method_name,
             method_type,
-            call_element_types,
+            args,
             script,
         };
+
+        // Validate the script.
+        if let Err(e) = method.validate_script() {
+            return Err(MethodConstructionError::ScriptValidationError(e));
+        }
+
+        // Validate the args.
+        if !method.validate_args() {
+            return Err(MethodConstructionError::ArgValidationError);
+        }
 
         // Return the method.
         Ok(method)
@@ -85,8 +88,8 @@ impl ProgramMethod {
     }
 
     /// Returns the call element types.
-    pub fn call_element_types(&self) -> Vec<CallElementType> {
-        self.call_element_types.clone()
+    pub fn args(&self) -> Vec<CallElementType> {
+        self.args.clone()
     }
 
     /// Returns the script.
@@ -95,8 +98,8 @@ impl ProgramMethod {
     }
 
     /// Validates the script.
-    pub fn validate_script(script: &Vec<Opcode>) -> Result<(), ScriptValidationError> {
-        for opcode in script {
+    pub fn validate_script(&self) -> Result<(), ScriptValidationError> {
+        for opcode in self.script.iter() {
             match opcode {
                 // Check for reserved opcodes.
                 Opcode::OP_RESERVED_1(OP_RESERVED_1) => {
@@ -119,11 +122,21 @@ impl ProgramMethod {
         Ok(())
     }
 
+    /// Validates the args.
+    pub fn validate_args(&self) -> bool {
+        // More than ONE payable is not allowed.
+        self.args
+            .iter()
+            .filter(|arg| **arg == CallElementType::Payable)
+            .count()
+            <= 1
+    }
+
     /// Returns the method as a JSON object.
     pub fn json(&self) -> Value {
         // Convert the call element types to JSON.
-        let call_element_types: Vec<Value> = self
-            .call_element_types
+        let args: Vec<Value> = self
+            .args
             .iter()
             .map(|element_type| Value::String(element_type.to_string()))
             .collect();
@@ -142,10 +155,7 @@ impl ProgramMethod {
         );
 
         // Add the call element types to the method JSON object.
-        obj.insert(
-            "call_element_types".to_string(),
-            Value::Array(call_element_types),
-        );
+        obj.insert("args".to_string(), Value::Array(args));
 
         // Convert the script to JSON.
         let script: Vec<Value> = self

@@ -10,8 +10,8 @@ pub const MAX_METHOD_OPCODE_COUNT: usize = 1024 * 32;
 /// The minimum opcode count in a method.
 pub const MIN_METHOD_OPCODE_COUNT: usize = 4;
 
-/// The maximum call element type count in a method.
-pub const MAX_METHOD_CALL_ELEMENT_TYPE_COUNT: usize = 16;
+/// The maximum arg count in a method.
+pub const MAX_METHOD_ARG_COUNT: usize = 16;
 
-/// The minimum call element type count in a method.
-pub const MIN_METHOD_CALL_ELEMENT_TYPE_COUNT: usize = 0;
+/// The minimum arg count in a method.
+pub const MIN_METHOD_ARG_COUNT: usize = 0;

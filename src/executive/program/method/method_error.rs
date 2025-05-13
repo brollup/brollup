@@ -5,8 +5,10 @@ use std::fmt;
 pub enum MethodConstructionError {
     /// Method name length error.
     MethodNameLengthError,
-    /// Call element type count error.
-    CallElementTypeCountError,
+    /// Arg count error.
+    ArgCountError,
+    /// Arg validation error.
+    ArgValidationError,
     /// Opcode count error.
     OpcodeCountError,
     /// Script validation error.
@@ -19,14 +21,17 @@ impl fmt::Display for MethodConstructionError {
             MethodConstructionError::MethodNameLengthError => {
                 write!(f, "Method name length is invalid")
             }
-            MethodConstructionError::CallElementTypeCountError => {
-                write!(f, "Invalid call element type count")
+            MethodConstructionError::ArgCountError => {
+                write!(f, "Invalid arg count")
             }
             MethodConstructionError::OpcodeCountError => {
                 write!(f, "Invalid opcode count")
             }
             MethodConstructionError::ScriptValidationError(err) => {
                 write!(f, "Script validation error: {}", err)
+            }
+            MethodConstructionError::ArgValidationError => {
+                write!(f, "Arg validation error")
             }
         }
     }
