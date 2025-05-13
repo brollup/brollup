@@ -12,8 +12,8 @@ use std::collections::HashMap;
 pub struct StackHolder<'a> {
     // Contract id.
     contract_id: [u8; 32],
-    // Account key (msg sender).
-    account_key: [u8; 32],
+    // Caller id.
+    caller_id: [u8; 32],
     // Timestamp.
     timestamp: u64,
     // Main stack.
@@ -41,7 +41,7 @@ impl<'a> StackHolder<'a> {
     /// Creates a new stack holder.
     pub fn new(
         contract_id: [u8; 32],
-        account_key: [u8; 32],
+        caller_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
@@ -61,7 +61,7 @@ impl<'a> StackHolder<'a> {
         // Create a new stack holder.
         let stack_holder = Self {
             contract_id,
-            account_key,
+            caller_id,
             timestamp,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
@@ -81,7 +81,7 @@ impl<'a> StackHolder<'a> {
     /// Creates a new stack holder and initializes it with the given items.
     pub fn new_with_items<'b>(
         contract_id: [u8; 32],
-        account_key: [u8; 32],
+        caller_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
@@ -96,7 +96,7 @@ impl<'a> StackHolder<'a> {
         // Create a new stack holder.
         let mut stack_holder = Self::new(
             contract_id,
-            account_key,
+            caller_id,
             timestamp,
             ops_budget,
             ops_price,
@@ -118,9 +118,9 @@ impl<'a> StackHolder<'a> {
         self.contract_id
     }
 
-    /// Returns the account key.
-    pub fn account_key(&self) -> [u8; 32] {
-        self.account_key
+    /// Returns the caller id.
+    pub fn caller_id(&self) -> [u8; 32] {
+        self.caller_id
     }
 
     /// Returns the timestamp.

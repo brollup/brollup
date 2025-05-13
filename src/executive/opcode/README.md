@@ -147,7 +147,7 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_ACCOUNTKEY  | 0xb9     | 1   | -                    | out                    | Pushes the 32-byte x-only account key into stack.                               |
+| OP_CALLERID    | 0xb9     | 1   | -                    | out                    | Pushes the 32-byte caller ID into stack.                                        |
 | OP_OPSBUDGET   | 0xba     | 1   | -                    | out                    | Pushes the ops budget into stack.                                               |
 | OP_OPSCOUNTER  | 0xbb     | 1   | -                    | out                    | Pushes the number of ops spent into stack.                                      |
 | OP_OPSPRICE    | 0xbc     | 1   | -                    | out                    | Pushes the ops price into stack.                                                |

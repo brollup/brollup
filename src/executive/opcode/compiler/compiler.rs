@@ -34,7 +34,7 @@ use crate::executive::opcode::op::bitwise::op_invert::OP_INVERT;
 use crate::executive::opcode::op::bitwise::op_or::OP_OR;
 use crate::executive::opcode::op::bitwise::op_reverse::OP_REVERSE;
 use crate::executive::opcode::op::bitwise::op_xor::OP_XOR;
-use crate::executive::opcode::op::callinfo::op_accountkey::OP_ACCOUNTKEY;
+use crate::executive::opcode::op::callinfo::op_callerid::OP_CALLERID;
 use crate::executive::opcode::op::callinfo::op_opsbudget::OP_OPSBUDGET;
 use crate::executive::opcode::op::callinfo::op_opscounter::OP_OPSCOUNTER;
 use crate::executive::opcode::op::callinfo::op_opsprice::OP_OPSPRICE;
@@ -251,7 +251,7 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_CHECKBLSSIG(_) => Ok(OP_CHECKBLSSIG::bytecode()),
             Opcode::OP_CHECKBLSSIGAGG(_) => Ok(OP_CHECKBLSSIGAGG::bytecode()),
             // Call info
-            Opcode::OP_ACCOUNTKEY(_) => Ok(OP_ACCOUNTKEY::bytecode()),
+            Opcode::OP_CALLERID(_) => Ok(OP_CALLERID::bytecode()),
             Opcode::OP_OPSBUDGET(_) => Ok(OP_OPSBUDGET::bytecode()),
             Opcode::OP_OPSCOUNTER(_) => Ok(OP_OPSCOUNTER::bytecode()),
             Opcode::OP_OPSPRICE(_) => Ok(OP_OPSPRICE::bytecode()),
@@ -471,7 +471,7 @@ impl OpcodeCompiler for Opcode {
             0xb7 => Ok(Opcode::OP_CHECKBLSSIG(OP_CHECKBLSSIG)),
             0xb8 => Ok(Opcode::OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG)),
             // Call info
-            0xb9 => Ok(Opcode::OP_ACCOUNTKEY(OP_ACCOUNTKEY)),
+            0xb9 => Ok(Opcode::OP_CALLERID(OP_CALLERID)),
             0xba => Ok(Opcode::OP_OPSBUDGET(OP_OPSBUDGET)),
             0xbb => Ok(Opcode::OP_OPSCOUNTER(OP_OPSCOUNTER)),
             0xbc => Ok(Opcode::OP_OPSPRICE(OP_OPSPRICE)),
