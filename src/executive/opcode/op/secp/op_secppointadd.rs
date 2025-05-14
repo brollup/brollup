@@ -1,5 +1,7 @@
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::{SecpError, StackError},
+    stack_holder::StackHolder,
+    stack_item::StackItem,
 };
 use secp::MaybePoint;
 
@@ -27,13 +29,13 @@ impl OP_SECPPOINTADD {
         // Convert the first point to a secp point.
         let point_1 = match MaybePoint::from_slice(point_1_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPoint),
+            Err(_) => return Err(StackError::SecpError(SecpError::InvalidSecpPoint)),
         };
 
         // Convert the second point to a secp point.
         let point_2 = match MaybePoint::from_slice(point_2_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPoint),
+            Err(_) => return Err(StackError::SecpError(SecpError::InvalidSecpPoint)),
         };
 
         // Add the two points together.

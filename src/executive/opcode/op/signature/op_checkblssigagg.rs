@@ -1,6 +1,8 @@
 use crate::{
     executive::stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_error::{BLSError, StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
     transmutive::bls::{key::BLSPublicKey, verify::bls_verify_aggregate},
@@ -24,7 +26,9 @@ impl OP_CHECKBLSSIGAGG {
         // Convert the count to a stack u32.
         let count = count
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .as_usize();
 
         // Collect the keys.
@@ -37,7 +41,7 @@ impl OP_CHECKBLSSIGAGG {
             let public_key: BLSPublicKey = public_key
                 .bytes()
                 .try_into()
-                .map_err(|_| StackError::InvalidBLSPublicKeyBytes)?;
+                .map_err(|_| StackError::BLSError(BLSError::InvalidBLSPublicKeyBytes))?;
 
             // Push the public key to the vector.
             keys.push(public_key);
@@ -53,7 +57,7 @@ impl OP_CHECKBLSSIGAGG {
             let message: [u8; 32] = message
                 .bytes()
                 .try_into()
-                .map_err(|_| StackError::InvalidBLSSignatureBytes)?;
+                .map_err(|_| StackError::BLSError(BLSError::InvalidBLSMessageBytes))?;
 
             // Push the message to the vector.
             messages.push(message);
@@ -66,7 +70,7 @@ impl OP_CHECKBLSSIGAGG {
         let aggregate_signature: [u8; 96] = aggregate_signature_item
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidBLSSignatureBytes)?;
+            .map_err(|_| StackError::BLSError(BLSError::InvalidBLSSignatureBytes))?;
 
         // Verify the signature.
         let verify_result = bls_verify_aggregate(keys, messages, aggregate_signature);

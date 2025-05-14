@@ -1,7 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_ADD_OPS,
     stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_error::{StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
 };
@@ -23,14 +25,14 @@ impl OP_ADD {
         let item_2 = stack_holder.pop()?;
 
         // Item 1 uint value;
-        let item_1_uint = item_1
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let item_1_uint = item_1.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Item 2 uint value;
-        let item_2_uint = item_2
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let item_2_uint = item_2.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Add the two values.
         match item_1_uint.checked_add(item_2_uint) {

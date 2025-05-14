@@ -1,5 +1,5 @@
 use crate::executive::stack::{
-    stack_error::StackError,
+    stack_error::{SecpError, StackError, StackUintError},
     stack_holder::StackHolder,
     stack_item::StackItem,
     stack_uint::{SafeConverter, StackItemUintExt},
@@ -30,14 +30,16 @@ impl OP_SECPPOINTMUL {
         // Convert the scalar to a secp scalar.
         let scalar = scalar_item
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .to_secp_scalar()
-            .ok_or(StackError::InvalidSecpScalar)?;
+            .ok_or(StackError::SecpError(SecpError::InvalidSecpScalar))?;
 
         // Convert the point to a secp point.
         let point = match MaybePoint::from_slice(point_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPoint),
+            Err(_) => return Err(StackError::SecpError(SecpError::InvalidSecpPoint)),
         };
 
         // Multiply the point by the scalar.

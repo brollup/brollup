@@ -1,6 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_EQUALVERIFY_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder},
+    stack::{
+        stack_error::{MandatoryError, StackError},
+        stack_holder::StackHolder,
+    },
 };
 
 /// Same as OP_EQUAL, but runs OP_VERIFY afterward.
@@ -21,7 +24,9 @@ impl OP_EQUALVERIFY {
 
         // Check if the two items are equal.
         if item_1.bytes() != item_2.bytes() {
-            return Err(StackError::MandatoryEqualVerifyError);
+            return Err(StackError::MandatoryError(
+                MandatoryError::MandatoryEqualVerifyError,
+            ));
         }
 
         // Increment the ops counter.

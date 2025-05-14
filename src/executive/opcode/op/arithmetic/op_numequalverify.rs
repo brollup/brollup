@@ -1,6 +1,10 @@
 use crate::executive::{
     opcode::ops::OP_NUMEQUALVERIFY_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder, stack_uint::StackItemUintExt},
+    stack::{
+        stack_error::{MandatoryError, StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_uint::StackItemUintExt,
+    },
 };
 
 /// Same as OP_NUMEQUAL, but runs OP_VERIFY afterward.
@@ -22,18 +26,20 @@ impl OP_NUMEQUALVERIFY {
         let item_2 = stack_holder.pop()?;
 
         // Convert item 1 to a stack uint.
-        let num_1 = item_1
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_1 = item_1.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Convert item 2 to a stack uint.
-        let num_2 = item_2
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_2 = item_2.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Return an error if the numbers are not equal.
         if num_1 != num_2 {
-            return Err(StackError::MandatoryVerifyError);
+            return Err(StackError::MandatoryError(
+                MandatoryError::MandatoryEqualVerifyError,
+            ));
         }
 
         // Increment the ops counter.

@@ -2,7 +2,7 @@ use super::{
     flow::{flow_encounter::FlowEncounter, flow_status::FlowStatus},
     limits::OPS_LIMIT,
     stack::Stack,
-    stack_error::StackError,
+    stack_error::{OpsBudgetError, StackError},
     stack_item::StackItem,
 };
 use std::collections::HashMap;
@@ -50,12 +50,16 @@ impl<'a> StackHolder {
     ) -> Result<Self, StackError> {
         // Check if the internal ops counter exceeds the ops budget.
         if internal_ops_counter > ops_budget {
-            return Err(StackError::InternalOpsBudgetExceeded);
+            return Err(StackError::OpsBudgetError(
+                OpsBudgetError::InternalOpsBudgetExceeded,
+            ));
         }
 
         // Check if the external ops counter exceeds the limit.
         if external_ops_counter > OPS_LIMIT {
-            return Err(StackError::ExternalOpsLimitExceeded);
+            return Err(StackError::OpsBudgetError(
+                OpsBudgetError::ExternalOpsLimitExceeded,
+            ));
         }
 
         // Create a new stack holder.
@@ -145,20 +149,30 @@ impl<'a> StackHolder {
     }
 
     pub fn increment_ops(&mut self, ops: u32) -> Result<(), StackError> {
-        let new_internal_ops_counter = self.internal_ops_counter
-            .checked_add(ops)
-            .ok_or(StackError::InternalOpsBudgetExceeded)?;
+        let new_internal_ops_counter =
+            self.internal_ops_counter
+                .checked_add(ops)
+                .ok_or(StackError::OpsBudgetError(
+                    OpsBudgetError::InternalOpsBudgetExceeded,
+                ))?;
 
         if new_internal_ops_counter > self.ops_budget {
-            return Err(StackError::InternalOpsBudgetExceeded);
+            return Err(StackError::OpsBudgetError(
+                OpsBudgetError::InternalOpsBudgetExceeded,
+            ));
         }
 
-        let new_external_ops_counter = self.external_ops_counter
-            .checked_add(ops)
-            .ok_or(StackError::ExternalOpsLimitExceeded)?;
+        let new_external_ops_counter =
+            self.external_ops_counter
+                .checked_add(ops)
+                .ok_or(StackError::OpsBudgetError(
+                    OpsBudgetError::ExternalOpsLimitExceeded,
+                ))?;
 
         if new_external_ops_counter > OPS_LIMIT {
-            return Err(StackError::ExternalOpsLimitExceeded);
+            return Err(StackError::OpsBudgetError(
+                OpsBudgetError::ExternalOpsLimitExceeded,
+            ));
         }
 
         self.internal_ops_counter = new_internal_ops_counter;

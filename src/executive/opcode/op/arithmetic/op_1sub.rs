@@ -1,7 +1,7 @@
 use crate::executive::{
     opcode::ops::OP_1SUB_OPS,
     stack::{
-        stack_error::StackError,
+        stack_error::{StackError, StackUintError},
         stack_holder::StackHolder,
         stack_item::StackItem,
         stack_uint::{SafeConverter, StackItemUintExt, StackUint},
@@ -24,9 +24,9 @@ impl OP_1SUB {
         let item = stack_holder.pop()?;
 
         // Convert the item to a `StackUint`.
-        let item_uint = item
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let item_uint = item.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Subtract 1 from the item.
         match item_uint.checked_sub(StackUint::from_u64(1)) {

@@ -1,7 +1,7 @@
 use crate::executive::{
     opcode::ops::OP_RETURNSOME_OPS,
     stack::{
-        stack_error::StackError,
+        stack_error::{StackError, StackUintError},
         stack_holder::StackHolder,
         stack_item::StackItem,
         stack_uint::{SafeConverter, StackItemUintExt},
@@ -24,9 +24,13 @@ impl OP_RETURNSOME {
         let items_count = stack_holder
             .pop()?
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .to_usize()
-            .ok_or(StackError::StackUintConversionError)?;
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?;
 
         // Collect remaining stack items.
         let mut items = Vec::<StackItem>::with_capacity(items_count);

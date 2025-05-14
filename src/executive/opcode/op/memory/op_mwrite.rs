@@ -2,7 +2,7 @@ use crate::executive::{
     opcode::ops::OP_MWRITE_OPS,
     stack::{
         limits::{MAX_CONTRACT_MEMORY_SIZE, MAX_KEY_LENGTH, MIN_KEY_LENGTH, MIN_VALUE_LENGTH},
-        stack_error::StackError,
+        stack_error::{MemoryError, StackError},
         stack_holder::StackHolder,
         stack_item::StackItem,
     },
@@ -25,7 +25,9 @@ impl OP_MWRITE {
 
         // Make sure key is within the valid length range (1 to 40 bytes).
         if key.len() < MIN_KEY_LENGTH || key.len() > MAX_KEY_LENGTH {
-            return Err(StackError::InvalidMemoryKeyLength(key.len() as u8));
+            return Err(StackError::MemoryError(
+                MemoryError::InvalidMemoryKeyLength(key.len() as u8),
+            ));
         }
 
         // Pop value
@@ -34,7 +36,9 @@ impl OP_MWRITE {
         // Make sure value is within the valid length range (1 to 4095 bytes).
         // NOTE: The maximum length of the value is bound by the stack item size limit.
         if value.len() < MIN_VALUE_LENGTH {
-            return Err(StackError::InvalidMemoryValueLength(value.len() as u8));
+            return Err(StackError::MemoryError(
+                MemoryError::InvalidMemoryValueLength(value.len() as u8),
+            ));
         }
 
         // Get the contract's memory size.
@@ -43,7 +47,11 @@ impl OP_MWRITE {
         // New memory size.
         let new_contract_memory_size = match contract_memory_size + key.len() + value.len() {
             new_size if new_size < MAX_CONTRACT_MEMORY_SIZE => new_size,
-            _ => return Err(StackError::ContractMemorySizeLimitExceeded),
+            _ => {
+                return Err(StackError::MemoryError(
+                    MemoryError::ContractMemorySizeLimitExceeded,
+                ));
+            }
         };
 
         // Get contract memory.

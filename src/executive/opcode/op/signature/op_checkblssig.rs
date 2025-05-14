@@ -1,5 +1,9 @@
 use crate::{
-    executive::stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
+    executive::stack::{
+        stack_error::{BLSError, StackError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
+    },
     transmutive::bls::{key::BLSPublicKey, verify::bls_verify},
 };
 
@@ -31,19 +35,19 @@ impl OP_CHECKBLSSIG {
         let public_key: BLSPublicKey = public_key
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidBLSPublicKeyBytes)?;
+            .map_err(|_| StackError::BLSError(BLSError::InvalidBLSPublicKeyBytes))?;
 
         // Convert the message to 32 bytes.
         let message: [u8; 32] = message
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidBLSSignatureBytes)?;
+            .map_err(|_| StackError::BLSError(BLSError::InvalidBLSSignatureBytes))?;
 
         // Convert the signature to 96 bytes.
         let signature: [u8; 96] = signature
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidBLSSignatureBytes)?;
+            .map_err(|_| StackError::BLSError(BLSError::InvalidBLSSignatureBytes))?;
 
         // Verify the signature.
         let verify_result = bls_verify(&public_key, message, signature);

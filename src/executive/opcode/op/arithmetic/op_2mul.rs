@@ -1,7 +1,7 @@
 use crate::executive::{
     opcode::ops::OP_2MUL_OPS,
     stack::{
-        stack_error::StackError,
+        stack_error::{StackError, StackUintError},
         stack_holder::StackHolder,
         stack_item::StackItem,
         stack_uint::{SafeConverter, StackItemUintExt, StackUint},
@@ -24,9 +24,9 @@ impl OP_2MUL {
         let item = stack_holder.pop()?;
 
         // Convert the item to a `StackUint`.
-        let item_uint = item
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let item_uint = item.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Multiply the item by 2.
         match item_uint.checked_mul(StackUint::from_u64(2)) {

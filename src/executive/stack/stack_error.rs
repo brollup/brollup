@@ -1,3 +1,93 @@
+/// The call error.
+#[derive(Debug, Clone, Copy)]
+pub enum CallError {
+    /// The contract id is invalid.
+    InvalidContractId,
+    /// The method index is invalid.
+    InvalidMethodIndex,
+    /// The arguments count is invalid.
+    InvalidArgumentsCount,
+}
+
+/// The BLS error.
+#[derive(Debug, Clone, Copy)]
+pub enum BLSError {
+    /// The BLS public key is invalid.
+    InvalidBLSPublicKeyBytes,
+    /// The BLS message is invalid.
+    InvalidBLSMessageBytes,
+    /// The BLS signature is invalid.
+    InvalidBLSSignatureBytes,
+}
+
+/// The Schnorr error.
+#[derive(Debug, Clone, Copy)]
+pub enum SchnorrError {
+    /// The Schnorr public key is invalid.
+    InvalidSchnorrPublicKeyBytes,
+    /// The Schnorr message is invalid.
+    InvalidSchnorrMessageBytes,
+    /// The Schnorr signature is invalid.
+    InvalidSchnorrSignatureBytes,
+}
+
+/// The secp error.
+#[derive(Debug, Clone, Copy)]
+pub enum SecpError {
+    /// The secp scalar is invalid.
+    InvalidSecpScalar,
+    /// The secp point is invalid.
+    InvalidSecpPoint,
+}
+
+/// The stack uint error.
+#[derive(Debug, Clone, Copy)]
+pub enum StackUintError {
+    /// The stack uint max overflow error.
+    StackUintMaxOverflowError,
+    /// The stack uint conversion error.
+    StackUintConversionError,
+}
+
+/// The ops budget error.
+#[derive(Debug, Clone, Copy)]
+pub enum OpsBudgetError {
+    /// The internal ops budget exceeded error.
+    InternalOpsBudgetExceeded,
+    /// The external ops limit exceeded error.
+    ExternalOpsLimitExceeded,
+}
+
+/// The storage error.
+#[derive(Debug, Clone, Copy)]
+pub enum StorageError {
+    /// The invalid storage key length error.
+    InvalidStorageKeyLength(u8),
+    /// The invalid storage value length error.
+    InvalidStorageValueLength(u8),
+}
+
+/// The memory error.
+#[derive(Debug, Clone, Copy)]
+pub enum MemoryError {
+    /// The invalid memory key length error.
+    InvalidMemoryKeyLength(u8),
+    /// The invalid memory value length error.
+    InvalidMemoryValueLength(u8),
+    /// The memory size limit exceeded error.
+    ContractMemorySizeLimitExceeded,
+}
+
+/// The mandatory error.
+#[derive(Debug, Clone, Copy)]
+pub enum MandatoryError {
+    /// The mandatory equal verify error.
+    MandatoryEqualVerifyError,
+    /// The mandatory verify error.
+    MandatoryVerifyError,
+}
+
+/// The stack error.
 #[derive(Debug, Clone, Copy)]
 pub enum StackError {
     /// The stack is empty.
@@ -10,31 +100,19 @@ pub enum StackError {
     PickIndexError(u32),
     /// The remove index is out of bounds.
     RemoveIndexError(u32),
-    // Equalverify error.
-    MandatoryEqualVerifyError,
-    // Verify error.
-    MandatoryVerifyError,
-    // Invalid memory key length.
-    InvalidMemoryKeyLength(u8),
-    // Invalid memory value length.
-    InvalidMemoryValueLength(u8),
-    // Invalid storage key length.
-    InvalidStorageKeyLength(u8),
-    // Invalid storage value length.
-    InvalidStorageValueLength(u8),
-    // Memory size limit exceeded.
-    ContractMemorySizeLimitExceeded,
-    // Internal ops budget exceeded.
-    InternalOpsBudgetExceeded,
-    // External ops limit exceeded.
-    ExternalOpsLimitExceeded,
-    // StackUint max overflow error.
-    StackUintMaxOverflowError,
-    // Stack uitn conversion error.
-    StackUintConversionError,
-    // Fail error.
+    /// The mandatory error.
+    MandatoryError(MandatoryError),
+    /// The memory error.
+    MemoryError(MemoryError),
+    /// The storage error.
+    StorageError(StorageError),
+    /// The ops budget error.
+    OpsBudgetError(OpsBudgetError),
+    /// The stack uint error.
+    StackUintError(StackUintError),
+    /// The fail error.
     FailError,
-    // OP_ELSE encountered with preceding OP_ELSE error.
+    /// The OP_ELSE encountered with preceding OP_ELSE error.
     OPElseEncounteredWithPrecedingAnotherOPElse,
     // OP_ELSE encountered without preceding flow encounter error.
     OPElseEncounteredWithoutPrecedingFlowEncounter,
@@ -42,28 +120,16 @@ pub enum StackError {
     ReservedOpcodeEncounteredError,
     // Split index error.
     SplitIndexError,
-    // BLAKE2b var output size error.
+    // Blake2b error.
     BLAKE2bVarOutputSizeError,
-    // BLAKE2s var output size error.
+    // Blake2s error.
     BLAKE2sVarOutputSizeError,
-    // Invalid secp scalar.
-    InvalidSecpScalar,
-    // Invalid secp point.
-    InvalidSecpPoint,
-    // Invalid schnorr public key bytes.
-    InvalidSchnorrPublicKeyBytes,
-    // Invalid schnorr message bytes.
-    InvalidSchnorrMessageBytes,
-    // Invalid schnorr signature bytes.
-    InvalidSchnorrSignatureBytes,
-    // Invalid BLS public key bytes.
-    InvalidBLSPublicKeyBytes,
-    // Invalid BLS message bytes.
-    InvalidBLSMessageBytes,
-    // Invalid BLS signature bytes.
-    InvalidBLSSignatureBytes,
-    // Invalid contract id.
-    InvalidContractId,
-    // Invalid method index.
-    InvalidMethodIndex,
+    // Secp error.
+    SecpError(SecpError),
+    // BLS error.
+    BLSError(BLSError),
+    // Schnorr error.
+    SchnorrError(SchnorrError),
+    // Call error.
+    CallError(CallError),
 }

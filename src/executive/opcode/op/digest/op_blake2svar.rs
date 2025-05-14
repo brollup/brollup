@@ -1,6 +1,8 @@
 use crate::executive::stack::stack_uint::StackItemUintExt;
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::{StackError, StackUintError},
+    stack_holder::StackHolder,
+    stack_item::StackItem,
 };
 use blake2::digest::{Update, VariableOutput};
 use blake2::Blake2sVar;
@@ -29,7 +31,9 @@ impl OP_BLAKE2SVAR {
         // Convert the output size to a u32.
         let output_size_as_usize = output_size
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .as_usize();
 
         // Check if the output size is valid.

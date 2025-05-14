@@ -1,7 +1,7 @@
 use crate::executive::{
     opcode::ops::OP_SPLIT_OPS,
     stack::{
-        stack_error::StackError,
+        stack_error::{StackError, StackUintError},
         stack_holder::StackHolder,
         stack_item::StackItem,
         stack_uint::{SafeConverter, StackItemUintExt},
@@ -29,9 +29,13 @@ impl OP_SPLIT {
         // Convert split index to stack uint and then to usize.
         let split_index = split_index_item
             .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintMaxOverflowError,
+            ))?
             .to_usize()
-            .ok_or(StackError::StackUintConversionError)?;
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?;
 
         // Get the bytes from the StackItem
         let bytes_slice = byte_array_item.bytes();

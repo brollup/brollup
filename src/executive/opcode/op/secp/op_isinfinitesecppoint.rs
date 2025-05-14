@@ -1,5 +1,7 @@
 use crate::executive::stack::{
-    stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+    stack_error::{SecpError, StackError},
+    stack_holder::StackHolder,
+    stack_item::StackItem,
 };
 use secp::MaybePoint;
 
@@ -24,7 +26,7 @@ impl OP_ISINFINITESECPPOINT {
         // Convert the point to a secp point.
         let point = match MaybePoint::from_slice(point_item.bytes()) {
             Ok(point) => point,
-            Err(_) => return Err(StackError::InvalidSecpPoint),
+            Err(_) => return Err(StackError::SecpError(SecpError::InvalidSecpPoint)),
         };
 
         // Check if the point is infinite.

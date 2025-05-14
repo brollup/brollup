@@ -1,7 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_WITHIN_OPS,
     stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_error::{StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
 };
@@ -28,19 +30,19 @@ impl OP_WITHIN {
         let num = stack_holder.pop()?;
 
         // Convert max to a stack uint.
-        let max = max
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let max = max.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Convert min to a stack uint.
-        let min = min
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let min = min.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Convert num to a stack uint.
-        let num = num
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num = num.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Push 1 if num is within the range, 0 otherwise.
         match num >= min && num <= max {

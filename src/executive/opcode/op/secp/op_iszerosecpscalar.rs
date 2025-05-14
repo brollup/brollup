@@ -1,5 +1,5 @@
 use crate::executive::stack::{
-    stack_error::StackError,
+    stack_error::{SecpError, StackError, StackUintError},
     stack_holder::StackHolder,
     stack_item::StackItem,
     stack_uint::{SafeConverter, StackItemUintExt},
@@ -26,9 +26,11 @@ impl OP_ISZEROSECPSCALAR {
         // Convert the scalar to a secp scalar.
         let scalar = scalar_item
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .to_secp_scalar()
-            .ok_or(StackError::InvalidSecpScalar)?;
+            .ok_or(StackError::SecpError(SecpError::InvalidSecpScalar))?;
 
         // Check if the scalar is zero.
         let result_item = match scalar.is_zero() {

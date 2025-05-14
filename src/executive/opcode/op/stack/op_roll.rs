@@ -1,6 +1,10 @@
 use crate::executive::{
     opcode::ops::OP_ROLL_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder, stack_uint::StackItemUintExt},
+    stack::{
+        stack_error::{StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_uint::StackItemUintExt,
+    },
 };
 
 /// Rolls an item from the main stack to the top of the stack.
@@ -19,9 +23,9 @@ impl OP_ROLL {
         let last_item = stack_holder.pop()?;
 
         // Get the pick depth from the last item.
-        let pick_depth = last_item
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let pick_depth = last_item.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintMaxOverflowError,
+        ))?;
 
         // Get the item at the pick depth.
         let item = stack_holder.item_by_depth(pick_depth.as_u32())?;

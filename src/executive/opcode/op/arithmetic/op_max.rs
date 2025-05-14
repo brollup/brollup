@@ -1,7 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_MAX_OPS,
     stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_error::{StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
 };
@@ -25,14 +27,14 @@ impl OP_MAX {
         let item_2 = stack_holder.pop()?;
 
         // Convert item 1 to a stack uint.
-        let num_1 = item_1
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_1 = item_1.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Convert item 2 to a stack uint.
-        let num_2 = item_2
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_2 = item_2.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Get the larger of the two numbers.
         let larger = num_1.max(num_2);

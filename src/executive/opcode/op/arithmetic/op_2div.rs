@@ -1,7 +1,7 @@
 use crate::executive::{
     opcode::ops::OP_2DIV_OPS,
     stack::{
-        stack_error::StackError,
+        stack_error::{StackError, StackUintError},
         stack_holder::StackHolder,
         stack_item::StackItem,
         stack_uint::{SafeConverter, StackItemUintExt, StackUint},
@@ -24,9 +24,9 @@ impl OP_2DIV {
         let item = stack_holder.pop()?;
 
         // Convert the item to a `StackUint`.
-        let item_uint = item
-            .to_stack_uint()
-            .ok_or(StackError::StackUintMaxOverflowError)?;
+        let item_uint = item.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Divide the item by 2.
         let (division, modulo) = item_uint.div_mod(StackUint::from_u64(2));

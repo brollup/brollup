@@ -2,7 +2,7 @@ use crate::executive::{
     opcode::ops::OP_MREAD_OPS,
     stack::{
         limits::{MAX_KEY_LENGTH, MIN_KEY_LENGTH},
-        stack_error::StackError,
+        stack_error::{MemoryError, StackError},
         stack_holder::StackHolder,
         stack_item::StackItem,
     },
@@ -25,7 +25,9 @@ impl OP_MREAD {
 
         // Make sure key is within the valid length range (1 to 40 bytes).
         if key.len() < MIN_KEY_LENGTH || key.len() > MAX_KEY_LENGTH {
-            return Err(StackError::InvalidMemoryKeyLength(key.len() as u8));
+            return Err(StackError::MemoryError(
+                MemoryError::InvalidMemoryKeyLength(key.len() as u8),
+            ));
         }
 
         // Get contract memory.

@@ -1,6 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_VERIFY_OPS,
-    stack::{stack_error::StackError, stack_holder::StackHolder},
+    stack::{
+        stack_error::{MandatoryError, StackError},
+        stack_holder::StackHolder,
+    },
 };
 
 /// Pops an item from the main stack and checks if it is true. Fails if it is not.
@@ -20,7 +23,9 @@ impl OP_VERIFY {
 
         // Check if the item is true.
         if item.bytes() != vec![0x01] {
-            return Err(StackError::MandatoryVerifyError);
+            return Err(StackError::MandatoryError(
+                MandatoryError::MandatoryVerifyError,
+            ));
         }
 
         // Increment the ops counter.

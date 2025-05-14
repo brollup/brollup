@@ -1,5 +1,9 @@
 use crate::{
-    executive::stack::{stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem},
+    executive::stack::{
+        stack_error::{SchnorrError, StackError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
+    },
     transmutive::secp::schnorr::{self, SchnorrSigningMode},
 };
 
@@ -35,21 +39,21 @@ impl OP_CHECKSCHNORRSIG {
         let message_bytes: [u8; 32] = message
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidSchnorrMessageBytes)?;
+            .map_err(|_| StackError::SchnorrError(SchnorrError::InvalidSchnorrMessageBytes))?;
 
         // Convert signature to bytes.
         let signature_bytes: [u8; 64] = signature
             .bytes()
             .try_into()
-            .map_err(|_| StackError::InvalidSchnorrSignatureBytes)?;
+            .map_err(|_| StackError::SchnorrError(SchnorrError::InvalidSchnorrSignatureBytes))?;
 
         // Match public key length.
         let verify_result = match public_key_bytes.len() {
             32 => {
                 // Convert public key to bytes.
-                let public_key_bytes: [u8; 32] = public_key_bytes
-                    .try_into()
-                    .map_err(|_| StackError::InvalidSchnorrPublicKeyBytes)?;
+                let public_key_bytes: [u8; 32] = public_key_bytes.try_into().map_err(|_| {
+                    StackError::SchnorrError(SchnorrError::InvalidSchnorrPublicKeyBytes)
+                })?;
 
                 // Verify the signature.
                 schnorr::verify_xonly(
@@ -61,9 +65,9 @@ impl OP_CHECKSCHNORRSIG {
             }
             33 => {
                 // Convert public key to bytes.
-                let public_key_bytes: [u8; 33] = public_key_bytes
-                    .try_into()
-                    .map_err(|_| StackError::InvalidSchnorrPublicKeyBytes)?;
+                let public_key_bytes: [u8; 33] = public_key_bytes.try_into().map_err(|_| {
+                    StackError::SchnorrError(SchnorrError::InvalidSchnorrPublicKeyBytes)
+                })?;
 
                 // Verify the signature.
                 schnorr::verify_compressed(
@@ -75,9 +79,9 @@ impl OP_CHECKSCHNORRSIG {
             }
             65 => {
                 // Convert public key to bytes.
-                let public_key_bytes: [u8; 65] = public_key_bytes
-                    .try_into()
-                    .map_err(|_| StackError::InvalidSchnorrPublicKeyBytes)?;
+                let public_key_bytes: [u8; 65] = public_key_bytes.try_into().map_err(|_| {
+                    StackError::SchnorrError(SchnorrError::InvalidSchnorrPublicKeyBytes)
+                })?;
 
                 // Verify the signature.
                 schnorr::verify_uncompressed(
@@ -87,7 +91,11 @@ impl OP_CHECKSCHNORRSIG {
                     SchnorrSigningMode::Cube,
                 )
             }
-            _ => return Err(StackError::InvalidSchnorrPublicKeyBytes),
+            _ => {
+                return Err(StackError::SchnorrError(
+                    SchnorrError::InvalidSchnorrPublicKeyBytes,
+                ))
+            }
         };
         // Get the result item.
         let result_item = match verify_result {

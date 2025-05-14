@@ -1,5 +1,5 @@
 use crate::executive::stack::{
-    stack_error::StackError,
+    stack_error::{SecpError, StackError, StackUintError},
     stack_holder::StackHolder,
     stack_item::StackItem,
     stack_uint::{SafeConverter, StackItemUintExt, StackUint},
@@ -29,16 +29,20 @@ impl OP_SECPSCALARADD {
         // Convert the first scalar to a secp scalar.
         let scalar_1 = scalar_1_item
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .to_secp_scalar()
-            .ok_or(StackError::InvalidSecpScalar)?;
+            .ok_or(StackError::SecpError(SecpError::InvalidSecpScalar))?;
 
         // Convert the second scalar to a secp scalar.
         let scalar_2 = scalar_2_item
             .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?
+            .ok_or(StackError::StackUintError(
+                StackUintError::StackUintConversionError,
+            ))?
             .to_secp_scalar()
-            .ok_or(StackError::InvalidSecpScalar)?;
+            .ok_or(StackError::SecpError(SecpError::InvalidSecpScalar))?;
 
         // Add the two scalars together.
         let addition = scalar_1 + scalar_2;

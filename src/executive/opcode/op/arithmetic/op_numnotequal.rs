@@ -1,7 +1,9 @@
 use crate::executive::{
     opcode::ops::OP_NUMNOTEQUAL_OPS,
     stack::{
-        stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
+        stack_error::{StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
 };
@@ -25,14 +27,14 @@ impl OP_NUMNOTEQUAL {
         let item_2 = stack_holder.pop()?;
 
         // Convert item 1 to a stack uint.
-        let num_1 = item_1
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_1 = item_1.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Convert item 2 to a stack uint.
-        let num_2 = item_2
-            .to_stack_uint()
-            .ok_or(StackError::StackUintConversionError)?;
+        let num_2 = item_2.to_stack_uint().ok_or(StackError::StackUintError(
+            StackUintError::StackUintConversionError,
+        ))?;
 
         // Push 1 if the numbers are not equal, 0 otherwise.
         match num_1 != num_2 {
