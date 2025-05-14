@@ -2,7 +2,7 @@ use super::exec_error::ExecutionError;
 use crate::executive::{
     opcode::{
         op::{
-            call::op_callext::OP_CALLEXT,
+            call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
             flow::{op_returnall::OP_RETURNALL, op_returnsome::OP_RETURNSOME},
             push::{op_false::OP_FALSE, op_true::OP_TRUE},
         },
@@ -114,14 +114,39 @@ pub fn execute(
                 // Return the items.
                 return Ok(return_items);
             }
+            Opcode::OP_CALL(_) => {
+                // If this is not the active execution, skip the opcode.
+                if !stack_holder.active_execution() {
+                    continue;
+                }
+
+                // Get the information about the internal call.
+                let (method_index_to_be_called, call_arg_values) =
+                    OP_CALL::execute(&mut stack_holder)
+                        .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+
+                // Call the internal contract.
+                return execute(
+                    caller_id,   // Caller ID is the same as the current caller id.
+                    contract_id, // Contract ID is the same as the current contract id.
+                    method_index_to_be_called,
+                    call_arg_values,
+                    timestamp,  // Timestamp is the same as the current timestamp.
+                    ops_budget, // Ops budget is the same as the current ops budget.
+                    ops_price,  // Ops price is the same as the current ops price.
+                    stack_holder.internal_ops_counter(),
+                    stack_holder.external_ops_counter(),
+                );
+            }
+
             Opcode::OP_CALLEXT(_) => {
                 // If this is not the active execution, skip the opcode.
                 if !stack_holder.active_execution() {
                     continue;
                 }
 
-                // Call an external contract.
-                let (contract_id_to_be_called, method_index_as_u8, arg_values) =
+                // Get the information about the external call.
+                let (contract_id_to_be_called, method_index_to_be_called, call_arg_values) =
                     OP_CALLEXT::execute(&mut stack_holder)
                         .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
 
@@ -135,15 +160,15 @@ pub fn execute(
                     false => contract_id,
                 };
 
-                // Call the self fn.
+                // Call the external contract.
                 return execute(
                     caller_id,
                     contract_id_to_be_called,
-                    method_index_as_u8,
-                    arg_values,
-                    timestamp,
-                    ops_budget,
-                    ops_price,
+                    method_index_to_be_called,
+                    call_arg_values,
+                    timestamp,  // Timestamp is the same as the current timestamp.
+                    ops_budget, // Ops budget is the same as the current ops budget.
+                    ops_price,  // Ops price is the same as the current ops price.
                     stack_holder.internal_ops_counter(),
                     stack_holder.external_ops_counter(),
                 );
