@@ -5,34 +5,29 @@ use crate::executive::stack::{
     stack_uint::{SafeConverter, StackItemUintExt},
 };
 
-/// Calls an external contract method.
+/// Calls an internal contract method.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_CALLEXT;
+pub struct OP_CALL;
 
-/// The number of ops for the `OP_CALLEXT` opcode.
-pub const CALLEXT_OPS: u32 = 50;
+/// The number of ops for the `OP_CALL` opcode.
+pub const CALL_OPS: u32 = 5;
 
-/// Contract id to be called.
-type ContractIdToBeCalled = [u8; 32];
 /// Method index to be called.
 type MethodIndexToBeCalled = u8;
 /// Call arguments.
 type CallArguments = Vec<StackItem>;
 
-/// The `OP_CALLEXT` opcode.
-impl OP_CALLEXT {
-    /// Execute the `OP_CALLEXT` opcode.
+/// The `OP_CALL` opcode.
+impl OP_CALL {
+    /// Execute the `OP_CALL` opcode.
     pub fn execute(
         stack_holder: &mut StackHolder,
-    ) -> Result<(ContractIdToBeCalled, MethodIndexToBeCalled, CallArguments), StackError> {
+    ) -> Result<(MethodIndexToBeCalled, CallArguments), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
-            return Ok(([0xff; 32], 0xff, vec![]));
+            return Ok((0xff, vec![]));
         }
-
-        // Pop the contract id from the stack.
-        let contract_id = stack_holder.pop()?;
 
         // Pop the method index from the stack.
         let method_index = stack_holder.pop()?;
@@ -47,12 +42,6 @@ impl OP_CALLEXT {
                 None => return Err(StackError::CallError(CallError::InvalidArgumentsCount)),
             },
             None => return Err(StackError::CallError(CallError::InvalidArgumentsCount)),
-        };
-
-        // Convert the contract id and method index to bytes.
-        let contract_id_bytes: [u8; 32] = match contract_id.bytes().try_into() {
-            Ok(bytes) => bytes,
-            Err(_) => return Err(StackError::CallError(CallError::InvalidContractId)),
         };
 
         // Convert the method index to a u32.
@@ -81,13 +70,13 @@ impl OP_CALLEXT {
         }
 
         // Increment the ops counter.
-        stack_holder.increment_ops(CALLEXT_OPS)?;
+        stack_holder.increment_ops(CALL_OPS)?;
 
-        Ok((contract_id_bytes, method_index_as_u8, arguments))
+        Ok((method_index_as_u8, arguments))
     }
 
-    /// Returns the bytecode for the `OP_CALLEXT` opcode (0xbf).
+    /// Returns the bytecode for the `OP_CALL` opcode (0xbe).
     pub fn bytecode() -> Vec<u8> {
-        vec![0xbf]
+        vec![0xbe]
     }
 }

@@ -153,6 +153,13 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 | OP_OPSPRICE    | 0xbc     | 1   | -                    | out                    | Pushes the ops price into stack.                                                |
 | OP_TIMESTAMP   | 0xbd     | 1   | -                    | out                    | Pushes the call timestamp into stack.                                           |
 
+## Call 
+
+| Opcode         | Bytecode | Ops | Input                 | Output                 | Description                                                                     |
+|:---------------|:---------|:----|:----------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_CALL        | 0xbe     | 5   | [args] count index    | Return.                | Calls an internal contract method.                                              |
+| OP_CALLEXT     | 0xbf     | 50  | [args] count index id | Return.                | Calls an external contract method.                                              |
+
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |

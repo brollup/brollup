@@ -34,6 +34,7 @@ use crate::executive::opcode::op::bitwise::op_invert::OP_INVERT;
 use crate::executive::opcode::op::bitwise::op_or::OP_OR;
 use crate::executive::opcode::op::bitwise::op_reverse::OP_REVERSE;
 use crate::executive::opcode::op::bitwise::op_xor::OP_XOR;
+use crate::executive::opcode::op::call::op_call::OP_CALL;
 use crate::executive::opcode::op::call::op_callext::OP_CALLEXT;
 use crate::executive::opcode::op::callinfo::op_callerid::OP_CALLERID;
 use crate::executive::opcode::op::callinfo::op_opsbudget::OP_OPSBUDGET;
@@ -258,6 +259,7 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_OPSPRICE(_) => Ok(OP_OPSPRICE::bytecode()),
             Opcode::OP_TIMESTAMP(_) => Ok(OP_TIMESTAMP::bytecode()),
             // Call
+            Opcode::OP_CALL(_) => Ok(OP_CALL::bytecode()),
             Opcode::OP_CALLEXT(_) => Ok(OP_CALLEXT::bytecode()),
         }
     }
@@ -480,7 +482,8 @@ impl OpcodeCompiler for Opcode {
             0xbc => Ok(Opcode::OP_OPSPRICE(OP_OPSPRICE)),
             0xbd => Ok(Opcode::OP_TIMESTAMP(OP_TIMESTAMP)),
             // Call
-            0xbe => Ok(Opcode::OP_CALLEXT(OP_CALLEXT)),
+            0xbe => Ok(Opcode::OP_CALL(OP_CALL)),
+            0xbf => Ok(Opcode::OP_CALLEXT(OP_CALLEXT)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
