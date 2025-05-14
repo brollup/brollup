@@ -12,6 +12,8 @@ pub enum ExecutionError {
     OpcodeExecutionError(StackError),
     /// Method not returned any items error.
     MethodNotReturnedAnyItemsError,
+    /// Invalid external call attempt as internal call error.
+    ExternalCallAttemptAsInternalError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -28,6 +30,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::MethodNotReturnedAnyItemsError => {
                 write!(f, "Method not returned any items")
+            }
+            ExecutionError::ExternalCallAttemptAsInternalError => {
+                write!(f, "External call attempt as internal call")
             }
         }
     }

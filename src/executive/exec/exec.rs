@@ -89,7 +89,7 @@ pub fn execute(
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
             Opcode::OP_RETURNALL(_) => {
-                // If this is not the active execution, return immediately.
+                // If this is not an active execution, return immediately.
                 if !stack_holder.active_execution() {
                     return Ok(vec![]);
                 }
@@ -102,7 +102,7 @@ pub fn execute(
                 return Ok(return_items);
             }
             Opcode::OP_RETURNSOME(_) => {
-                // If this is not the active execution, skip the opcode.
+                // If this is not an active execution, skip the opcode.
                 if !stack_holder.active_execution() {
                     continue;
                 }
@@ -115,7 +115,7 @@ pub fn execute(
                 return Ok(return_items);
             }
             Opcode::OP_CALL(_) => {
-                // If this is not the active execution, skip the opcode.
+                // If this is not an active execution, skip the opcode.
                 if !stack_holder.active_execution() {
                     continue;
                 }
@@ -134,13 +134,13 @@ pub fn execute(
                     timestamp,  // Timestamp is the same as the current timestamp.
                     ops_budget, // Ops budget is the same as the current ops budget.
                     ops_price,  // Ops price is the same as the current ops price.
-                    stack_holder.internal_ops_counter(),
-                    stack_holder.external_ops_counter(),
+                    stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
+                    stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                 );
             }
 
             Opcode::OP_CALLEXT(_) => {
-                // If this is not the active execution, skip the opcode.
+                // If this is not an active execution, skip the opcode.
                 if !stack_holder.active_execution() {
                     continue;
                 }
@@ -150,27 +150,22 @@ pub fn execute(
                     OP_CALLEXT::execute(&mut stack_holder)
                         .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
 
-                // Check if the call is internal.
-                let is_internal_call = contract_id_to_be_called == contract_id;
-
-                // If the call is internal, use the caller id as the caller id.
-                // Otherwise, use the contract id as the caller id.
-                let caller_id = match is_internal_call {
-                    true => caller_id,
-                    false => contract_id,
-                };
+                // Raise and error if the same contract is being called as an external call.
+                if contract_id_to_be_called == contract_id {
+                    return Err(ExecutionError::ExternalCallAttemptAsInternalError);
+                }
 
                 // Call the external contract.
                 return execute(
-                    caller_id,
+                    contract_id, // The caller for the next call is the current contract id.
                     contract_id_to_be_called,
                     method_index_to_be_called,
                     call_arg_values,
                     timestamp,  // Timestamp is the same as the current timestamp.
                     ops_budget, // Ops budget is the same as the current ops budget.
                     ops_price,  // Ops price is the same as the current ops price.
-                    stack_holder.internal_ops_counter(),
-                    stack_holder.external_ops_counter(),
+                    stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
+                    stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                 );
             }
             _ => {}
