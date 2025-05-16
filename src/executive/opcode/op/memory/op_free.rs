@@ -8,12 +8,12 @@ use crate::executive::{
     },
 };
 
-/// The `OP_MSWEEP` opcode.
-#[derive(Debug, Clone, Copy)]
+/// The `OP_MFREE` opcode.
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub struct OP_MSWEEP;
+pub struct OP_MFREE;
 
-impl OP_MSWEEP {
+impl OP_MFREE {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -48,5 +48,10 @@ impl OP_MSWEEP {
         stack_holder.push(sweep_result_item)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_MFREE` opcode (0xc2).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0xc2]
     }
 }

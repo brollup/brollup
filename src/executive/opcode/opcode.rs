@@ -31,6 +31,7 @@ use super::op::{
         op_notif::OP_NOTIF, op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR,
         op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
     },
+    memory::{op_free::OP_MFREE, op_mread::OP_MREAD, op_mwrite::OP_MWRITE},
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
         op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7,
@@ -193,6 +194,10 @@ pub enum Opcode {
     // Call
     OP_CALL(OP_CALL),
     OP_CALLEXT(OP_CALLEXT),
+    // Memory
+    OP_MWRITE(OP_MWRITE),
+    OP_MREAD(OP_MREAD),
+    OP_MFREE(OP_MFREE),
 }
 
 impl Display for Opcode {
@@ -328,6 +333,10 @@ impl Display for Opcode {
             // Call
             Opcode::OP_CALL(_) => write!(f, "OP_CALL"),
             Opcode::OP_CALLEXT(_) => write!(f, "OP_CALLEXT"),
+            // Memory
+            Opcode::OP_MWRITE(_) => write!(f, "OP_MWRITE"),
+            Opcode::OP_MREAD(_) => write!(f, "OP_MREAD"),
+            Opcode::OP_MFREE(_) => write!(f, "OP_MFREE"),
         }
     }
 }

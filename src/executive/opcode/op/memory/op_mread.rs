@@ -9,7 +9,7 @@ use crate::executive::{
 };
 
 /// The `OP_MREAD` opcode.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_MREAD;
 
@@ -48,5 +48,10 @@ impl OP_MREAD {
         stack_holder.push(value)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_MREAD` opcode (0xc1).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0xc1]
     }
 }

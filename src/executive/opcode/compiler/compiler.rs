@@ -59,6 +59,9 @@ use crate::executive::opcode::op::flow::op_returnall::OP_RETURNALL;
 use crate::executive::opcode::op::flow::op_returnerr::OP_RETURNERR;
 use crate::executive::opcode::op::flow::op_returnsome::OP_RETURNSOME;
 use crate::executive::opcode::op::flow::op_verify::OP_VERIFY;
+use crate::executive::opcode::op::memory::op_free::OP_MFREE;
+use crate::executive::opcode::op::memory::op_mread::OP_MREAD;
+use crate::executive::opcode::op::memory::op_mwrite::OP_MWRITE;
 use crate::executive::opcode::op::push::op_10::OP_10;
 use crate::executive::opcode::op::push::op_11::OP_11;
 use crate::executive::opcode::op::push::op_12::OP_12;
@@ -261,6 +264,10 @@ impl OpcodeCompiler for Opcode {
             // Call
             Opcode::OP_CALL(_) => Ok(OP_CALL::bytecode()),
             Opcode::OP_CALLEXT(_) => Ok(OP_CALLEXT::bytecode()),
+            // Memory
+            Opcode::OP_MWRITE(_) => Ok(OP_MWRITE::bytecode()),
+            Opcode::OP_MREAD(_) => Ok(OP_MREAD::bytecode()),
+            Opcode::OP_MFREE(_) => Ok(OP_MFREE::bytecode()),
         }
     }
 
@@ -484,6 +491,10 @@ impl OpcodeCompiler for Opcode {
             // Call
             0xbe => Ok(Opcode::OP_CALL(OP_CALL)),
             0xbf => Ok(Opcode::OP_CALLEXT(OP_CALLEXT)),
+            // Memory
+            0xc0 => Ok(Opcode::OP_MWRITE(OP_MWRITE)),
+            0xc1 => Ok(Opcode::OP_MREAD(OP_MREAD)),
+            0xc2 => Ok(Opcode::OP_MFREE(OP_MFREE)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }

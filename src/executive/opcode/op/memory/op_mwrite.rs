@@ -9,7 +9,7 @@ use crate::executive::{
 };
 
 /// The `OP_MWRITE` opcode.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_MWRITE;
 
@@ -76,5 +76,10 @@ impl OP_MWRITE {
         stack_holder.push(insertion_result_item)?;
 
         Ok(())
+    }
+
+    /// Returns the bytecode for the `OP_MWRITE` opcode (0xc0).
+    pub fn bytecode() -> Vec<u8> {
+        vec![0xc0]
     }
 }
