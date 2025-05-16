@@ -2,9 +2,65 @@ use super::exec_error::ExecutionError;
 use crate::executive::{
     opcode::{
         op::{
+            altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
+            arithmetic::{
+                op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB, op_2div::OP_2DIV,
+                op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD, op_booland::OP_BOOLAND,
+                op_boolor::OP_BOOLOR, op_div::OP_DIV, op_greaterthan::OP_GREATERTHAN,
+                op_greaterthanorequal::OP_GREATERTHANOREQUAL, op_lessthan::OP_LESSTHAN,
+                op_lessthanorequal::OP_LESSTHANOREQUAL, op_lshift::OP_LSHIFT, op_max::OP_MAX,
+                op_min::OP_MIN, op_mul::OP_MUL, op_mulmod::OP_MULMOD, op_not::OP_NOT,
+                op_numequal::OP_NUMEQUAL, op_numequalverify::OP_NUMEQUALVERIFY,
+                op_numnotequal::OP_NUMNOTEQUAL, op_rshift::OP_RSHIFT, op_sub::OP_SUB,
+                op_within::OP_WITHIN,
+            },
+            bitwise::{
+                op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY,
+                op_invert::OP_INVERT, op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
+            },
             call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
-            flow::{op_returnall::OP_RETURNALL, op_returnsome::OP_RETURNSOME},
-            push::{op_false::OP_FALSE, op_true::OP_TRUE},
+            callinfo::{
+                op_callerid::OP_CALLERID, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
+                op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
+            },
+            digest::{
+                op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
+                op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1,
+                op_sha256::OP_SHA256, op_taggedhash::OP_TAGGEDHASH,
+            },
+            flow::{
+                op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF,
+                op_nop::OP_NOP, op_notif::OP_NOTIF, op_returnall::OP_RETURNALL,
+                op_returnerr::OP_RETURNERR, op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
+            },
+            push::{
+                op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
+                op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6,
+                op_7::OP_7, op_8::OP_8, op_9::OP_9, op_false::OP_FALSE, op_true::OP_TRUE,
+            },
+            secp::{
+                op_isinfinitesecppoint::OP_ISINFINITESECPPOINT,
+                op_iszerosecpscalar::OP_ISZEROSECPSCALAR,
+                op_pushsecpgeneratorpoint::OP_PUSHSECPGENERATORPOINT,
+                op_secppointadd::OP_SECPPOINTADD, op_secppointmul::OP_SECPPOINTMUL,
+                op_secpscalaradd::OP_SECPSCALARADD, op_secpscalarmul::OP_SECPSCALARMUL,
+            },
+            signature::{
+                op_checkblssig::OP_CHECKBLSSIG, op_checkblssigagg::OP_CHECKBLSSIGAGG,
+                op_checkschnorrsig::OP_CHECKSCHNORRSIG,
+                op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340,
+            },
+            splice::{
+                op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE,
+                op_split::OP_SPLIT,
+            },
+            stack::{
+                op_2drop::OP_2DROP, op_2dup::OP_2DUP, op_2over::OP_2OVER, op_2rot::OP_2ROT,
+                op_2swap::OP_2SWAP, op_3dup::OP_3DUP, op_depth::OP_DEPTH, op_drop::OP_DROP,
+                op_dup::OP_DUP, op_ifdup::OP_IFDUP, op_nip::OP_NIP, op_over::OP_OVER,
+                op_pick::OP_PICK, op_roll::OP_ROLL, op_rot::OP_ROT, op_swap::OP_SWAP,
+                op_tuck::OP_TUCK,
+            },
         },
         opcode::Opcode,
     },
@@ -84,8 +140,98 @@ pub fn execute(
     // Execute the program method.
     for opcode in program_method.script().iter() {
         match opcode {
+            // Data push opcodes.
+            Opcode::OP_FALSE(OP_FALSE) => {
+                OP_FALSE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PUSHDATA(op_pushdata) => {
+                op_pushdata
+                    .execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
             Opcode::OP_TRUE(OP_TRUE) => {
                 OP_TRUE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2(OP_2) => {
+                OP_2::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_3(OP_3) => {
+                OP_3::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_4(OP_4) => {
+                OP_4::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_5(OP_5) => {
+                OP_5::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_6(OP_6) => {
+                OP_6::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_7(OP_7) => {
+                OP_7::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_8(OP_8) => {
+                OP_8::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_9(OP_9) => {
+                OP_9::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_10(OP_10) => {
+                OP_10::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_11(OP_11) => {
+                OP_11::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_12(OP_12) => {
+                OP_12::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_13(OP_13) => {
+                OP_13::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_14(OP_14) => {
+                OP_14::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_15(OP_15) => {
+                OP_15::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_16(OP_16) => {
+                OP_16::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Flow control opcodes.
+            Opcode::OP_NOP(_) => {
+                OP_NOP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_RETURNERR(_) => {
+                let error_item = OP_RETURNERR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+
+                // Return the error item.
+                return Err(ExecutionError::ReturnErrorFromStackError(error_item));
+            }
+            Opcode::OP_IF(_) => {
+                OP_IF::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NOTIF(_) => {
+                OP_NOTIF::execute(&mut stack_holder)
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
             Opcode::OP_RETURNALL(_) => {
@@ -114,6 +260,356 @@ pub fn execute(
                 // Return the items.
                 return Ok(return_items);
             }
+            Opcode::OP_ELSE(_) => {
+                OP_ELSE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ENDIF(_) => {
+                OP_ENDIF::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_VERIFY(_) => {
+                OP_VERIFY::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_FAIL(_) => {
+                OP_FAIL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Altstack operations.
+            Opcode::OP_TOALTSTACK(_) => {
+                OP_TOALTSTACK::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_FROMALTSTACK(_) => {
+                OP_FROMALTSTACK::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Stack operations.
+            Opcode::OP_2DROP(OP_2DROP) => {
+                OP_2DROP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2DUP(OP_2DUP) => {
+                OP_2DUP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_3DUP(OP_3DUP) => {
+                OP_3DUP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2OVER(OP_2OVER) => {
+                OP_2OVER::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2ROT(OP_2ROT) => {
+                OP_2ROT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2SWAP(OP_2SWAP) => {
+                OP_2SWAP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_IFDUP(OP_IFDUP) => {
+                OP_IFDUP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_DEPTH(OP_DEPTH) => {
+                OP_DEPTH::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_DROP(OP_DROP) => {
+                OP_DROP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_DUP(OP_DUP) => {
+                OP_DUP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NIP(OP_NIP) => {
+                OP_NIP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_OVER(OP_OVER) => {
+                OP_OVER::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PICK(OP_PICK) => {
+                OP_PICK::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ROLL(OP_ROLL) => {
+                OP_ROLL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ROT(OP_ROT) => {
+                OP_ROT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SWAP(OP_SWAP) => {
+                OP_SWAP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_TUCK(OP_TUCK) => {
+                OP_TUCK::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Splice opcodes.
+            Opcode::OP_CAT(OP_CAT) => {
+                OP_CAT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SPLIT(OP_SPLIT) => {
+                OP_SPLIT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_LEFT(OP_LEFT) => {
+                OP_LEFT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_RIGHT(OP_RIGHT) => {
+                OP_RIGHT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SIZE(OP_SIZE) => {
+                OP_SIZE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Bitwise opcodes.
+            Opcode::OP_INVERT(OP_INVERT) => {
+                OP_INVERT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_AND(OP_AND) => {
+                OP_AND::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_OR(OP_OR) => {
+                OP_OR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_XOR(OP_XOR) => {
+                OP_XOR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_EQUAL(OP_EQUAL) => {
+                OP_EQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_EQUALVERIFY(OP_EQUALVERIFY) => {
+                OP_EQUALVERIFY::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_REVERSE(OP_REVERSE) => {
+                OP_REVERSE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Arithmetic opcodes.
+            Opcode::OP_1ADD(OP_1ADD) => {
+                OP_1ADD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_1SUB(OP_1SUB) => {
+                OP_1SUB::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2MUL(OP_2MUL) => {
+                OP_2MUL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_2DIV(OP_2DIV) => {
+                OP_2DIV::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ADDMOD(OP_ADDMOD) => {
+                OP_ADDMOD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MULMOD(OP_MULMOD) => {
+                OP_MULMOD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NOT(OP_NOT) => {
+                OP_NOT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_0NOTEQUAL(OP_0NOTEQUAL) => {
+                OP_0NOTEQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ADD(OP_ADD) => {
+                OP_ADD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SUB(OP_SUB) => {
+                OP_SUB::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MUL(OP_MUL) => {
+                OP_MUL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_DIV(OP_DIV) => {
+                OP_DIV::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_LSHIFT(OP_LSHIFT) => {
+                OP_LSHIFT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_RSHIFT(OP_RSHIFT) => {
+                OP_RSHIFT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_BOOLAND(OP_BOOLAND) => {
+                OP_BOOLAND::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_BOOLOR(OP_BOOLOR) => {
+                OP_BOOLOR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NUMEQUAL(OP_NUMEQUAL) => {
+                OP_NUMEQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NUMEQUALVERIFY(OP_NUMEQUALVERIFY) => {
+                OP_NUMEQUALVERIFY::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_NUMNOTEQUAL(OP_NUMNOTEQUAL) => {
+                OP_NUMNOTEQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_LESSTHAN(OP_LESSTHAN) => {
+                OP_LESSTHAN::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_GREATERTHAN(OP_GREATERTHAN) => {
+                OP_GREATERTHAN::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_LESSTHANOREQUAL(OP_LESSTHANOREQUAL) => {
+                OP_LESSTHANOREQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_GREATERTHANOREQUAL(OP_GREATERTHANOREQUAL) => {
+                OP_GREATERTHANOREQUAL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MIN(OP_MIN) => {
+                OP_MIN::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MAX(OP_MAX) => {
+                OP_MAX::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_WITHIN(OP_WITHIN) => {
+                OP_WITHIN::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Digest opcodes.
+            Opcode::OP_RIPEMD160(OP_RIPEMD160) => {
+                OP_RIPEMD160::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SHA1(OP_SHA1) => {
+                OP_SHA1::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SHA256(OP_SHA256) => {
+                OP_SHA256::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_HASH160(OP_HASH160) => {
+                OP_HASH160::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_HASH256(OP_HASH256) => {
+                OP_HASH256::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_TAGGEDHASH(OP_TAGGEDHASH) => {
+                OP_TAGGEDHASH::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_BLAKE2BVAR(OP_BLAKE2BVAR) => {
+                OP_BLAKE2BVAR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_BLAKE2SVAR(OP_BLAKE2SVAR) => {
+                OP_BLAKE2SVAR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Secp opcodes.
+            Opcode::OP_SECPSCALARADD(OP_SECPSCALARADD) => {
+                OP_SECPSCALARADD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SECPSCALARMUL(OP_SECPSCALARMUL) => {
+                OP_SECPSCALARMUL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SECPPOINTADD(OP_SECPPOINTADD) => {
+                OP_SECPPOINTADD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SECPPOINTMUL(OP_SECPPOINTMUL) => {
+                OP_SECPPOINTMUL::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PUSHSECPGENERATORPOINT(OP_PUSHSECPGENERATORPOINT) => {
+                OP_PUSHSECPGENERATORPOINT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ISZEROSECPSCALAR(OP_ISZEROSECPSCALAR) => {
+                OP_ISZEROSECPSCALAR::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_ISINFINITESECPPOINT(OP_ISINFINITESECPPOINT) => {
+                OP_ISINFINITESECPPOINT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Digital signature opcodes.
+            Opcode::OP_CHECKSCHNORRSIG(OP_CHECKSCHNORRSIG) => {
+                OP_CHECKSCHNORRSIG::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_CHECKSCHNORRSIGBIP340(OP_CHECKSCHNORRSIGBIP340) => {
+                OP_CHECKSCHNORRSIGBIP340::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_CHECKBLSSIG(OP_CHECKBLSSIG) => {
+                OP_CHECKBLSSIG::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG) => {
+                OP_CHECKBLSSIGAGG::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Call info opcodes.
+            Opcode::OP_CALLERID(OP_CALLERID) => {
+                OP_CALLERID::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_OPSBUDGET(OP_OPSBUDGET) => {
+                OP_OPSBUDGET::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_OPSCOUNTER(OP_OPSCOUNTER) => {
+                OP_OPSCOUNTER::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_OPSPRICE(OP_OPSPRICE) => {
+                OP_OPSPRICE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_TIMESTAMP(OP_TIMESTAMP) => {
+                OP_TIMESTAMP::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Call opcodes.
             Opcode::OP_CALL(_) => {
                 // If this is not an active execution, skip the opcode.
                 if !stack_holder.active_execution() {
@@ -168,7 +664,12 @@ pub fn execute(
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                 );
             }
-            _ => {}
+            // Memory opcodes.
+
+            // Storage opcodes.
+            _ => {
+                return Err(ExecutionError::ReservedOpcodeEncounteredError);
+            }
         }
     }
 

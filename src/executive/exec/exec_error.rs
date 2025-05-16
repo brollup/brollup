@@ -1,4 +1,4 @@
-use crate::executive::stack::stack_error::StackError;
+use crate::executive::stack::{stack_error::StackError, stack_item::StackItem};
 use std::fmt;
 
 /// A section of executable block in the `Contract`.    
@@ -14,6 +14,10 @@ pub enum ExecutionError {
     MethodNotReturnedAnyItemsError,
     /// Invalid external call attempt as internal call error.
     ExternalCallAttemptAsInternalError,
+    /// Return error item error.
+    ReturnErrorFromStackError(StackItem),
+    /// Reserved opcode encountered error.
+    ReservedOpcodeEncounteredError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -33,6 +37,12 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::ExternalCallAttemptAsInternalError => {
                 write!(f, "External call attempt as internal call")
+            }
+            ExecutionError::ReturnErrorFromStackError(error) => {
+                write!(f, "Return error from stack: {:?}", error)
+            }
+            ExecutionError::ReservedOpcodeEncounteredError => {
+                write!(f, "Reserved opcode encountered")
             }
         }
     }
