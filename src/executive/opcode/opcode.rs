@@ -32,6 +32,10 @@ use super::op::{
         op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
     },
     memory::{op_free::OP_MFREE, op_mread::OP_MREAD, op_mwrite::OP_MWRITE},
+    payment::{
+        op_payablealloc::OP_PAYABLEALLOC, op_payableleft::OP_PAYABLELEFT,
+        op_payablespent::OP_PAYABLESPENT,
+    },
     push::{
         op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
         op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6, op_7::OP_7,
@@ -194,6 +198,10 @@ pub enum Opcode {
     // Call
     OP_CALL(OP_CALL),
     OP_CALLEXT(OP_CALLEXT),
+    // Payment
+    OP_PAYABLEALLOC(OP_PAYABLEALLOC),
+    OP_PAYABLESPENT(OP_PAYABLESPENT),
+    OP_PAYABLELEFT(OP_PAYABLELEFT),
     // Memory
     OP_MWRITE(OP_MWRITE),
     OP_MREAD(OP_MREAD),
@@ -333,6 +341,10 @@ impl Display for Opcode {
             // Call
             Opcode::OP_CALL(_) => write!(f, "OP_CALL"),
             Opcode::OP_CALLEXT(_) => write!(f, "OP_CALLEXT"),
+            // Payment
+            Opcode::OP_PAYABLEALLOC(_) => write!(f, "OP_PAYABLEALLOC"),
+            Opcode::OP_PAYABLESPENT(_) => write!(f, "OP_PAYABLESPENT"),
+            Opcode::OP_PAYABLELEFT(_) => write!(f, "OP_PAYABLELEFT"),
             // Memory
             Opcode::OP_MWRITE(_) => write!(f, "OP_MWRITE"),
             Opcode::OP_MREAD(_) => write!(f, "OP_MREAD"),

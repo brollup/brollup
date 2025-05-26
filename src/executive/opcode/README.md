@@ -160,21 +160,30 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 | OP_CALL        | 0xbe     | 5   | [args] count index    | Return.                | Calls an internal contract method.                                              |
 | OP_CALLEXT     | 0xbf     | 50  | [args] count index id | Return.                | Calls an external contract method.                                              |
 
+## Payment 
+
+| Opcode           | Bytecode | Ops | Input                 | Output                 | Description                                                                     |
+|:-----------------|:---------|:----|:----------------------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_PAYABLEALLOC  | 0xc0     | 1   | -                     | out                    | Pushes allocated satoshis amount to the stack.                                  |
+| OP_PAYABLETSPENT | 0xc1     | 1   | -                     | out                    | Pushes spent satoshis amount to the stack.                                      |
+| OP_PAYABLETLEFT  | 0xc2     | 1   | -                     | out                    | Pushes left satoshis amount to the stack.                                       |
+| OP_PAY           | 0xc3     | 10  | key amount            | Nothing/fail.          | Transfer sats.                                                                  |
+
 ## Memory
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_MWRITE      | 0xc0     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
-| OP_MREAD       | 0xc1     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
-| OP_MFREE       | 0xc2     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
+| OP_MWRITE      | 0xc4     | 5   | x1 x2                | x1                     | Pops the memory key and value, and writes the value to the contract's memory.   |
+| OP_MREAD       | 0xc5     | 5   | x1                   | x1                     | Pops the memory key, and reads the value from the contract's memory.            |
+| OP_MFREE       | 0xc6     | 1   | x1                   | x1                     | Pops the memory key, and frees the key/value from the contract's memory.        |
 
 ## Storage
 
 | Opcode         | Bytecode | Ops | Input                | Output                 | Description                                                                     |
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_SWRITE      | 0xc3     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
-| OP_SREAD       | 0xc4     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xc5     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
+| OP_SWRITE      | 0xc7     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
+| OP_SREAD       | 0xc8     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
+| OP_SFREE       | 0xc9     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Reserved
 

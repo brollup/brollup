@@ -154,8 +154,19 @@ impl<'a> StackHolder {
     }
 
     /// Increments the payable value spent.
-    pub fn increment_payable_spent(&mut self, amount: u64) {
-        self.payable_spent += amount;
+    pub fn increment_payable_spent(&mut self, amount: u64) -> bool {
+        // add but also check does not overflow the alloaction value
+        let new_payable_spent = self.payable_spent.checked_add(amount);
+        match new_payable_spent {
+            Some(new_payable_spent) => {
+                if new_payable_spent > self.payable_allocation {
+                    return false;
+                }
+                self.payable_spent = new_payable_spent;
+                true
+            }
+            None => false,
+        }
     }
 
     /// Returns the ops budget.

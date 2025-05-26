@@ -62,6 +62,9 @@ use crate::executive::opcode::op::flow::op_verify::OP_VERIFY;
 use crate::executive::opcode::op::memory::op_free::OP_MFREE;
 use crate::executive::opcode::op::memory::op_mread::OP_MREAD;
 use crate::executive::opcode::op::memory::op_mwrite::OP_MWRITE;
+use crate::executive::opcode::op::payment::op_payablealloc::OP_PAYABLEALLOC;
+use crate::executive::opcode::op::payment::op_payableleft::OP_PAYABLELEFT;
+use crate::executive::opcode::op::payment::op_payablespent::OP_PAYABLESPENT;
 use crate::executive::opcode::op::push::op_10::OP_10;
 use crate::executive::opcode::op::push::op_11::OP_11;
 use crate::executive::opcode::op::push::op_12::OP_12;
@@ -264,6 +267,10 @@ impl OpcodeCompiler for Opcode {
             // Call
             Opcode::OP_CALL(_) => Ok(OP_CALL::bytecode()),
             Opcode::OP_CALLEXT(_) => Ok(OP_CALLEXT::bytecode()),
+            // Payment
+            Opcode::OP_PAYABLEALLOC(_) => Ok(OP_PAYABLEALLOC::bytecode()),
+            Opcode::OP_PAYABLESPENT(_) => Ok(OP_PAYABLESPENT::bytecode()),
+            Opcode::OP_PAYABLELEFT(_) => Ok(OP_PAYABLELEFT::bytecode()),
             // Memory
             Opcode::OP_MWRITE(_) => Ok(OP_MWRITE::bytecode()),
             Opcode::OP_MREAD(_) => Ok(OP_MREAD::bytecode()),
@@ -491,10 +498,14 @@ impl OpcodeCompiler for Opcode {
             // Call
             0xbe => Ok(Opcode::OP_CALL(OP_CALL)),
             0xbf => Ok(Opcode::OP_CALLEXT(OP_CALLEXT)),
+            // Payment
+            0xc0 => Ok(Opcode::OP_PAYABLEALLOC(OP_PAYABLEALLOC)),
+            0xc1 => Ok(Opcode::OP_PAYABLESPENT(OP_PAYABLESPENT)),
+            0xc2 => Ok(Opcode::OP_PAYABLELEFT(OP_PAYABLELEFT)),
             // Memory
-            0xc0 => Ok(Opcode::OP_MWRITE(OP_MWRITE)),
-            0xc1 => Ok(Opcode::OP_MREAD(OP_MREAD)),
-            0xc2 => Ok(Opcode::OP_MFREE(OP_MFREE)),
+            0xc4 => Ok(Opcode::OP_MWRITE(OP_MWRITE)),
+            0xc5 => Ok(Opcode::OP_MREAD(OP_MREAD)),
+            0xc6 => Ok(Opcode::OP_MFREE(OP_MFREE)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }

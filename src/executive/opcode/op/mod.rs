@@ -6,6 +6,7 @@ pub mod callinfo;
 pub mod digest;
 pub mod flow;
 pub mod memory;
+pub mod payment;
 pub mod push;
 pub mod reserved;
 pub mod secp;
