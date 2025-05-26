@@ -18,6 +18,12 @@ pub enum ExecutionError {
     ReturnErrorFromStackError(StackItem),
     /// Reserved opcode encountered error.
     ReservedOpcodeEncounteredError,
+    /// Arg type mismatch error.
+    ArgTypeMismatchError,
+    /// Min payable allocation error.
+    MinPayableAllocationError,
+    /// Payable allocation caller is not an account error.
+    PayableAllocationCallerIsNotAnAccountError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -43,6 +49,15 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::ReservedOpcodeEncounteredError => {
                 write!(f, "Reserved opcode encountered")
+            }
+            ExecutionError::ArgTypeMismatchError => {
+                write!(f, "Arg type mismatch")
+            }
+            ExecutionError::MinPayableAllocationError => {
+                write!(f, "Min payable allocation error")
+            }
+            ExecutionError::PayableAllocationCallerIsNotAnAccountError => {
+                write!(f, "Payable allocation caller is not an account")
             }
         }
     }

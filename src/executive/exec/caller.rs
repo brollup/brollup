@@ -16,6 +16,16 @@ impl Caller {
         Self::Contract(contract_id)
     }
 
+    /// Returns true if the caller is an account.
+    pub fn is_account(&self) -> bool {
+        matches!(self, Self::Account(_))
+    }
+
+    /// Returns true if the caller is a contract.
+    pub fn is_contract(&self) -> bool {
+        matches!(self, Self::Contract(_))
+    }
+
     /// Returns the caller id.
     pub fn caller_id(&self) -> [u8; 32] {
         match self {

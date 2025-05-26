@@ -48,6 +48,26 @@ impl CallElementType {
         }
     }
 
+    /// Returns the size of the stack item.
+    pub fn stack_item_byte_size(&self) -> Option<u8> {
+        // Get the byte size of the stack item.
+        let byte_size = match self {
+            CallElementType::U8 => 1,
+            CallElementType::U16 => 2,
+            CallElementType::U32 => 4,
+            CallElementType::U64 => 8,
+            CallElementType::Bool => 1,
+            CallElementType::Account => 32,
+            CallElementType::Contract => 32,
+            CallElementType::Bytes(index) => index.to_owned() + 1,
+            CallElementType::Varbytes => return None,
+            CallElementType::Payable => 8,
+        };
+
+        // Return the byte size.
+        return Some(byte_size);
+    }
+
     /// Returns the element type from the bytecode.
     pub fn from_bytecode<I>(bytecode_stream: &mut I) -> Option<Self>
     where

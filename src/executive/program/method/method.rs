@@ -8,12 +8,18 @@ use super::{
 };
 use crate::{
     constructive::calldata::element_type::CallElementType,
-    executive::opcode::{
-        op::{
-            push::op_pushdata::OP_PUSHDATA,
-            reserved::{op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2},
+    executive::{
+        opcode::{
+            op::{
+                push::op_pushdata::OP_PUSHDATA,
+                reserved::{op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2},
+            },
+            opcode::Opcode,
         },
-        opcode::Opcode,
+        stack::{
+            stack_item::StackItem,
+            stack_uint::{SafeConverter, StackItemUintExt},
+        },
     },
 };
 use serde_json::{Map, Value};
@@ -120,6 +126,59 @@ impl ProgramMethod {
         }
 
         Ok(())
+    }
+
+    /// Matches the args to the arg types.
+    pub fn match_args(&self, args: &Vec<StackItem>) -> bool {
+        // Check if the number of args matches the number of arg types.
+        if args.len() != self.arg_types.len() {
+            return false;
+        }
+
+        // Check if the args match the arg types.
+        for (i, arg_type) in self.arg_types.iter().enumerate() {
+            if let Some(expected_byte_size) = arg_type.stack_item_byte_size() {
+                let arg = match args.get(i) {
+                    Some(arg) => arg,
+                    None => return false,
+                };
+
+                if arg.len() != expected_byte_size as u32 {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// Get payable allocation value.
+    pub fn payable_allocation(&self, args: &Vec<StackItem>) -> Option<u64> {
+        // Get the payable arg value.
+        for (i, arg_type) in self.arg_types.iter().enumerate() {
+            if *arg_type == CallElementType::Payable {
+                // Get the payable arg.
+                let payable_arg = match args.get(i) {
+                    Some(arg) => arg,
+                    None => return None,
+                };
+
+                // Convert the arg to a u64.
+                let payable_arg_as_stack_uint = match payable_arg.to_stack_uint() {
+                    Some(arg) => arg,
+                    None => return None,
+                };
+
+                // Convert the arg to a u64.
+                let payable_arg_as_u64 = match payable_arg_as_stack_uint.to_u64() {
+                    Some(arg) => arg,
+                    None => return None,
+                };
+
+                // Return the arg value.
+                return Some(payable_arg_as_u64);
+            }
+        }
+        None
     }
 
     /// Validates the args.

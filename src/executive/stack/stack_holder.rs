@@ -17,6 +17,10 @@ pub struct StackHolder {
     contract_id: [u8; 32],
     // Timestamp.
     timestamp: u64,
+    // Payable value allocated.
+    payable_allocation: u64,
+    // Payable value spent.
+    payable_spent: u64,
     // Main stack.
     main_stack: Stack,
     // Alt stack.
@@ -44,6 +48,7 @@ impl<'a> StackHolder {
         caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
+        payable_allocation: u64,
         ops_budget: u32,
         ops_price: u32,
         internal_ops_counter: u32,
@@ -68,6 +73,8 @@ impl<'a> StackHolder {
             caller,
             contract_id,
             timestamp,
+            payable_allocation,
+            payable_spent: 0,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
             memory: HashMap::new(),
@@ -88,6 +95,7 @@ impl<'a> StackHolder {
         caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
+        payable_allocation: u64,
         ops_budget: u32,
         ops_price: u32,
         internal_ops_counter: u32,
@@ -99,6 +107,7 @@ impl<'a> StackHolder {
             caller,
             contract_id,
             timestamp,
+            payable_allocation,
             ops_budget,
             ops_price,
             internal_ops_counter,
@@ -127,6 +136,26 @@ impl<'a> StackHolder {
     /// Returns the timestamp.
     pub fn timestamp(&self) -> u64 {
         self.timestamp
+    }
+
+    /// Returns the payable value allocated.
+    pub fn payable_allocation(&self) -> u64 {
+        self.payable_allocation
+    }
+
+    /// Returns the payable value spent.
+    pub fn payable_spent(&self) -> u64 {
+        self.payable_spent
+    }
+
+    /// Returns the payable value left.
+    pub fn payable_left(&self) -> u64 {
+        self.payable_allocation - self.payable_spent
+    }
+
+    /// Increments the payable value spent.
+    pub fn increment_payable_spent(&mut self, amount: u64) {
+        self.payable_spent += amount;
     }
 
     /// Returns the ops budget.

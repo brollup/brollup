@@ -71,6 +71,9 @@ use crate::executive::{
     stack::{stack_holder::StackHolder, stack_item::StackItem},
 };
 
+/// A minimum 500 satoshi payable allocation is required.
+pub const MIN_PAYABLE_ALLOCATION: u64 = 500;
+
 // Executes a smart contract.
 pub fn execute(
     // Caller can be the account itself or another contract.
@@ -122,14 +125,37 @@ pub fn execute(
         None => return Err(ExecutionError::MethodNotFoundAtIndexError(method_index)),
     };
 
-    // TODO CHECK PAYABLE
-    
+    // Match the args to the arg types.
+    if !program_method.match_args(&arg_values) {
+        return Err(ExecutionError::ArgTypeMismatchError);
+    }
+
+    // Get the payable allocation value.
+    let payable_allocation = match program_method.payable_allocation(&arg_values) {
+        Some(payable_allocation) => {
+            // If a payable value is allocted it must be greater than MIN_PAYABLE_ALLOCATION.
+            if payable_allocation < MIN_PAYABLE_ALLOCATION {
+                return Err(ExecutionError::MinPayableAllocationError);
+            }
+
+            // TODO: CHECK ENOUGH BALANCE.
+
+            // If a payable value is allocted, the caller must also be an account.
+            if !caller.is_account() {
+                return Err(ExecutionError::PayableAllocationCallerIsNotAnAccountError);
+            }
+
+            payable_allocation
+        }
+        None => 0,
+    };
 
     // Create a new stack holder.
     let mut stack_holder = match StackHolder::new_with_items(
         caller,
         contract_id,
         timestamp,
+        payable_allocation,
         ops_budget,
         ops_price,
         internal_ops_counter,
