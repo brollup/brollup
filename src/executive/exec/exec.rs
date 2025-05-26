@@ -1,4 +1,4 @@
-use super::exec_error::ExecutionError;
+use super::{caller::Caller, exec_error::ExecutionError};
 use crate::executive::{
     opcode::{
         op::{
@@ -20,7 +20,7 @@ use crate::executive::{
             },
             call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
             callinfo::{
-                op_callerid::OP_CALLERID, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
+                op_caller::OP_CALLER, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
                 op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
             },
             digest::{
@@ -71,37 +71,10 @@ use crate::executive::{
     stack::{stack_holder::StackHolder, stack_item::StackItem},
 };
 
-/// Caller can be the account key itself or another contract.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Caller {
-    AccountKey([u8; 32]),
-    ContractId([u8; 32]),
-}
-
-impl Caller {
-    /// Creates a new caller from an account key.
-    pub fn new_account_key(account_key: [u8; 32]) -> Self {
-        Self::AccountKey(account_key)
-    }
-
-    /// Creates a new caller from a contract id.
-    pub fn new_contract_id(contract_id: [u8; 32]) -> Self {
-        Self::ContractId(contract_id)
-    }
-
-    /// Returns the caller id.
-    pub fn caller_id(&self) -> [u8; 32] {
-        match self {
-            Self::AccountKey(account_key) => *account_key,
-            Self::ContractId(contract_id) => *contract_id,
-        }
-    }
-}
-
 // Executes a smart contract.
 pub fn execute(
-    // Caller can be the account key itself or another contract.
-    caller_id: [u8; 32],
+    // Caller can be the account itself or another contract.
+    caller: Caller,
     // The contract id of the called contract.
     contract_id: [u8; 32],
     // The method index of the called contract.
@@ -149,9 +122,12 @@ pub fn execute(
         None => return Err(ExecutionError::MethodNotFoundAtIndexError(method_index)),
     };
 
+    // TODO CHECK PAYABLE
+    
+
     // Create a new stack holder.
     let mut stack_holder = match StackHolder::new_with_items(
-        caller_id,
+        caller,
         contract_id,
         timestamp,
         ops_budget,
@@ -616,8 +592,8 @@ pub fn execute(
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
             // Call info opcodes.
-            Opcode::OP_CALLERID(OP_CALLERID) => {
-                OP_CALLERID::execute(&mut stack_holder)
+            Opcode::OP_CALLER(OP_CALLER) => {
+                OP_CALLER::execute(&mut stack_holder)
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
             Opcode::OP_OPSBUDGET(OP_OPSBUDGET) => {
@@ -650,7 +626,7 @@ pub fn execute(
 
                 // Call the internal contract.
                 return execute(
-                    caller_id,   // Caller ID is the same as the current caller id.
+                    caller,      // Caller remains unchanged for internal calls.
                     contract_id, // Contract ID is the same as the current contract id.
                     method_index_to_be_called,
                     call_arg_values,
@@ -678,9 +654,12 @@ pub fn execute(
                     return Err(ExecutionError::ExternalCallAttemptAsInternalError);
                 }
 
+                // The caller for the next call is the current contract id.
+                let caller = Caller::new_contract(contract_id);
+
                 // Call the external contract.
                 return execute(
-                    contract_id, // The caller for the next call is the current contract id.
+                    caller,
                     contract_id_to_be_called,
                     method_index_to_be_called,
                     call_arg_values,

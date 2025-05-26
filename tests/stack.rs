@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod stack_tests {
     use cube::executive::{
+        exec::caller::Caller,
         opcode::op::{
             altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
             arithmetic::op_add::OP_ADD,
@@ -33,7 +34,7 @@ mod stack_tests {
 
         // Initialize stack.
         let mut stack_holder = StackHolder::new(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -81,7 +82,7 @@ mod stack_tests {
 
         // Initialize stack.
         let mut stack_holder = StackHolder::new(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -192,7 +193,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -236,7 +237,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -302,7 +303,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -383,7 +384,7 @@ mod stack_tests {
 
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -467,7 +468,7 @@ mod stack_tests {
 
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -514,7 +515,7 @@ mod stack_tests {
 
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -566,7 +567,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -618,7 +619,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -675,7 +676,7 @@ mod stack_tests {
 
         // Initialize stack with true.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -713,7 +714,7 @@ mod stack_tests {
 
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,
@@ -764,7 +765,7 @@ mod stack_tests {
 
         // Initialize stack with false.
         let mut stack_holder = StackHolder::new_with_items(
-            [0; 32],
+            Caller::new_account([0; 32]),
             [0; 32],
             timestamp,
             50,

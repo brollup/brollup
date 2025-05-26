@@ -5,13 +5,14 @@ use super::{
     stack_error::{OpsBudgetError, StackError},
     stack_item::StackItem,
 };
+use crate::executive::exec::caller::Caller;
 use std::collections::HashMap;
 
 /// The stack holder.
 #[derive(Debug)]
 pub struct StackHolder {
     // Caller id (can be an account key or a contract id).
-    caller_id: [u8; 32],
+    caller: Caller,
     // Contract id of the contract being executed.
     contract_id: [u8; 32],
     // Timestamp.
@@ -40,7 +41,7 @@ pub struct StackHolder {
 impl<'a> StackHolder {
     /// Creates a new stack holder.
     pub fn new(
-        caller_id: [u8; 32],
+        caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
@@ -64,7 +65,7 @@ impl<'a> StackHolder {
 
         // Create a new stack holder.
         let stack_holder = Self {
-            caller_id,
+            caller,
             contract_id,
             timestamp,
             main_stack: Stack::new(),
@@ -84,7 +85,7 @@ impl<'a> StackHolder {
 
     /// Creates a new stack holder and initializes it with the given items.
     pub fn new_with_items(
-        caller_id: [u8; 32],
+        caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
         ops_budget: u32,
@@ -95,7 +96,7 @@ impl<'a> StackHolder {
     ) -> Result<StackHolder, StackError> {
         // Create a new stack holder.
         let mut stack_holder = Self::new(
-            caller_id,
+            caller,
             contract_id,
             timestamp,
             ops_budget,
@@ -118,9 +119,9 @@ impl<'a> StackHolder {
         self.contract_id
     }
 
-    /// Returns the caller id.
-    pub fn caller_id(&self) -> [u8; 32] {
-        self.caller_id
+    /// Returns the caller.
+    pub fn caller(&self) -> Caller {
+        self.caller.clone()
     }
 
     /// Returns the timestamp.

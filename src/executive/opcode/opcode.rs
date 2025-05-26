@@ -18,7 +18,7 @@ use super::op::{
     },
     call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
     callinfo::{
-        op_callerid::OP_CALLERID, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
+        op_caller::OP_CALLER, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
         op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
     },
     digest::{
@@ -186,7 +186,7 @@ pub enum Opcode {
     OP_CHECKBLSSIG(OP_CHECKBLSSIG),
     OP_CHECKBLSSIGAGG(OP_CHECKBLSSIGAGG),
     // Call info
-    OP_CALLERID(OP_CALLERID),
+    OP_CALLER(OP_CALLER),
     OP_OPSBUDGET(OP_OPSBUDGET),
     OP_OPSCOUNTER(OP_OPSCOUNTER),
     OP_OPSPRICE(OP_OPSPRICE),
@@ -325,7 +325,7 @@ impl Display for Opcode {
             Opcode::OP_CHECKBLSSIG(_) => write!(f, "OP_CHECKBLSSIG"),
             Opcode::OP_CHECKBLSSIGAGG(_) => write!(f, "OP_CHECKBLSSIGAGG"),
             // Call info
-            Opcode::OP_CALLERID(_) => write!(f, "OP_CALLERID"),
+            Opcode::OP_CALLER(_) => write!(f, "OP_CALLER"),
             Opcode::OP_OPSBUDGET(_) => write!(f, "OP_OPSBUDGET"),
             Opcode::OP_OPSCOUNTER(_) => write!(f, "OP_OPSCOUNTER"),
             Opcode::OP_OPSPRICE(_) => write!(f, "OP_OPSPRICE"),
