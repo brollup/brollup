@@ -165,8 +165,8 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 | Opcode           | Bytecode | Ops | Input                 | Output                 | Description                                                                     |
 |:-----------------|:---------|:----|:----------------------|:-----------------------|:--------------------------------------------------------------------------------|
 | OP_PAYABLEALLOC  | 0xc0     | 1   | -                     | out                    | Pushes allocated satoshis amount to the stack.                                  |
-| OP_PAYABLETSPENT | 0xc1     | 1   | -                     | out                    | Pushes spent satoshis amount to the stack.                                      |
-| OP_PAYABLETLEFT  | 0xc2     | 1   | -                     | out                    | Pushes left satoshis amount to the stack.                                       |
+| OP_PAYABLESPENT  | 0xc1     | 1   | -                     | out                    | Pushes spent satoshis amount to the stack.                                      |
+| OP_PAYABLELEFT   | 0xc2     | 1   | -                     | out                    | Pushes left satoshis amount to the stack.                                       |
 | OP_PAY           | 0xc3     | 10  | key amount            | Nothing/fail.          | Transfer sats.                                                                  |
 
 ## Memory
