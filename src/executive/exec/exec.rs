@@ -76,6 +76,8 @@ pub const MIN_PAYABLE_ALLOCATION: u64 = 500;
 
 // Executes a smart contract.
 pub fn execute(
+    // Whether the execution is internal or external.
+    internal: bool,
     // Caller can be the account itself or another contract.
     caller: Caller,
     // The contract id of the called contract.
@@ -143,6 +145,11 @@ pub fn execute(
             // If a payable value is allocted, the caller must also be an account.
             if !caller.is_account() {
                 return Err(ExecutionError::PayableAllocationCallerIsNotAnAccountError);
+            }
+
+            // If a payable value is allocted, this cannot be an internal call.
+            if internal {
+                return Err(ExecutionError::PayableWithInternalCallError);
             }
 
             payable_allocation
@@ -652,6 +659,7 @@ pub fn execute(
 
                 // Call the internal contract.
                 return execute(
+                    true,        // Internal call.
                     caller,      // Caller remains unchanged for internal calls.
                     contract_id, // Contract ID is the same as the current contract id.
                     method_index_to_be_called,
@@ -685,6 +693,7 @@ pub fn execute(
 
                 // Call the external contract.
                 return execute(
+                    false, // External call.
                     caller,
                     contract_id_to_be_called,
                     method_index_to_be_called,

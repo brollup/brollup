@@ -24,6 +24,8 @@ pub enum ExecutionError {
     MinPayableAllocationError,
     /// Payable allocation caller is not an account error.
     PayableAllocationCallerIsNotAnAccountError,
+    /// Payable with internal call error.
+    PayableWithInternalCallError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -58,6 +60,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::PayableAllocationCallerIsNotAnAccountError => {
                 write!(f, "Payable allocation caller is not an account")
+            }
+            ExecutionError::PayableWithInternalCallError => {
+                write!(f, "Payable with internal call")
             }
         }
     }
