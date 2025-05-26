@@ -34,12 +34,12 @@ impl MethodCompiler for ProgramMethod {
         // Encode method type.
         method_bytes.push(self.method_type().bytecode());
 
-        // Encode the number of args as u8.
-        method_bytes.push(self.args().len() as u8);
+        // Encode the number of arg types as u8.
+        method_bytes.push(self.arg_types().len() as u8);
 
-        // Encode individual args.
-        for arg in self.args().iter() {
-            method_bytes.extend(arg.bytecode());
+        // Encode individual arg types.
+        for arg_type in self.arg_types().iter() {
+            method_bytes.extend(arg_type.bytecode());
         }
 
         // Get the number of opcodes as u16.
