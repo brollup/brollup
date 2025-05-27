@@ -4,6 +4,7 @@ use crate::constructive::entity::contract::Contract;
 use crate::constructive::valtype::long_val::LongVal;
 use crate::constructive::valtype::maybe_common::maybe_common::MaybeCommon;
 use crate::constructive::valtype::short_val::ShortVal;
+use crate::executive::stack::stack_uint::{SafeConverter, StackItemUintExt, StackUint};
 use crate::inscriptive::registery::account_registery::ACCOUNT_REGISTERY;
 use crate::inscriptive::registery::contract_registery::CONTRACT_REGISTERY;
 use crate::inscriptive::registery::registery::REGISTERY;
@@ -361,22 +362,64 @@ impl CallElement {
     }
 
     /// Returns the element in the pure bytes format to be pushed/used for stack operations.
-    pub fn stack_item(&self) -> StackItem {
+    pub fn into_stack_item(&self) -> StackItem {
         match self {
             // 1 byte in stack.
-            CallElement::U8(value) => StackItem::new(vec![*value]),
+            CallElement::U8(value) => {
+                // Convert the value to a u32.
+                let value_as_u32 = *value as u32;
+
+                // Convert the value to a `StackUint`.
+                let value_as_stack_uint = StackUint::from_u32(value_as_u32);
+
+                // Convert the value to a `StackItem`.
+                let value_as_stack_item = StackItem::from_stack_uint(value_as_stack_uint);
+
+                // Return the stack item.
+                value_as_stack_item
+            }
             // 2 bytes in stack.
-            CallElement::U16(value) => StackItem::new(value.to_le_bytes().to_vec()),
+            CallElement::U16(value) => {
+                // Convert the value to a u32.
+                let value_as_u32 = *value as u32;
+
+                // Convert the value to a `StackUint`.
+                let value_as_stack_uint = StackUint::from_u32(value_as_u32);
+
+                // Convert the value to a `StackItem`.
+                let value_as_stack_item = StackItem::from_stack_uint(value_as_stack_uint);
+
+                // Return the stack item.
+                value_as_stack_item
+            }
             // 4 bytes in stack.
-            CallElement::U32(value) => StackItem::new(value.value().to_le_bytes().to_vec()),
+            CallElement::U32(value) => {
+                // Convert the value to a `StackUint`.
+                let value_as_stack_uint = StackUint::from_u32(value.value());
+
+                // Convert the value to a `StackItem`.
+                let value_as_stack_item = StackItem::from_stack_uint(value_as_stack_uint);
+
+                // Return the stack item.
+                value_as_stack_item
+            }
             // 8 bytes in stack.
-            CallElement::U64(value) => StackItem::new(value.value().to_le_bytes().to_vec()),
+            CallElement::U64(value) => {
+                // Convert the value to a `StackUint`.
+                let value_as_stack_uint = StackUint::from_u64(value.value());
+
+                // Convert the value to a `StackItem`.
+                let value_as_stack_item = StackItem::from_stack_uint(value_as_stack_uint);
+
+                // Return the stack item.
+                value_as_stack_item
+            }
             // 1 byte in stack  .
             CallElement::Bool(value) => match value {
                 // True is a single byte of 0x01.
-                true => StackItem::new(vec![0x01]),
+                true => StackItem::true_item(),
                 // False is an empty stack item.
-                false => StackItem::new(vec![]),
+                false => StackItem::false_item(),
             },
             // 32 bytes in stack.
             CallElement::Account(value) => StackItem::new(value.key().serialize_xonly().to_vec()),
