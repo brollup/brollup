@@ -20,18 +20,18 @@ impl OP_PAYABLESPENT {
             return Ok(());
         }
 
-        // Get the spent payment amount.
-        let spent_payment_amount_as_u64 = stack_holder.payable_spent();
+        // Get the spent payable amount.
+        let spent_payable_amount_as_u32 = stack_holder.payable_spent_value();
 
-        // Convert the spent payment amount to a stack uint64.
-        let spent_payment_amount_as_stack_uint = StackUint::from_u64(spent_payment_amount_as_u64);
+        // Convert the spent payable amount to a `StackUint`.
+        let spent_payable_amount_as_stack_uint = StackUint::from_u32(spent_payable_amount_as_u32);
 
-        // Convert the spent payment amount to a stack item.
-        let spent_payment_amount_as_stack_item =
-            StackItem::from_stack_uint(spent_payment_amount_as_stack_uint);
+        // Convert the spent payable amount to a `StackItem`.
+        let spent_payable_amount_as_stack_item =
+            StackItem::from_stack_uint(spent_payable_amount_as_stack_uint);
 
-        // Push the spent payment amount to the stack.
-        stack_holder.push(spent_payment_amount_as_stack_item)?;
+        // Push the spent payable amount to the stack.
+        stack_holder.push(spent_payable_amount_as_stack_item)?;
 
         // Increment the ops counter.
         stack_holder.increment_ops(PAYABLESPENT_OPS)?;

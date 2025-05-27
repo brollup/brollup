@@ -190,7 +190,7 @@ impl ProgramMethod {
                     }
                 }
                 CallElementType::Payable => {
-                    if arg.len() > 8 {
+                    if arg.len() > 4 {
                         return false;
                     }
                 }
@@ -200,33 +200,36 @@ impl ProgramMethod {
         true
     }
 
-    /// Get payable allocation value.
-    pub fn payable_allocation(&self, args: &Vec<StackItem>) -> Option<u64> {
+    /// Get the payable allocation value.
+    pub fn payable_allocation_value(&self, args: &Vec<StackItem>) -> Option<u32> {
         // Get the payable arg value.
-        for (i, arg_type) in self.arg_types.iter().enumerate() {
+        for (index, arg_type) in self.arg_types.iter().enumerate() {
+            // Check if the arg type is a payable.
             if *arg_type == CallElementType::Payable {
                 // Get the payable arg.
-                let payable_arg = match args.get(i) {
+                let payable_arg = match args.get(index) {
                     Some(arg) => arg,
                     None => return None,
                 };
 
-                // Convert the arg to a u64.
+                // Convert the arg to a `StackUint`.
                 let payable_arg_as_stack_uint = match payable_arg.to_stack_uint() {
                     Some(arg) => arg,
                     None => return None,
                 };
 
-                // Convert the arg to a u64.
-                let payable_arg_as_u64 = match payable_arg_as_stack_uint.to_u64() {
+                // Convert the arg to a u32.
+                let payable_arg_as_u32 = match payable_arg_as_stack_uint.to_u32() {
                     Some(arg) => arg,
                     None => return None,
                 };
 
                 // Return the arg value.
-                return Some(payable_arg_as_u64);
+                return Some(payable_arg_as_u32);
             }
         }
+
+        // No payable arg found.
         None
     }
 

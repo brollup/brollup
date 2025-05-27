@@ -20,19 +20,19 @@ impl OP_PAYABLEALLOC {
             return Ok(());
         }
 
-        // Get the allocated payment amount.
-        let allocated_payment_amount_as_u64 = stack_holder.payable_allocation();
+        // Get the allocated payable amount.
+        let allocated_payable_amount_as_u32 = stack_holder.payable_allocation_value();
 
-        // Convert the allocated payment amount to a stack uint64.
-        let allocated_payment_amount_as_stack_uint =
-            StackUint::from_u64(allocated_payment_amount_as_u64);
+        // Convert the allocated payable amount to a `StackUint`.
+        let allocated_payable_amount_as_stack_uint =
+            StackUint::from_u32(allocated_payable_amount_as_u32);
 
-        // Convert the allocated payment amount to a stack item.
-        let allocated_payment_amount_as_stack_item =
-            StackItem::from_stack_uint(allocated_payment_amount_as_stack_uint);
+        // Convert the allocated payable amount to a `StackItem`.
+        let allocated_payable_amount_as_stack_item =
+            StackItem::from_stack_uint(allocated_payable_amount_as_stack_uint);
 
-        // Push the allocated payment amount to the stack.
-        stack_holder.push(allocated_payment_amount_as_stack_item)?;
+        // Push the allocated payable amount to the stack.
+        stack_holder.push(allocated_payable_amount_as_stack_item)?;
 
         // Increment the ops counter.
         stack_holder.increment_ops(PAYABLEALLOC_OPS)?;

@@ -72,7 +72,7 @@ use crate::executive::{
 };
 
 /// A minimum 500 satoshi payable allocation is required.
-pub const MIN_PAYABLE_ALLOCATION: u64 = 500;
+pub const MIN_PAYABLE_ALLOCATION_VALUE: u32 = 500;
 
 // Executes a smart contract.
 pub fn execute(
@@ -133,10 +133,10 @@ pub fn execute(
     }
 
     // Get the payable allocation value.
-    let payable_allocation = match program_method.payable_allocation(&arg_values) {
-        Some(payable_allocation) => {
+    let payable_allocation_value = match program_method.payable_allocation_value(&arg_values) {
+        Some(payable_allocation_value) => {
             // If a payable value is allocted it must be greater than MIN_PAYABLE_ALLOCATION.
-            if payable_allocation < MIN_PAYABLE_ALLOCATION {
+            if payable_allocation_value < MIN_PAYABLE_ALLOCATION_VALUE {
                 return Err(ExecutionError::MinPayableAllocationError);
             }
 
@@ -152,7 +152,7 @@ pub fn execute(
                 return Err(ExecutionError::PayableWithInternalCallError);
             }
 
-            payable_allocation
+            payable_allocation_value
         }
         None => 0,
     };
@@ -162,7 +162,7 @@ pub fn execute(
         caller,
         contract_id,
         timestamp,
-        payable_allocation,
+        payable_allocation_value,
         ops_budget,
         ops_price,
         internal_ops_counter,

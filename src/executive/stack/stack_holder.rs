@@ -18,9 +18,9 @@ pub struct StackHolder {
     // Timestamp.
     timestamp: u64,
     // Payable value allocated.
-    payable_allocation: u64,
+    payable_allocation_value: u32,
     // Payable value spent.
-    payable_spent: u64,
+    payable_spent_value: u32,
     // Main stack.
     main_stack: Stack,
     // Alt stack.
@@ -48,7 +48,7 @@ impl<'a> StackHolder {
         caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
-        payable_allocation: u64,
+        payable_allocation_value: u32,
         ops_budget: u32,
         ops_price: u32,
         internal_ops_counter: u32,
@@ -73,8 +73,8 @@ impl<'a> StackHolder {
             caller,
             contract_id,
             timestamp,
-            payable_allocation,
-            payable_spent: 0,
+            payable_allocation_value,
+            payable_spent_value: 0,
             main_stack: Stack::new(),
             alt_stack: Stack::new(),
             memory: HashMap::new(),
@@ -95,7 +95,7 @@ impl<'a> StackHolder {
         caller: Caller,
         contract_id: [u8; 32],
         timestamp: u64,
-        payable_allocation: u64,
+        payable_allocation_value: u32,
         ops_budget: u32,
         ops_price: u32,
         internal_ops_counter: u32,
@@ -107,7 +107,7 @@ impl<'a> StackHolder {
             caller,
             contract_id,
             timestamp,
-            payable_allocation,
+            payable_allocation_value,
             ops_budget,
             ops_price,
             internal_ops_counter,
@@ -139,30 +139,30 @@ impl<'a> StackHolder {
     }
 
     /// Returns the payable value allocated.
-    pub fn payable_allocation(&self) -> u64 {
-        self.payable_allocation
+    pub fn payable_allocation_value(&self) -> u32 {
+        self.payable_allocation_value
     }
 
     /// Returns the payable value spent.
-    pub fn payable_spent(&self) -> u64 {
-        self.payable_spent
+    pub fn payable_spent_value(&self) -> u32 {
+        self.payable_spent_value
     }
 
     /// Returns the payable value left.
-    pub fn payable_left(&self) -> u64 {
-        self.payable_allocation - self.payable_spent
+    pub fn payable_left_value(&self) -> u32 {
+        self.payable_allocation_value - self.payable_spent_value
     }
 
     /// Increments the payable value spent.
-    pub fn increment_payable_spent(&mut self, amount: u64) -> bool {
+    pub fn increment_payable_spent(&mut self, amount: u32) -> bool {
         // add but also check does not overflow the alloaction value
-        let new_payable_spent = self.payable_spent.checked_add(amount);
+        let new_payable_spent = self.payable_spent_value.checked_add(amount);
         match new_payable_spent {
             Some(new_payable_spent) => {
-                if new_payable_spent > self.payable_allocation {
+                if new_payable_spent > self.payable_allocation_value {
                     return false;
                 }
-                self.payable_spent = new_payable_spent;
+                self.payable_spent_value = new_payable_spent;
                 true
             }
             None => false,

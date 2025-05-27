@@ -20,17 +20,17 @@ impl OP_PAYABLELEFT {
             return Ok(());
         }
 
-        // Get the payable left amount.
-        let payable_left_amount_as_u64 = stack_holder.payable_left();
+        // Get the left payable amount.
+        let payable_left_amount_as_u32 = stack_holder.payable_left_value();
 
-        // Convert the left payment amount to a stack uint64.
-        let payable_left_amount_as_stack_uint = StackUint::from_u64(payable_left_amount_as_u64);
+        // Convert the left payable amount to a `StackUint`.
+        let payable_left_amount_as_stack_uint = StackUint::from_u32(payable_left_amount_as_u32);
 
-        // Convert the left payment amount to a stack item.
+        // Convert the left payable amount to a `StackItem`.
         let payable_left_amount_as_stack_item =
             StackItem::from_stack_uint(payable_left_amount_as_stack_uint);
 
-        // Push the payable left amount to the stack.
+        // Push the left payable amount to the stack.
         stack_holder.push(payable_left_amount_as_stack_item)?;
 
         // Increment the ops counter.

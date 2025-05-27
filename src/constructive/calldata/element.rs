@@ -342,6 +342,7 @@ impl CallElement {
 
     /// Returns the type of the element.
     pub fn element_type(&self) -> CallElementType {
+        // Match on the element type.
         match self {
             CallElement::U8(_) => CallElementType::U8,
             CallElement::U16(_) => CallElementType::U16,
@@ -364,7 +365,7 @@ impl CallElement {
     /// Returns the element in the pure bytes format to be pushed/used for stack operations.
     pub fn into_stack_item(&self) -> StackItem {
         match self {
-            // 1 byte in stack.
+            // 0-1 bytes in stack.
             CallElement::U8(value) => {
                 // Convert the value to a u32.
                 let value_as_u32 = *value as u32;
@@ -378,7 +379,7 @@ impl CallElement {
                 // Return the stack item.
                 value_as_stack_item
             }
-            // 2 bytes in stack.
+            // 0-2 bytes in stack.
             CallElement::U16(value) => {
                 // Convert the value to a u32.
                 let value_as_u32 = *value as u32;
@@ -392,7 +393,7 @@ impl CallElement {
                 // Return the stack item.
                 value_as_stack_item
             }
-            // 4 bytes in stack.
+            // 0-4 bytes in stack.
             CallElement::U32(value) => {
                 // Convert the value to a `StackUint`.
                 let value_as_stack_uint = StackUint::from_u32(value.value());
@@ -403,7 +404,7 @@ impl CallElement {
                 // Return the stack item.
                 value_as_stack_item
             }
-            // 8 bytes in stack.
+            // 0-8 bytes in stack.
             CallElement::U64(value) => {
                 // Convert the value to a `StackUint`.
                 let value_as_stack_uint = StackUint::from_u64(value.value());
@@ -414,7 +415,7 @@ impl CallElement {
                 // Return the stack item.
                 value_as_stack_item
             }
-            // 1 byte in stack  .
+            // 0-1 bytes in stack.
             CallElement::Bool(value) => match value {
                 // True is a single byte of 0x01.
                 true => StackItem::true_item(),
@@ -429,14 +430,24 @@ impl CallElement {
             CallElement::Bytes(bytes) => StackItem::new(bytes.clone()),
             // 0-4096 bytes in stack.
             CallElement::Varbytes(bytes) => StackItem::new(bytes.clone()),
-            // 4 bytes in stack.
-            CallElement::Payable(value) => StackItem::new(value.value().to_le_bytes().to_vec()),
+            // 0-4 bytes in stack.
+            CallElement::Payable(value) => {
+                // Convert the value to a `StackUint`.
+                let value_as_stack_uint = StackUint::from_u32(value.value());
+
+                // Convert the value to a `StackItem`.
+                let value_as_stack_item = StackItem::from_stack_uint(value_as_stack_uint);
+
+                // Return the stack item.
+                value_as_stack_item
+            }
         }
     }
 }
 
 impl CompactPayloadEncoding for CallElement {
     fn encode_cpe(&self) -> Option<BitVec> {
+        // Match on the element type.
         match self {
             CallElement::U8(u8_value) => {
                 // Get the u8 value.
