@@ -137,17 +137,66 @@ impl ProgramMethod {
 
         // Check if the args match the arg types.
         for (i, arg_type) in self.arg_types.iter().enumerate() {
-            if let Some(expected_byte_size) = arg_type.stack_item_byte_size() {
-                let arg = match args.get(i) {
-                    Some(arg) => arg,
-                    None => return false,
-                };
+            let arg = match args.get(i) {
+                Some(arg) => arg,
+                None => return false,
+            };
 
-                if arg.len() != expected_byte_size as u32 {
-                    return false;
+            // Check if the arg matches the arg type by looking at the byte size.
+            match arg_type {
+                CallElementType::U8 => {
+                    if arg.len() > 1 {
+                        return false;
+                    }
+                }
+                CallElementType::U16 => {
+                    if arg.len() > 2 {
+                        return false;
+                    }
+                }
+                CallElementType::U32 => {
+                    if arg.len() > 4 {
+                        return false;
+                    }
+                }
+                CallElementType::U64 => {
+                    if arg.len() > 8 {
+                        return false;
+                    }
+                }
+                CallElementType::Bool => {
+                    if arg.len() > 1 {
+                        return false;
+                    }
+                }
+                CallElementType::Account => {
+                    if arg.len() != 32 {
+                        return false;
+                    }
+                }
+                CallElementType::Contract => {
+                    if arg.len() != 32 {
+                        return false;
+                    }
+                }
+                CallElementType::Bytes(index) => {
+                    if arg.len() != *index as u32 + 1 {
+                        return false;
+                    }
+                }
+                CallElementType::Varbytes => {
+                    if arg.len() > 4096 {
+                        return false;
+                    }
+                }
+                CallElementType::Payable => {
+                    if arg.len() > 8 {
+                        return false;
+                    }
                 }
             }
         }
+
         true
     }
 

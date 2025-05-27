@@ -1,5 +1,3 @@
-use serde_json::{Map, Value};
-
 use super::limits::{
     MAX_METHOD_COUNT, MAX_PROGRAM_NAME_LENGTH, MIN_METHOD_COUNT, MIN_PROGRAM_NAME_LENGTH,
 };
@@ -7,6 +5,7 @@ use super::method::method::ProgramMethod;
 use super::method::method_type::MethodType;
 use super::program_error::{MethodValidationError, ProgramConstructionError};
 use crate::constructive::valtype::atomic_val::AtomicVal;
+use serde_json::{Map, Value};
 use std::collections::HashSet;
 
 /// A program associated with a `Contract`.
