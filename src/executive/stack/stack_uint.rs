@@ -186,11 +186,11 @@ impl StackItemUintExt for StackItem {
     fn from_stack_uint(value: StackUint) -> StackItem {
         // If the value is zero, return an empty `StackItem`.
         if value == StackUint::zero() {
-            return StackItem::new(vec![]);
+            return StackItem::false_item();
         }
 
         // Create a buffer for the StackUint (256-bit unsigned integer).
-        let mut buf = [0u8; 32];
+        let mut buf = [0x00u8; 32];
         value.to_little_endian(&mut buf);
 
         // Get the minimal number of bytes required to represent the StackUint.
