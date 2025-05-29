@@ -1,4 +1,4 @@
-use super::repo_error::RepoConstructionError;
+use super::repo_error::{RepoConstructionError, RepoInsertError};
 use crate::{
     executive::program::{compiler::compiler::ProgramCompiler, program::Program},
     operative::Chain,
@@ -64,5 +64,53 @@ impl ProgramsRepo {
 
         // Return the guarded repo.
         Ok(Arc::new(Mutex::new(repo)))
+    }
+
+    /// Inserts multiple programs into the repo.
+    pub fn insert_multi(
+        &mut self,
+        programs: &HashMap<CONTRACT_ID, Program>,
+    ) -> Result<(), RepoInsertError> {
+        // Insert in-memory.
+        for (contract_id, program) in programs {
+            // Insert in-memory.
+            if let Some(_) = self
+                .programs
+                .insert(contract_id.to_owned(), program.to_owned())
+            {
+                // Return error if the contract id already exists.
+                return Err(RepoInsertError::ContractIdAlreadyExists(
+                    contract_id.to_owned(),
+                ));
+            }
+        }
+
+        // Insert in-storage.
+        for (contract_id, program) in programs {
+            // Serialize the program.
+            let program_bytes = program
+                .compile()
+                .map_err(|e| RepoInsertError::ProgramCompileError(contract_id.to_owned(), e))?;
+
+            // Insert the program into the db.
+            if let Some(_) = self
+                .programs_db
+                .insert(contract_id, program_bytes)
+                .map_err(|e| RepoInsertError::DBInsertError(contract_id.to_owned(), e))?
+            {
+                // Return error if the contract id already exists.
+                return Err(RepoInsertError::ContractIdAlreadyExists(
+                    contract_id.to_owned(),
+                ));
+            }
+        }
+
+        // Return success.
+        Ok(())
+    }
+
+    /// Returns the program by the contract id.
+    pub fn program_by_contract_id(&self, contract_id: &CONTRACT_ID) -> Option<&Program> {
+        self.programs.get(contract_id)
     }
 }
