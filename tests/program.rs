@@ -182,7 +182,8 @@ mod program_and_method_tests {
             let program_name = "test_program".to_string();
             let methods = vec![];
 
-            let program = Program::new(program_name, methods);
+            let deployed_by = [0x00; 32];
+            let program = Program::new(program_name, deployed_by, methods);
 
             assert!(program.is_err());
         }
@@ -205,7 +206,9 @@ mod program_and_method_tests {
             };
             let methods = vec![method];
 
-            let program = Program::new(program_name, methods);
+            let deployed_by = [0x00; 32];
+
+            let program = Program::new(program_name, deployed_by, methods);
 
             assert!(program.is_err());
         }
@@ -241,7 +244,9 @@ mod program_and_method_tests {
             };
             let methods = vec![method_1, method_2];
 
-            let program = Program::new(program_name, methods);
+            let deployed_by = [0x00; 32];
+
+            let program = Program::new(program_name, deployed_by, methods);
 
             assert!(program.is_err());
         }
@@ -277,7 +282,9 @@ mod program_and_method_tests {
             };
             let methods = vec![method_1, method_2];
 
-            let program = Program::new(program_name, methods);
+            let deployed_by = [0x00; 32];
+
+            let program = Program::new(program_name, deployed_by, methods);
 
             assert!(program.is_err());
         }
@@ -315,7 +322,9 @@ mod program_and_method_tests {
 
             let methods = vec![method_1, method_2];
 
-            let program = Program::new(program_name, methods);
+            let deployed_by = [0x00; 32];
+
+            let program = Program::new(program_name, deployed_by, methods);
 
             assert!(program.is_ok());
         }
@@ -355,7 +364,9 @@ mod program_and_method_tests {
 
         let methods = vec![method_1, method_2];
 
-        let program = Program::new(program_name, methods).unwrap();
+        let deployed_by = [0x00; 32];
+
+        let program = Program::new(program_name, deployed_by, methods).unwrap();
 
         let mut program_compiled_bytestream = program.compile().unwrap().into_iter();
 

@@ -117,7 +117,9 @@ pub fn execute(
         .unwrap();
 
         // Placeholder program
-        let program = Program::new("program".to_string(), vec![method_1, method_2]).unwrap();
+        let program =
+            Program::new("program".to_string(), [0x00; 32], vec![method_1, method_2]).unwrap();
+
         program
     };
 

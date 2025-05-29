@@ -13,6 +13,8 @@ use std::collections::HashSet;
 pub struct Program {
     /// The program name.
     program_name: String,
+    /// The account key of the deployer.
+    deployed_by: [u8; 32],
     /// The methods to execute.
     methods: Vec<ProgramMethod>,
 }
@@ -21,6 +23,7 @@ impl Program {
     /// Creates a new `Program` with the given program name and list of methods.
     pub fn new(
         program_name: String,
+        deployed_by: [u8; 32],
         methods: Vec<ProgramMethod>,
     ) -> Result<Self, ProgramConstructionError> {
         // Check program name length.
@@ -45,6 +48,7 @@ impl Program {
         // Construct the program.
         let program = Self {
             program_name,
+            deployed_by,
             methods: ordered_methods,
         };
 
@@ -55,6 +59,11 @@ impl Program {
     /// Returns the program name.
     pub fn program_name(&self) -> &str {
         &self.program_name
+    }
+
+    /// Returns the account key of the deployer.
+    pub fn deployed_by(&self) -> [u8; 32] {
+        self.deployed_by
     }
 
     /// Returns the method count.
@@ -145,6 +154,12 @@ impl Program {
         obj.insert(
             "program_name".to_string(),
             Value::String(self.program_name.clone()),
+        );
+
+        // Add the deployed by to the program JSON object.
+        obj.insert(
+            "deployed_by".to_string(),
+            Value::String(hex::encode(self.deployed_by)),
         );
 
         // Add the methods to the program JSON object.

@@ -28,6 +28,8 @@ pub enum ProgramDecompileError {
     NameLengthByteCollectError,
     /// The program name bytes collect error.
     ProgramNameBytesCollectError,
+    /// The deployed by bytes collect error.
+    DeployedByBytesCollectError,
     /// The method count byte collect error.
     MethodCountByteCollectError,
     /// The method decompile error.
@@ -44,6 +46,9 @@ impl fmt::Display for ProgramDecompileError {
             }
             ProgramDecompileError::ProgramNameBytesCollectError => {
                 write!(f, "Failed to collect program name bytes")
+            }
+            ProgramDecompileError::DeployedByBytesCollectError => {
+                write!(f, "Failed to collect deployed by bytes")
             }
             ProgramDecompileError::MethodCountByteCollectError => {
                 write!(f, "Failed to collect method count byte")

@@ -25,6 +25,9 @@ impl ProgramCompiler for Program {
         // Encode program name.
         program_bytes.extend(self.program_name().as_bytes());
 
+        // Encode deployed by.
+        program_bytes.extend(self.deployed_by());
+
         // Encode method count as u8.
         program_bytes.push(self.methods_len() as u8);
 
@@ -61,6 +64,14 @@ impl ProgramCompiler for Program {
             return Err(ProgramDecompileError::ProgramNameBytesCollectError);
         }
 
+        // Collect 32 byte for the account key of the deployer.
+        let deployed_by: [u8; 32] = bytecode_stream
+            .by_ref()
+            .take(32)
+            .collect::<Vec<u8>>()
+            .try_into()
+            .map_err(|_| ProgramDecompileError::DeployedByBytesCollectError)?;
+
         // Convert program name bytes to string.
         let program_name = String::from_utf8_lossy(&program_name_bytes).to_string();
 
@@ -78,7 +89,7 @@ impl ProgramCompiler for Program {
         }
 
         // Construct the program.
-        let program = Program::new(program_name, methods)
+        let program = Program::new(program_name, deployed_by, methods)
             .map_err(|e| ProgramDecompileError::ProgramConstructError(e))?;
 
         // Return the program.
