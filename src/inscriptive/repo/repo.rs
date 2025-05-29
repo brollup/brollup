@@ -1,3 +1,4 @@
+use super::repo_error::RepoConstructionError;
 use crate::{
     executive::program::{compiler::compiler::ProgramCompiler, program::Program},
     operative::Chain,
@@ -9,53 +10,59 @@ use std::{
 
 /// Guarded repo of contracts.
 #[allow(non_camel_case_types)]
-pub type CONTRACTS_REPO = Arc<Mutex<ContractsRepo>>;
+pub type PROGRAMS_REPO = Arc<Mutex<ProgramsRepo>>;
 
 /// Contract ID.
 #[allow(non_camel_case_types)]
 type CONTRACT_ID = [u8; 32];
 
 /// Directory for storing contract programs.
-pub struct ContractsRepo {
-    contracts: HashMap<CONTRACT_ID, Program>,
-    contracts_db: sled::Db,
+pub struct ProgramsRepo {
+    programs: HashMap<CONTRACT_ID, Program>,
+    programs_db: sled::Db,
 }
 
-impl ContractsRepo {
-    pub fn new(chain: Chain) -> Option<CONTRACTS_REPO> {
-        // Open the contracts db.
-        let contracts_db = {
+impl ProgramsRepo {
+    pub fn new(chain: Chain) -> Result<PROGRAMS_REPO, RepoConstructionError> {
+        // Open the programs db.
+        let programs_db = {
             let path = format!("{}/{}/{}", "db", chain.to_string(), "repo");
-            sled::open(path).ok()?
+            sled::open(path).map_err(|e| RepoConstructionError::DBOpenError(e))?
         };
 
-        // Initialize the in-memory list of contracts.
-        let mut contracts = HashMap::<CONTRACT_ID, Program>::new();
+        // Initialize the in-memory list of programs.
+        let mut programs = HashMap::<CONTRACT_ID, Program>::new();
 
-        // Collect the in-memory list of contract programs.
-        for lookup in contracts_db.iter() {
+        // Collect the in-memory list of programs.
+        for (index, lookup) in programs_db.iter().enumerate() {
             if let Ok((key, val)) = lookup {
                 // Key is the 32-byte contract id.
-                let contract_id: [u8; 32] = key.as_ref().try_into().ok()?;
+                let contract_id: [u8; 32] = key
+                    .as_ref()
+                    .try_into()
+                    .map_err(|_| RepoConstructionError::DBIterCollectInvalidKeyAtIndex(index))?;
 
                 // Deserialize the program bytecode from value.
                 let program_bytes: Vec<u8> = val.as_ref().to_vec();
 
                 // Decompile the program from bytecode.
-                let program: Program = Program::decompile(&mut program_bytes.into_iter()).ok()?;
+                let program: Program =
+                    Program::decompile(&mut program_bytes.into_iter()).map_err(|e| {
+                        RepoConstructionError::ProgramDecompileErrorAtKey(contract_id, e)
+                    })?;
 
-                // Insert into the in-memory contracts list.
-                contracts.insert(contract_id, program);
+                // Insert into the in-memory programs list.
+                programs.insert(contract_id, program);
             }
         }
 
         // Construct the repo.
-        let repo = ContractsRepo {
-            contracts,
-            contracts_db,
+        let repo = ProgramsRepo {
+            programs,
+            programs_db,
         };
 
         // Return the guarded repo.
-        Some(Arc::new(Mutex::new(repo)))
+        Ok(Arc::new(Mutex::new(repo)))
     }
 }
