@@ -1,4 +1,4 @@
-use super::state_error::{NewContractStateSpaceError, StateConstructionError, StateInsertionError};
+use super::state_error::{StateConstructionError, StateInsertionError};
 use crate::operative::Chain;
 use std::{
     collections::HashMap,
@@ -106,29 +106,6 @@ impl ProgramsState {
             tree.insert(key, value.clone()).map_err(|e| {
                 StateInsertionError::ValueInsertError(*contract_id, key.clone(), value.clone(), e)
             })?;
-        }
-
-        Ok(())
-    }
-
-    /// Create a new contract state space.
-    pub fn new_contract_state_space(
-        &mut self,
-        contract_id: &CONTRACT_ID,
-    ) -> Result<(), NewContractStateSpaceError> {
-        // Allocate a new tree for the contract.
-        self.states_db
-            .open_tree(contract_id)
-            .map_err(|e| NewContractStateSpaceError::OpenTreeError(*contract_id, e))?;
-
-        // Insert the contract into the in-memory cache.
-        if let Some(_) = self
-            .states
-            .insert(*contract_id, HashMap::<STATE_KEY, STATE_VALUE>::new())
-        {
-            return Err(NewContractStateSpaceError::StateSpaceAlreadyExists(
-                *contract_id,
-            ));
         }
 
         Ok(())
