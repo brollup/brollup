@@ -26,3 +26,10 @@ pub enum StateInsertionError {
     OpenTreeError(CONTRACT_ID, sled::Error),
     ValueInsertError(CONTRACT_ID, STATE_KEY, STATE_VALUE, sled::Error),
 }
+
+/// The new contract state space error.
+#[derive(Debug, Clone)]
+pub enum NewContractStateSpaceError {
+    OpenTreeError(CONTRACT_ID, sled::Error),
+    StateSpaceAlreadyExists(CONTRACT_ID),
+}
