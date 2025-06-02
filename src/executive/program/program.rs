@@ -181,6 +181,7 @@ impl Program {
             Value::String(hex::encode(self.deployed_by)),
         );
 
+        // Add the program name to the program JSON object.
         obj.insert(
             "program_name".to_string(),
             Value::String(self.program_name.clone()),
