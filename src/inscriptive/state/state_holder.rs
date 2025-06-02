@@ -17,10 +17,6 @@ type STATE_KEY = Vec<u8>;
 #[allow(non_camel_case_types)]
 type STATE_VALUE = Vec<u8>;
 
-/// Guarded state holder.
-#[allow(non_camel_case_types)]
-pub type STATE_HOLDER = Arc<Mutex<StateHolder>>;
-
 /// A struct for containing contract/program states in-memory and on-disk.
 pub struct StateHolder {
     /// In-memory cache of states: CONTRACT_ID -> { STATE_KEY -> STATE_VALUE }
@@ -30,6 +26,10 @@ pub struct StateHolder {
     /// Sled DB with contract trees.
     states_db: sled::Db,
 }
+
+/// Guarded state holder.
+#[allow(non_camel_case_types)]
+pub type STATE_HOLDER = Arc<Mutex<StateHolder>>;
 
 // TODO: Implement a rank-based caching mechanism to only cache the high-ranked states.
 // Right now, we are caching *ALL* contract states in memory.
@@ -119,6 +119,8 @@ impl StateHolder {
     }
 
     /// Saves the ephemeral states into the actual states.
+    ///
+    /// TODO: Performance optimizations. Open the tree *once per contract ID* and then insert all key-values at once.
     pub fn save(&mut self) -> Result<(), StateHolderSaveError> {
         // Iterate over all ephemeral states.
         for (contract_id, ephemeral_contract_states) in self.ephemeral_states.iter() {
