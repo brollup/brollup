@@ -168,10 +168,6 @@ impl Program {
 
         // Construct the program JSON object.
         let mut obj = Map::new();
-        obj.insert(
-            "program_name".to_string(),
-            Value::String(self.program_name.clone()),
-        );
 
         // Add the contract ID to the program JSON object.
         obj.insert(
@@ -183,6 +179,11 @@ impl Program {
         obj.insert(
             "deployed_by".to_string(),
             Value::String(hex::encode(self.deployed_by)),
+        );
+
+        obj.insert(
+            "program_name".to_string(),
+            Value::String(self.program_name.clone()),
         );
 
         // Add the methods to the program JSON object.
