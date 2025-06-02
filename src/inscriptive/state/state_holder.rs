@@ -1,0 +1,181 @@
+use super::state_holder_error::{StateHolderConstructionError, StateHolderSaveError};
+use crate::operative::Chain;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
+/// Contract ID: 32-byte unique identifier.
+#[allow(non_camel_case_types)]
+type CONTRACT_ID = [u8; 32];
+
+/// State key.
+#[allow(non_camel_case_types)]
+type STATE_KEY = Vec<u8>;
+
+/// State value.
+#[allow(non_camel_case_types)]
+type STATE_VALUE = Vec<u8>;
+
+/// Guarded state holder.
+#[allow(non_camel_case_types)]
+pub type STATE_HOLDER = Arc<Mutex<StateHolder>>;
+
+/// A struct for containing contract/program states in-memory and on-disk.
+pub struct StateHolder {
+    /// In-memory cache of states: CONTRACT_ID -> { STATE_KEY -> STATE_VALUE }
+    states: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
+    /// In-memory cache of ephemeral states: CONTRACT_ID -> { STATE_KEY -> STATE_VALUE }
+    ephemeral_states: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
+    /// Sled DB with contract trees.
+    states_db: sled::Db,
+}
+
+// TODO: Implement a rank-based caching mechanism to only cache the high-ranked states.
+// Right now, we are caching *ALL* contract states in memory.
+impl StateHolder {
+    /// Initialize the state for the given chain
+    pub fn new(chain: Chain) -> Result<STATE_HOLDER, StateHolderConstructionError> {
+        // Open the main state db.
+        let path = format!("db/{}/state", chain.to_string());
+        let states_db = sled::open(path).map_err(StateHolderConstructionError::MainDBOpenError)?;
+
+        // Initialize the in-memory cache of contract states.
+        let mut states = HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new();
+
+        // Iterate over all contract trees in the main state db.
+        for tree_name in states_db.tree_names() {
+            let contract_id: [u8; 32] = tree_name.as_ref().try_into().map_err(|_| {
+                StateHolderConstructionError::InvalidContractIDBytes(tree_name.to_vec())
+            })?;
+
+            // Open the contract tree.
+            let tree = states_db
+                .open_tree(&tree_name)
+                .map_err(|e| StateHolderConstructionError::SubDBOpenError(contract_id, e))?;
+
+            // Iterate over all items in the contract tree.
+            let contract_state = tree
+                .iter()
+                .filter_map(|res| res.ok())
+                .map(|(k, v)| (k.to_vec(), v.to_vec()))
+                .collect::<HashMap<STATE_KEY, STATE_VALUE>>();
+
+            // Insert the contract state into the in-memory cache.
+            states.insert(contract_id, contract_state);
+        }
+
+        // Initialize the in-memory cache of ephemeral states.
+        let ephemeral_states = HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new();
+
+        // Create the state holder.
+        let state_holder = StateHolder {
+            states,
+            ephemeral_states,
+            states_db,
+        };
+
+        // Return the guarded state holder.
+        Ok(Arc::new(Mutex::new(state_holder)))
+    }
+
+    /// Get the value by key and contract ID.
+    pub fn get_value(&self, key: &STATE_KEY, contract_id: &CONTRACT_ID) -> Option<&STATE_VALUE> {
+        // Try to get from the ephemeral states first.
+        if let Some(state) = self.ephemeral_states.get(contract_id) {
+            return state.get(key);
+        }
+
+        // And then try to get from the states.
+        self.states
+            .get(contract_id)
+            .and_then(|state| state.get(key))
+    }
+
+    /// Inserts or updates a value by key and contract ID ephemerally.
+    pub fn insert_value(
+        &mut self,
+        key: &STATE_KEY,
+        contract_id: &CONTRACT_ID,
+        value: &STATE_VALUE,
+    ) {
+        // Get mutable ephemeral states.
+        let ephemeral_states = match self.ephemeral_states.get_mut(contract_id) {
+            Some(states) => states,
+            None => {
+                // Create it if it doesn't exist.
+                let contract_states = HashMap::<STATE_KEY, STATE_VALUE>::new();
+
+                // Insert it.
+                self.ephemeral_states.insert(*contract_id, contract_states);
+
+                // Get it again.
+                self.ephemeral_states.get_mut(contract_id).unwrap() // Safe because we just inserted it.
+            }
+        };
+
+        // Insert (or update) the value into the ephemeral states.
+        ephemeral_states.insert(key.clone(), value.clone());
+    }
+
+    /// Saves the ephemeral states into the actual states.
+    pub fn save(&mut self) -> Result<(), StateHolderSaveError> {
+        // Iterate over all ephemeral states.
+        for (contract_id, ephemeral_contract_states) in self.ephemeral_states.iter() {
+            // Iterate over all items in the contract state.
+            for (ephemeral_state_key, ephemeral_state_value) in ephemeral_contract_states.iter() {
+                // In-memory insertion.
+                {
+                    // Get mutable states.
+                    let states = match self.states.get_mut(contract_id) {
+                        Some(states) => states,
+                        None => {
+                            // Create it if it doesn't exist.
+                            let contract_states = HashMap::<STATE_KEY, STATE_VALUE>::new();
+
+                            // Insert it.
+                            self.states.insert(*contract_id, contract_states);
+
+                            // Get it again.
+                            self.states.get_mut(contract_id).unwrap() // Safe because we just inserted it.
+                        }
+                    };
+
+                    // Insert the value into the in-memory contract states.
+                    states.insert(ephemeral_state_key.clone(), ephemeral_state_value.clone());
+                }
+
+                // On-disk insertion.
+                {
+                    // Open the contract tree.
+                    let tree = self
+                        .states_db
+                        .open_tree(contract_id)
+                        .map_err(|e| StateHolderSaveError::OpenTreeError(*contract_id, e))?;
+
+                    // Insert the value into the on-disk contract tree.
+                    tree.insert(ephemeral_state_key, ephemeral_state_value.clone())
+                        .map_err(|e| {
+                            StateHolderSaveError::TreeValueInsertError(
+                                *contract_id,
+                                ephemeral_state_key.clone(),
+                                ephemeral_state_value.clone(),
+                                e,
+                            )
+                        })?;
+                }
+            }
+        }
+
+        // Clear the ephemeral states.
+        self.ephemeral_states.clear();
+
+        Ok(())
+    }
+
+    /// Clears the ephemeral states.
+    pub fn flush(&mut self) {
+        // Clear the ephemeral states.
+        self.ephemeral_states.clear();
+    }
+}

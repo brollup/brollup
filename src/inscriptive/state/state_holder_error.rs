@@ -12,17 +12,16 @@ type STATE_VALUE = Vec<u8>;
 
 /// The state construction error.
 #[derive(Debug, Clone)]
-pub enum StateConstructionError {
+pub enum StateHolderConstructionError {
     MainDBOpenError(sled::Error),
     SubDBOpenError(CONTRACT_ID, sled::Error),
     InvalidContractIDBytes(Vec<u8>),
     DBIterCollectInvalidKeyAtIndex(usize),
 }
 
-/// The state insertion error.
+/// The state save error.
 #[derive(Debug, Clone)]
-pub enum StateInsertionError {
-    ContractStatesNotFound(CONTRACT_ID),
+pub enum StateHolderSaveError {
     OpenTreeError(CONTRACT_ID, sled::Error),
-    ValueInsertError(CONTRACT_ID, STATE_KEY, STATE_VALUE, sled::Error),
+    TreeValueInsertError(CONTRACT_ID, STATE_KEY, STATE_VALUE, sled::Error),
 }
