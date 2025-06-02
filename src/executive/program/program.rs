@@ -5,6 +5,8 @@ use super::method::method::ProgramMethod;
 use super::method::method_type::MethodType;
 use super::program_error::{MethodValidationError, ProgramConstructionError};
 use crate::constructive::valtype::atomic_val::AtomicVal;
+use crate::executive::program::compiler::compiler::ProgramCompiler;
+use crate::transmutive::hash::{Hash, HashTag};
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 
@@ -144,6 +146,21 @@ impl Program {
         Ok(())
     }
 
+    /// Returns the 32-bytes contract ID.
+    pub fn contract_id(&self) -> [u8; 32] {
+        // Compile the program.
+        let compiled_bytes = match self.compile() {
+            Ok(bytes) => bytes,
+            Err(_) => return [0xffu8; 32],
+        };
+
+        // Get the contract ID hash.
+        let contract_id = compiled_bytes.hash(Some(HashTag::ContractID));
+
+        // Return the contract ID.
+        contract_id
+    }
+
     /// Returns the program as a JSON object.
     pub fn json(&self) -> Value {
         // Convert the methods to JSON.
@@ -154,6 +171,12 @@ impl Program {
         obj.insert(
             "program_name".to_string(),
             Value::String(self.program_name.clone()),
+        );
+
+        // Add the contract ID to the program JSON object.
+        obj.insert(
+            "contract_id".to_string(),
+            Value::String(hex::encode(self.contract_id())),
         );
 
         // Add the deployed by to the program JSON object.

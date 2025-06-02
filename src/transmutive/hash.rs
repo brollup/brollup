@@ -28,6 +28,8 @@ pub enum HashTag {
     // Custom
     CustomString(String),
     CustomBytes(Vec<u8>),
+    // Method ID
+    ContractID,
 }
 
 impl HashTag {
@@ -55,6 +57,7 @@ impl HashTag {
             HashTag::BLSSecretKey => format!("{}/{}", baked::PROJECT_TAG, "bls/secretkey"),
             HashTag::CustomString(tag) => tag.clone(),
             HashTag::CustomBytes(tag) => tag.clone().into_iter().map(|b| b as char).collect(),
+            HashTag::ContractID => format!("{}/{}", baked::PROJECT_TAG, "contractid"),
         }
     }
 }
