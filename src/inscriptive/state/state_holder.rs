@@ -67,17 +67,12 @@ impl StateHolder {
             states.insert(contract_id, contract_state);
         }
 
-        // Initialize the in-memory cache of ephemeral states and its backup.
-        let ephemeral_states = HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new();
-        let ephemeral_states_backup = ephemeral_states.clone();
-
         // Create the state holder.
         let state_holder = StateHolder {
             states,
-
             states_db,
-            ephemeral_states,
-            ephemeral_states_backup,
+            ephemeral_states: HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new(),
+            ephemeral_states_backup: HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new(),
         };
 
         // Return the guarded state holder.
@@ -96,7 +91,7 @@ impl StateHolder {
 
     /// Prepares the state holder prior to each execution.
     ///
-    /// NOTE: Used by Engine.
+    /// NOTE: Used by the Engine coordinator.
     pub fn pre_execution(&mut self) {
         // Backup the ephemeral states.
         self.backup_ephemeral_states();
@@ -143,7 +138,7 @@ impl StateHolder {
 
     /// Reverts the state update(s) associated with the last execution.
     ///
-    /// NOTE: Used by Engine.
+    /// NOTE: Used by the Engine coordinator.
     pub fn revert_last_execution(&mut self) {
         // Restore the ephemeral states from the backup.
         self.restore_ephemeral_states();
@@ -151,7 +146,7 @@ impl StateHolder {
 
     /// Reverts all state updates associated with all executions.
     ///
-    /// NOTE: Used by Engine.
+    /// NOTE: Used by the Engine coordinator.
     pub fn revert_all_executions(&mut self) {
         // Clear the ephemeral states.
         self.ephemeral_states.clear();
