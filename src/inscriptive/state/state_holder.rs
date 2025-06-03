@@ -21,10 +21,12 @@ type STATE_VALUE = Vec<u8>;
 pub struct StateHolder {
     /// In-memory cache of states: CONTRACT_ID -> { STATE_KEY -> STATE_VALUE }
     states: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
-    /// In-memory cache of ephemeral states: CONTRACT_ID -> { STATE_KEY -> STATE_VALUE }
-    ephemeral_states: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
     /// Sled DB with contract trees.
     states_db: sled::Db,
+    /// In-memory cache of ephemeral states.
+    ephemeral_states: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
+    /// In-memory cache of ephemeral states backup.
+    ephemeral_states_backup: HashMap<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>,
 }
 
 /// Guarded state holder.
@@ -65,18 +67,39 @@ impl StateHolder {
             states.insert(contract_id, contract_state);
         }
 
-        // Initialize the in-memory cache of ephemeral states.
+        // Initialize the in-memory cache of ephemeral states and its backup.
         let ephemeral_states = HashMap::<CONTRACT_ID, HashMap<STATE_KEY, STATE_VALUE>>::new();
+        let ephemeral_states_backup = ephemeral_states.clone();
 
         // Create the state holder.
         let state_holder = StateHolder {
             states,
-            ephemeral_states,
+
             states_db,
+            ephemeral_states,
+            ephemeral_states_backup,
         };
 
         // Return the guarded state holder.
         Ok(Arc::new(Mutex::new(state_holder)))
+    }
+
+    /// Clones ephemeral states into the backup.
+    fn backup_ephemeral_states(&mut self) {
+        self.ephemeral_states_backup = self.ephemeral_states.clone();
+    }
+
+    /// Restores ephemeral states from the backup.
+    fn restore_ephemeral_states(&mut self) {
+        self.ephemeral_states = self.ephemeral_states_backup.clone();
+    }
+
+    /// Prepares the state holder prior to each execution.
+    ///
+    /// NOTE: Used by Engine.
+    pub fn pre_execution(&mut self) {
+        // Backup the ephemeral states.
+        self.backup_ephemeral_states();
     }
 
     /// Get the value by key and contract ID.
@@ -100,7 +123,7 @@ impl StateHolder {
         value: &STATE_VALUE,
     ) {
         // Get mutable ephemeral states.
-        let ephemeral_states = match self.ephemeral_states.get_mut(contract_id) {
+        let ephemeral_contract_states = match self.ephemeral_states.get_mut(contract_id) {
             Some(states) => states,
             None => {
                 // Create it if it doesn't exist.
@@ -115,13 +138,32 @@ impl StateHolder {
         };
 
         // Insert (or update) the value into the ephemeral states.
-        ephemeral_states.insert(key.clone(), value.clone());
+        ephemeral_contract_states.insert(key.clone(), value.clone());
     }
 
-    /// Saves the ephemeral states into the actual states.
+    /// Reverts the state update(s) associated with the last execution.
     ///
-    /// TODO: Performance optimizations. Open the tree *once per contract ID* and then insert all key-values at once.
-    pub fn save(&mut self) -> Result<(), StateHolderSaveError> {
+    /// NOTE: Used by Engine.
+    pub fn revert_last_execution(&mut self) {
+        // Restore the ephemeral states from the backup.
+        self.restore_ephemeral_states();
+    }
+
+    /// Reverts all state updates associated with all executions.
+    ///
+    /// NOTE: Used by Engine.
+    pub fn revert_all_executions(&mut self) {
+        // Clear the ephemeral states.
+        self.ephemeral_states.clear();
+
+        // Clear the ephemeral states backup.
+        self.ephemeral_states_backup.clear();
+    }
+
+    /// Saves the states updated associated with all executions (on-disk and in-memory).
+    ///
+    /// TODO Performance Optimization: Open the tree *once per contract ID* and then insert all key-values at once.
+    pub fn save_all_executions(&mut self) -> Result<(), StateHolderSaveError> {
         // Iterate over all ephemeral states.
         for (contract_id, ephemeral_contract_states) in self.ephemeral_states.iter() {
             // Iterate over all items in the contract state.
@@ -172,12 +214,9 @@ impl StateHolder {
         // Clear the ephemeral states.
         self.ephemeral_states.clear();
 
-        Ok(())
-    }
+        // Clear the ephemeral states backup.
+        self.ephemeral_states_backup.clear();
 
-    /// Clears the ephemeral states.
-    pub fn flush(&mut self) {
-        // Clear the ephemeral states.
-        self.ephemeral_states.clear();
+        Ok(())
     }
 }
