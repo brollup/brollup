@@ -36,17 +36,6 @@ impl OP_SREAD {
             ));
         }
 
-        // Pop value
-        let value = stack_holder.pop()?;
-
-        // Make sure value is within the valid length range (1 to 4095 bytes).
-        // NOTE: The maximum length of the value is bound by the stack item size limit.
-        if value.len() < MIN_VALUE_LENGTH {
-            return Err(StackError::StorageError(
-                StorageError::InvalidStorageValueLength(value.len() as u8),
-            ));
-        }
-
         // Read from storage.
         let read_value = {
             let _state_holder = state_holder.lock().await;
