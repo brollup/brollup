@@ -183,7 +183,6 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 |:---------------|:---------|:----|:---------------------|:-----------------------|:--------------------------------------------------------------------------------|
 | OP_SWRITE      | 0xc7     | 50  | x1 x2                | x1                     | Pops the storage key and value, and writes the value to the contract's storage. |
 | OP_SREAD       | 0xc8     | 50  | x1                   | x1                     | Pops the storage key, and reads the value from the contract's storage.          |
-| OP_SFREE       | 0xc9     | 1   | x1                   | x1                     | Pops the storage key, and frees the key/value from the contract's storage.      |
 
 ## Reserved
 

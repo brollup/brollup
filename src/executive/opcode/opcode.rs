@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+use crate::executive::opcode::op::storage::{op_sread::OP_SREAD, op_swrite::OP_SWRITE};
+
 use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
     arithmetic::{
@@ -206,6 +208,9 @@ pub enum Opcode {
     OP_MWRITE(OP_MWRITE),
     OP_MREAD(OP_MREAD),
     OP_MFREE(OP_MFREE),
+    // Storage
+    OP_SWRITE(OP_SWRITE),
+    OP_SREAD(OP_SREAD),
 }
 
 impl Display for Opcode {
@@ -349,6 +354,9 @@ impl Display for Opcode {
             Opcode::OP_MWRITE(_) => write!(f, "OP_MWRITE"),
             Opcode::OP_MREAD(_) => write!(f, "OP_MREAD"),
             Opcode::OP_MFREE(_) => write!(f, "OP_MFREE"),
+            // Storage
+            Opcode::OP_SWRITE(_) => write!(f, "OP_SWRITE"),
+            Opcode::OP_SREAD(_) => write!(f, "OP_SREAD"),
         }
     }
 }

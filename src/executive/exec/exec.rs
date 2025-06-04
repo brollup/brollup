@@ -1,81 +1,86 @@
 use super::{caller::Caller, exec_error::ExecutionError};
-use crate::executive::{
-    opcode::{
-        op::{
-            altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
-            arithmetic::{
-                op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB, op_2div::OP_2DIV,
-                op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD, op_booland::OP_BOOLAND,
-                op_boolor::OP_BOOLOR, op_div::OP_DIV, op_greaterthan::OP_GREATERTHAN,
-                op_greaterthanorequal::OP_GREATERTHANOREQUAL, op_lessthan::OP_LESSTHAN,
-                op_lessthanorequal::OP_LESSTHANOREQUAL, op_lshift::OP_LSHIFT, op_max::OP_MAX,
-                op_min::OP_MIN, op_mul::OP_MUL, op_mulmod::OP_MULMOD, op_not::OP_NOT,
-                op_numequal::OP_NUMEQUAL, op_numequalverify::OP_NUMEQUALVERIFY,
-                op_numnotequal::OP_NUMNOTEQUAL, op_rshift::OP_RSHIFT, op_sub::OP_SUB,
-                op_within::OP_WITHIN,
+use crate::{
+    executive::{
+        opcode::{
+            op::{
+                altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
+                arithmetic::{
+                    op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB,
+                    op_2div::OP_2DIV, op_2mul::OP_2MUL, op_add::OP_ADD, op_addmod::OP_ADDMOD,
+                    op_booland::OP_BOOLAND, op_boolor::OP_BOOLOR, op_div::OP_DIV,
+                    op_greaterthan::OP_GREATERTHAN, op_greaterthanorequal::OP_GREATERTHANOREQUAL,
+                    op_lessthan::OP_LESSTHAN, op_lessthanorequal::OP_LESSTHANOREQUAL,
+                    op_lshift::OP_LSHIFT, op_max::OP_MAX, op_min::OP_MIN, op_mul::OP_MUL,
+                    op_mulmod::OP_MULMOD, op_not::OP_NOT, op_numequal::OP_NUMEQUAL,
+                    op_numequalverify::OP_NUMEQUALVERIFY, op_numnotequal::OP_NUMNOTEQUAL,
+                    op_rshift::OP_RSHIFT, op_sub::OP_SUB, op_within::OP_WITHIN,
+                },
+                bitwise::{
+                    op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY,
+                    op_invert::OP_INVERT, op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
+                },
+                call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
+                callinfo::{
+                    op_caller::OP_CALLER, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
+                    op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
+                },
+                digest::{
+                    op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR,
+                    op_hash160::OP_HASH160, op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160,
+                    op_sha1::OP_SHA1, op_sha256::OP_SHA256, op_taggedhash::OP_TAGGEDHASH,
+                },
+                flow::{
+                    op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF,
+                    op_nop::OP_NOP, op_notif::OP_NOTIF, op_returnall::OP_RETURNALL,
+                    op_returnerr::OP_RETURNERR, op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
+                },
+                memory::{op_free::OP_MFREE, op_mread::OP_MREAD, op_mwrite::OP_MWRITE},
+                push::{
+                    op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14,
+                    op_15::OP_15, op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5,
+                    op_6::OP_6, op_7::OP_7, op_8::OP_8, op_9::OP_9, op_false::OP_FALSE,
+                    op_true::OP_TRUE,
+                },
+                secp::{
+                    op_isinfinitesecppoint::OP_ISINFINITESECPPOINT,
+                    op_iszerosecpscalar::OP_ISZEROSECPSCALAR,
+                    op_pushsecpgeneratorpoint::OP_PUSHSECPGENERATORPOINT,
+                    op_secppointadd::OP_SECPPOINTADD, op_secppointmul::OP_SECPPOINTMUL,
+                    op_secpscalaradd::OP_SECPSCALARADD, op_secpscalarmul::OP_SECPSCALARMUL,
+                },
+                signature::{
+                    op_checkblssig::OP_CHECKBLSSIG, op_checkblssigagg::OP_CHECKBLSSIGAGG,
+                    op_checkschnorrsig::OP_CHECKSCHNORRSIG,
+                    op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340,
+                },
+                splice::{
+                    op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE,
+                    op_split::OP_SPLIT,
+                },
+                stack::{
+                    op_2drop::OP_2DROP, op_2dup::OP_2DUP, op_2over::OP_2OVER, op_2rot::OP_2ROT,
+                    op_2swap::OP_2SWAP, op_3dup::OP_3DUP, op_depth::OP_DEPTH, op_drop::OP_DROP,
+                    op_dup::OP_DUP, op_ifdup::OP_IFDUP, op_nip::OP_NIP, op_over::OP_OVER,
+                    op_pick::OP_PICK, op_roll::OP_ROLL, op_rot::OP_ROT, op_swap::OP_SWAP,
+                    op_tuck::OP_TUCK,
+                },
+                storage::{op_sread::OP_SREAD, op_swrite::OP_SWRITE},
             },
-            bitwise::{
-                op_and::OP_AND, op_equal::OP_EQUAL, op_equalverify::OP_EQUALVERIFY,
-                op_invert::OP_INVERT, op_or::OP_OR, op_reverse::OP_REVERSE, op_xor::OP_XOR,
-            },
-            call::{op_call::OP_CALL, op_callext::OP_CALLEXT},
-            callinfo::{
-                op_caller::OP_CALLER, op_opsbudget::OP_OPSBUDGET, op_opscounter::OP_OPSCOUNTER,
-                op_opsprice::OP_OPSPRICE, op_timestamp::OP_TIMESTAMP,
-            },
-            digest::{
-                op_blake2bvar::OP_BLAKE2BVAR, op_blake2svar::OP_BLAKE2SVAR, op_hash160::OP_HASH160,
-                op_hash256::OP_HASH256, op_ripemd160::OP_RIPEMD160, op_sha1::OP_SHA1,
-                op_sha256::OP_SHA256, op_taggedhash::OP_TAGGEDHASH,
-            },
-            flow::{
-                op_else::OP_ELSE, op_endif::OP_ENDIF, op_fail::OP_FAIL, op_if::OP_IF,
-                op_nop::OP_NOP, op_notif::OP_NOTIF, op_returnall::OP_RETURNALL,
-                op_returnerr::OP_RETURNERR, op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
-            },
-            push::{
-                op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
-                op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6,
-                op_7::OP_7, op_8::OP_8, op_9::OP_9, op_false::OP_FALSE, op_true::OP_TRUE,
-            },
-            secp::{
-                op_isinfinitesecppoint::OP_ISINFINITESECPPOINT,
-                op_iszerosecpscalar::OP_ISZEROSECPSCALAR,
-                op_pushsecpgeneratorpoint::OP_PUSHSECPGENERATORPOINT,
-                op_secppointadd::OP_SECPPOINTADD, op_secppointmul::OP_SECPPOINTMUL,
-                op_secpscalaradd::OP_SECPSCALARADD, op_secpscalarmul::OP_SECPSCALARMUL,
-            },
-            signature::{
-                op_checkblssig::OP_CHECKBLSSIG, op_checkblssigagg::OP_CHECKBLSSIGAGG,
-                op_checkschnorrsig::OP_CHECKSCHNORRSIG,
-                op_checkschnorrsigbip340::OP_CHECKSCHNORRSIGBIP340,
-            },
-            splice::{
-                op_cat::OP_CAT, op_left::OP_LEFT, op_right::OP_RIGHT, op_size::OP_SIZE,
-                op_split::OP_SPLIT,
-            },
-            stack::{
-                op_2drop::OP_2DROP, op_2dup::OP_2DUP, op_2over::OP_2OVER, op_2rot::OP_2ROT,
-                op_2swap::OP_2SWAP, op_3dup::OP_3DUP, op_depth::OP_DEPTH, op_drop::OP_DROP,
-                op_dup::OP_DUP, op_ifdup::OP_IFDUP, op_nip::OP_NIP, op_over::OP_OVER,
-                op_pick::OP_PICK, op_roll::OP_ROLL, op_rot::OP_ROT, op_swap::OP_SWAP,
-                op_tuck::OP_TUCK,
-            },
+            opcode::Opcode,
         },
-        opcode::Opcode,
+        program::{
+            method::{method::ProgramMethod, method_type::MethodType},
+            program::Program,
+        },
+        stack::{stack_holder::StackHolder, stack_item::StackItem},
     },
-    program::{
-        method::{method::ProgramMethod, method_type::MethodType},
-        program::Program,
-    },
-    stack::{stack_holder::StackHolder, stack_item::StackItem},
+    inscriptive::state::state_holder::STATE_HOLDER,
 };
 
 /// A minimum 500 satoshi payable allocation is required.
 pub const MIN_PAYABLE_ALLOCATION_VALUE: u32 = 500;
 
-// Executes a smart contract.
-pub fn execute(
+pub async fn execute(
     // Whether the execution is internal or external.
     internal: bool,
     // Caller can be the account itself or another contract.
@@ -96,6 +101,8 @@ pub fn execute(
     internal_ops_counter: u32,
     // The external ops counter.
     external_ops_counter: u32,
+    // The state holder.
+    state_holder: &STATE_HOLDER,
 ) -> Result<Vec<StackItem>, ExecutionError> {
     let program = {
         // Placeholder method #1
@@ -660,7 +667,7 @@ pub fn execute(
                         .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
 
                 // Call the internal contract.
-                return execute(
+                return Box::pin(execute(
                     true,        // Internal call.
                     caller,      // Caller remains unchanged for internal calls.
                     contract_id, // Contract ID is the same as the current contract id.
@@ -671,7 +678,9 @@ pub fn execute(
                     ops_price,  // Ops price is the same as the current ops price.
                     stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
-                );
+                    state_holder,
+                ))
+                .await;
             }
 
             Opcode::OP_CALLEXT(_) => {
@@ -694,7 +703,7 @@ pub fn execute(
                 let caller = Caller::new_contract(contract_id);
 
                 // Call the external contract.
-                return execute(
+                return Box::pin(execute(
                     false, // External call.
                     caller,
                     contract_id_to_be_called,
@@ -705,10 +714,34 @@ pub fn execute(
                     ops_price,  // Ops price is the same as the current ops price.
                     stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
-                );
+                    state_holder,
+                ))
+                .await;
             }
             // Memory opcodes.
-
+            Opcode::OP_MWRITE(OP_MWRITE) => {
+                OP_MWRITE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MREAD(OP_MREAD) => {
+                OP_MREAD::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_MFREE(OP_MFREE) => {
+                OP_MFREE::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            // Storage opcodes.
+            Opcode::OP_SWRITE(OP_SWRITE) => {
+                OP_SWRITE::execute(&mut stack_holder, state_holder)
+                    .await
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_SREAD(OP_SREAD) => {
+                OP_SREAD::execute(&mut stack_holder, state_holder)
+                    .await
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
             // Storage opcodes.
             _ => {
                 return Err(ExecutionError::ReservedOpcodeEncounteredError);

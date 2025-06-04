@@ -13,3 +13,4 @@ pub mod secp;
 pub mod signature;
 pub mod splice;
 pub mod stack;
+pub mod storage;

@@ -1,9 +1,8 @@
 use super::state_holder_error::{StateHolderConstructionError, StateHolderSaveError};
 use crate::operative::Chain;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// Contract ID: 32-byte unique identifier.
 #[allow(non_camel_case_types)]
@@ -98,23 +97,23 @@ impl StateHolder {
     }
 
     /// Get the value by key and contract ID.
-    pub fn get_value(&self, key: &STATE_KEY, contract_id: &CONTRACT_ID) -> Option<&STATE_VALUE> {
+    pub fn get_value(&self, key: &STATE_KEY, contract_id: &CONTRACT_ID) -> Option<STATE_VALUE> {
         // Try to get from the ephemeral states first.
         if let Some(state) = self.ephemeral_states.get(contract_id) {
-            return state.get(key);
+            return state.get(key).cloned();
         }
 
         // And then try to get from the states.
         self.states
             .get(contract_id)
-            .and_then(|state| state.get(key))
+            .and_then(|state| state.get(key).cloned())
     }
 
     /// Inserts or updates a value by key and contract ID ephemerally.
     pub fn insert_value(
         &mut self,
-        key: &STATE_KEY,
         contract_id: &CONTRACT_ID,
+        key: &STATE_KEY,
         value: &STATE_VALUE,
     ) {
         // Get mutable ephemeral states.

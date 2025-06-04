@@ -121,6 +121,8 @@ use crate::executive::opcode::op::stack::op_roll::OP_ROLL;
 use crate::executive::opcode::op::stack::op_rot::OP_ROT;
 use crate::executive::opcode::op::stack::op_swap::OP_SWAP;
 use crate::executive::opcode::op::stack::op_tuck::OP_TUCK;
+use crate::executive::opcode::op::storage::op_sread::OP_SREAD;
+use crate::executive::opcode::op::storage::op_swrite::OP_SWRITE;
 use crate::executive::opcode::opcode::Opcode;
 
 /// A trait for compiling and decompiling an opcode.
@@ -275,6 +277,9 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_MWRITE(_) => Ok(OP_MWRITE::bytecode()),
             Opcode::OP_MREAD(_) => Ok(OP_MREAD::bytecode()),
             Opcode::OP_MFREE(_) => Ok(OP_MFREE::bytecode()),
+            // Storage
+            Opcode::OP_SWRITE(_) => Ok(OP_SWRITE::bytecode()),
+            Opcode::OP_SREAD(_) => Ok(OP_SREAD::bytecode()),
         }
     }
 
@@ -506,6 +511,9 @@ impl OpcodeCompiler for Opcode {
             0xc4 => Ok(Opcode::OP_MWRITE(OP_MWRITE)),
             0xc5 => Ok(Opcode::OP_MREAD(OP_MREAD)),
             0xc6 => Ok(Opcode::OP_MFREE(OP_MFREE)),
+            // Storage
+            0xc7 => Ok(Opcode::OP_SWRITE(OP_SWRITE)),
+            0xc8 => Ok(Opcode::OP_SREAD(OP_SREAD)),
             // Undefined
             _ => Err(OpcodeDecompileError::UndefinedOpcodeError),
         }
