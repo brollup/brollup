@@ -162,12 +162,12 @@ Cube uses an extended Bitcoin script with splicing, better memory management, an
 
 ## Payment 
 
-| Opcode           | Bytecode | Ops | Input                 | Output                 | Description                                                                     |
-|:-----------------|:---------|:----|:----------------------|:-----------------------|:--------------------------------------------------------------------------------|
-| OP_PAYABLEALLOC  | 0xc0     | 1   | -                     | out                    | Pushes allocated satoshis amount to the stack.                                  |
-| OP_PAYABLESPENT  | 0xc1     | 1   | -                     | out                    | Pushes spent satoshis amount to the stack.                                      |
-| OP_PAYABLELEFT   | 0xc2     | 1   | -                     | out                    | Pushes left satoshis amount to the stack.                                       |
-| OP_PAY           | 0xc3     | 10  | 10 + (5 * count)      | Nothing/fail.          | Pays one or more accounts the specified amounts.                                |
+| Opcode           | Bytecode | Ops              | Input                 | Output                 | Description                                                          |
+|:-----------------|:---------|:-----------------|:-----------|:-----------------------|:--------------------------------------------------------------------------------|
+| OP_PAYABLEALLOC  | 0xc0     | 1                | -          | out                    | Pushes allocated satoshis amount to the stack.                                  |
+| OP_PAYABLESPENT  | 0xc1     | 1                | -          | out                    | Pushes spent satoshis amount to the stack.                                      |
+| OP_PAYABLELEFT   | 0xc2     | 1                | -          | out                    | Pushes left satoshis amount to the stack.                                       |
+| OP_PAY           | 0xc3     | 10               | key amount | Nothing/fail.          | Pays the account the specified amount.                                          |
 
 ## Memory
 

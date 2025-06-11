@@ -1,9 +1,16 @@
-use crate::executive::stack::{stack_error::StackError, stack_holder::StackHolder};
+use crate::executive::stack::{
+    stack_error::{StackError, StackUintError},
+    stack_holder::StackHolder,
+    stack_uint::StackItemUintExt,
+};
 
 /// Pays one or more accounts the specified amounts.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub struct OP_PAY;
+
+/// The number of ops for the `OP_PAY` opcode.
+pub const PAY_OPS: u32 = 10;
 
 impl OP_PAY {
     pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
@@ -12,11 +19,32 @@ impl OP_PAY {
             return Ok(());
         }
 
-        // Calculate the number of ops.
-        let ops = calculate_ops(0);
+        // Pop the amount from the stack.
+        let amount_item = stack_holder.pop()?;
+
+        // Pop the key from the stack.
+        let key_item = stack_holder.pop()?;
+
+        // Convert the amount to a `StackUint`.
+        let amount_as_stack_uint =
+            amount_item
+                .to_stack_uint()
+                .ok_or(StackError::StackUintError(
+                    StackUintError::StackUintConversionError,
+                ))?;
+
+        let _amount_as_u32 = amount_as_stack_uint.as_u32();
+
+        // Convert the key to [u8; 32]
+        let _key_as_bytes_32: [u8; 32] = key_item
+            .bytes()
+            .try_into()
+            .map_err(|_| StackError::Key32BytesConversionError)?;
+
+        // TODO: implement the payment logic.
 
         // Increment the ops counter.
-        stack_holder.increment_ops(ops)?;
+        stack_holder.increment_ops(PAY_OPS)?;
 
         Ok(())
     }
@@ -25,13 +53,4 @@ impl OP_PAY {
     pub fn bytecode() -> Vec<u8> {
         vec![0xc3]
     }
-}
-
-const PAY_OPS_BASE: u32 = 10;
-const PAY_OPS_MULTIPLIER: u32 = 5;
-
-// Calculate the number of ops for a PAY opcode.
-fn calculate_ops(count: u32) -> u32 {
-    // Return the number of ops.
-    PAY_OPS_BASE + (PAY_OPS_MULTIPLIER * count)
 }

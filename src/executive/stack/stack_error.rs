@@ -132,4 +132,6 @@ pub enum StackError {
     SchnorrError(SchnorrError),
     // Call error.
     CallError(CallError),
+    // Key conversion error.
+    Key32BytesConversionError,
 }
