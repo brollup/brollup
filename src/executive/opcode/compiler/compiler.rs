@@ -62,6 +62,7 @@ use crate::executive::opcode::op::flow::op_verify::OP_VERIFY;
 use crate::executive::opcode::op::memory::op_free::OP_MFREE;
 use crate::executive::opcode::op::memory::op_mread::OP_MREAD;
 use crate::executive::opcode::op::memory::op_mwrite::OP_MWRITE;
+use crate::executive::opcode::op::payment::op_pay::OP_PAY;
 use crate::executive::opcode::op::payment::op_payablealloc::OP_PAYABLEALLOC;
 use crate::executive::opcode::op::payment::op_payableleft::OP_PAYABLELEFT;
 use crate::executive::opcode::op::payment::op_payablespent::OP_PAYABLESPENT;
@@ -273,6 +274,7 @@ impl OpcodeCompiler for Opcode {
             Opcode::OP_PAYABLEALLOC(_) => Ok(OP_PAYABLEALLOC::bytecode()),
             Opcode::OP_PAYABLESPENT(_) => Ok(OP_PAYABLESPENT::bytecode()),
             Opcode::OP_PAYABLELEFT(_) => Ok(OP_PAYABLELEFT::bytecode()),
+            Opcode::OP_PAY(_) => Ok(OP_PAY::bytecode()),
             // Memory
             Opcode::OP_MWRITE(_) => Ok(OP_MWRITE::bytecode()),
             Opcode::OP_MREAD(_) => Ok(OP_MREAD::bytecode()),
@@ -507,6 +509,7 @@ impl OpcodeCompiler for Opcode {
             0xc0 => Ok(Opcode::OP_PAYABLEALLOC(OP_PAYABLEALLOC)),
             0xc1 => Ok(Opcode::OP_PAYABLESPENT(OP_PAYABLESPENT)),
             0xc2 => Ok(Opcode::OP_PAYABLELEFT(OP_PAYABLELEFT)),
+            0xc3 => Ok(Opcode::OP_PAY(OP_PAY)),
             // Memory
             0xc4 => Ok(Opcode::OP_MWRITE(OP_MWRITE)),
             0xc5 => Ok(Opcode::OP_MREAD(OP_MREAD)),

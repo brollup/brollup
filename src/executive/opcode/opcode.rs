@@ -1,6 +1,9 @@
 #![allow(non_camel_case_types)]
 
-use crate::executive::opcode::op::storage::{op_sread::OP_SREAD, op_swrite::OP_SWRITE};
+use crate::executive::opcode::op::{
+    payment::op_pay::OP_PAY,
+    storage::{op_sread::OP_SREAD, op_swrite::OP_SWRITE},
+};
 
 use super::op::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
@@ -204,6 +207,7 @@ pub enum Opcode {
     OP_PAYABLEALLOC(OP_PAYABLEALLOC),
     OP_PAYABLESPENT(OP_PAYABLESPENT),
     OP_PAYABLELEFT(OP_PAYABLELEFT),
+    OP_PAY(OP_PAY),
     // Memory
     OP_MWRITE(OP_MWRITE),
     OP_MREAD(OP_MREAD),
@@ -350,6 +354,7 @@ impl Display for Opcode {
             Opcode::OP_PAYABLEALLOC(_) => write!(f, "OP_PAYABLEALLOC"),
             Opcode::OP_PAYABLESPENT(_) => write!(f, "OP_PAYABLESPENT"),
             Opcode::OP_PAYABLELEFT(_) => write!(f, "OP_PAYABLELEFT"),
+            Opcode::OP_PAY(_) => write!(f, "OP_PAY"),
             // Memory
             Opcode::OP_MWRITE(_) => write!(f, "OP_MWRITE"),
             Opcode::OP_MREAD(_) => write!(f, "OP_MREAD"),
