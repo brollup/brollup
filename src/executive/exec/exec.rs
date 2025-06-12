@@ -119,17 +119,26 @@ pub async fn execute(
 
     // Match the method type.
     match program_method.method_type() {
-        // Callable methods are valid at all times.
-        MethodType::Callable => (),
-        // Internal methods are only valid if its called from the contract itself.
+        // Read only methods are considered a non-executable behavior.
+        MethodType::ReadOnly => return Err(ExecutionError::ReadOnlyCallEncounteredError),
+
+        // Internal methods are *valid* if its originated from the contract itself.
+        // And *invalid* if originated from an external source.
         MethodType::Internal => {
             // Return an error if the call is not internal or the caller is an account.
             if !internal || caller.is_account() {
                 return Err(ExecutionError::InvalidInternalCallError);
             }
         }
-        // Read only methods are considered a non-executable behavior.
-        MethodType::ReadOnly => return Err(ExecutionError::ReadOnlyCallEncounteredError),
+
+        // Callable methods are *valid* if originated from accounts or external contracts.
+        // And *invalid* if originated internally from the contract itself.
+        MethodType::Callable => {
+            // Return an error if the call is internal.
+            if internal {
+                return Err(ExecutionError::InvalidInternalCallError);
+            }
+        }
     }
 
     // Match the args to the arg types.

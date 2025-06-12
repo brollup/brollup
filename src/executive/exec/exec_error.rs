@@ -12,6 +12,8 @@ pub enum ExecutionError {
     ReadOnlyCallEncounteredError,
     /// Internal call caller is not the contract error.
     InvalidInternalCallError,
+    /// Invalid callable call error.
+    InvalidCallableCallError,
     /// Stack holder initialization error.
     StackHolderInitializationError(StackError),
     /// Opcode execution error.
@@ -48,6 +50,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::InvalidInternalCallError => {
                 write!(f, "Invalid internal call")
+            }
+            ExecutionError::InvalidCallableCallError => {
+                write!(f, "Invalid callable call")
             }
             ExecutionError::StackHolderInitializationError(error) => {
                 write!(f, "Stack holder initialization error: {:?}", error)
