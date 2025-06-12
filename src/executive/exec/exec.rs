@@ -68,13 +68,9 @@ use crate::{
             },
             opcode::Opcode,
         },
-        program::{
-            method::{method::ProgramMethod, method_type::MethodType},
-            program::Program,
-        },
         stack::{stack_holder::StackHolder, stack_item::StackItem},
     },
-    inscriptive::state::state_holder::STATE_HOLDER,
+    inscriptive::{repo::repo::PROGRAMS_REPO, state::state_holder::STATE_HOLDER},
 };
 
 /// A minimum 500 satoshi payable allocation is required.
@@ -103,31 +99,15 @@ pub async fn execute(
     external_ops_counter: u32,
     // The state holder.
     state_holder: &STATE_HOLDER,
+    // The programs repo.
+    programs_repo: &PROGRAMS_REPO,
 ) -> Result<Vec<StackItem>, ExecutionError> {
+    // Get the program by contract id.
     let program = {
-        // Placeholder method #1
-        let method_1 = ProgramMethod::new(
-            "method_1".to_string(),
-            MethodType::Callable,
-            vec![],
-            vec![Opcode::OP_TRUE(OP_TRUE)],
-        )
-        .unwrap();
-
-        // Placeholder method #2
-        let method_2 = ProgramMethod::new(
-            "method_2".to_string(),
-            MethodType::Callable,
-            vec![],
-            vec![Opcode::OP_FALSE(OP_FALSE)],
-        )
-        .unwrap();
-
-        // Placeholder program
-        let program =
-            Program::new("program".to_string(), [0x00; 32], vec![method_1, method_2]).unwrap();
-
-        program
+        let _programs_repo = programs_repo.lock().await;
+        _programs_repo
+            .program_by_contract_id(&contract_id)
+            .ok_or(ExecutionError::ProgramNotFoundError(contract_id))?
     };
 
     // Get the program method by index.
@@ -679,6 +659,7 @@ pub async fn execute(
                     stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
+                    programs_repo,
                 ))
                 .await;
             }
@@ -715,6 +696,7 @@ pub async fn execute(
                     stack_holder.internal_ops_counter(), // Remainder of the internal ops counter passed to the next call.
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
+                    programs_repo,
                 ))
                 .await;
             }

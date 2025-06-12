@@ -3,10 +3,9 @@ use crate::{
     executive::program::{compiler::compiler::ProgramCompiler, program::Program},
     operative::Chain,
 };
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// Guarded repo of contracts.
 #[allow(non_camel_case_types)]
@@ -110,7 +109,7 @@ impl ProgramsRepo {
     }
 
     /// Returns the program by the contract id.
-    pub fn program_by_contract_id(&self, contract_id: &CONTRACT_ID) -> Option<&Program> {
-        self.programs.get(contract_id)
+    pub fn program_by_contract_id(&self, contract_id: &CONTRACT_ID) -> Option<Program> {
+        self.programs.get(contract_id).cloned()
     }
 }
