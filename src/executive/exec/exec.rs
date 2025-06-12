@@ -68,6 +68,7 @@ use crate::{
             },
             opcode::Opcode,
         },
+        program::method::method_type::MethodType,
         stack::{stack_holder::StackHolder, stack_item::StackItem},
     },
     inscriptive::{repo::repo::PROGRAMS_REPO, state::state_holder::STATE_HOLDER},
@@ -115,6 +116,21 @@ pub async fn execute(
         Some(method) => method,
         None => return Err(ExecutionError::MethodNotFoundAtIndexError(method_index)),
     };
+
+    // Match the method type.
+    match program_method.method_type() {
+        // Callable methods are valid at all times.
+        MethodType::Callable => (),
+        // Internal methods are only valid if its called from the contract itself.
+        MethodType::Internal => {
+            // Return an error if the call is not internal or the caller is an account.
+            if !internal || caller.is_account() {
+                return Err(ExecutionError::InvalidInternalCallError);
+            }
+        }
+        // Read only methods are considered a non-executable behavior.
+        MethodType::ReadOnly => return Err(ExecutionError::ReadOnlyCallEncounteredError),
+    }
 
     // Match the args to the arg types.
     if !program_method.match_args(&arg_values) {

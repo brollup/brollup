@@ -8,6 +8,10 @@ pub enum ExecutionError {
     ProgramNotFoundError([u8; 32]),
     /// Method not found at index error.
     MethodNotFoundAtIndexError(u8),
+    /// Read only call error.
+    ReadOnlyCallEncounteredError,
+    /// Internal call caller is not the contract error.
+    InvalidInternalCallError,
     /// Stack holder initialization error.
     StackHolderInitializationError(StackError),
     /// Opcode execution error.
@@ -38,6 +42,12 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::MethodNotFoundAtIndexError(index) => {
                 write!(f, "Method not found at index: {}", index)
+            }
+            ExecutionError::ReadOnlyCallEncounteredError => {
+                write!(f, "Read only call encountered")
+            }
+            ExecutionError::InvalidInternalCallError => {
+                write!(f, "Invalid internal call")
             }
             ExecutionError::StackHolderInitializationError(error) => {
                 write!(f, "Stack holder initialization error: {:?}", error)
