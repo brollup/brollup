@@ -4,7 +4,7 @@ mod noist_tests {
         constructive::txo::projector::{Projector, ProjectorTag},
         inscriptive::lp::dir::LPDirectory,
         operative::Chain,
-        transmutive::{
+        transmutative::{
             hash::Hash,
             musig::session::MusigSessionCtx,
             noist::{

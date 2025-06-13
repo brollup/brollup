@@ -18,6 +18,6 @@ pub mod inscriptive;
 #[path = "operative/mod.rs"]
 pub mod operative;
 
-// Transmutive
-#[path = "transmutive/mod.rs"]
-pub mod transmutive;
+// Transmutative
+#[path = "transmutative/mod.rs"]
+pub mod transmutative;

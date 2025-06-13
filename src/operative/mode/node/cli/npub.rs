@@ -1,4 +1,4 @@
-use crate::transmutive::key::KeyHolder;
+use crate::transmutative::key::KeyHolder;
 
 // npub
 pub async fn npub_command(key_holder: &KeyHolder) {

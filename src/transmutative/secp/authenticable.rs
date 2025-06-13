@@ -1,5 +1,5 @@
-use crate::transmutive::secp::into::{IntoPoint, IntoScalar};
-use crate::transmutive::secp::schnorr::{sign, verify_xonly, SchnorrSigningMode};
+use crate::transmutative::secp::into::{IntoPoint, IntoScalar};
+use crate::transmutative::secp::schnorr::{sign, verify_xonly, SchnorrSigningMode};
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 

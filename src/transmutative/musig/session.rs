@@ -1,7 +1,7 @@
 use super::keyagg::MusigKeyAggCtx;
-use crate::transmutive::hash::{Hash, HashTag};
-use crate::transmutive::secp::into::IntoScalar;
-use crate::transmutive::secp::schnorr::{challenge, SchnorrSigningMode};
+use crate::transmutative::hash::{Hash, HashTag};
+use crate::transmutative::secp::into::IntoScalar;
+use crate::transmutative::secp::schnorr::{challenge, SchnorrSigningMode};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

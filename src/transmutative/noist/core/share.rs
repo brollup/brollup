@@ -1,5 +1,5 @@
 use super::vss::commit_shares;
-use crate::transmutive::secp::error::SecpError;
+use crate::transmutative::secp::error::SecpError;
 use rand::RngCore;
 use secp::{MaybeScalar, Point, Scalar};
 

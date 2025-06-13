@@ -6,7 +6,7 @@ use super::method::method_type::MethodType;
 use super::program_error::{MethodValidationError, ProgramConstructionError};
 use crate::constructive::valtype::atomic_val::AtomicVal;
 use crate::executive::program::compiler::compiler::ProgramCompiler;
-use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutative::hash::{Hash, HashTag};
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 

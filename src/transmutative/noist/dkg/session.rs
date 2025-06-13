@@ -1,5 +1,5 @@
 use super::package::DKGPackage;
-use crate::transmutive::{
+use crate::transmutative::{
     hash::{Hash, HashTag},
     noist::{core::vse, setup::setup::VSESetup},
     secp::{

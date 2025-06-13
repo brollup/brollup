@@ -2,7 +2,7 @@
 mod address_tests {
     use cube::{
         operative::Chain,
-        transmutive::codec::address::{address_to_spk, encode_p2tr, encode_p2wpkh, encode_p2wsh},
+        transmutative::codec::address::{address_to_spk, encode_p2tr, encode_p2wpkh, encode_p2wsh},
     };
 
     #[test]

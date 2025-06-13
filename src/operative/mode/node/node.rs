@@ -23,7 +23,7 @@ use crate::operative::mode::ncli;
 use crate::operative::sync::rollup::RollupSync;
 use crate::operative::Chain;
 use crate::operative::OperatingMode;
-use crate::transmutive::key::KeyHolder;
+use crate::transmutative::key::KeyHolder;
 use colored::Colorize;
 use std::io::{self, BufRead};
 use std::sync::Arc;

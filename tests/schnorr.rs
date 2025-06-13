@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod schnorr_tests {
-    use cube::transmutive::secp::schnorr::{self, SchnorrSigningMode};
+    use cube::transmutative::secp::schnorr::{self, SchnorrSigningMode};
     use hex;
 
     #[test]

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod authenticable_tests {
-    use cube::transmutive::{
+    use cube::transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::{AuthSighash, Authenticable},
     };

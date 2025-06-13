@@ -1,4 +1,4 @@
-use crate::transmutive::{
+use crate::transmutative::{
     hash::{Hash, HashTag},
     noist::core::vse::encrypting_key_public,
     secp::{

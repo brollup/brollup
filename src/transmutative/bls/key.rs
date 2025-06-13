@@ -1,4 +1,4 @@
-use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutative::hash::{Hash, HashTag};
 use bls_on_arkworks::{
     self as bls,
     types::{PublicKey, SecretKey},

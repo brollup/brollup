@@ -1,7 +1,7 @@
 use crate::executive::stack::{
     stack_error::StackError, stack_holder::StackHolder, stack_item::StackItem,
 };
-use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutative::hash::{Hash, HashTag};
 
 /// The input is hashed with a domain seperation tag.
 #[derive(Debug, Clone, PartialEq, Eq)]

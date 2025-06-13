@@ -1,5 +1,5 @@
 use crate::constructive::entity::account::Account;
-use crate::transmutive::secp::authenticable::AuthSighash;
+use crate::transmutative::secp::authenticable::AuthSighash;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]

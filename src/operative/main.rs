@@ -5,7 +5,7 @@ use cube::{
         mode::{coordinator::coordinator, node::node, operator::operator},
         Chain, OperatingMode,
     },
-    transmutive::key::{FromNostrKeyStr, KeyHolder},
+    transmutative::key::{FromNostrKeyStr, KeyHolder},
 };
 use std::{env, io::BufRead};
 

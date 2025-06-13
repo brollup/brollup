@@ -2,8 +2,8 @@ use super::{
     core::lagrance::{interpolating_value, lagrance_index, lagrance_index_list},
     dkg::session::DKGSession,
 };
-use crate::transmutive::secp::schnorr::challenge;
-use crate::transmutive::{musig::session::MusigSessionCtx, secp::schnorr::SchnorrSigningMode};
+use crate::transmutative::secp::schnorr::challenge;
+use crate::transmutative::{musig::session::MusigSessionCtx, secp::schnorr::SchnorrSigningMode};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 use std::collections::HashMap;
 

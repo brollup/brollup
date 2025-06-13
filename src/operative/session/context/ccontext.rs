@@ -23,7 +23,7 @@ use crate::{
     operative::session::{
         allowance::allowance, commit::NSessionCommit, commitack::CSessionCommitAck,
     },
-    transmutive::{
+    transmutative::{
         hash::{Hash, HashTag},
         musig::{keyagg::MusigKeyAggCtx, session::MusigSessionCtx},
         noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER, session::NOISTSessionCtx},

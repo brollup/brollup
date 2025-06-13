@@ -4,8 +4,8 @@ use super::{
     setup::setup::VSESetup,
 };
 use crate::{
-    inscriptive::lp::dir::LP_DIRECTORY, transmutive::musig::session::MusigSessionCtx,
-    transmutive::secp::into::IntoPointByteVec,
+    inscriptive::lp::dir::LP_DIRECTORY, transmutative::musig::session::MusigSessionCtx,
+    transmutative::secp::into::IntoPointByteVec,
 };
 use secp::Point;
 use serde::{Deserialize, Serialize};

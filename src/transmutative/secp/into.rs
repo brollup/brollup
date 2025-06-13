@@ -1,5 +1,5 @@
 use super::error::SecpError;
-use crate::transmutive::secp::schnorr::Bytes32;
+use crate::transmutative::secp::schnorr::Bytes32;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
 pub enum ParseError {

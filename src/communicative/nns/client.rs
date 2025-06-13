@@ -1,5 +1,5 @@
 use super::relay::{self, Relay};
-use crate::transmutive::key::KeyHolder;
+use crate::transmutative::key::KeyHolder;
 use nostr_sdk::{EventBuilder, Filter, FromBech32, Kind, PublicKey};
 use std::time::Duration;
 

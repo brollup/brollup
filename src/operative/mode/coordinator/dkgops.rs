@@ -7,7 +7,7 @@ use crate::{
         tcp::client::TCPClient,
     },
     inscriptive::{baked::INITIAL_OPERATOR_SET, lp::dir::LP_DIRECTORY},
-    transmutive::{
+    transmutative::{
         musig::session::MusigSessionCtx,
         noist::{
             dkg::{

@@ -1,5 +1,5 @@
-use crate::transmutive::codec::prefix::Prefix;
-use crate::transmutive::hash::{Hash, HashTag};
+use crate::transmutative::codec::prefix::Prefix;
+use crate::transmutative::hash::{Hash, HashTag};
 use secp::{MaybePoint, Point, Scalar};
 use std::cmp::Ordering;
 use std::vec;

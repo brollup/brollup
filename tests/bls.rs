@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod bls_test {
-    use cube::transmutive::bls::{
+    use cube::transmutative::bls::{
         agg::bls_aggregate,
         key::{
             secret_key_bytes_to_bls_secret_key, secret_key_to_bls_public_key, BLSPublicKey,

@@ -1,4 +1,4 @@
-use crate::transmutive::{
+use crate::transmutative::{
     hash::{Hash, HashTag},
     noist::{
         core::{share::gen_polynomial, vse, vss},

@@ -1,6 +1,6 @@
-use crate::transmutive::hash::{Hash, HashTag};
-use crate::transmutive::secp::error::SecpError;
-use crate::transmutive::secp::schnorr::LiftScalar;
+use crate::transmutative::hash::{Hash, HashTag};
+use crate::transmutative::secp::error::SecpError;
+use crate::transmutative::secp::schnorr::LiftScalar;
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
 pub fn encrypting_key_secret(self_secret: Scalar, to_public: Point) -> Scalar {

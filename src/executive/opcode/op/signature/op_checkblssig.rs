@@ -4,7 +4,7 @@ use crate::{
         stack_holder::StackHolder,
         stack_item::StackItem,
     },
-    transmutive::bls::{key::BLSPublicKey, verify::bls_verify},
+    transmutative::bls::{key::BLSPublicKey, verify::bls_verify},
 };
 
 /// Checks a BLS signature according against a key and a message.

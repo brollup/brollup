@@ -1,7 +1,7 @@
 use super::session::DKGSession;
 use crate::{
-    transmutive::musig::session::MusigSessionCtx,
-    transmutive::noist::{session::NOISTSessionCtx, setup::setup::VSESetup},
+    transmutative::musig::session::MusigSessionCtx,
+    transmutative::noist::{session::NOISTSessionCtx, setup::setup::VSESetup},
 };
 use secp::Point;
 use std::{collections::HashMap, sync::Arc};

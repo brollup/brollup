@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
-    transmutive::{
+    transmutative::{
         key::KeyHolder,
         secp::{authenticable::Authenticable, into::IntoScalar, schnorr::generate_secret},
     },

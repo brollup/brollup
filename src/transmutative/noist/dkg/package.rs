@@ -1,7 +1,7 @@
 use crate::{
-    transmutive::hash::{Hash, HashTag},
-    transmutive::noist::setup::setup::VSESetup,
-    transmutive::secp::authenticable::AuthSighash,
+    transmutative::hash::{Hash, HashTag},
+    transmutative::noist::setup::setup::VSESetup,
+    transmutative::secp::authenticable::AuthSighash,
 };
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};

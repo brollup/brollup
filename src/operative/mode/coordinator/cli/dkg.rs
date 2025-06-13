@@ -7,7 +7,7 @@ use crate::{
         tcp::client::TCPClient,
     },
     operative::mode::coordinator::dkgops::DKGOps,
-    transmutive::noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER},
+    transmutative::noist::{dkg::directory::DKG_DIRECTORY, manager::DKG_MANAGER},
 };
 use colored::Colorize;
 use std::time::{Duration, Instant};

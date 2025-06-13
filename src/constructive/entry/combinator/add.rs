@@ -1,6 +1,6 @@
 use crate::{
     constructive::entity::account::Account,
-    transmutive::{
+    transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
     },

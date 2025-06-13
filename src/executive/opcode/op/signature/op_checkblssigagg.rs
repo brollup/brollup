@@ -5,7 +5,7 @@ use crate::{
         stack_item::StackItem,
         stack_uint::StackItemUintExt,
     },
-    transmutive::bls::{key::BLSPublicKey, verify::bls_verify_aggregate},
+    transmutative::bls::{key::BLSPublicKey, verify::bls_verify_aggregate},
 };
 
 /// Checks a BLS aggregate signature against a set of keys and messages.

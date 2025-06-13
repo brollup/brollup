@@ -1,6 +1,6 @@
 use crate::{
     constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
-    transmutive::{
+    transmutative::{
         hash::{Hash, HashTag},
         musig::session::MusigSessionCtx,
         secp::authenticable::AuthSighash,

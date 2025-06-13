@@ -4,7 +4,7 @@ use crate::{
         stack_holder::StackHolder,
         stack_item::StackItem,
     },
-    transmutive::secp::schnorr::{self, SchnorrSigningMode},
+    transmutative::secp::schnorr::{self, SchnorrSigningMode},
 };
 
 /// Checks a schnorr signature according to the 'BIP340/challenge' tag.

@@ -1,6 +1,6 @@
 use crate::constructive::{entity::account::Account, entity::contract::Contract};
-use crate::transmutive::hash::Hash;
-use crate::transmutive::{hash::HashTag, secp::authenticable::AuthSighash};
+use crate::transmutative::hash::Hash;
+use crate::transmutative::{hash::HashTag, secp::authenticable::AuthSighash};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]

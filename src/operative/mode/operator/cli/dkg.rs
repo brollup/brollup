@@ -1,6 +1,6 @@
 use crate::{
     communicative::peer::peer::PEER, communicative::tcp::client::TCPClient,
-    transmutive::noist::dkg::directory::DKG_DIRECTORY, transmutive::noist::manager::DKG_MANAGER,
+    transmutative::noist::dkg::directory::DKG_DIRECTORY, transmutative::noist::manager::DKG_MANAGER,
 };
 use colored::Colorize;
 

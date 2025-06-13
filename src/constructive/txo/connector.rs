@@ -1,5 +1,5 @@
 use crate::constructive::taproot::{TapRoot, P2TR};
-use crate::transmutive::musig::keyagg::MusigKeyAggCtx;
+use crate::transmutative::musig::keyagg::MusigKeyAggCtx;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 

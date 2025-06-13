@@ -1,5 +1,5 @@
 use super::keymap::VSEKeyMap;
-use crate::transmutive::secp::into::IntoPoint;
+use crate::transmutative::secp::into::IntoPoint;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

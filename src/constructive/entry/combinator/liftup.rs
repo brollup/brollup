@@ -11,7 +11,7 @@ use crate::{
         valtype::short_val::ShortVal,
     },
     inscriptive::epoch::dir::EPOCH_DIRECTORY,
-    transmutive::{
+    transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
     },

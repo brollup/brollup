@@ -1,7 +1,7 @@
 use super::bls::key::{
     secret_key_bytes_to_bls_secret_key, secret_key_to_bls_public_key, BLSPublicKey, BLSSecretKey,
 };
-use crate::transmutive::secp::schnorr::Bytes32;
+use crate::transmutative::secp::schnorr::Bytes32;
 use bech32::{Bech32, Hrp};
 use secp::{Point, Scalar};
 

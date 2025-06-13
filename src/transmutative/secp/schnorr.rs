@@ -1,5 +1,5 @@
-use crate::transmutive::hash::{Hash, HashTag};
-use crate::transmutive::secp::into::IntoSigTuple;
+use crate::transmutative::hash::{Hash, HashTag};
+use crate::transmutative::secp::into::IntoSigTuple;
 use rand::{rngs::OsRng, RngCore};
 use secp::{MaybePoint, MaybeScalar, Point, Scalar};
 
