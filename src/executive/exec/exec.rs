@@ -1,7 +1,7 @@
 use super::{caller::Caller, exec_error::ExecutionError};
 use crate::{
     executive::{
-        exec::check::check_keeper::CheckKeeper,
+        exec::accountant::accountant::Accountant,
         opcode::{
             op::{
                 altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
@@ -103,8 +103,8 @@ pub async fn execute(
     state_holder: &STATE_HOLDER,
     // The programs repo.
     programs_repo: &PROGRAMS_REPO,
-    // Check keeper.
-    check_keeper: &mut CheckKeeper,
+    // Accountant.
+    accountant: &mut Accountant,
 ) -> Result<Vec<StackItem>, ExecutionError> {
     // Get the program by contract id.
     let program = {
@@ -172,9 +172,9 @@ pub async fn execute(
                 return Err(ExecutionError::PayableWithInternalCallError);
             }
 
-            // Insert the allocation into the check keeper.
-            if !check_keeper.insert_alloc(caller_key, payable_allocation_value) {
-                return Err(ExecutionError::CheckKeeperAllocationInsertionError);
+            // Insert the allocation into the accountant.
+            if !accountant.insert_alloc(caller_key, payable_allocation_value) {
+                return Err(ExecutionError::AccountantAllocationInsertionError);
             }
 
             payable_allocation_value
@@ -696,7 +696,7 @@ pub async fn execute(
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
                     programs_repo,
-                    check_keeper,
+                    accountant,
                 ))
                 .await;
             }
@@ -734,7 +734,7 @@ pub async fn execute(
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
                     programs_repo,
-                    check_keeper,
+                    accountant,
                 ))
                 .await;
             }

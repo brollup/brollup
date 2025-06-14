@@ -1,29 +1,29 @@
-use crate::executive::exec::check::check::Check;
+use crate::executive::exec::accountant::payment::Payment;
 use std::collections::HashMap;
 
 type AccountKey = [u8; 32];
 type PayableAllocAmount = u32;
 
-/// A keeper for checks.
-pub struct CheckKeeper {
+/// A keeper for payments.
+pub struct Accountant {
     allocs: HashMap<AccountKey, PayableAllocAmount>,
-    checks: Vec<Check>,
-    checks_backup: Vec<Check>,
+    payments: Vec<Payment>,
+    payments_backup: Vec<Payment>,
 }
 
-impl CheckKeeper {
-    /// Creates a new check keeper.
+impl Accountant {
+    /// Creates a new accountant.
     pub fn new() -> Self {
         Self {
             allocs: HashMap::<AccountKey, PayableAllocAmount>::new(),
-            checks: Vec::new(),
-            checks_backup: Vec::new(),
+            payments: Vec::new(),
+            payments_backup: Vec::new(),
         }
     }
 
     /// Backups the checks.
     pub fn backup(&mut self) {
-        self.checks_backup = self.checks.clone();
+        self.payments_backup = self.payments.clone();
     }
 
     /// Inserts an allocation. No overlapping allocations are allowed.
@@ -41,38 +41,37 @@ impl CheckKeeper {
     }
 
     /// Inserts a check.
-    pub fn insert_check(&mut self, check: Check) -> bool {
+    pub fn insert_payment(&mut self, payment: Payment) -> bool {
         // Check if from belongs to allocs.
-        if !self.allocs.contains_key(&check.from()) {
+        if !self.allocs.contains_key(&payment.from()) {
             return false;
         }
 
-        self.checks.push(check);
+        self.payments.push(payment);
 
         true
     }
 
     /// Restores the checks by swapping the checks and backup vectors.
     pub fn reverse_last(&mut self) {
-        self.checks = self.checks_backup.clone();
+        self.payments = self.payments_backup.clone();
     }
 
     /// Reverses all checks by emptying the checks and backup vectors.
     pub fn reverse_all(&mut self) {
-        self.checks = Vec::<Check>::new();
-        self.checks_backup = Vec::<Check>::new();
+        self.payments = Vec::<Payment>::new();
+        self.payments_backup = Vec::<Payment>::new();
     }
 
-    /// Returns the spends by an account.
-    /// Spends are the allocations themselves.
-    pub fn spent_list(&self) -> HashMap<AccountKey, u32> {
+    /// Returns list of account and amount pairs who are allocated money.
+    pub fn spends(&self) -> HashMap<[u8; 32], u32> {
         self.allocs.clone()
     }
 
-    /// Returns the paid list.
-    pub fn paid_list(&self) -> HashMap<AccountKey, u32> {
+    /// Returns list of account and amount pairs who are owed money.
+    pub fn paids_sum(&self) -> HashMap<[u8; 32], u32> {
         // Create a new HashMap to store sum of payments.
-        let mut paid_list_ = HashMap::<AccountKey, i32>::new();
+        let mut paid_list_ = HashMap::<[u8; 32], i32>::new();
 
         // Iterate allocs, for each account collect their change.
         for (key, amount) in self.allocs.iter() {
@@ -87,10 +86,10 @@ impl CheckKeeper {
         }
 
         // Iterate checks, for each account collect their change.
-        for check in self.checks.iter() {
-            let from_key = check.from();
-            let to_key = check.to();
-            let amount = check.amount();
+        for payment in self.payments.iter() {
+            let from_key = payment.from();
+            let to_key = payment.to();
+            let amount = payment.amount();
 
             // Deduct from payers.
             match paid_list_.get(&from_key) {

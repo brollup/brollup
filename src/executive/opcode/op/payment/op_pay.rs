@@ -1,7 +1,7 @@
 use crate::executive::{
     exec::{
         caller::Caller,
-        check::{check::Check, check_keeper::CheckKeeper},
+        accountant::{payment::Payment, accountant::Accountant},
     },
     stack::{
         stack_error::{OpPayError, StackError, StackUintError},
@@ -21,7 +21,7 @@ pub const PAY_OPS: u32 = 10;
 impl OP_PAY {
     pub fn execute(
         stack_holder: &mut StackHolder,
-        check_keeper: &mut CheckKeeper,
+        accountant: &mut Accountant,
     ) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
@@ -65,11 +65,11 @@ impl OP_PAY {
             ));
         }
 
-        // Construct a new check.
-        let check = Check::new(from_key, to_key, amount);
+        // Construct a new payment.
+        let payment = Payment::new(from_key, to_key, amount);
 
-        // Insert the check into the check keeper.
-        if !check_keeper.insert_check(check) {
+        // Insert the payment into the accountant.
+        if !accountant.insert_payment(payment) {
             return Err(StackError::OpPayError(OpPayError::InsertCheckError));
         }
 

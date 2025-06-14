@@ -1,13 +1,13 @@
-// Epheremal check for OP_PAY.
+// A payment instance for OP_PAY.
 #[derive(Clone)]
-pub struct Check {
+pub struct Payment {
     from: [u8; 32],
     to: [u8; 32],
     amount: u32,
 }
 
-impl Check {
-    /// Creates a new check.
+impl Payment {
+    /// Creates a new payment instance.
     pub fn new(from: [u8; 32], to: [u8; 32], amount: u32) -> Self {
         Self { from, to, amount }
     }
