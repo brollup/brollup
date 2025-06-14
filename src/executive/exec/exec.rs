@@ -1,6 +1,7 @@
 use super::{caller::Caller, exec_error::ExecutionError};
 use crate::{
     executive::{
+        exec::check::check_keeper::CheckKeeper,
         opcode::{
             op::{
                 altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
@@ -102,6 +103,8 @@ pub async fn execute(
     state_holder: &STATE_HOLDER,
     // The programs repo.
     programs_repo: &PROGRAMS_REPO,
+    // Check keeper.
+    check_keeper: &mut CheckKeeper,
 ) -> Result<Vec<StackItem>, ExecutionError> {
     // Get the program by contract id.
     let program = {
@@ -157,13 +160,21 @@ pub async fn execute(
             // TODO: CHECK ENOUGH BALANCE.
 
             // If a payable value is allocted, the caller must also be an account.
-            if !caller.is_account() {
-                return Err(ExecutionError::PayableAllocationCallerIsNotAnAccountError);
-            }
+            let caller_key = match caller {
+                Caller::Account(key) => key,
+                Caller::Contract(_) => {
+                    return Err(ExecutionError::PayableAllocationCallerIsNotAnAccountError);
+                }
+            };
 
             // If a payable value is allocted, this cannot be an internal call.
             if internal {
                 return Err(ExecutionError::PayableWithInternalCallError);
+            }
+
+            // Insert the allocation into the check keeper.
+            if !check_keeper.insert_alloc(caller_key, payable_allocation_value) {
+                return Err(ExecutionError::CheckKeeperAllocationInsertionError);
             }
 
             payable_allocation_value
@@ -685,6 +696,7 @@ pub async fn execute(
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
                     programs_repo,
+                    check_keeper,
                 ))
                 .await;
             }
@@ -722,6 +734,7 @@ pub async fn execute(
                     stack_holder.external_ops_counter(), // Remainder of the external ops counter passed to the next call.
                     state_holder,
                     programs_repo,
+                    check_keeper,
                 ))
                 .await;
             }

@@ -1,7 +1,13 @@
-use crate::executive::stack::{
-    stack_error::{StackError, StackUintError},
-    stack_holder::StackHolder,
-    stack_uint::StackItemUintExt,
+use crate::executive::{
+    exec::{
+        caller::Caller,
+        check::{check::Check, check_keeper::CheckKeeper},
+    },
+    stack::{
+        stack_error::{OpPayError, StackError, StackUintError},
+        stack_holder::StackHolder,
+        stack_uint::StackItemUintExt,
+    },
 };
 
 /// Pays one or more accounts the specified amounts.
@@ -13,17 +19,28 @@ pub struct OP_PAY;
 pub const PAY_OPS: u32 = 10;
 
 impl OP_PAY {
-    pub fn execute(stack_holder: &mut StackHolder) -> Result<(), StackError> {
+    pub fn execute(
+        stack_holder: &mut StackHolder,
+        check_keeper: &mut CheckKeeper,
+    ) -> Result<(), StackError> {
         // If this is not the active execution, return immediately.
         if !stack_holder.active_execution() {
             return Ok(());
         }
 
+        // Get from key.
+        let from_key = match stack_holder.caller() {
+            Caller::Account(key) => key,
+            Caller::Contract(_) => {
+                return Err(StackError::OpPayError(OpPayError::CallerIsNotAnAccount));
+            }
+        };
+
         // Pop the amount from the stack.
         let amount_item = stack_holder.pop()?;
 
         // Pop the key from the stack.
-        let key_item = stack_holder.pop()?;
+        let to_key_item = stack_holder.pop()?;
 
         // Convert the amount to a `StackUint`.
         let amount_as_stack_uint =
@@ -33,15 +50,28 @@ impl OP_PAY {
                     StackUintError::StackUintConversionError,
                 ))?;
 
-        let _amount_as_u32 = amount_as_stack_uint.as_u32();
+        let amount = amount_as_stack_uint.as_u32();
 
         // Convert the key to [u8; 32]
-        let _key_as_bytes_32: [u8; 32] = key_item
+        let to_key: [u8; 32] = to_key_item
             .bytes()
             .try_into()
             .map_err(|_| StackError::Key32BytesConversionError)?;
 
-        // TODO: implement the payment logic.
+        // Increment the payable spent value.
+        if !stack_holder.increment_payable_spent(amount) {
+            return Err(StackError::OpPayError(
+                OpPayError::PayableAllocationExceeded,
+            ));
+        }
+
+        // Construct a new check.
+        let check = Check::new(from_key, to_key, amount);
+
+        // Insert the check into the check keeper.
+        if !check_keeper.insert_check(check) {
+            return Err(StackError::OpPayError(OpPayError::InsertCheckError));
+        }
 
         // Increment the ops counter.
         stack_holder.increment_ops(PAY_OPS)?;

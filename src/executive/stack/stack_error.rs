@@ -87,6 +87,17 @@ pub enum MandatoryError {
     MandatoryVerifyError,
 }
 
+/// The OP_PAY error.
+#[derive(Debug, Clone, Copy)]
+pub enum OpPayError {
+    /// The caller is not an account.
+    CallerIsNotAnAccount,
+    /// The payable allocation exceeded error.
+    PayableAllocationExceeded,
+    /// The insert check error.
+    InsertCheckError,
+}
+
 /// The stack error.
 #[derive(Debug, Clone, Copy)]
 pub enum StackError {
@@ -134,4 +145,6 @@ pub enum StackError {
     CallError(CallError),
     // Key conversion error.
     Key32BytesConversionError,
+    /// The OP_PAY error.
+    OpPayError(OpPayError),
 }
