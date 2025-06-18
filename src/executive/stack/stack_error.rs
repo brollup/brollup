@@ -1,5 +1,7 @@
+use crate::executive::exec::accountant::accountant_error::InsertPaymentError;
+
 /// The call error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum CallError {
     /// The contract id is invalid.
     InvalidContractId,
@@ -10,7 +12,7 @@ pub enum CallError {
 }
 
 /// The BLS error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum BLSError {
     /// The BLS public key is invalid.
     InvalidBLSPublicKeyBytes,
@@ -21,7 +23,7 @@ pub enum BLSError {
 }
 
 /// The Schnorr error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum SchnorrError {
     /// The Schnorr public key is invalid.
     InvalidSchnorrPublicKeyBytes,
@@ -32,7 +34,7 @@ pub enum SchnorrError {
 }
 
 /// The secp error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum SecpError {
     /// The secp scalar is invalid.
     InvalidSecpScalar,
@@ -50,7 +52,7 @@ pub enum StackUintError {
 }
 
 /// The ops budget error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum OpsBudgetError {
     /// The internal ops budget exceeded error.
     InternalOpsBudgetExceeded,
@@ -59,7 +61,7 @@ pub enum OpsBudgetError {
 }
 
 /// The storage error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum StorageError {
     /// The invalid storage key length error.
     InvalidStorageKeyLength(u8),
@@ -68,7 +70,7 @@ pub enum StorageError {
 }
 
 /// The memory error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum MemoryError {
     /// The invalid memory key length error.
     InvalidMemoryKeyLength(u8),
@@ -79,7 +81,7 @@ pub enum MemoryError {
 }
 
 /// The mandatory error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum MandatoryError {
     /// The mandatory equal verify error.
     MandatoryEqualVerifyError,
@@ -88,18 +90,18 @@ pub enum MandatoryError {
 }
 
 /// The OP_PAY error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum OpPayError {
     /// The caller is not an account.
     CallerIsNotAnAccount,
     /// The payable allocation exceeded error.
     PayableAllocationExceeded,
-    /// The insert check error.
-    InsertCheckError,
+    /// The accountant payment insertion error.
+    AccountantPaymentInsertionError(InsertPaymentError),
 }
 
 /// The stack error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum StackError {
     /// The stack is empty.
     EmptyStack,

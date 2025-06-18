@@ -173,8 +173,8 @@ pub async fn execute(
             }
 
             // Insert the allocation into the accountant.
-            if !accountant.insert_alloc(caller_key, payable_allocation_value) {
-                return Err(ExecutionError::AccountantAllocationInsertionError);
+            if let Err(error) = accountant.insert_alloc(caller_key, payable_allocation_value) {
+                return Err(ExecutionError::AccountantAllocationInsertionError(error));
             }
 
             payable_allocation_value

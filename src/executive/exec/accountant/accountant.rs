@@ -1,7 +1,13 @@
-use crate::executive::exec::accountant::payment::Payment;
+use crate::executive::exec::accountant::{
+    accountant_error::{InsertAllocError, InsertPaymentError, PaidsSumError},
+    payment::Payment,
+};
 use std::collections::HashMap;
 
+/// The type of account key.
 type AccountKey = [u8; 32];
+
+/// The type of payable allocation amount.
 type PayableAllocAmount = u32;
 
 /// A keeper for payments.
@@ -27,29 +33,52 @@ impl Accountant {
     }
 
     /// Inserts an allocation. No overlapping allocations are allowed.
-    pub fn insert_alloc(&mut self, key: AccountKey, amount: PayableAllocAmount) -> bool {
-        // If the allocation already exists, return false.
-        if self.allocs.contains_key(&key) {
-            return false;
+    pub fn insert_alloc(&mut self, key: [u8; 32], amount: u32) -> Result<(), InsertAllocError> {
+        // Insert the allocation.
+        if let Some(_) = self.allocs.insert(key, amount) {
+            return Err(InsertAllocError::MoreThanOneAllocationError);
         }
 
-        // Insert the allocation.
-        self.allocs.insert(key, amount);
+        Ok(())
+    }
 
-        // Return true if the allocation was inserted.
-        true
+    /// Returns the total spent by an account.
+    fn total_spent_by_account(&self, key: [u8; 32]) -> u32 {
+        // Iterate payments and sum the amount of money spent by the account.
+        let mut total = 0;
+
+        // Iterate payments and sum the amount of money spent by the account.
+        for payment in self.payments.iter() {
+            if payment.from() == key {
+                total += payment.amount();
+            }
+        }
+
+        // Return the total spent by the account.
+        total
     }
 
     /// Inserts a check.
-    pub fn insert_payment(&mut self, payment: Payment) -> bool {
-        // Check if from belongs to allocs.
-        if !self.allocs.contains_key(&payment.from()) {
-            return false;
+    pub fn insert_payment(&mut self, payment: Payment) -> Result<(), InsertPaymentError> {
+        // Retrieve the allocation for the account.
+        let allocation = match self.allocs.get(&payment.from()) {
+            Some(amount) => *amount,
+            // If the account is not allocated, return an error.
+            None => return Err(InsertPaymentError::NonAllocatedPaymentError),
+        };
+
+        // Get the total spent by the account.
+        let total_spent = self.total_spent_by_account(payment.from());
+
+        // Check if the allocation exceeds.
+        if allocation < total_spent + payment.amount() {
+            return Err(InsertPaymentError::AllocationExceededError);
         }
 
+        // Insert the payment.
         self.payments.push(payment);
 
-        true
+        Ok(())
     }
 
     /// Restores the checks by swapping the checks and backup vectors.
@@ -64,12 +93,12 @@ impl Accountant {
     }
 
     /// Returns list of account and amount pairs who are allocated money.
-    pub fn spends(&self) -> HashMap<[u8; 32], u32> {
+    pub fn allocs(&self) -> HashMap<[u8; 32], u32> {
         self.allocs.clone()
     }
 
     /// Returns list of account and amount pairs who are owed money.
-    pub fn paids_sum(&self) -> HashMap<[u8; 32], u32> {
+    pub fn paids_sum(&self) -> Result<HashMap<[u8; 32], u32>, PaidsSumError> {
         // Create a new HashMap to store sum of payments.
         let mut paid_list_ = HashMap::<[u8; 32], i32>::new();
 
@@ -112,8 +141,13 @@ impl Accountant {
             }
         }
 
-        // Prune the negative or zero balances.
-        paid_list_.retain(|_, balance| *balance > 0);
+        // If at least one negative balance is encountered, return an inflation error.
+        if paid_list_.values().any(|balance| *balance < 0) {
+            return Err(PaidsSumError::InflationEncounteredError);
+        }
+
+        // Prune the zero balances.
+        paid_list_.retain(|_, balance| *balance != 0);
 
         // Convert the balances to u32.
         let paid_list = paid_list_
@@ -122,6 +156,6 @@ impl Accountant {
             .collect();
 
         // Return the final paid list.
-        paid_list
+        Ok(paid_list)
     }
 }

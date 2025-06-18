@@ -1,7 +1,7 @@
 use crate::executive::{
     exec::{
+        accountant::{accountant::Accountant, payment::Payment},
         caller::Caller,
-        accountant::{payment::Payment, accountant::Accountant},
     },
     stack::{
         stack_error::{OpPayError, StackError, StackUintError},
@@ -69,8 +69,10 @@ impl OP_PAY {
         let payment = Payment::new(from_key, to_key, amount);
 
         // Insert the payment into the accountant.
-        if !accountant.insert_payment(payment) {
-            return Err(StackError::OpPayError(OpPayError::InsertCheckError));
+        if let Err(error) = accountant.insert_payment(payment) {
+            return Err(StackError::OpPayError(
+                OpPayError::AccountantPaymentInsertionError(error),
+            ));
         }
 
         // Increment the ops counter.
