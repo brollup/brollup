@@ -82,12 +82,12 @@ impl Accountant {
     }
 
     /// Restores the checks by swapping the checks and backup vectors.
-    pub fn reverse_last(&mut self) {
+    pub fn rollback_last(&mut self) {
         self.records = self.records_backup.clone();
     }
 
     /// Reverses all checks by emptying the checks and backup vectors.
-    pub fn reverse_all(&mut self) {
+    pub fn rollback_all(&mut self) {
         self.records = Vec::<AccountantRecord>::new();
         self.records_backup = Vec::<AccountantRecord>::new();
     }

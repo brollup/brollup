@@ -39,6 +39,8 @@ pub enum ExecutionError {
     PayableWithInternalCallError,
     /// Payable allocation insertion error.
     AccountantAllocationInsertionError(InsertAllocError),
+    /// Invalid stack ending error.
+    InvalidStackEndingError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -91,6 +93,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::AccountantAllocationInsertionError(error) => {
                 write!(f, "Accountant allocation insertion error: {:?}", error)
+            }
+            ExecutionError::InvalidStackEndingError => {
+                write!(f, "Invalid stack ending")
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::constructive::calldata::element_type::CallElementType;
+use crate::constructive::calldata::element::CallElement;
 
 /// The holder of a call.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,7 +10,7 @@ pub struct CallHolder {
     /// The method index.
     method_index: u8,
     /// The arguments.
-    args: Vec<CallElementType>,
+    args: Vec<CallElement>,
     /// The timestamp.
     timestamp: u64,
     /// The ops budget.
@@ -25,7 +25,7 @@ impl CallHolder {
         account_key: [u8; 32],
         contract_id: [u8; 32],
         method_index: u8,
-        args: Vec<CallElementType>,
+        args: Vec<CallElement>,
         timestamp: u64,
         ops_budget: u32,
         ops_price: u32,
@@ -57,7 +57,7 @@ impl CallHolder {
     }
 
     /// Returns the arguments.
-    pub fn args(&self) -> Vec<CallElementType> {
+    pub fn args(&self) -> Vec<CallElement> {
         self.args.clone()
     }
 

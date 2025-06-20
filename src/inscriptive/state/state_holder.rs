@@ -138,7 +138,7 @@ impl StateHolder {
     /// Reverts the state update(s) associated with the last execution.
     ///
     /// NOTE: Used by the Engine coordinator.
-    pub fn revert_last_execution(&mut self) {
+    pub fn rollback_last(&mut self) {
         // Restore the ephemeral states from the backup.
         self.restore_ephemeral_states();
     }
@@ -146,7 +146,7 @@ impl StateHolder {
     /// Reverts all state updates associated with all executions.
     ///
     /// NOTE: Used by the Engine coordinator.
-    pub fn revert_all_executions(&mut self) {
+    pub fn rollback_all(&mut self) {
         // Clear the ephemeral states.
         self.ephemeral_states.clear();
 
