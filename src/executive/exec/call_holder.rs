@@ -1,8 +1,8 @@
 use crate::constructive::calldata::element_type::CallElementType;
 
-/// The context of a call.
+/// The holder of a call.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CallCtx {
+pub struct CallHolder {
     /// The account key.
     account_key: [u8; 32],
     /// The contract id.
@@ -19,8 +19,8 @@ pub struct CallCtx {
     ops_price: u32,
 }
 
-impl CallCtx {
-    /// Creates a new call context.
+impl CallHolder {
+    /// Creates a new call holder.
     pub fn new(
         account_key: [u8; 32],
         contract_id: [u8; 32],

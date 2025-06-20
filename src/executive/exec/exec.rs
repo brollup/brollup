@@ -75,9 +75,10 @@ use crate::{
     inscriptive::{repo::repo::PROGRAMS_REPO, state::state_holder::STATE_HOLDER},
 };
 
-/// A minimum 500 satoshi payable allocation is required.
-pub const MIN_PAYABLE_ALLOCATION_VALUE: u32 = 500;
+/// The minimum satoshi payable allocation value.
+pub const MIN_PAYABLE_ALLOCATION_VALUE: u32 = 10;
 
+/// Executes a program method.
 pub async fn execute(
     // Whether the execution is internal or external.
     internal: bool,
