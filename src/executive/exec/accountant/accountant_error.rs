@@ -16,7 +16,7 @@ pub enum InsertPaymentError {
 
 /// Error type for summing payments.
 #[derive(Debug, Clone)]
-pub enum PaidsSumError {
+pub enum PayListError {
     /// The payment is not valid.
     InflationEncounteredError,
 }

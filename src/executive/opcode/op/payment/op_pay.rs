@@ -1,6 +1,6 @@
 use crate::executive::{
     exec::{
-        accountant::{accountant::Accountant, payment::Payment},
+        accountant::{accountant::Accountant, accountant_record::AccountantRecord},
         caller::Caller,
     },
     stack::{
@@ -66,10 +66,10 @@ impl OP_PAY {
         }
 
         // Construct a new payment.
-        let payment = Payment::new(from_key, to_key, amount);
+        let record = AccountantRecord::new(from_key, to_key, amount);
 
         // Insert the payment into the accountant.
-        if let Err(error) = accountant.insert_payment(payment) {
+        if let Err(error) = accountant.insert_record(record) {
             return Err(StackError::OpPayError(
                 OpPayError::AccountantPaymentInsertionError(error),
             ));

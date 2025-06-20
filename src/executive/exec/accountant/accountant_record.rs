@@ -1,12 +1,12 @@
 // A payment instance for OP_PAY.
 #[derive(Clone)]
-pub struct Payment {
+pub struct AccountantRecord {
     from: [u8; 32],
     to: [u8; 32],
     amount: u32,
 }
 
-impl Payment {
+impl AccountantRecord {
     /// Creates a new payment instance.
     pub fn new(from: [u8; 32], to: [u8; 32], amount: u32) -> Self {
         Self { from, to, amount }
