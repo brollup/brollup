@@ -115,16 +115,17 @@ impl ExecCtx {
             Ok((return_items, new_external_ops_counter)) => {
                 // Stack must end with exactly one item and it must be true.
                 match return_items.len() {
+                    // Stack must end with exactly one item.
                     1 => {
+                        // And that item must be exactly true.
                         if !return_items[0].is_true() {
-                            // If the return item is not true, return an error.
                             return Err(ExecutionError::ReturnErrorFromStackError(
                                 return_items[0].clone(),
                             ));
                         }
                     }
+                    // If other than one item, return an error.
                     _ => {
-                        // If the stack does not end empty, return an error.
                         return Err(ExecutionError::InvalidStackEndingError);
                     }
                 }
