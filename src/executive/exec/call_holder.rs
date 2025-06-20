@@ -1,3 +1,5 @@
+use serde_json::{json, Value};
+
 use crate::constructive::calldata::element::CallElement;
 
 /// The holder of a call.
@@ -74,5 +76,28 @@ impl CallHolder {
     /// Returns the ops price.
     pub fn ops_price(&self) -> u32 {
         self.ops_price
+    }
+
+    /// Returns the callholder object as a JSON value.
+    pub fn json(&self) -> Value {
+        // eachh arg as hex string
+        let args = self
+            .args
+            .iter()
+            .map(|arg| hex::encode(arg.into_stack_item().bytes()))
+            .collect::<Vec<_>>();
+
+        let value = json!({
+            "caller_account_key": hex::encode(self.account_key),
+            "callee_contract_id": hex::encode(self.contract_id),
+            "method_index": self.method_index,
+            "args": args,
+            "timestamp": self.timestamp.to_string(),
+            "ops_budget": self.ops_budget,
+            "ops_price": self.ops_price,
+        });
+
+        // Return the value
+        value
     }
 }
