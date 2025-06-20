@@ -4,7 +4,7 @@ use crate::executive::{
         caller::Caller,
     },
     stack::{
-        stack_error::{OpPayError, StackError, StackUintError},
+        stack_error::{PaymentError, StackError, StackUintError},
         stack_holder::StackHolder,
         stack_uint::StackItemUintExt,
     },
@@ -32,7 +32,7 @@ impl OP_PAY {
         let from_key = match stack_holder.caller() {
             Caller::Account(key) => key,
             Caller::Contract(_) => {
-                return Err(StackError::OpPayError(OpPayError::CallerIsNotAnAccount));
+                return Err(StackError::PaymentError(PaymentError::CallerIsNotAnAccount));
             }
         };
 
@@ -60,8 +60,8 @@ impl OP_PAY {
 
         // Increment the payable spent value.
         if !stack_holder.increment_payable_spent(amount) {
-            return Err(StackError::OpPayError(
-                OpPayError::PayableAllocationExceeded,
+            return Err(StackError::PaymentError(
+                PaymentError::PayableAllocationExceeded,
             ));
         }
 
@@ -70,8 +70,8 @@ impl OP_PAY {
 
         // Insert the payment into the accountant.
         if let Err(error) = accountant.insert_record(record) {
-            return Err(StackError::OpPayError(
-                OpPayError::AccountantPaymentInsertionError(error),
+            return Err(StackError::PaymentError(
+                PaymentError::AccountantPaymentInsertionError(error),
             ));
         }
 

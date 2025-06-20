@@ -91,7 +91,7 @@ pub enum MandatoryError {
 
 /// The OP_PAY error.
 #[derive(Debug, Clone)]
-pub enum OpPayError {
+pub enum PaymentError {
     /// The caller is not an account.
     CallerIsNotAnAccount,
     /// The payable allocation exceeded error.
@@ -147,6 +147,6 @@ pub enum StackError {
     CallError(CallError),
     // Key conversion error.
     Key32BytesConversionError,
-    /// The OP_PAY error.
-    OpPayError(OpPayError),
+    /// The payment error.
+    PaymentError(PaymentError),
 }

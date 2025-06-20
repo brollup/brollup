@@ -36,6 +36,10 @@ use crate::{
                     op_returnerr::OP_RETURNERR, op_returnsome::OP_RETURNSOME, op_verify::OP_VERIFY,
                 },
                 memory::{op_free::OP_MFREE, op_mread::OP_MREAD, op_mwrite::OP_MWRITE},
+                payment::{
+                    op_pay::OP_PAY, op_payablealloc::OP_PAYABLEALLOC,
+                    op_payableleft::OP_PAYABLELEFT, op_payablespent::OP_PAYABLESPENT,
+                },
                 push::{
                     op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14,
                     op_15::OP_15, op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5,
@@ -748,6 +752,23 @@ pub async fn execute(
                 ))
                 .await;
             }
+            // Payment opcodes.
+            Opcode::OP_PAYABLEALLOC(OP_PAYABLEALLOC) => {
+                OP_PAYABLEALLOC::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PAYABLESPENT(OP_PAYABLESPENT) => {
+                OP_PAYABLESPENT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PAYABLELEFT(OP_PAYABLELEFT) => {
+                OP_PAYABLELEFT::execute(&mut stack_holder)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
+            Opcode::OP_PAY(OP_PAY) => {
+                OP_PAY::execute(&mut stack_holder, accountant)
+                    .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
+            }
             // Memory opcodes.
             Opcode::OP_MWRITE(OP_MWRITE) => {
                 OP_MWRITE::execute(&mut stack_holder)
@@ -772,7 +793,6 @@ pub async fn execute(
                     .await
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
             }
-            // Storage opcodes.
             _ => {
                 return Err(ExecutionError::ReservedOpcodeEncounteredError);
             }
