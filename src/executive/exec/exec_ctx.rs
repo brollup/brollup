@@ -31,6 +31,8 @@ pub struct ExecCtx {
     external_ops_counter: u32,
     // The base ops price.
     base_ops_price: u32,
+    // The timestamp.
+    timestamp: u64,
     // Passed calls.
     passed_calls: Vec<(Call, OpsSpent, FeesSpent)>,
 }
@@ -41,6 +43,7 @@ impl ExecCtx {
         state_holder: &STATE_HOLDER,
         programs_repo: &PROGRAMS_REPO,
         base_ops_price: u32,
+        timestamp: u64,
     ) -> Self {
         Self {
             state_holder: Arc::clone(state_holder),
@@ -48,6 +51,7 @@ impl ExecCtx {
             accountant: Accountant::new(),
             external_ops_counter: 0,
             base_ops_price,
+            timestamp,
             passed_calls: Vec::<(Call, OpsSpent, FeesSpent)>::new(),
         }
     }
@@ -73,8 +77,8 @@ impl ExecCtx {
             .map(|arg| arg.into_stack_item())
             .collect::<Vec<StackItem>>();
 
-        // The timestamp is the timestamp of the call.
-        let timestamp = call.timestamp();
+        // The timestamp is the timestamp of the execution context.
+        let timestamp = self.timestamp;
 
         // The ops budget is the ops budget of the call.
         let ops_budget = call.ops_budget();

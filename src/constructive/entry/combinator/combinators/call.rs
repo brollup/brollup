@@ -23,8 +23,6 @@ pub struct Call {
     ops_price_base: u32,
     /// The extra ops price.
     ops_price_extra_in: Option<u32>,
-    /// The timestamp.
-    timestamp: u64,
 }
 
 impl Call {
@@ -37,7 +35,6 @@ impl Call {
         ops_budget: u32,
         ops_price_base: u32,
         ops_price_extra_in: Option<u32>,
-        timestamp: u64,
     ) -> Self {
         Self {
             account_key,
@@ -47,7 +44,6 @@ impl Call {
             ops_budget,
             ops_price_base,
             ops_price_extra_in,
-            timestamp,
         }
     }
 
@@ -91,11 +87,6 @@ impl Call {
         self.ops_price_base + self.ops_price_extra_in.unwrap_or(0)
     }
 
-    /// Returns the timestamp.
-    pub fn timestamp(&self) -> u64 {
-        self.timestamp
-    }
-
     /// Validates the account for the call.
     ///
     /// This function checks if the account key matches the account key in the call.
@@ -121,7 +112,6 @@ impl Call {
             "ops_price_base": self.ops_price_base,
             "ops_price_extra_in": self.ops_price_extra_in,
             "ops_price_total": self.ops_price_total(),
-            "timestamp": self.timestamp.to_string(),
         });
 
         // Return the value
@@ -166,9 +156,6 @@ impl AuthSighash for Call {
                 preimage.push(0x00);
             }
         }
-
-        // Timestamp as u64
-        preimage.extend(&self.timestamp.to_le_bytes());
 
         // Hash the preimage
         preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Call)))
