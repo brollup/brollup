@@ -41,6 +41,8 @@ pub enum ExecutionError {
     AccountantAllocationInsertionError(InsertAllocError),
     /// Invalid stack ending error.
     InvalidStackEndingError,
+    /// Base ops price mismatch error.
+    BaseOpsPriceMismatchError,
 }
 
 impl fmt::Display for ExecutionError {
@@ -96,6 +98,9 @@ impl fmt::Display for ExecutionError {
             }
             ExecutionError::InvalidStackEndingError => {
                 write!(f, "Invalid stack ending")
+            }
+            ExecutionError::BaseOpsPriceMismatchError => {
+                write!(f, "Base ops price mismatch")
             }
         }
     }

@@ -19,6 +19,8 @@ pub struct Call {
     args: Vec<CallElement>,
     /// The ops budget.
     ops_budget: u32,
+    /// The base ops price.
+    base_ops_price: u32,
     /// The timestamp.
     timestamp: u64,
 }
@@ -31,6 +33,7 @@ impl Call {
         method_index: u8,
         args: Vec<CallElement>,
         ops_budget: u32,
+        base_ops_price: u32,
         timestamp: u64,
     ) -> Self {
         Self {
@@ -39,6 +42,7 @@ impl Call {
             method_index,
             args,
             ops_budget,
+            base_ops_price,
             timestamp,
         }
     }
@@ -66,6 +70,11 @@ impl Call {
     /// Returns the ops budget.
     pub fn ops_budget(&self) -> u32 {
         self.ops_budget
+    }
+
+    /// Returns the base ops price.
+    pub fn base_ops_price(&self) -> u32 {
+        self.base_ops_price
     }
 
     /// Returns the timestamp.
@@ -126,6 +135,9 @@ impl AuthSighash for Call {
 
         // Ops budget as u32
         preimage.extend((self.ops_budget as u32).to_le_bytes());
+
+        // Base ops price as u32
+        preimage.extend((self.base_ops_price as u32).to_le_bytes());
 
         // Timestamp as u64
         preimage.extend(&self.timestamp.to_le_bytes());

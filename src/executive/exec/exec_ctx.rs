@@ -79,8 +79,14 @@ impl ExecCtx {
         // The ops budget is the ops budget of the call.
         let ops_budget = call.ops_budget();
 
-        // The ops price is the base ops price.
-        let ops_price = self.base_ops_price;
+        // The ops price is always set to the base ops price.
+        // This means all executions share the same ops price.
+        let ops_price = match self.base_ops_price == call.base_ops_price() {
+            true => self.base_ops_price,
+            false => {
+                return Err(ExecutionError::BaseOpsPriceMismatchError);
+            }
+        };
 
         // Internal ops counter is 0.
         let internal_ops_counter = 0;
