@@ -1,5 +1,8 @@
 use crate::{
-    constructive::{entity::account::Account, txo::vtxo::VTXO},
+    constructive::{
+        entity::account::Account, entry::combinator::combinator_type::CombinatorType,
+        txo::vtxo::VTXO,
+    },
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
@@ -73,6 +76,6 @@ impl AuthSighash for Recharge {
             };
         }
 
-        preimage.hash(Some(HashTag::SighashCombinator))
+        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Recharge)))
     }
 }

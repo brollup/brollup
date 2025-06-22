@@ -5,6 +5,7 @@ use crate::{
             decode_error::{entry_error::LiftupCPEDecodingError, error::CPEDecodingError},
         },
         entity::account::Account,
+        entry::combinator::combinator_type::CombinatorType,
         taproot::P2TR,
         txn::txholder::TxHolder,
         txo::lift::Lift,
@@ -207,7 +208,7 @@ impl AuthSighash for Liftup {
             }
         }
 
-        preimage.hash(Some(HashTag::SighashCombinator))
+        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Liftup)))
     }
 }
 

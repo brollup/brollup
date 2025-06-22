@@ -1,7 +1,9 @@
 use super::combinator::{
-    add::Add, call::Call, claim::Claim, combinator::Combinator, deploy::Deploy, liftup::Liftup,
-    r#move::Move, recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub,
-    swapout::Swapout,
+    combinator::Combinator,
+    combinators::{
+        add::Add, call::Call, claim::Claim, deploy::Deploy, liftup::Liftup, r#move::Move,
+        recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
+    },
 };
 use crate::{
     constructive::entity::account::Account,

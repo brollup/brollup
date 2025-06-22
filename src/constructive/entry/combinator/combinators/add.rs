@@ -1,5 +1,5 @@
 use crate::{
-    constructive::entity::account::Account,
+    constructive::{entity::account::Account, entry::combinator::combinator_type::CombinatorType},
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
@@ -8,23 +8,18 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Move {
-    from: Account,
-    to: Account,
+pub struct Add {
+    account: Account,
     amount: u32,
 }
 
-impl Move {
-    pub fn new(from: Account, to: Account, amount: u32) -> Move {
-        Move { from, to, amount }
+impl Add {
+    pub fn new(account: Account, amount: u32) -> Add {
+        Add { account, amount }
     }
 
-    pub fn from(&self) -> Account {
-        self.from
-    }
-
-    pub fn to(&self) -> Account {
-        self.to
+    pub fn account(&self) -> Account {
+        self.account
     }
 
     pub fn amount(&self) -> u32 {
@@ -39,18 +34,17 @@ impl Move {
     }
 
     pub fn validate_account(&self, account: Account) -> bool {
-        self.from.key() == account.key()
+        self.account.key() == account.key()
     }
 }
 
-impl AuthSighash for Move {
+impl AuthSighash for Add {
     fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
-        preimage.extend(self.from.key().serialize_xonly());
-        preimage.extend(self.to.key().serialize_xonly());
+        preimage.extend(self.account.key().serialize_xonly());
         preimage.extend(self.amount.to_le_bytes());
 
-        preimage.hash(Some(HashTag::SighashCombinator))
+        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Add)))
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    constructive::entity::account::Account,
+    constructive::{entity::account::Account, entry::combinator::combinator_type::CombinatorType},
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
@@ -152,6 +152,6 @@ impl AuthSighash for Swapout {
         preimage.extend(self.amount.to_le_bytes());
         preimage.extend(self.witness_program());
 
-        preimage.hash(Some(HashTag::SighashCombinator))
+        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Swapout)))
     }
 }

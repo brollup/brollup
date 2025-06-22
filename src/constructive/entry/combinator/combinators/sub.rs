@@ -1,5 +1,5 @@
 use crate::{
-    constructive::entity::account::Account,
+    constructive::{entity::account::Account, entry::combinator::combinator_type::CombinatorType},
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
@@ -45,6 +45,6 @@ impl AuthSighash for Sub {
         preimage.extend(self.account.key().serialize_xonly());
         preimage.extend(self.amount.to_le_bytes());
 
-        preimage.hash(Some(HashTag::SighashCombinator))
+        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Sub)))
     }
 }

@@ -1,11 +1,11 @@
-use crate::inscriptive::baked;
+use crate::{constructive::entry::combinator::combinator_type::CombinatorType, inscriptive::baked};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, PartialEq)]
 pub enum HashTag {
     VSEEncryptionAuth,
     Sighash,
-    SighashCombinator,
+    SighashCombinator(CombinatorType),
     SighashEntry,
     PayloadAuth,
     SignatureChallenge,
@@ -37,8 +37,18 @@ impl HashTag {
         match self {
             HashTag::VSEEncryptionAuth => format!("{}/{}", baked::PROJECT_TAG, "vseencryptionauth"),
             HashTag::Sighash => format!("{}/{}", baked::PROJECT_TAG, "sighash"),
-            HashTag::SighashCombinator => format!("{}/{}", baked::PROJECT_TAG, "sighashcombinator"),
-            HashTag::SighashEntry => format!("{}/{}", baked::PROJECT_TAG, "sighashentry"),
+            // Combinators
+            HashTag::SighashCombinator(combinator_type) => {
+                format!(
+                    "{}/{}/{}/{}",
+                    baked::PROJECT_TAG,
+                    "sighash",
+                    "combinator",
+                    combinator_type.as_str()
+                )
+            }
+            //
+            HashTag::SighashEntry => format!("{}/{}", baked::PROJECT_TAG, "sighash/entry"),
             HashTag::SignatureChallenge => format!("{}/{}", baked::PROJECT_TAG, "challenge"),
             HashTag::BIP340Challenge => format!("{}/{}", "BIP0340", "challenge"),
             HashTag::GroupCommitment => format!("{}/{}", baked::PROJECT_TAG, "groupcommitment"),

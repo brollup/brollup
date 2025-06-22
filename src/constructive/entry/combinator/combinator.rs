@@ -1,9 +1,13 @@
 use super::{
-    add::Add, call::Call, claim::Claim, deploy::Deploy, liftup::Liftup, r#move::Move,
-    recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
+    combinator_type::CombinatorType,
+    combinators::{
+        add::Add, call::Call, claim::Claim, deploy::Deploy, liftup::Liftup, r#move::Move,
+        recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
+    },
 };
 use serde::{Deserialize, Serialize};
 
+/// The combinator.
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Combinator {
     Liftup(Liftup),
@@ -73,6 +77,23 @@ impl Combinator {
     /// Create a new `Reserved` combinator.
     pub fn new_reserved(reserved: Reserved) -> Combinator {
         Combinator::Reserved(reserved)
+    }
+
+    /// Returns the type of the combinator.
+    pub fn combinator_type(&self) -> CombinatorType {
+        match self {
+            Combinator::Liftup(_) => CombinatorType::Liftup,
+            Combinator::Recharge(_) => CombinatorType::Recharge,
+            Combinator::Move(_) => CombinatorType::Move,
+            Combinator::Call(_) => CombinatorType::Call,
+            Combinator::Add(_) => CombinatorType::Add,
+            Combinator::Sub(_) => CombinatorType::Sub,
+            Combinator::Deploy(_) => CombinatorType::Deploy,
+            Combinator::Swapout(_) => CombinatorType::Swapout,
+            Combinator::Revive(_) => CombinatorType::Revive,
+            Combinator::Claim(_) => CombinatorType::Claim,
+            Combinator::Reserved(_) => CombinatorType::Reserved,
+        }
     }
 
     /// Serializes the combinator.

@@ -19,9 +19,10 @@ use crate::{
     executive::stack::stack_item::StackItem,
 };
 use bit_vec::BitVec;
+use serde::{Deserialize, Serialize};
 
 // Represents a single element of calldata.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CallElement {
     U8(u8),
     U16(u16),
