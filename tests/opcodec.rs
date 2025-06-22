@@ -3,7 +3,7 @@ mod opcodec_tests {
     use cube::executive::{
         opcode::{
             compiler::{compiler::OpcodeCompiler, compiler_error::OpcodeDecompileError},
-            op::push::{
+            opcodes::push::{
                 op_10::OP_10, op_11::OP_11, op_12::OP_12, op_13::OP_13, op_14::OP_14, op_15::OP_15,
                 op_16::OP_16, op_2::OP_2, op_3::OP_3, op_4::OP_4, op_5::OP_5, op_6::OP_6,
                 op_7::OP_7, op_8::OP_8, op_9::OP_9, op_false::OP_FALSE, op_pushdata::OP_PUSHDATA,

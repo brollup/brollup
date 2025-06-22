@@ -1,8 +1,8 @@
 use crate::{
+    constructive::entry::combinator::combinators::call::Call,
     executive::{
         exec::{
             accountant::{accountant::Accountant, accountant_error::PayListError},
-            call_holder::CallHolder,
             caller::Caller,
             exec::execute,
             exec_error::ExecutionError,
@@ -12,6 +12,12 @@ use crate::{
     inscriptive::{repo::repo::PROGRAMS_REPO, state::state_holder::STATE_HOLDER},
 };
 use std::{collections::HashMap, sync::Arc};
+
+/// The type of the ops spent.
+type OpsSpent = u32;
+
+/// The type of the fees spent.
+type FeesSpent = u32;
 
 /// The context of a program execution.
 pub struct ExecCtx {
@@ -23,24 +29,31 @@ pub struct ExecCtx {
     accountant: Accountant,
     // External ops counter.
     external_ops_counter: u32,
+    // The base ops price.
+    base_ops_price: u32,
     // Passed calls.
-    passed_calls: Vec<CallHolder>,
+    passed_calls: Vec<(Call, OpsSpent, FeesSpent)>,
 }
 
 impl ExecCtx {
     /// Creates a new execution context.
-    pub fn new(state_holder: &STATE_HOLDER, programs_repo: &PROGRAMS_REPO) -> Self {
+    pub fn new(
+        state_holder: &STATE_HOLDER,
+        programs_repo: &PROGRAMS_REPO,
+        base_ops_price: u32,
+    ) -> Self {
         Self {
             state_holder: Arc::clone(state_holder),
             programs_repo: Arc::clone(programs_repo),
             accountant: Accountant::new(),
             external_ops_counter: 0,
-            passed_calls: Vec::<CallHolder>::new(),
+            base_ops_price,
+            passed_calls: Vec::<(Call, OpsSpent, FeesSpent)>::new(),
         }
     }
 
     /// Executes and inserts a call.
-    pub async fn exec_insert_call(&mut self, call: CallHolder) -> Result<(), ExecutionError> {
+    pub async fn exec_insert_call(&mut self, call: Call) -> Result<(), ExecutionError> {
         // This is an external call.
         let internal = false;
 
@@ -66,8 +79,8 @@ impl ExecCtx {
         // The ops budget is the ops budget of the call.
         let ops_budget = call.ops_budget();
 
-        // The ops price is the ops price of the call.
-        let ops_price = call.ops_price();
+        // The ops price is the base ops price.
+        let ops_price = self.base_ops_price;
 
         // Internal ops counter is 0.
         let internal_ops_counter = 0;
@@ -112,7 +125,7 @@ impl ExecCtx {
         .await;
 
         match exectuion_result {
-            Ok((return_items, new_external_ops_counter)) => {
+            Ok((return_items, ops_spent, new_external_ops_counter)) => {
                 // Stack must end with exactly one item and it must be true.
                 match return_items.len() {
                     // Stack must end with exactly one item.
@@ -130,11 +143,13 @@ impl ExecCtx {
                     }
                 }
 
+                let fees_spent = ops_spent * self.base_ops_price;
+
                 // Update the external ops counter.
                 self.external_ops_counter = new_external_ops_counter;
 
                 // Insert the call.
-                self.passed_calls.push(call);
+                self.passed_calls.push((call, ops_spent, fees_spent));
 
                 // Return Ok.
                 Ok(())
@@ -184,7 +199,7 @@ impl ExecCtx {
     }
 
     /// Returns the passed calls.
-    pub fn passed_calls(&self) -> Vec<CallHolder> {
+    pub fn passed_calls(&self) -> Vec<(Call, OpsSpent, FeesSpent)> {
         self.passed_calls.clone()
     }
 

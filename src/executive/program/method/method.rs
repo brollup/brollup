@@ -10,7 +10,7 @@ use crate::{
     constructive::calldata::element_type::CallElementType,
     executive::{
         opcode::{
-            op::{
+            opcodes::{
                 push::op_pushdata::OP_PUSHDATA,
                 reserved::{op_reserved_1::OP_RESERVED_1, op_reserved_2::OP_RESERVED_2},
             },

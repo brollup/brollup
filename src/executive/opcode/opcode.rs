@@ -1,11 +1,11 @@
 #![allow(non_camel_case_types)]
 
-use crate::executive::opcode::op::{
+use crate::executive::opcode::opcodes::{
     payment::op_pay::OP_PAY,
     storage::{op_sread::OP_SREAD, op_swrite::OP_SWRITE},
 };
 
-use super::op::{
+use super::opcodes::{
     altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
     arithmetic::{
         op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB, op_2div::OP_2DIV,

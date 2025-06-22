@@ -4,7 +4,7 @@ mod program_and_method_tests {
         constructive::calldata::element_type::CallElementType,
         executive::{
             opcode::{
-                op::{
+                opcodes::{
                     flow::{op_returnall::OP_RETURNALL, op_returnerr::OP_RETURNERR},
                     push::{
                         op_2::OP_2, op_false::OP_FALSE, op_pushdata::OP_PUSHDATA, op_true::OP_TRUE,

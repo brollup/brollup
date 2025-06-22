@@ -3,7 +3,7 @@ use crate::{
     executive::{
         exec::accountant::accountant::Accountant,
         opcode::{
-            op::{
+            opcodes::{
                 altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
                 arithmetic::{
                     op_0notequal::OP_0NOTEQUAL, op_1add::OP_1ADD, op_1sub::OP_1SUB,
@@ -82,6 +82,9 @@ use crate::{
 /// The type of the external ops counter.
 type ExternalOpsCounter = u32;
 
+/// The type of the internal ops counter.
+type InternalOpsCounter = u32;
+
 /// The minimum satoshi payable allocation value.
 pub const MIN_PAYABLE_ALLOCATION_VALUE: u32 = 10;
 
@@ -113,7 +116,7 @@ pub async fn execute(
     programs_repo: &PROGRAMS_REPO,
     // Accountant.
     accountant: &mut Accountant,
-) -> Result<(Vec<StackItem>, ExternalOpsCounter), ExecutionError> {
+) -> Result<(Vec<StackItem>, InternalOpsCounter, ExternalOpsCounter), ExecutionError> {
     // Get the program by contract id.
     let program = {
         let _programs_repo = programs_repo.lock().await;
@@ -306,18 +309,21 @@ pub async fn execute(
             Opcode::OP_RETURNALL(_) => {
                 // If this is not an active execution, return immediately.
                 if !stack_holder.active_execution() {
-                    return Ok((vec![], external_ops_counter));
+                    return Ok((vec![], internal_ops_counter, external_ops_counter));
                 }
 
                 // Return all items from the stack.
                 let return_items = OP_RETURNALL::execute(&mut stack_holder)
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
 
+                // Get the ops spent.
+                let internal_ops_counter = stack_holder.internal_ops_counter();
+
                 // Get the up-to-date external ops counter.
                 let new_external_ops_counter = stack_holder.external_ops_counter();
 
                 // Return the items.
-                return Ok((return_items, new_external_ops_counter));
+                return Ok((return_items, internal_ops_counter, new_external_ops_counter));
             }
             Opcode::OP_RETURNSOME(_) => {
                 // If this is not an active execution, skip the opcode.
@@ -329,11 +335,14 @@ pub async fn execute(
                 let return_items = OP_RETURNSOME::execute(&mut stack_holder)
                     .map_err(|error| ExecutionError::OpcodeExecutionError(error))?;
 
+                // Get the ops spent.
+                let internal_ops_counter = stack_holder.internal_ops_counter();
+
                 // Get the up-to-date external ops counter.
                 let new_external_ops_counter = stack_holder.external_ops_counter();
 
                 // Return the items.
-                return Ok((return_items, new_external_ops_counter));
+                return Ok((return_items, internal_ops_counter, new_external_ops_counter));
             }
             Opcode::OP_ELSE(_) => {
                 OP_ELSE::execute(&mut stack_holder)

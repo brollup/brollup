@@ -2,7 +2,7 @@
 mod stack_tests {
     use cube::executive::{
         exec::caller::Caller,
-        opcode::op::{
+        opcode::opcodes::{
             altstack::{op_fromaltstack::OP_FROMALTSTACK, op_toaltstack::OP_TOALTSTACK},
             arithmetic::op_add::OP_ADD,
             bitwise::op_equalverify::OP_EQUALVERIFY,
