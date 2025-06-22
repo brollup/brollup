@@ -20,7 +20,9 @@ pub struct Call {
     /// The ops budget.
     ops_budget: u32,
     /// The base ops price.
-    base_ops_price: u32,
+    ops_price_base: u32,
+    /// The extra ops price.
+    ops_price_extra_in: Option<u32>,
     /// The timestamp.
     timestamp: u64,
 }
@@ -33,7 +35,8 @@ impl Call {
         method_index: u8,
         args: Vec<CallElement>,
         ops_budget: u32,
-        base_ops_price: u32,
+        ops_price_base: u32,
+        ops_price_extra_in: Option<u32>,
         timestamp: u64,
     ) -> Self {
         Self {
@@ -42,7 +45,8 @@ impl Call {
             method_index,
             args,
             ops_budget,
-            base_ops_price,
+            ops_price_base,
+            ops_price_extra_in,
             timestamp,
         }
     }
@@ -73,8 +77,18 @@ impl Call {
     }
 
     /// Returns the base ops price.
-    pub fn base_ops_price(&self) -> u32 {
-        self.base_ops_price
+    pub fn ops_price_base(&self) -> u32 {
+        self.ops_price_base
+    }
+
+    /// Returns the extra ops price.
+    pub fn ops_price_extra_in(&self) -> Option<u32> {
+        self.ops_price_extra_in
+    }
+
+    /// Returns the total ops price.
+    pub fn ops_price_total(&self) -> u32 {
+        self.ops_price_base + self.ops_price_extra_in.unwrap_or(0)
     }
 
     /// Returns the timestamp.
@@ -104,6 +118,9 @@ impl Call {
             "method_index": self.method_index,
             "args": args,
             "ops_budget": self.ops_budget,
+            "ops_price_base": self.ops_price_base,
+            "ops_price_extra_in": self.ops_price_extra_in,
+            "ops_price_total": self.ops_price_total(),
             "timestamp": self.timestamp.to_string(),
         });
 
@@ -137,7 +154,18 @@ impl AuthSighash for Call {
         preimage.extend((self.ops_budget as u32).to_le_bytes());
 
         // Base ops price as u32
-        preimage.extend((self.base_ops_price as u32).to_le_bytes());
+        preimage.extend((self.ops_price_base as u32).to_le_bytes());
+
+        // Extra ops price.
+        match self.ops_price_extra_in {
+            Some(extra_ops_price) => {
+                preimage.push(0x01);
+                preimage.extend((extra_ops_price as u32).to_le_bytes());
+            }
+            None => {
+                preimage.push(0x00);
+            }
+        }
 
         // Timestamp as u64
         preimage.extend(&self.timestamp.to_le_bytes());
