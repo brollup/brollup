@@ -2,7 +2,7 @@ use crate::{
     constructive::{
         cpe::cpe::CompactPayloadEncoding,
         entry::combinator::combinators::call::{
-            call::Call, codec::cpe::encode_error::CPECallEncodeError,
+            call::Call, codec::cpe::encode_error::CallCPEEncodeError,
         },
         valtype::{atomic_val::AtomicVal, short_val::ShortVal},
     },
@@ -18,13 +18,16 @@ impl Call {
         contract_registery: &CONTRACT_REGISTERY,
         repo: &PROGRAMS_REPO,
         ops_price_base: u32,
-    ) -> Result<BitVec, CPECallEncodeError> {
+    ) -> Result<BitVec, CallCPEEncodeError> {
         // Initialize empty bit vector.
         let mut bits = BitVec::new();
 
         // Match the account key.
         if account_key != self.account_key {
-            return Err(CPECallEncodeError::AccountKeyMismatch);
+            return Err(CallCPEEncodeError::AccountKeyMismatch(
+                account_key,
+                self.account_key,
+            ));
         }
 
         // Contract rank
@@ -32,7 +35,7 @@ impl Call {
             let _contract_registery = contract_registery.lock().await;
             _contract_registery.rank_by_contract_id(self.contract_id)
         }
-        .ok_or(CPECallEncodeError::ContractRankNotFoundAtContractId(
+        .ok_or(CallCPEEncodeError::ContractRankNotFoundAtContractId(
             self.contract_id,
         ))?;
 
@@ -43,7 +46,7 @@ impl Call {
         bits.extend(
             contract_rank_as_shortval
                 .encode_cpe()
-                .ok_or(CPECallEncodeError::ContractRankCPEEncodeError)?,
+                .ok_or(CallCPEEncodeError::ContractRankCPEEncodeError)?,
         );
 
         // Methods length
@@ -51,7 +54,7 @@ impl Call {
             let _repo = repo.lock().await;
             _repo.methods_len_by_contract_id(&self.contract_id)
         }
-        .ok_or(CPECallEncodeError::ContractMethodCountNotFoundAtContractId(
+        .ok_or(CallCPEEncodeError::ContractMethodCountNotFoundAtContractId(
             self.contract_id,
         ))?;
 
@@ -62,7 +65,7 @@ impl Call {
         bits.extend(
             method_index_as_atomicval
                 .encode_cpe()
-                .ok_or(CPECallEncodeError::MethodIndexCPEEncodeError)?,
+                .ok_or(CallCPEEncodeError::MethodIndexCPEEncodeError)?,
         );
 
         // Extend the args.
@@ -70,7 +73,7 @@ impl Call {
         for arg in self.args.iter() {
             bits.extend(
                 arg.encode_cpe()
-                    .ok_or(CPECallEncodeError::ArgsCPEEncodeError)?,
+                    .ok_or(CallCPEEncodeError::ArgsCPEEncodeError)?,
             );
         }
 
@@ -81,12 +84,15 @@ impl Call {
         bits.extend(
             ops_budget_as_shortval
                 .encode_cpe()
-                .ok_or(CPECallEncodeError::OpsBudgetCPEEncodeError)?,
+                .ok_or(CallCPEEncodeError::OpsBudgetCPEEncodeError)?,
         );
 
         // Match the ops price base.
         if ops_price_base != self.ops_price_base {
-            return Err(CPECallEncodeError::BaseOpsPriceMismatch);
+            return Err(CallCPEEncodeError::BaseOpsPriceMismatch(
+                ops_price_base,
+                self.ops_price_base,
+            ));
         }
 
         // Match ops price extra in.
@@ -106,7 +112,7 @@ impl Call {
                 bits.extend(
                     ops_price_extra_in_as_shortval
                         .encode_cpe()
-                        .ok_or(CPECallEncodeError::OpsPriceExtraInCPEEncodeError)?,
+                        .ok_or(CallCPEEncodeError::OpsPriceExtraInCPEEncodeError)?,
                 );
             }
         }

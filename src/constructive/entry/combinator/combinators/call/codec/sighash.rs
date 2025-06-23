@@ -4,6 +4,7 @@ use crate::transmutative::hash::Hash;
 use crate::transmutative::{hash::HashTag, secp::authenticable::AuthSighash};
 
 impl AuthSighash for Call {
+    /// Returns the sighash of the call.
     fn auth_sighash(&self) -> [u8; 32] {
         let mut preimage: Vec<u8> = Vec::<u8>::new();
 
