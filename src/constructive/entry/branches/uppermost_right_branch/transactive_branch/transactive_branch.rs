@@ -1,4 +1,4 @@
-use crate::constructive::entry::combinator::combinators::call::Call;
+use crate::constructive::entry::combinator::combinators::call::call::Call;
 use crate::constructive::entry::combinator::combinators::r#move::Move;
 use serde::{Deserialize, Serialize};
 

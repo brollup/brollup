@@ -228,6 +228,14 @@ impl AccountRegistery {
         self.accounts.get(&rank).map(|account| account.to_owned())
     }
 
+    /// Returns the rank of the account by the given account key.
+    pub fn rank_by_account_key(&self, key: Point) -> Option<RANK> {
+        self.accounts
+            .iter()
+            .find(|(_, account)| account.key() == key)
+            .map(|(rank, _)| rank.to_owned())
+    }
+
     /// Returns the current registery index height.
     pub fn registery_index_height(&self) -> u32 {
         self.accounts.keys().max().unwrap_or(&0).to_owned()

@@ -206,6 +206,14 @@ impl ContractRegistery {
             .map(|contract| contract.to_owned())
     }
 
+    /// Returns the rank of the contract by the given contract id.
+    pub fn rank_by_contract_id(&self, contract_id: [u8; 32]) -> Option<RANK> {
+        self.contracts
+            .iter()
+            .find(|(_, contract)| contract.contract_id() == contract_id)
+            .map(|(rank, _)| rank.to_owned())
+    }
+
     /// Returns the current registery index height.
     pub fn registery_index_height(&self) -> u32 {
         self.contracts.keys().max().unwrap_or(&0).to_owned()

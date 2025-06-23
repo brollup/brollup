@@ -20,12 +20,12 @@ pub struct AtomicVal(Value, UpperBound);
 
 impl AtomicVal {
     /// Creates a new `AtomicVal`
-    pub fn new(value: Value, upper_bound: UpperBound) -> Self {
+    pub fn new(value: u8, upper_bound: UpperBound) -> Self {
         Self(value, upper_bound)
     }
 
     /// Returns the core u8 value.
-    pub fn value(&self) -> Value {
+    pub fn value(&self) -> u8 {
         self.0
     }
 

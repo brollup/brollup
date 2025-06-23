@@ -112,4 +112,20 @@ impl ProgramsRepo {
     pub fn program_by_contract_id(&self, contract_id: &CONTRACT_ID) -> Option<Program> {
         self.programs.get(contract_id).cloned()
     }
+
+    /// Returns the number of methods in the program by the contract id.
+    pub fn methods_len_by_contract_id(&self, contract_id: &CONTRACT_ID) -> Option<u8> {
+        let methods_len = self
+            .programs
+            .get(contract_id)
+            .map(|program| program.methods_len())?;
+
+        // Return none if the methods length is greater than the maximum value of u8.
+        if methods_len > u8::MAX as usize {
+            return None;
+        }
+
+        // Return the methods length as u8.
+        Some(methods_len as u8)
+    }
 }

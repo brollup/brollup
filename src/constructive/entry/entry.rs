@@ -1,8 +1,8 @@
 use super::combinator::{
     combinator::Combinator,
     combinators::{
-        add::Add, call::Call, liftup::Liftup, r#move::Move, recharge::Recharge, reserved::Reserved,
-        sub::Sub, swapout::Swapout,
+        add::Add, call::call::Call, liftup::Liftup, r#move::Move, recharge::Recharge,
+        reserved::Reserved, sub::Sub, swapout::Swapout,
     },
 };
 use crate::{

@@ -1,5 +1,5 @@
 use crate::constructive::entry::combinator::combinators::{
-    add::Add, call::Call, deploy::Deploy, r#move::Move, reserved::Reserved, revive::Revive,
+    add::Add, call::call::Call, deploy::Deploy, r#move::Move, reserved::Reserved, revive::Revive,
     sub::Sub, swapout::Swapout,
 };
 use crate::constructive::entry::{
