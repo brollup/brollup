@@ -1,5 +1,7 @@
 use crate::{
-    constructive::{entity::account::Account, entry::combinator::combinator_type::CombinatorType},
+    constructive::{
+        entity::account::account::Account, entry::combinator::combinator_type::CombinatorType,
+    },
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,

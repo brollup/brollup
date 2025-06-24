@@ -1,6 +1,6 @@
 use crate::{
     constructive::{
-        entity::account::Account, entry::combinator::combinator_type::CombinatorType,
+        entity::account::account::Account, entry::combinator::combinator_type::CombinatorType,
         txo::vtxo::VTXO,
     },
     transmutative::{

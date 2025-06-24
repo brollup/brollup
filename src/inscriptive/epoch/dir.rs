@@ -1,6 +1,6 @@
 use super::epoch::Epoch;
 use crate::{
-    constructive::entity::account::Account, inscriptive::baked::INITIAL_OPERATOR_SET,
+    constructive::entity::account::account::Account, inscriptive::baked::INITIAL_OPERATOR_SET,
     operative::Chain, transmutative::secp::into::IntoPoint,
 };
 use secp::Point;

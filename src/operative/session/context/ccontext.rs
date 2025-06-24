@@ -8,7 +8,7 @@ use crate::{
         tcp::client::TCPClient,
     },
     constructive::{
-        entity::account::Account,
+        entity::account::account::Account,
         entry::entry::Entry,
         txo::{
             connector::Connector,

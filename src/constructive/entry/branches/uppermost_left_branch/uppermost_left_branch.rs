@@ -1,4 +1,4 @@
-use crate::constructive::entry::combinator::combinators::liftup::Liftup;
+use crate::constructive::entry::combinator::combinators::liftup::liftup::Liftup;
 use crate::constructive::entry::combinator::combinators::recharge::Recharge;
 use serde::{Deserialize, Serialize};
 

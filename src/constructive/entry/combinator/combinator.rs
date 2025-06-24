@@ -3,8 +3,8 @@ use crate::constructive::entry::combinator::combinators::call::call::Call;
 use super::{
     combinator_type::CombinatorType,
     combinators::{
-        add::Add, claim::Claim, deploy::Deploy, liftup::Liftup, r#move::Move, recharge::Recharge,
-        reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
+        add::Add, claim::Claim, deploy::Deploy, liftup::liftup::Liftup, r#move::Move,
+        recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
     },
 };
 use serde::{Deserialize, Serialize};

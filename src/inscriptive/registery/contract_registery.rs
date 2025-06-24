@@ -1,4 +1,4 @@
-use crate::{constructive::entity::contract::Contract, operative::Chain};
+use crate::{constructive::entity::contract::contract::Contract, operative::Chain};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 

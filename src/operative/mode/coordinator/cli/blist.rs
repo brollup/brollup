@@ -1,6 +1,7 @@
+use crate::{
+    constructive::entity::account::account::Account, inscriptive::blacklist::BLIST_DIRECTORY,
+};
 use secp::Point;
-
-use crate::{constructive::entity::account::Account, inscriptive::blacklist::BLIST_DIRECTORY};
 
 // blist <account> <until>
 pub async fn blist_command(parts: Vec<&str>, blacklist_dir: &BLIST_DIRECTORY) {

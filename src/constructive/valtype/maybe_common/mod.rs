@@ -1,3 +1,2 @@
-pub mod common_long;
-pub mod common_short;
+pub mod common;
 pub mod maybe_common;

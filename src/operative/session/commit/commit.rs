@@ -1,5 +1,5 @@
 use crate::{
-    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    constructive::{entity::account::account::Account, entry::entry::Entry, txo::lift::Lift},
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,

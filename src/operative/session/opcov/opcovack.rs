@@ -1,4 +1,4 @@
-use crate::constructive::{entity::account::Account, txo::lift::Lift};
+use crate::constructive::{entity::account::account::Account, txo::lift::Lift};
 use secp::{Point, Scalar};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

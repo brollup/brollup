@@ -1,6 +1,6 @@
 use super::opcovack::OSessionOpCovAck;
 use crate::{
-    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    constructive::{entity::account::account::Account, entry::entry::Entry, txo::lift::Lift},
     transmutative::{key::KeyHolder, musig::session::MusigSessionCtx, noist::manager::DKG_MANAGER},
 };
 use secp::Scalar;

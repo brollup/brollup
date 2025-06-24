@@ -5,7 +5,7 @@ use crate::communicative::peer::peer::PeerKind;
 use crate::communicative::peer::peer::PEER;
 use crate::communicative::rpc::bitcoin::rpc::validate_rpc;
 use crate::communicative::rpc::bitcoin::rpcholder::RPCHolder;
-use crate::constructive::entity::account::Account;
+use crate::constructive::entity::account::account::Account;
 use crate::inscriptive::epoch::dir::EpochDirectory;
 use crate::inscriptive::epoch::dir::EPOCH_DIRECTORY;
 use crate::inscriptive::lp::dir::LPDirectory;

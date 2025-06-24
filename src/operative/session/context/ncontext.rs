@@ -3,7 +3,7 @@ use super::{
     upholdack::CSessionUpholdAck, upholderr::NSessionUpholdError,
 };
 use crate::{
-    constructive::{entity::account::Account, entry::entry::Entry, txo::lift::Lift},
+    constructive::{entity::account::account::Account, entry::entry::Entry, txo::lift::Lift},
     transmutative::{
         key::KeyHolder,
         secp::{authenticable::Authenticable, into::IntoScalar, schnorr::generate_secret},

@@ -1,4 +1,4 @@
-use crate::constructive::entity::account::Account;
+use crate::constructive::entity::account::account::Account;
 use serde::{Deserialize, Serialize};
 
 /// `CSessionUpholdINack` (Inner Nack)is returned by the coordinator to the msg.senders

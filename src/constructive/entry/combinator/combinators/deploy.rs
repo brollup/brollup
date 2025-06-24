@@ -1,4 +1,4 @@
-use crate::constructive::entity::account::Account;
+use crate::constructive::entity::account::account::Account;
 use crate::transmutative::secp::authenticable::AuthSighash;
 use serde::{Deserialize, Serialize};
 

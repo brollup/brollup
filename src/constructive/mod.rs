@@ -1,5 +1,4 @@
 pub mod calldata;
-pub mod cpe;
 pub mod entity;
 pub mod entry;
 pub mod taproot;

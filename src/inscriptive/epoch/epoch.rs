@@ -1,4 +1,4 @@
-use crate::constructive::entity::account::Account;
+use crate::constructive::entity::account::account::Account;
 use secp::Point;
 use serde::{Deserialize, Serialize};
 

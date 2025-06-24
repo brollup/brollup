@@ -1,13 +1,13 @@
 use super::combinator::{
     combinator::Combinator,
     combinators::{
-        add::Add, call::call::Call, liftup::Liftup, r#move::Move, recharge::Recharge,
+        add::Add, call::call::Call, liftup::liftup::Liftup, r#move::Move, recharge::Recharge,
         reserved::Reserved, sub::Sub, swapout::Swapout,
     },
 };
 use crate::{
     constructive::{
-        entity::account::Account,
+        entity::account::account::Account,
         entry::branches::{
             uppermost_left_branch::uppermost_left_branch::UppermostLeftBranch,
             uppermost_right_branch::{

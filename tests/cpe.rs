@@ -3,16 +3,20 @@ mod cpe_tests {
     use bit_vec::BitVec;
     use cube::{
         constructive::{
-            cpe::cpe::CompactPayloadEncoding,
-            entity::{account::Account, contract::Contract},
+            entity::{account::account::Account, contract::contract::Contract},
             valtype::{
-                atomic_val::AtomicVal,
-                long_val::{LongVal, LongValTier},
                 maybe_common::{
-                    common_long::CommonLongVal, common_short::CommonShortVal,
-                    maybe_common::MaybeCommon,
+                    common::{
+                        common_long::common_long::CommonLongVal,
+                        common_short::common_short::CommonShortVal,
+                    },
+                    maybe_common::maybe_common::MaybeCommon,
                 },
-                short_val::{ShortVal, ShortValTier},
+                val::{
+                    atomic_val::atomic_val::AtomicVal,
+                    long_val::long_val::{LongVal, LongValTier},
+                    short_val::short_val::{ShortVal, ShortValTier},
+                },
             },
         },
         inscriptive::registery::registery::Registery,
@@ -130,7 +134,7 @@ mod cpe_tests {
     async fn cpe_single_short_val_test() -> Result<(), String> {
         // Value 100 (u8) (0 < 100 < 256).
         let short_val = ShortVal::new(100);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
@@ -139,7 +143,7 @@ mod cpe_tests {
 
         // Value 5_000 (u16) (256 < 5_000 < 65_536).
         let short_val = ShortVal::new(5000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
@@ -148,7 +152,7 @@ mod cpe_tests {
 
         // Value 100_000 (u24) (65_536 < 100_000 < 16_777_216).
         let short_val = ShortVal::new(100_000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
@@ -157,7 +161,7 @@ mod cpe_tests {
 
         // Value 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
         let short_val = ShortVal::new(50_000_000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = ShortVal::decode_cpe(&mut bit_stream).unwrap();
@@ -173,7 +177,7 @@ mod cpe_tests {
 
         // Insert 100 (u8) (0 < 100 < 256).
         let short_val = ShortVal::new(100);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
 
         assert_eq!(encoded.len(), 10);
 
@@ -181,7 +185,7 @@ mod cpe_tests {
 
         // Insert 5_000 (u16) (256 < 5_000 < 65_536).
         let short_val = ShortVal::new(5000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
 
         assert_eq!(encoded.len(), 18);
 
@@ -189,7 +193,7 @@ mod cpe_tests {
 
         // Insert 100_000 (u24) (65_536 < 100_000 < 16_777_216).
         let short_val = ShortVal::new(100_000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
 
         assert_eq!(encoded.len(), 26);
 
@@ -197,7 +201,7 @@ mod cpe_tests {
 
         // Insert 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
         let short_val = ShortVal::new(50_000_000);
-        let encoded = short_val.encode_cpe().unwrap();
+        let encoded = short_val.encode_cpe();
 
         assert_eq!(encoded.len(), 34);
 
@@ -238,7 +242,7 @@ mod cpe_tests {
     async fn cpe_single_long_val_test() -> Result<(), String> {
         // Value 100 (u8) (0 < 100 < 256).
         let long_val = LongVal::new(100);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
 
         let mut bit_stream = encoded.iter();
 
@@ -248,7 +252,7 @@ mod cpe_tests {
 
         // Value 5_000 (u16) (256 < 5_000 < 65_536).
         let long_val = LongVal::new(5_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -257,7 +261,7 @@ mod cpe_tests {
 
         // Value 100_000 (u24) (65_536 < 100_000 < 16_777_216).
         let long_val = LongVal::new(100_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -266,7 +270,7 @@ mod cpe_tests {
 
         // Value 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
         let long_val = LongVal::new(50_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -275,7 +279,7 @@ mod cpe_tests {
 
         // Value 100_000_000_000 (u40) (4_294_967_296 < 100_000_000_000 < 1_099_511_627_776).
         let long_val = LongVal::new(100_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -285,7 +289,7 @@ mod cpe_tests {
         //281,474,976,710,655
         // Value 100_000_000_000_000 (u48) (1_099_511_627_776 < 100_000_000_000_000 < 2_814_749_767_106_56).
         let long_val = LongVal::new(100_000_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -294,7 +298,7 @@ mod cpe_tests {
 
         // Value 100_000_000_000_000_000 (u56) (2_814_749_767_106_56 < 50_000_000_000_000_00 < 72_057_594_037_927_936).
         let long_val = LongVal::new(50_000_000_000_000_00);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -303,7 +307,7 @@ mod cpe_tests {
 
         // Value 100_000_000_000_000_000_000 (u64) (72_057_594_037_927_936 < 100_000_000_000_000_000 < 18,446,744,073,709,551,616).
         let long_val = LongVal::new(100_000_000_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         let mut bit_stream = encoded.iter();
 
         let decoded = LongVal::decode_cpe(&mut bit_stream).unwrap();
@@ -319,42 +323,42 @@ mod cpe_tests {
 
         // Insert 100 (u8) (0 < 100 < 256).
         let long_val = LongVal::new(100);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 5_000 (u16) (256 < 5_000 < 65_536).
         let long_val = LongVal::new(5_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 100_000 (u24) (65_536 < 100_000 < 16_777_216).
         let long_val = LongVal::new(100_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 50_000_000 (u32) (16_777_216 < 50_000_000 < 4_294_967_296).
         let long_val = LongVal::new(50_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 100_000_000_000 (u40) (4_294_967_296 < 100_000_000_000 < 1_099_511_627_776).
         let long_val = LongVal::new(100_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 100_000_000_000_000 (u48) (1_099_511_627_776 < 100_000_000_000_000 < 2_814_749_767_106_56).
         let long_val = LongVal::new(100_000_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 100_000_000_000_000_000 (u56) (2_814_749_767_106_56 < 50_000_000_000_000_00 < 72_057_594_037_927_936).
         let long_val = LongVal::new(50_000_000_000_000_00);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 100_000_000_000_000_000_000 (u64) (72_057_594_037_927_936 < 100_000_000_000_000_000 < 18,446,744,073,709,551,616).
         let long_val = LongVal::new(100_000_000_000_000_000);
-        let encoded = long_val.encode_cpe().unwrap();
+        let encoded = long_val.encode_cpe();
         full.extend(&encoded);
 
         // Insert 5 garbage bits.
@@ -437,9 +441,9 @@ mod cpe_tests {
         let account_2_to_encode = Account::new(point_2, None, None).unwrap();
         let account_3_to_encode = Account::new(point_3, None, None).unwrap();
 
-        let account_1_encoded = account_1_to_encode.encode_cpe().unwrap();
-        let account_2_encoded = account_2_to_encode.encode_cpe().unwrap();
-        let account_3_encoded = account_3_to_encode.encode_cpe().unwrap();
+        let account_1_encoded = account_1_to_encode.encode_cpe();
+        let account_2_encoded = account_2_to_encode.encode_cpe();
+        let account_3_encoded = account_3_to_encode.encode_cpe();
 
         let mut account_1_bit_stream = account_1_encoded.iter();
         let mut account_2_bit_stream = account_2_encoded.iter();
@@ -517,13 +521,13 @@ mod cpe_tests {
         assert_eq!(account_2.rank(), Some(2));
         assert_eq!(account_3.rank(), Some(3));
 
-        let account_1_encoded = account_1.encode_cpe().unwrap();
+        let account_1_encoded = account_1.encode_cpe();
         let mut account_1_bit_stream = account_1_encoded.iter();
 
-        let account_2_encoded = account_2.encode_cpe().unwrap();
+        let account_2_encoded = account_2.encode_cpe();
         let mut account_2_bit_stream = account_2_encoded.iter();
 
-        let account_3_encoded = account_3.encode_cpe().unwrap();
+        let account_3_encoded = account_3.encode_cpe();
         let mut account_3_bit_stream = account_3_encoded.iter();
 
         let account_1_decoded = Account::decode_cpe(&mut account_1_bit_stream, &account_registery)
@@ -615,9 +619,9 @@ mod cpe_tests {
         assert_eq!(contract_2.rank(), Some(2));
         assert_eq!(contract_3.rank(), Some(3));
 
-        let contract_1_encoded = contract_1.encode_cpe().unwrap();
-        let contract_2_encoded = contract_2.encode_cpe().unwrap();
-        let contract_3_encoded = contract_3.encode_cpe().unwrap();
+        let contract_1_encoded = contract_1.encode_cpe();
+        let contract_2_encoded = contract_2.encode_cpe();
+        let contract_3_encoded = contract_3.encode_cpe();
 
         let mut contract_1_bit_stream = contract_1_encoded.iter();
         let mut contract_2_bit_stream = contract_2_encoded.iter();
