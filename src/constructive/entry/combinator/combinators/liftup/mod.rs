@@ -1,2 +1,2 @@
-pub mod cpe;
+pub mod codec;
 pub mod liftup;

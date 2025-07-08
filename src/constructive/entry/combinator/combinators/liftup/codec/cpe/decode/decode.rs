@@ -3,7 +3,7 @@ use secp::Point;
 use crate::{
     constructive::{
         entry::combinator::combinators::liftup::{
-            cpe::decode::decode_error::LiftupCPEDecodingError, liftup::Liftup,
+            codec::cpe::decode::decode_error::LiftupCPEDecodingError, liftup::Liftup,
         },
         taproot::P2TR,
         txn::txholder::TxHolder,
