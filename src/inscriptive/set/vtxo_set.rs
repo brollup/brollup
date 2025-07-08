@@ -65,16 +65,12 @@ impl VTXOSet {
         Some(Arc::new(Mutex::new(vtxoset)))
     }
 
-    /// Returns the VTXO set of a given account.
-    pub fn vtxo_set_by_account(&self, account: &Account) -> Option<Vec<VTXO>> {
-        let account_key = account.key();
-        self.vtxo_set_by_account_key(&account_key)
-    }
-
     /// Returns the VTXO set of a given account key.
-    pub fn vtxo_set_by_account_key(&self, account_key: &Point) -> Option<Vec<VTXO>> {
-        let account_vtxo_set = self.vtxos.get(account_key)?;
-        Some(account_vtxo_set.clone())
+    pub fn vtxo_set_by_account_key(&self, account_key: &Point) -> Vec<VTXO> {
+        self.vtxos
+            .get(account_key)
+            .map(|vtxos| vtxos.clone())
+            .unwrap_or(Vec::<VTXO>::new())
     }
 
     /// Inserts a VTXO to the VTXO set.
@@ -154,5 +150,24 @@ impl VTXOSet {
             Ok(_) => true,
             Err(_) => false,
         }
+    }
+
+    /// Returns the VTXOs to recharge.
+    pub fn vtxos_to_recharge(&self, account_key: &Point, current_bitcoin_height: u32) -> Vec<VTXO> {
+        // Retrieve the account's VTXO set.
+        let account_vtxo_set = self.vtxo_set_by_account_key(account_key);
+
+        // Filter the VTXOs that are rechargeable.
+        let rechargeable_vtxos = account_vtxo_set
+            .iter()
+            .filter(|vtxo| {
+                vtxo.is_rechargeable(current_bitcoin_height)
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+
+        // Return the rechargeable VTXOs.
+        rechargeable_vtxos
     }
 }

@@ -42,8 +42,8 @@ impl Liftup {
         }
     }
 
-    /// Validates the `Liftup` against an `Account`.
-    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
+    /// Validation from the broader Entry context.
+    pub fn entry_validation(&self, account_key: [u8; 32]) -> bool {
         for lift in self.lift_prevtxos.iter() {
             if let None = lift.outpoint() {
                 return false;

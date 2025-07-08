@@ -1,8 +1,8 @@
 use super::combinator::{
     combinator::Combinator,
     combinators::{
-        add::Add, call::call::Call, liftup::liftup::Liftup, r#move::Move, recharge::Recharge,
-        reserved::Reserved, sub::Sub, swapout::Swapout,
+        add::Add, call::call::Call, liftup::liftup::Liftup, r#move::Move,
+        recharge::recharge::Recharge, reserved::Reserved, sub::Sub, swapout::Swapout,
     },
 };
 use crate::{
@@ -247,13 +247,13 @@ impl Entry {
 
         if let Some(uppermost_left_branch) = &self.uppermost_left_branch {
             if let Some(liftup) = &uppermost_left_branch.liftup {
-                if !liftup.validate_account(account_key) {
+                if !liftup.entry_validation(account_key) {
                     return false;
                 }
             }
 
             if let Some(recharge) = &uppermost_left_branch.recharge {
-                if !recharge.validate_account(account_key) {
+                if !recharge.entry_validation(account_key) {
                     return false;
                 }
             }
@@ -267,7 +267,7 @@ impl Entry {
                     }
                 }
                 Combinator::Call(call) => {
-                    if !call.validate_account(account_key) {
+                    if !call.entry_validation(account_key) {
                         return false;
                     }
                 }

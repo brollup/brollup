@@ -1,5 +1,7 @@
-use crate::constructive::entry::combinator::combinators::liftup::liftup::Liftup;
-use crate::constructive::entry::combinator::combinators::recharge::Recharge;
+use crate::constructive::entry::combinator::combinators::{
+    liftup::liftup::Liftup, recharge::recharge::Recharge,
+};
+
 use serde::{Deserialize, Serialize};
 
 /// The uppermost left branch of an entry.

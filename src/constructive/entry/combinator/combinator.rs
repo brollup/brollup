@@ -4,7 +4,8 @@ use super::{
     combinator_type::CombinatorType,
     combinators::{
         add::Add, claim::Claim, deploy::Deploy, liftup::liftup::Liftup, r#move::Move,
-        recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub, swapout::Swapout,
+        recharge::recharge::Recharge, reserved::Reserved, revive::Revive, sub::Sub,
+        swapout::Swapout,
     },
 };
 use serde::{Deserialize, Serialize};

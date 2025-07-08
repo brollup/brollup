@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 
 type Bytes = Vec<u8>;
 
+// Recharge allowance starts 45 days after the VTXO is created.
+// a VTXO expires in 90 days, so this is %50 of the total lifespan.
+const RECHARGE_HEIGHT_OFFSET: u32 = 144 * 45;
+
 /// VTXO (Virtual Transaction Output) is a Bitcoin transaction output that is held by a user, but is not confirmed on the chain.
 ///
 /// See: https://ark-protocol.org/intro/vtxos/index.html
@@ -106,6 +110,21 @@ impl VTXO {
         let key_agg_ctx = MusigKeyAggCtx::new(&keys, Some(tweak))?;
 
         Some(key_agg_ctx)
+    }
+
+    /// Returns true if the VTXO is rechargeable.
+    pub fn is_rechargeable(&self, current_bitcoin_height: u32) -> Option<bool> {
+        // Calculate the height at which the recharge allowance begins.
+        let recharge_allowance_height = current_bitcoin_height - RECHARGE_HEIGHT_OFFSET;
+
+        // Get the Bitcoin block height at which the VTXO was confirmed.
+        let at_bitcoin_height = self.at_bitcoin_height()?;
+
+        // Check if the VTXO is rechargeable.
+        let is_rechargeable = at_bitcoin_height <= recharge_allowance_height;
+
+        // Return the result.
+        Some(is_rechargeable)
     }
 }
 

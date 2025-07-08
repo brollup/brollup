@@ -82,10 +82,8 @@ impl Call {
         self.ops_price_base + self.ops_price_extra_in.unwrap_or(0)
     }
 
-    /// Validates the account for the call.
-    ///
-    /// This function checks if the account key matches the account key in the call.
-    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
+    /// Validation from the broader Entry context.
+    pub fn entry_validation(&self, account_key: [u8; 32]) -> bool {
         self.account_key == account_key
     }
 }

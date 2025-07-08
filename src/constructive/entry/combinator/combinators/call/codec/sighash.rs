@@ -3,6 +3,7 @@ use crate::constructive::entry::combinator::combinators::call::call::Call;
 use crate::transmutative::hash::Hash;
 use crate::transmutative::{hash::HashTag, secp::authenticable::AuthSighash};
 
+/// The sighash for the `Call` combinator.
 impl AuthSighash for Call {
     /// Returns the sighash of the call.
     fn auth_sighash(&self) -> [u8; 32] {

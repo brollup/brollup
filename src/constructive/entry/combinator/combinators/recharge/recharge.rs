@@ -1,16 +1,9 @@
-use crate::{
-    constructive::{entry::combinator::combinator_type::CombinatorType, txo::vtxo::VTXO},
-    transmutative::{
-        hash::{Hash, HashTag},
-        secp::authenticable::AuthSighash,
-    },
-};
-use bitcoin::hashes::Hash as _;
+use crate::constructive::txo::vtxo::VTXO;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Recharge {
-    recharge_vtxos: Vec<VTXO>,
+    pub recharge_vtxos: Vec<VTXO>,
 }
 
 impl Recharge {
@@ -44,7 +37,8 @@ impl Recharge {
         }
     }
 
-    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
+    /// Validation from the broader Entry context.
+    pub fn entry_validation(&self, account_key: [u8; 32]) -> bool {
         for vtxo in self.recharge_vtxos.iter() {
             if let None = vtxo.outpoint() {
                 return false;
@@ -56,23 +50,5 @@ impl Recharge {
         }
 
         true
-    }
-}
-
-impl AuthSighash for Recharge {
-    fn auth_sighash(&self) -> [u8; 32] {
-        let mut preimage: Vec<u8> = Vec::<u8>::new();
-
-        for vtxo in self.recharge_vtxos.iter() {
-            match vtxo.outpoint() {
-                Some(outpoint) => {
-                    preimage.extend(outpoint.txid.to_byte_array());
-                    preimage.extend(outpoint.vout.to_le_bytes());
-                }
-                None => return [0; 32],
-            };
-        }
-
-        preimage.hash(Some(HashTag::SighashCombinator(CombinatorType::Recharge)))
     }
 }
