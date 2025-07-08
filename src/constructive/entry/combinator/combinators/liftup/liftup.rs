@@ -1,4 +1,4 @@
-use crate::constructive::{entity::account::account::Account, txo::lift::Lift};
+use crate::constructive::txo::lift::Lift;
 use serde::{Deserialize, Serialize};
 
 /// A `Liftup` is a collection of `Lift`s that are being lifted up.
@@ -43,13 +43,13 @@ impl Liftup {
     }
 
     /// Validates the `Liftup` against an `Account`.
-    pub fn validate_account(&self, account: Account) -> bool {
+    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
         for lift in self.lift_prevtxos.iter() {
             if let None = lift.outpoint() {
                 return false;
             }
 
-            if lift.account_key() != account.key() {
+            if lift.account_key().serialize_xonly() != account_key {
                 return false;
             }
         }

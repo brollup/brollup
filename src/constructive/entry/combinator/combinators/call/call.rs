@@ -1,5 +1,4 @@
 use crate::constructive::calldata::element::element::CallElement;
-use crate::constructive::entity::account::account::Account;
 use serde::{Deserialize, Serialize};
 
 /// The holder of a call.
@@ -86,7 +85,7 @@ impl Call {
     /// Validates the account for the call.
     ///
     /// This function checks if the account key matches the account key in the call.
-    pub fn validate_account(&self, account: Account) -> bool {
-        self.account_key == account.key().serialize_xonly()
+    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
+        self.account_key == account_key
     }
 }

@@ -237,6 +237,7 @@ impl Entry {
     /// Validates the account of the entry.
     pub fn validate_account(&self) -> bool {
         let account = self.account();
+        let account_key = account.key().serialize_xonly();
 
         if let None = self.uppermost_left_branch {
             if let None = self.uppermost_right_branch {
@@ -246,13 +247,13 @@ impl Entry {
 
         if let Some(uppermost_left_branch) = &self.uppermost_left_branch {
             if let Some(liftup) = &uppermost_left_branch.liftup {
-                if !liftup.validate_account(account) {
+                if !liftup.validate_account(account_key) {
                     return false;
                 }
             }
 
             if let Some(recharge) = &uppermost_left_branch.recharge {
-                if !recharge.validate_account(account) {
+                if !recharge.validate_account(account_key) {
                     return false;
                 }
             }
@@ -266,7 +267,7 @@ impl Entry {
                     }
                 }
                 Combinator::Call(call) => {
-                    if !call.validate_account(account) {
+                    if !call.validate_account(account_key) {
                         return false;
                     }
                 }

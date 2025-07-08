@@ -1,8 +1,5 @@
 use crate::{
-    constructive::{
-        entity::account::account::Account, entry::combinator::combinator_type::CombinatorType,
-        txo::vtxo::VTXO,
-    },
+    constructive::{entry::combinator::combinator_type::CombinatorType, txo::vtxo::VTXO},
     transmutative::{
         hash::{Hash, HashTag},
         secp::authenticable::AuthSighash,
@@ -47,13 +44,13 @@ impl Recharge {
         }
     }
 
-    pub fn validate_account(&self, account: Account) -> bool {
+    pub fn validate_account(&self, account_key: [u8; 32]) -> bool {
         for vtxo in self.recharge_vtxos.iter() {
             if let None = vtxo.outpoint() {
                 return false;
             }
 
-            if vtxo.account_key() != account.key() {
+            if vtxo.account_key().serialize_xonly() != account_key {
                 return false;
             }
         }
